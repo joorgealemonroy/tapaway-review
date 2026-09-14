@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, Play, Star } from "lucide-react";
+import { ArrowRight, Play } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import TapAwayCard3D from "@/components/TapAwayCard3D";
@@ -13,6 +13,34 @@ const cities = [
   "Chicago",
   "Colorado",
   "Nevada",
+];
+
+const clientFeedback = [
+  {
+    name: "Victor Ramirez",
+    initials: "VR",
+    quote: "TapAway makes it easy for customers to find everything about our business in one place. Simple, professional, and convenient.",
+  },
+  {
+    name: "Sonia Berumen",
+    initials: "SB",
+    quote: "My favorite part is that they handle the setup. As a business owner, having one less thing to figure out means a lot.",
+  },
+  {
+    name: "Manuel Monroy",
+    initials: "MM",
+    quote: "TapAway makes it easy to stay connected with our customers. We can send a quick text with a special or reminder and give them a reason to come back through the door.",
+  },
+  {
+    name: "Amelia Zavala",
+    initials: "AZ",
+    quote: "I love how TapAway brings our links together in a way that feels organized and professional. It’s such a nice touch for our business.",
+  },
+  {
+    name: "Alexis Ramirez",
+    initials: "AR",
+    quote: "TapAway fits naturally into the customer experience. Our team can share our business information without slowing things down.",
+  },
 ];
 
 export const HeroSection = () => {
@@ -38,21 +66,6 @@ export const HeroSection = () => {
             transition={{ duration: 0.6 }}
             className="text-left"
           >
-            {/* Trust Badge */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.1 }}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/40 border border-slate-800 backdrop-blur-sm text-slate-300 text-sm font-medium mb-4 md:mb-8"
-            >
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-              </span>
-              <Star className="w-4 h-4 fill-primary" />
-              <span>Trusted by local businesses across Southern California</span>
-            </motion.div>
-
             {/* Main Headline */}
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tight text-foreground leading-[1.08] mb-5 md:mb-8">
               Turn Taps into{" "}
@@ -140,6 +153,42 @@ export const HeroSection = () => {
               </motion.div>
             </div>
           </motion.div>
+        </div>
+
+        <div className="mt-12 md:mt-16">
+          <motion.h2
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.25 }}
+            className="text-2xl md:text-3xl font-black text-center mb-6"
+          >
+            Verified Client Feedback
+          </motion.h2>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {clientFeedback.map((feedback, index) => (
+              <motion.article
+                key={feedback.name}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.45, delay: 0.3 + index * 0.08 }}
+                className="bg-card rounded-2xl p-5 border border-border shadow-lg shadow-black/5"
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <div
+                    className="w-12 h-12 shrink-0 rounded-full bg-primary/15 flex items-center justify-center text-primary font-bold text-sm"
+                    aria-label={`Photo placeholder for ${feedback.name}`}
+                  >
+                    {feedback.initials}
+                  </div>
+                  <h3 className="font-bold text-foreground">{feedback.name}</h3>
+                </div>
+                <blockquote className="text-sm leading-relaxed text-foreground/90">
+                  “{feedback.quote}”
+                </blockquote>
+              </motion.article>
+            ))}
+          </div>
         </div>
       </div>
     </section>
