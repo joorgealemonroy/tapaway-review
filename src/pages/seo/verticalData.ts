@@ -149,7 +149,7 @@ export const salons: VerticalData = {
     {
       heading: "Clients who feel connected actually rebook",
       body: [
-        "The difference between a client who comes twice a year and one who comes every six weeks is usually just how easy you make it. When your booking, your prices, and your latest work live in her pocket, the next appointment is one tap instead of a chore. Sonia Berumen, a TapAway customer, puts it simply — staying connected with her customers is the whole point — and her cards pulled in +33 new Google reviews in 30 days.",
+        "The difference between a client who comes twice a year and one who comes every six weeks is usually just how easy you make it. When your booking, your prices, and your latest work live in her pocket, the next appointment is one tap instead of a chore. Sonia Berumen, a TapAway customer, puts it simply — staying connected with her customers is the whole point.",
       ],
     },
     {
