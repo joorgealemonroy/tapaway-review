@@ -9,7 +9,6 @@ import { RiskReversalSection } from "@/components/landing/RiskReversalSection";
 import { FAQSection } from "@/components/landing/FAQSection";
 import { FooterCTA } from "@/components/landing/FooterCTA";
 import { TrialBanner } from "@/components/TrialBanner";
-import { OfferBanner } from "@/components/OfferBanner";
 import { LandingNav } from "@/components/landing/LandingNav";
 
 
@@ -32,7 +31,6 @@ const Index = () => {
       
       {/* Trial Resume Banner */}
       <TrialBanner />
-      <OfferBanner />
       
       
       {/* Navigation */}
