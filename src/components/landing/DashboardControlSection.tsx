@@ -116,12 +116,19 @@ export const DashboardControlSection = () => {
             transition={{ duration: 0.55, delay: 0.2 }}
             className="relative mx-auto w-full max-w-sm lg:max-w-md"
           >
-            <div className="relative rounded-[2.5rem] border-4 border-border bg-foreground p-3 shadow-2xl">
-              {/* Notch */}
-              <div className="absolute left-1/2 top-3 z-10 h-5 w-24 -translate-x-1/2 rounded-full bg-border" />
+            <div className="relative rounded-[3.4rem] bg-[#1b1b1f] p-2.5 shadow-2xl">
+              {/* Side buttons */}
+              <div className="absolute -left-[2px] top-24 h-6 w-[3px] rounded-full bg-[#1b1b1f]" />
+              <div className="absolute -left-[2px] top-36 h-10 w-[3px] rounded-full bg-[#1b1b1f]" />
+              <div className="absolute -left-[2px] top-48 h-10 w-[3px] rounded-full bg-[#1b1b1f]" />
+              <div className="absolute -right-[2px] top-40 h-16 w-[3px] rounded-full bg-[#1b1b1f]" />
 
-              {/* Screen */}
-              <div className="relative overflow-hidden rounded-[2rem] bg-background p-4 pt-10">
+              {/* Inner bezel */}
+              <div className="rounded-[2.9rem] bg-black p-[3px]">
+                {/* Screen */}
+                <div className="relative aspect-[9/19.5] overflow-hidden rounded-[2.75rem] bg-background p-4 pt-12">
+                  {/* Dynamic Island */}
+                  <div className="absolute left-1/2 top-2.5 z-10 h-8 w-[120px] -translate-x-1/2 rounded-full bg-black" />
                 {/* Header */}
                 <div className="mb-4 flex items-center justify-between">
                   <span className="text-sm font-bold text-foreground">TapAway</span>
@@ -178,6 +185,10 @@ export const DashboardControlSection = () => {
                     number={4}
                   />
                 </div>
+
+                {/* Home indicator */}
+                <div className="absolute bottom-2 left-1/2 z-10 h-[5px] w-[134px] -translate-x-1/2 rounded-full bg-white/60" />
+              </div>
               </div>
             </div>
 
