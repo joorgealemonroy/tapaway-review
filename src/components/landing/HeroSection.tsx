@@ -41,10 +41,10 @@ const clientFeedback = [
     quote: "I love how TapAway brings our links together in a way that feels organized and professional. It’s such a nice touch for our business.",
   },
   {
-    name: "Alexis Ramirez",
-    initials: "AR",
+    name: "Josh",
+    initials: "J",
     business: "Space Studios",
-    quote: "TapAway fits naturally into the customer experience. Our team can share our business information without slowing things down.",
+    quote: "",
     result: { before: 2, after: 22, gained: 20, days: 30, rating: 5.0 },
   },
 ];
