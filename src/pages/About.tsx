@@ -53,12 +53,12 @@ const About = () => {
         <title>About TapAway | TapAway</title>
         <meta
           name="description"
-          content="TapAway is a done-for-you NFC tap card platform for businesses, founded by Jorge Monroy in Fontana, CA. One tap connects customers to your whole business."
+          content="TapAway is a done-for-you NFC tap card platform for local businesses, founded by Jorge Monroy in Fontana, CA. One tap connects customers to your whole business."
         />
         <meta property="og:title" content="About TapAway | TapAway" />
         <meta
           property="og:description"
-          content="TapAway is a done-for-you NFC tap card platform for businesses, founded by Jorge Monroy in Fontana, CA."
+          content="TapAway is a done-for-you NFC tap card platform for local businesses, founded by Jorge Monroy in Fontana, CA."
         />
         <meta property="og:type" content="website" />
         <script type="application/ld+json">{JSON.stringify(organizationSchema)}</script>
