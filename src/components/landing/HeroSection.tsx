@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import TapAwayCard3D from "@/components/TapAwayCard3D";
 import victorAsset from "@/assets/victor-ramirez.jpg.asset.json";
 import soniaAsset from "@/assets/sonia-berumen.jpg.asset.json";
+import manuelAsset from "@/assets/manuel-monroy.jpg.asset.json";
 
 const cities = [
   "San Diego",
@@ -34,6 +35,7 @@ const clientFeedback = [
   {
     name: "Manuel Monroy",
     initials: "MM",
+    photo: manuelAsset.url,
     quote: "TapAway makes it easy to stay connected with our customers. We can send a quick text with a special or reminder and give them a reason to come back through the door.",
     result: { before: 30, after: 63, gained: 33, days: 30, rating: 4.6 },
   },
