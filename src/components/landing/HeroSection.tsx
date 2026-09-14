@@ -245,12 +245,20 @@ export const HeroSection = () => {
                   </div>
                 )}
                 <div className="flex items-center gap-3 mt-auto pt-8">
-                  <div
-                    className="w-12 h-12 shrink-0 rounded-lg bg-primary/15 flex items-center justify-center text-primary font-bold text-sm"
-                    aria-label={`Photo placeholder for ${feedback.name}`}
-                  >
-                    {feedback.initials}
-                  </div>
+                  {feedback.photo ? (
+                    <img
+                      src={feedback.photo}
+                      alt={feedback.name}
+                      className="w-12 h-12 shrink-0 rounded-lg object-cover"
+                    />
+                  ) : (
+                    <div
+                      className="w-12 h-12 shrink-0 rounded-lg bg-primary/15 flex items-center justify-center text-primary font-bold text-sm"
+                      aria-label={`Photo placeholder for ${feedback.name}`}
+                    >
+                      {feedback.initials}
+                    </div>
+                  )}
                   <div className="min-w-0">
                     <h3 className="font-bold text-foreground">{feedback.name}</h3>
                   </div>
