@@ -6,6 +6,7 @@ import TapAwayCard3D from "@/components/TapAwayCard3D";
 import victorAsset from "@/assets/victor-ramirez.jpg.asset.json";
 import soniaAsset from "@/assets/sonia-berumen.jpg.asset.json";
 import manuelAsset from "@/assets/manuel-monroy.jpg.asset.json";
+import joshAsset from "@/assets/josh.jpg.asset.json";
 
 const cities = [
   "San Diego",
@@ -47,6 +48,7 @@ const clientFeedback = [
   {
     name: "Josh",
     initials: "J",
+    photo: joshAsset.url,
     quote: "",
     result: { before: 2, after: 22, gained: 20, days: 30, rating: 5.0 },
   },
