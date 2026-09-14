@@ -1,5 +1,14 @@
 import { motion, useInView } from "framer-motion";
-import { Check, Eye, MessageSquareReply, Sparkles } from "lucide-react";
+import {
+  Check,
+  Eye,
+  LayoutGrid,
+  Link2,
+  MessageSquareReply,
+  MoreHorizontal,
+  Palette,
+  Sparkles,
+} from "lucide-react";
 import { useRef } from "react";
 
 const bullets = [
@@ -15,6 +24,13 @@ const FeatureTag = ({ children }: { children: string }) => (
     {children}
   </span>
 );
+
+const TABS = [
+  { icon: LayoutGrid, label: "Overview", active: true },
+  { icon: Link2, label: "Links", active: false },
+  { icon: Palette, label: "Design", active: false },
+  { icon: MoreHorizontal, label: "More", active: false },
+];
 
 export const DashboardControlSection = () => {
   const ref = useRef(null);
@@ -80,120 +96,140 @@ export const DashboardControlSection = () => {
               {/* Inner bezel */}
               <div className="rounded-[2.9rem] bg-black p-[3px]">
                 {/* Screen */}
-                <div className="relative aspect-[9/19.5] overflow-hidden rounded-[2.75rem] bg-background p-3 pt-9">
+                <div className="relative aspect-[9/19.5] overflow-hidden rounded-[2.75rem] bg-background">
                   {/* Dynamic Island */}
                   <div className="absolute left-1/2 top-2 z-10 h-6 w-[100px] -translate-x-1/2 rounded-full bg-black" />
-                {/* Header */}
-                <div className="mb-2 flex items-center justify-between">
-                  <span className="text-xs font-bold text-foreground">TapAway</span>
-                  <span className="flex items-center gap-1 rounded-full bg-green-500/10 px-1.5 py-0.5 text-[8px] font-semibold text-green-500">
-                    <span className="h-1 w-1 rounded-full bg-green-500" />
-                    Hub Live
-                  </span>
-                </div>
 
-                {/* Hub identity row */}
-                <div className="mb-2 flex items-center gap-2 rounded-lg border border-border bg-card p-2">
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
-                    S
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs font-bold text-foreground">Sample Cafe</p>
-                    <p className="truncate text-[9px] text-muted-foreground">tapaway.co/samplecafe</p>
-                  </div>
-                  <button
-                    type="button"
-                    className="flex shrink-0 items-center gap-1 rounded-full border border-border bg-background px-2 py-0.5 text-[9px] font-medium text-foreground"
-                  >
-                    <Eye className="h-2.5 w-2.5" />
-                    View
-                  </button>
-                </div>
+                  <div className="flex h-full flex-col px-3 pt-9 pb-3">
+                    {/* Header */}
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-xs font-bold text-foreground">TapAway</span>
+                      <span className="flex items-center gap-1 rounded-full bg-green-500/10 px-1.5 py-0.5 text-[8px] font-semibold text-green-500">
+                        <span className="h-1 w-1 rounded-full bg-green-500" />
+                        Hub Live
+                      </span>
+                    </div>
 
-                {/* Hero stat card */}
-                <div className="mb-2 rounded-lg border border-border bg-card p-2.5">
-                  <div className="flex items-center justify-between">
-                    <p className="text-[8px] font-bold uppercase tracking-widest text-muted-foreground">
-                      Taps this week
-                    </p>
-                    <FeatureTag>Live stats</FeatureTag>
-                  </div>
-                  <div className="mt-1 flex items-end gap-2">
-                    <p className="text-3xl font-black leading-none text-foreground">312</p>
-                    <span className="mb-0.5 rounded-full bg-green-500/10 px-1.5 py-0.5 text-[9px] font-bold text-green-500">
-                      +38%
-                    </span>
-                  </div>
-                  <div className="mt-2 border-b border-border pb-px">
-                    <div className="flex h-12 items-end gap-1">
-                      {tapBars.map((h, i) => (
-                        <div
-                          key={i}
-                          className="flex-1 rounded-t-sm bg-primary"
-                          style={{ height: `${h}%` }}
-                        />
+                    {/* Hub identity row */}
+                    <div className="mb-2 flex items-center gap-2 rounded-lg border border-border bg-card p-2">
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
+                        S
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-xs font-bold text-foreground">Sample Cafe</p>
+                        <p className="truncate text-[9px] text-muted-foreground">tapaway.co/samplecafe</p>
+                      </div>
+                      <button
+                        type="button"
+                        className="flex shrink-0 items-center gap-1 rounded-full border border-border bg-background px-2 py-0.5 text-[9px] font-medium text-foreground"
+                      >
+                        <Eye className="h-2.5 w-2.5" />
+                        View
+                      </button>
+                    </div>
+
+                    {/* Hero stat card */}
+                    <div className="mb-2 flex flex-1 flex-col rounded-lg border border-border bg-card p-2.5">
+                      <div className="flex items-center justify-between">
+                        <p className="text-[8px] font-bold uppercase tracking-widest text-muted-foreground">
+                          Taps this week
+                        </p>
+                        <FeatureTag>Live stats</FeatureTag>
+                      </div>
+                      <div className="mt-1 flex items-end gap-2">
+                        <p className="text-3xl font-black leading-none text-foreground">312</p>
+                        <span className="mb-0.5 rounded-full bg-green-500/10 px-1.5 py-0.5 text-[9px] font-bold text-green-500">
+                          +38%
+                        </span>
+                      </div>
+                      <div className="mt-2 flex flex-1 items-end border-b border-border pb-px">
+                        <div className="flex h-full w-full items-end gap-1">
+                          {tapBars.map((h, i) => (
+                            <div
+                              key={i}
+                              className="flex-1 rounded-t-sm bg-primary"
+                              style={{ height: `${h}%` }}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Sync banner */}
+                    <div className="mb-2 rounded-lg border border-primary/30 bg-primary/10 p-2.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-[11px] font-bold leading-tight text-foreground">
+                          Edits go live on every card
+                        </p>
+                        <FeatureTag>Instant sync</FeatureTag>
+                      </div>
+                      <p className="mt-0.5 text-[9px] leading-snug text-muted-foreground">
+                        Update once — every card updates instantly.
+                      </p>
+                    </div>
+
+                    {/* Mini stat cards */}
+                    <div className="mb-2 grid grid-cols-2 gap-2">
+                      <div className="rounded-lg border border-border bg-card p-2">
+                        <p className="text-sm font-black text-foreground">128</p>
+                        <p className="text-[8px] leading-tight text-muted-foreground">Review taps</p>
+                        <span className="mt-1 inline-block rounded-full bg-green-500/10 px-1.5 py-px text-[8px] font-bold text-green-500">
+                          +24
+                        </span>
+                      </div>
+                      <div className="rounded-lg border border-border bg-card p-2">
+                        <p className="text-sm font-black text-foreground">+14</p>
+                        <p className="text-[8px] leading-tight text-muted-foreground">New reviews</p>
+                      </div>
+                    </div>
+
+                    {/* Plan row */}
+                    <div className="mb-2 flex items-center justify-between rounded-lg border border-border bg-card px-2.5 py-2">
+                      <span className="text-[10px] font-bold text-foreground">TapAway Solo</span>
+                      <span className="rounded-full bg-green-500/10 px-1.5 py-0.5 text-[8px] font-semibold text-green-500">
+                        Hub Live
+                      </span>
+                    </div>
+
+                    {/* Milestone card */}
+                    <div className="rounded-lg border border-border bg-card p-2.5">
+                      <div className="mb-1.5 flex items-center justify-between">
+                        <p className="text-[8px] font-bold uppercase tracking-widest text-muted-foreground">
+                          Milestones
+                        </p>
+                        <FeatureTag>Smart alerts</FeatureTag>
+                      </div>
+                      <div className="flex items-center gap-2 border-b border-border pb-1.5">
+                        <Sparkles className="h-3 w-3 shrink-0 text-yellow-500" />
+                        <p className="text-[10px] font-bold text-foreground">First visit!</p>
+                      </div>
+                      <div className="flex items-center gap-2 pt-1.5">
+                        <MessageSquareReply className="h-3 w-3 shrink-0 text-yellow-500" />
+                        <p className="text-[10px] font-bold text-foreground">First review click</p>
+                      </div>
+                    </div>
+
+                    {/* Bottom tab bar */}
+                    <div className="mt-auto flex items-end justify-around border-t border-border bg-background pb-1.5 pt-2">
+                      {TABS.map(({ icon: Icon, label, active }) => (
+                        <div key={label} className="flex flex-col items-center gap-1">
+                          <Icon
+                            aria-hidden="true"
+                            className={`h-4 w-4 ${active ? "text-primary" : "text-muted-foreground"}`}
+                          />
+                          <span
+                            className={`text-[10px] font-medium leading-none ${active ? "text-primary" : "text-muted-foreground"}`}
+                          >
+                            {label}
+                          </span>
+                        </div>
                       ))}
                     </div>
                   </div>
-                </div>
 
-                {/* Sync banner */}
-                <div className="mb-2 rounded-lg border border-primary/30 bg-primary/10 p-2.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-[11px] font-bold leading-tight text-foreground">
-                      Edits go live on every card
-                    </p>
-                    <FeatureTag>Instant sync</FeatureTag>
-                  </div>
-                  <p className="mt-0.5 text-[9px] leading-snug text-muted-foreground">
-                    Update once — every card updates instantly.
-                  </p>
+                  {/* Home indicator */}
+                  <div className="absolute bottom-2 left-1/2 z-10 h-[5px] w-[134px] -translate-x-1/2 rounded-full bg-white/60" />
                 </div>
-
-                {/* Mini stat cards */}
-                <div className="mb-2 grid grid-cols-2 gap-2">
-                  <div className="rounded-lg border border-border bg-card p-2">
-                    <p className="text-sm font-black text-foreground">128</p>
-                    <p className="text-[8px] leading-tight text-muted-foreground">Review taps</p>
-                    <span className="mt-1 inline-block rounded-full bg-green-500/10 px-1.5 py-px text-[8px] font-bold text-green-500">
-                      +24
-                    </span>
-                  </div>
-                  <div className="rounded-lg border border-border bg-card p-2">
-                    <p className="text-sm font-black text-foreground">+14</p>
-                    <p className="text-[8px] leading-tight text-muted-foreground">New reviews</p>
-                  </div>
-                </div>
-
-                {/* Plan row */}
-                <div className="mb-2 flex items-center justify-between rounded-lg border border-border bg-card px-2.5 py-2">
-                  <span className="text-[10px] font-bold text-foreground">TapAway Solo</span>
-                  <span className="rounded-full bg-green-500/10 px-1.5 py-0.5 text-[8px] font-semibold text-green-500">
-                    Hub Live
-                  </span>
-                </div>
-
-                {/* Milestone card */}
-                <div className="rounded-lg border border-border bg-card p-2.5">
-                  <div className="mb-1.5 flex items-center justify-between">
-                    <p className="text-[8px] font-bold uppercase tracking-widest text-muted-foreground">
-                      Milestones
-                    </p>
-                    <FeatureTag>Smart alerts</FeatureTag>
-                  </div>
-                  <div className="flex items-center gap-2 border-b border-border pb-1.5">
-                    <Sparkles className="h-3 w-3 shrink-0 text-yellow-500" />
-                    <p className="text-[10px] font-bold text-foreground">First visit!</p>
-                  </div>
-                  <div className="flex items-center gap-2 pt-1.5">
-                    <MessageSquareReply className="h-3 w-3 shrink-0 text-yellow-500" />
-                    <p className="text-[10px] font-bold text-foreground">First review click</p>
-                  </div>
-                </div>
-
-                {/* Home indicator */}
-                <div className="absolute bottom-2 left-1/2 z-10 h-[5px] w-[134px] -translate-x-1/2 rounded-full bg-white/60" />
-              </div>
               </div>
             </div>
 
