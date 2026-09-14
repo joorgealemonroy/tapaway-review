@@ -203,7 +203,7 @@ export const HeroSection = () => {
             </motion.p>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 items-start sm:grid-cols-2 lg:grid-cols-3">
             {clientFeedback.map((feedback, index) => (
               <motion.article
                 key={feedback.name}
@@ -211,20 +211,20 @@ export const HeroSection = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, amount: 0.25 }}
                 transition={{ duration: 0.45, delay: index * 0.06 }}
-                className="min-h-64 flex flex-col bg-card rounded-lg p-6 border border-border"
+                className="bg-card rounded-lg p-4 border border-border"
               >
                 {feedback.quote && (
                   <>
                     <span aria-hidden="true" className="text-4xl font-black leading-none text-primary">
                       “
                     </span>
-                    <blockquote className="mt-4 text-base italic leading-relaxed text-foreground/90">
+                    <blockquote className="mt-2 text-base italic leading-relaxed text-foreground/90">
                       {feedback.quote}
                     </blockquote>
                   </>
                 )}
                 {feedback.result && (
-                  <div className="mt-6 border-y border-border py-4">
+                  <div className="mt-3 border-y border-border py-2">
                     <div className="flex items-center justify-between gap-3">
                       <div>
                         <p className="text-xs font-semibold uppercase text-muted-foreground">Before</p>
@@ -236,7 +236,7 @@ export const HeroSection = () => {
                         <p className="mt-1 text-xl font-bold text-primary">{feedback.result.after}</p>
                       </div>
                     </div>
-                    <div className="mt-3 flex items-end justify-between gap-3">
+                    <div className="mt-1.5 flex items-end justify-between gap-3">
                       <div>
                         <p className="text-xl font-black text-primary">+{feedback.result.gained}</p>
                         <p className="text-xs text-muted-foreground">new reviews in {feedback.result.days} days</p>
@@ -250,7 +250,7 @@ export const HeroSection = () => {
                     </div>
                   </div>
                 )}
-                <div className="flex items-center gap-3 mt-auto pt-8">
+                <div className="flex items-center gap-3 mt-3">
                   {feedback.photo ? (
                     <img
                       src={feedback.photo}
