@@ -3,6 +3,7 @@ import { ArrowRight, Play, Star, TrendingUp } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import TapAwayCard3D from "@/components/TapAwayCard3D";
+import victorAsset from "@/assets/victor-ramirez.jpg.asset.json";
 
 const cities = [
   "San Diego",
@@ -19,6 +20,7 @@ const clientFeedback = [
   {
     name: "Victor Ramirez",
     initials: "VR",
+    photo: victorAsset.url,
     quote: "TapAway makes it easy for customers to find everything about our business in one place. Simple, professional, and convenient.",
     result: { before: 507, after: 551, gained: 44, days: 30 },
   },
@@ -243,12 +245,20 @@ export const HeroSection = () => {
                   </div>
                 )}
                 <div className="flex items-center gap-3 mt-auto pt-8">
-                  <div
-                    className="w-12 h-12 shrink-0 rounded-lg bg-primary/15 flex items-center justify-center text-primary font-bold text-sm"
-                    aria-label={`Photo placeholder for ${feedback.name}`}
-                  >
-                    {feedback.initials}
-                  </div>
+                  {feedback.photo ? (
+                    <img
+                      src={feedback.photo}
+                      alt={feedback.name}
+                      className="w-12 h-12 shrink-0 rounded-lg object-cover"
+                    />
+                  ) : (
+                    <div
+                      className="w-12 h-12 shrink-0 rounded-lg bg-primary/15 flex items-center justify-center text-primary font-bold text-sm"
+                      aria-label={`Photo placeholder for ${feedback.name}`}
+                    >
+                      {feedback.initials}
+                    </div>
+                  )}
                   <div className="min-w-0">
                     <h3 className="font-bold text-foreground">{feedback.name}</h3>
                   </div>
