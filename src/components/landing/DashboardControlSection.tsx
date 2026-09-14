@@ -40,24 +40,26 @@ const DashboardCard = ({
         : "bg-muted text-muted-foreground";
 
   return (
-    <div className="relative rounded-xl border border-border bg-card p-3 shadow-sm">
-      <span className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-black text-primary-foreground shadow-sm">
-        {number}
-      </span>
-      <div className="flex items-start gap-3">
-        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${iconBg}`}>
-          <Icon className="h-4 w-4" />
+    <div className="relative rounded-lg border border-border bg-card p-2 shadow-sm">
+      {number !== undefined && (
+        <span className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[9px] font-black text-primary-foreground shadow-sm">
+          {number}
+        </span>
+      )}
+      <div className="flex items-start gap-2">
+        <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${iconBg}`}>
+          <Icon className="h-3.5 w-3.5" />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="flex items-center justify-between gap-2">
-            <h4 className="truncate text-sm font-bold text-foreground">{title}</h4>
+          <div className="flex items-center justify-between gap-1.5">
+            <h4 className="truncate text-xs font-bold text-foreground">{title}</h4>
             {meta && (
-              <span className="shrink-0 rounded-full bg-green-500/10 px-2 py-0.5 text-[10px] font-semibold text-green-500">
+              <span className="shrink-0 rounded-full bg-green-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-green-500">
                 {meta}
               </span>
             )}
           </div>
-          <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{body}</p>
+          <p className="mt-0.5 text-[10px] leading-snug text-muted-foreground">{body}</p>
         </div>
       </div>
     </div>
