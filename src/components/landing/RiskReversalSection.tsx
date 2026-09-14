@@ -62,7 +62,7 @@ export const RiskReversalSection = () => {
             <motion.img
               src="/tapaway-phone-mockups.png"
               alt="TapAway phone mockups showing example business hubs"
-              className="w-full max-h-[520px] md:max-h-[640px] object-contain"
+              className="w-full max-h-[520px] md:max-h-[640px] object-contain rounded-2xl"
               initial={{ opacity: 0, scale: 0.96 }}
               animate={isInView ? { opacity: 1, scale: 1 } : {}}
               transition={{ duration: 0.6, delay: 0.1 }}
