@@ -231,7 +231,7 @@ export const DashboardControlSection = () => {
             </p>
 
             {/* Pointer legend */}
-            <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-center text-xs text-muted-foreground">
+            <div className="mt-1.5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center text-[10px] text-muted-foreground">
               {pointers.map((p, i) => (
                 <span key={p.label} className="inline-flex items-center gap-1.5">
                   <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[8px] font-black text-primary-foreground">
