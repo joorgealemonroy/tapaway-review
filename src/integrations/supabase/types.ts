@@ -1724,6 +1724,45 @@ export type Database = {
           },
         ]
       }
+      google_review_snapshots: {
+        Row: {
+          captured_at: string
+          id: string
+          rating: number | null
+          restaurant_id: string
+          review_count: number
+        }
+        Insert: {
+          captured_at?: string
+          id?: string
+          rating?: number | null
+          restaurant_id: string
+          review_count: number
+        }
+        Update: {
+          captured_at?: string
+          id?: string
+          rating?: number | null
+          restaurant_id?: string
+          review_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_review_snapshots_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "google_review_snapshots_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       google_reviews: {
         Row: {
           attributed_to_tapaway: boolean
