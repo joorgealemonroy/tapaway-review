@@ -217,6 +217,35 @@ export const DashboardControlSection = () => {
               Your TapAway dashboard
             </p>
           </motion.div>
+
+          {/* Mobile bullets - under phone; Desktop bullets - under left text */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={isInView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="lg:col-start-1 lg:row-start-2"
+          >
+            <ul className="space-y-4">
+              {bullets.map((text, index) => (
+                <motion.li
+                  key={text}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={isInView ? { opacity: 1, x: 0 } : {}}
+                  transition={{ duration: 0.35, delay: 0.15 + index * 0.08 }}
+                  className="flex items-start gap-3"
+                >
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                    <Check
+                      aria-hidden="true"
+                      className="h-3.5 w-3.5 text-primary"
+                      strokeWidth={3}
+                    />
+                  </span>
+                  <span className="text-base font-medium text-foreground">{text}</span>
+                </motion.li>
+              ))}
+            </ul>
+          </motion.div>
         </div>
       </div>
     </section>
