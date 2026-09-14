@@ -211,7 +211,7 @@ export const HeroSection = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, amount: 0.25 }}
                 transition={{ duration: 0.45, delay: index * 0.06 }}
-                className="bg-card rounded-lg p-5 border border-border"
+                className="bg-card rounded-lg p-4 border border-border"
               >
                 {feedback.quote && (
                   <>
@@ -224,7 +224,7 @@ export const HeroSection = () => {
                   </>
                 )}
                 {feedback.result && (
-                  <div className="mt-4 border-y border-border py-3">
+                  <div className="mt-3 border-y border-border py-2">
                     <div className="flex items-center justify-between gap-3">
                       <div>
                         <p className="text-xs font-semibold uppercase text-muted-foreground">Before</p>
@@ -236,7 +236,7 @@ export const HeroSection = () => {
                         <p className="mt-1 text-xl font-bold text-primary">{feedback.result.after}</p>
                       </div>
                     </div>
-                    <div className="mt-2 flex items-end justify-between gap-3">
+                    <div className="mt-1.5 flex items-end justify-between gap-3">
                       <div>
                         <p className="text-xl font-black text-primary">+{feedback.result.gained}</p>
                         <p className="text-xs text-muted-foreground">new reviews in {feedback.result.days} days</p>
