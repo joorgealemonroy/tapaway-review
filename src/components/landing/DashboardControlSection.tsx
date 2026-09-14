@@ -8,36 +8,12 @@ const bullets = [
   "No reprints, no new codes, no extra cost",
 ];
 
-const Annotation = ({
-  number,
-  label,
-  position,
-}: {
-  number: number;
-  label: string;
-  position: "left" | "right";
-}) => (
-  <div
-    className={`absolute top-1/2 ${position === "left" ? "right-full mr-3" : "left-full ml-3"} flex -translate-y-1/2 items-center gap-2 whitespace-nowrap`}
-  >
-    {position === "left" && (
-      <>
-        <span className="text-xs font-bold text-primary">{label}</span>
-        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-black text-primary-foreground">
-          {number}
-        </span>
-      </>
-    )}
-    {position === "right" && (
-      <>
-        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-black text-primary-foreground">
-          {number}
-        </span>
-        <span className="text-xs font-bold text-primary">{label}</span>
-      </>
-    )}
-  </div>
-);
+const pointers = [
+  { label: "Plan status" },
+  { label: "Live link" },
+  { label: "Tap alerts" },
+  { label: "Review activity" },
+];
 
 const DashboardCard = ({
   icon: Icon,
@@ -45,12 +21,14 @@ const DashboardCard = ({
   body,
   meta,
   tone = "default",
+  number,
 }: {
   icon: React.ElementType;
   title: string;
   body: string;
   meta?: string;
   tone?: "default" | "accent" | "highlight";
+  number: number;
 }) => {
   const iconBg =
     tone === "accent"
@@ -60,7 +38,10 @@ const DashboardCard = ({
         : "bg-muted text-muted-foreground";
 
   return (
-    <div className="rounded-xl border border-border bg-card p-3 shadow-sm">
+    <div className="relative rounded-xl border border-border bg-card p-3 shadow-sm">
+      <span className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-black text-primary-foreground shadow-sm">
+        {number}
+      </span>
       <div className="flex items-start gap-3">
         <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${iconBg}`}>
           <Icon className="h-4 w-4" />
@@ -166,47 +147,36 @@ export const DashboardControlSection = () => {
                 </div>
 
                 {/* Dashboard cards */}
-                <div className="relative space-y-3">
-                  <div className="relative">
-                    <DashboardCard
-                      icon={Trophy}
-                      title="TapAway Solo plan"
-                      body="Your hub is live and taking taps."
-                      meta="Hub Live"
-                      tone="accent"
-                    />
-                    <Annotation number={1} label="Plan status" position="right" />
-                  </div>
-
-                  <div className="relative">
-                    <DashboardCard
-                      icon={Sparkles}
-                      title="Your hub is live"
-                      body="tapaway.co/samplecafe"
-                      tone="default"
-                    />
-                    <Annotation number={2} label="Live link" position="left" />
-                  </div>
-
-                  <div className="relative">
-                    <DashboardCard
-                      icon={Sparkles}
-                      title="First visit!"
-                      body="Someone tapped through — it’s working. Keep your cards where people can see them."
-                      tone="highlight"
-                    />
-                    <Annotation number={3} label="Tap alerts" position="right" />
-                  </div>
-
-                  <div className="relative">
-                    <DashboardCard
-                      icon={MessageSquareReply}
-                      title="First review click"
-                      body="Someone tapped through to leave you a review. That’s the whole point — keep it coming."
-                      tone="highlight"
-                    />
-                    <Annotation number={4} label="Review activity" position="left" />
-                  </div>
+                <div className="space-y-3">
+                  <DashboardCard
+                    icon={Trophy}
+                    title="TapAway Solo plan"
+                    body="Your hub is live and taking taps."
+                    meta="Hub Live"
+                    tone="accent"
+                    number={1}
+                  />
+                  <DashboardCard
+                    icon={Sparkles}
+                    title="Your hub is live"
+                    body="tapaway.co/samplecafe"
+                    tone="default"
+                    number={2}
+                  />
+                  <DashboardCard
+                    icon={Sparkles}
+                    title="First visit!"
+                    body="Someone tapped through — it’s working. Keep your cards where people can see them."
+                    tone="highlight"
+                    number={3}
+                  />
+                  <DashboardCard
+                    icon={MessageSquareReply}
+                    title="First review click"
+                    body="Someone tapped through to leave you a review. That’s the whole point — keep it coming."
+                    tone="highlight"
+                    number={4}
+                  />
                 </div>
               </div>
             </div>
@@ -214,6 +184,18 @@ export const DashboardControlSection = () => {
             <p className="mt-4 text-center text-xs font-medium text-muted-foreground">
               Your TapAway dashboard
             </p>
+
+            {/* Pointer legend */}
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-center text-xs text-muted-foreground">
+              {pointers.map((p, i) => (
+                <span key={p.label} className="inline-flex items-center gap-1.5">
+                  <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[8px] font-black text-primary-foreground">
+                    {i + 1}
+                  </span>
+                  {p.label}
+                </span>
+              ))}
+            </div>
           </motion.div>
         </div>
       </div>
