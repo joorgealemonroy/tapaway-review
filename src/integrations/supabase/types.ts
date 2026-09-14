@@ -1726,9 +1726,11 @@ export type Database = {
       }
       google_reviews: {
         Row: {
+          attributed_to_tapaway: boolean
           author_name: string | null
           created_at: string | null
           id: number
+          matched_clicks: number
           place_id: string | null
           profile_photo_url: string | null
           rating: number
@@ -1739,9 +1741,11 @@ export type Database = {
           text: string | null
         }
         Insert: {
+          attributed_to_tapaway?: boolean
           author_name?: string | null
           created_at?: string | null
           id?: never
+          matched_clicks?: number
           place_id?: string | null
           profile_photo_url?: string | null
           rating: number
@@ -1752,9 +1756,11 @@ export type Database = {
           text?: string | null
         }
         Update: {
+          attributed_to_tapaway?: boolean
           author_name?: string | null
           created_at?: string | null
           id?: never
+          matched_clicks?: number
           place_id?: string | null
           profile_photo_url?: string | null
           rating?: number
