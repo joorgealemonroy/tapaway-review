@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Check, Loader2, Shield, ArrowRight, User, Building2, CloudUpload, X, Mail, Phone, CreditCard } from "lucide-react";
 // MagicLoadingOverlay removed — concierge model: no auto-builder
 import { motion, AnimatePresence } from "framer-motion";
+import { Helmet } from "react-helmet-async";
 import { useAuth } from "@/hooks/useAuth";
 import { GooglePlacesAutocomplete } from "@/components/GooglePlacesAutocomplete";
 import { isSuperAdmin } from "@/lib/grandfatheredUsers";
@@ -847,6 +848,11 @@ const Onboarding = () => {
 
   return (
     <div className="min-h-screen bg-[#0a0e1a] text-white">
+      <Helmet>
+        <title>Create Your Hub | TapAway</title>
+        <meta name="description" content="Create your TapAway hub — custom NFC cards, your business links in one place, free 14-day trial." />
+        <link rel="canonical" href="https://tapaway.co/start" />
+      </Helmet>
       {/* Nav */}
       <nav className="sticky top-0 z-50 bg-[#0a0e1a]/90 backdrop-blur-lg border-b border-white/5">
         <div className="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
