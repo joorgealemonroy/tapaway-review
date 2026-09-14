@@ -130,63 +130,93 @@ export const DashboardControlSection = () => {
               {/* Inner bezel */}
               <div className="rounded-[2.9rem] bg-black p-[3px]">
                 {/* Screen */}
-                <div className="relative aspect-[9/19.5] overflow-hidden rounded-[2.75rem] bg-background p-4 pt-12">
+                <div className="relative aspect-[9/19.5] overflow-hidden rounded-[2.75rem] bg-background p-3 pt-9">
                   {/* Dynamic Island */}
-                  <div className="absolute left-1/2 top-2.5 z-10 h-8 w-[120px] -translate-x-1/2 rounded-full bg-black" />
+                  <div className="absolute left-1/2 top-2 z-10 h-6 w-[100px] -translate-x-1/2 rounded-full bg-black" />
                 {/* Header */}
-                <div className="mb-4 flex items-center justify-between">
-                  <span className="text-sm font-bold text-foreground">TapAway</span>
-                  <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="text-xs font-bold text-foreground">TapAway</span>
+                  <ExternalLink className="h-3 w-3 text-muted-foreground" />
                 </div>
 
                 {/* Hub identity row */}
-                <div className="mb-4 flex items-center gap-3 rounded-xl border border-border bg-card p-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
+                <div className="mb-2 flex items-center gap-2 rounded-lg border border-border bg-card p-2">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
                     S
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-bold text-foreground">Sample Cafe</p>
-                    <p className="text-xs text-muted-foreground">tapaway.co/samplecafe</p>
+                    <p className="truncate text-xs font-bold text-foreground">Sample Cafe</p>
+                    <p className="truncate text-[9px] text-muted-foreground">tapaway.co/samplecafe</p>
                   </div>
                   <button
                     type="button"
-                    className="flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-xs font-medium text-foreground"
+                    className="flex shrink-0 items-center gap-1 rounded-full border border-border bg-background px-2 py-0.5 text-[9px] font-medium text-foreground"
                   >
-                    <Eye className="h-3 w-3" />
+                    <Eye className="h-2.5 w-2.5" />
                     View
                   </button>
                 </div>
 
+                {/* Stat row */}
+                <div className="relative mb-2 grid grid-cols-2 gap-2">
+                  <span className="absolute -right-1.5 -top-1.5 z-10 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[9px] font-black text-primary-foreground shadow-sm">
+                    1
+                  </span>
+                  <div className="rounded-lg border border-border bg-card p-2">
+                    <p className="text-sm font-black text-foreground">47</p>
+                    <p className="text-[9px] leading-tight text-muted-foreground">Taps this week</p>
+                  </div>
+                  <div className="rounded-lg border border-border bg-card p-2">
+                    <p className="text-sm font-black text-foreground">18</p>
+                    <p className="text-[9px] leading-tight text-muted-foreground">Review taps</p>
+                  </div>
+                </div>
+
+                {/* Taps chart */}
+                <div className="relative mb-2 rounded-lg border border-border bg-card p-2">
+                  <span className="absolute -right-1.5 -top-1.5 z-10 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[9px] font-black text-primary-foreground shadow-sm">
+                    2
+                  </span>
+                  <p className="mb-1.5 text-[10px] font-bold text-foreground">Taps</p>
+                  <div className="flex h-10 items-end gap-1">
+                    {tapBars.map((h, i) => (
+                      <div
+                        key={i}
+                        className="flex-1 rounded-sm bg-primary"
+                        style={{ height: `${h}%` }}
+                      />
+                    ))}
+                  </div>
+                </div>
+
                 {/* Dashboard cards */}
-                <div className="space-y-3">
+                <div className="space-y-2">
                   <DashboardCard
                     icon={Trophy}
                     title="TapAway Solo plan"
                     body="Your hub is live and taking taps."
                     meta="Hub Live"
                     tone="accent"
-                    number={1}
+                    number={3}
                   />
                   <DashboardCard
                     icon={Sparkles}
                     title="Your hub is live"
                     body="tapaway.co/samplecafe"
                     tone="default"
-                    number={2}
                   />
                   <DashboardCard
                     icon={Sparkles}
                     title="First visit!"
-                    body="Someone tapped through — it’s working. Keep your cards where people can see them."
+                    body="Someone tapped through — it’s working."
                     tone="highlight"
-                    number={3}
+                    number={4}
                   />
                   <DashboardCard
                     icon={MessageSquareReply}
                     title="First review click"
-                    body="Someone tapped through to leave you a review. That’s the whole point — keep it coming."
+                    body="Someone tapped through to leave a review."
                     tone="highlight"
-                    number={4}
                   />
                 </div>
 
