@@ -118,7 +118,7 @@ export const DashboardControlSection = () => {
             initial={{ opacity: 0, y: 24 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.55, delay: 0.2 }}
-            className="relative mx-auto w-full max-w-sm lg:max-w-md"
+            className="relative mx-auto w-full max-w-[310px]"
           >
             <div className="relative rounded-[3.4rem] bg-[#1b1b1f] p-2.5 shadow-2xl">
               {/* Side buttons */}
