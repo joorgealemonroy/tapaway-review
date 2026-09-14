@@ -327,10 +327,16 @@ export async function getClientLastTapAt(
  * the restaurant in the 48 hours before the review's publish time.
  */
 export interface AttributedReviews {
-  /** Reviews published within the window. */
+  /** Reviews published within the window, from Google's own per-review data. */
   newReviews: number;
-  /** Of those, how many followed a TapAway review-button tap. */
+  /**
+   * Of those, how many followed a TapAway review-button tap. Hard-clamped to
+   * never exceed newReviews — we must never claim more attributed reviews
+   * than the reviews actually received.
+   */
   attributed: number;
+  /** True when per-review data exists for the window (the verified path). */
+  hasData: boolean;
 }
 
 export async function getAttributedReviews(
@@ -346,9 +352,11 @@ export async function getAttributedReviews(
 
   if (error) throw error;
   const rows = (data ?? []) as { attributed_to_tapaway: boolean }[];
+  const attributedCount = rows.filter((r) => r.attributed_to_tapaway).length;
   return {
     newReviews: rows.length,
-    attributed: rows.filter((r) => r.attributed_to_tapaway).length,
+    attributed: Math.min(attributedCount, rows.length),
+    hasData: rows.length > 0,
   };
 }
 

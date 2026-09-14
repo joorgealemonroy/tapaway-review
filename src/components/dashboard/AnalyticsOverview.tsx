@@ -172,6 +172,14 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
   // Most recent day first for the per-day list.
   const daysDesc = [...analytics.clicksByDay].reverse();
 
+  // "New reviews" headline prefers the verified per-review count — Google's own
+  // review records can only undercount (the API returns the newest few), never
+  // claim more reviews than were actually received. The weekly snapshot net
+  // delta is the fallback when no per-review data exists yet.
+  const verifiedNewReviews = analytics.attributedReviews?.hasData
+    ? analytics.attributedReviews.newReviews
+    : null;
+
   return (
     <div className="space-y-4 sm:space-y-6 pb-8 animate-fade-in">
       {/* Welcome Card */}
@@ -231,12 +239,17 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
             <div className="flex-1">
               <p className="text-sm font-medium text-muted-foreground">New Google reviews</p>
               <p className="text-2xl sm:text-3xl font-bold">
-                {analytics.reviewDelta.newReviews > 0
-                  ? `+${analytics.reviewDelta.newReviews}`
-                  : analytics.reviewDelta.newReviews}
-                <span className="text-sm font-normal text-muted-foreground">
-                  {" "}in the last {daysBack} days
-                </span>
+                {(() => {
+                  const headline = verifiedNewReviews ?? analytics.reviewDelta.newReviews;
+                  return (
+                    <>
+                      {headline > 0 ? `+${headline}` : headline}
+                      <span className="text-sm font-normal text-muted-foreground">
+                        {" "}in the last {daysBack} days
+                      </span>
+                    </>
+                  );
+                })()}
               </p>
               <p className="text-xs text-muted-foreground mt-1">
                 {analytics.reviewDelta.latestCount} total on Google · checked weekly
