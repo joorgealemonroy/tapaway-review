@@ -20,6 +20,7 @@ const clientFeedback = [
   {
     name: "Victor Ramirez",
     initials: "VR",
+    photo: victorAsset.url,
     quote: "TapAway makes it easy for customers to find everything about our business in one place. Simple, professional, and convenient.",
     result: { before: 507, after: 551, gained: 44, days: 30 },
   },
