@@ -59,7 +59,7 @@ export const TrialBanner = () => {
       const restaurantNeedsSetup = (restaurantResult.data ?? []).some(
         (account) =>
           account.onboarding_completed !== true ||
-          account.onboarding_step < 4 ||
+          (account.onboarding_step ?? 0) < 4 ||
           account.subscription_status === "pending_setup",
       );
 
