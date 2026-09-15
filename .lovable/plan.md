@@ -14,13 +14,19 @@ Give Muse AI a REST API into your Lovable Cloud backend without exposing the ser
    - Supports safe query params: `limit` (max 1,000), `eq:` filters (e.g. `eq:restaurant_id=...`), and `order`.
    - Returns arrays of full rows from those tables.
 
-3. **Write endpoint** — `POST /muse-ai-bridge/restaurants/{id}`
+3. **Update endpoint** — `POST /muse-ai-bridge/restaurants/{id}`
    - Only accepts updates to three fields:
      - `stripe_customer_id`
      - `stripe_subscription_id`
      - `google_place_id`
    - Validates UUID/string shapes; returns `400` for anything else.
    - Logs each update to `admin_audit_log`.
+
+4. **Create endpoint** — `POST /muse-ai-bridge/restaurants`
+   - Creates a restaurant row for in-person closes where no signup flow ran and no row exists yet.
+   - Accepts `restaurant_name` (required), `email`, `phone` plus the same three whitelisted fields (`stripe_customer_id`, `stripe_subscription_id`, `google_place_id`).
+   - Generates a unique slug automatically; leaves all other columns at their defaults so the row behaves like a pre-onboarding placeholder.
+   - Logs each creation to `admin_audit_log`.
 
 4. **Secrets**
    - Add `MUSE_AI_API_KEY` as a Supabase secret (auto-generated, long random key).
