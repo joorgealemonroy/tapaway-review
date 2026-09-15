@@ -22,7 +22,6 @@ import { toast } from "sonner";
 import {
   getPersonalHubSummary,
   getPersonalHubDaily,
-  losAngelesDayLabel,
   losAngelesWeekday,
   type HubDailyPoint,
   type HubEventSummary,
