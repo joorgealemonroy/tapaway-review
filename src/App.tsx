@@ -258,6 +258,9 @@ const App = () => {
                 
                 {/* Legacy Personal Profile URL - 301 redirect to /:username */}
                 <Route path="/u/:username" element={<LegacyProfileRedirect />} />
+
+                {/* Vanity redirect: Sonia's old hub URL now points to the landing page */}
+                <Route path="/soniamonroy" element={<Navigate to="/" replace />} />
                 
                 {/* Dynamic username/slug resolver - handles both personal profiles and restaurant slugs */}
                 <Route path="/:slug" element={<UsernameResolver />} />
