@@ -5,8 +5,6 @@ import { Button } from "@/components/ui/button";
 import {
   ArrowUp,
   CalendarDays,
-  Copy,
-  TrendingUp,
   Loader2,
   Clock,
   ExternalLink,
@@ -88,7 +86,7 @@ interface ProgressStats {
   linkClicksAllTime: number;
 }
 
-export const DashboardOverview = ({ profile, links, isTrialing, onGoToTab, isReadOnlyView = false }: DashboardOverviewProps) => {
+export const DashboardOverview = ({ profile, links, onGoToTab, isReadOnlyView = false }: DashboardOverviewProps) => {
   const [stats, setStats] = useState<ProgressStats | null>(null);
   /** Per-day clicks/visits from the edge function; null when unavailable (legacy fallback in use). */
   const [dailyClicks, setDailyClicks] = useState<HubDailyPoint[] | null>(null);
@@ -247,26 +245,6 @@ export const DashboardOverview = ({ profile, links, isTrialing, onGoToTab, isRea
   const displayName =
     profile.full_name?.trim() || (profile.username ? `@${profile.username}` : "Your hub");
   const nameInitial = (profile.full_name || profile.username || "?").trim().charAt(0).toUpperCase();
-
-  // Trend vs last week — framed as progress, never shamed.
-  const trend =
-    stats === null
-      ? null
-      : stats.prevWeek === 0
-        ? stats.week > 0
-          ? { kind: "new" as const, label: "First visits this week" }
-          : { kind: "flat" as const, label: "No visits yet" }
-        : stats.week === stats.prevWeek
-          ? { kind: "flat" as const, label: "Same as last week" }
-          : stats.week > stats.prevWeek
-            ? {
-                kind: "up" as const,
-                label: `Up ${Math.round(((stats.week - stats.prevWeek) / stats.prevWeek) * 100)}% vs last week`,
-              }
-            : {
-                kind: "down" as const,
-                label: `Down ${Math.round(((stats.prevWeek - stats.week) / stats.prevWeek) * 100)}% vs last week`,
-              };
 
   const goTo = (tab: string) => {
     onGoToTab(tab);
