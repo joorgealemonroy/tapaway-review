@@ -34,14 +34,23 @@ export const DoneForYouSection = () => {
           transition={{ duration: 0.5, delay: 0.1 }}
           className="grid overflow-hidden rounded-lg border border-border md:grid-cols-[0.85fr_1.15fr]"
         >
-          <div className="relative flex min-h-64 flex-col justify-between overflow-hidden border-b border-border bg-muted/30 px-7 py-6 md:min-h-80 md:border-b-0 md:border-r md:px-10">
-            <p className="text-xs font-bold uppercase text-muted-foreground">You</p>
-            <img
-              src="/done-for-you-mockup.png"
-              alt="TapAway hub and NFC card"
-              className="mx-auto h-auto max-h-80 w-full max-w-xs object-contain md:max-h-96"
-              loading="lazy"
-            />
+          <div className="flex flex-col gap-6 overflow-hidden border-b border-border bg-muted/30 px-7 py-8 md:min-h-[28rem] md:border-b-0 md:border-r md:px-10">
+            <div>
+              <p className="mb-5 text-xs font-bold uppercase text-muted-foreground">You</p>
+              <p className="max-w-52 text-3xl font-black leading-tight text-foreground md:text-4xl">
+                Run your business.
+              </p>
+              <p className="mt-3 text-base text-muted-foreground">That&apos;s the whole list.</p>
+            </div>
+            <div className="relative">
+              <div className="absolute -inset-3 rounded-2xl bg-muted/50 opacity-50" aria-hidden="true" />
+              <img
+                src="/done-for-you-mockup.png"
+                alt="TapAway hub and NFC card"
+                className="relative mx-auto h-auto max-h-56 w-full max-w-xs rounded-xl object-contain shadow-2xl ring-1 ring-border md:max-h-80"
+                loading="lazy"
+              />
+            </div>
           </div>
 
           <div className="px-7 py-8 md:px-10">
