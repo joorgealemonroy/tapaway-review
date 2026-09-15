@@ -1,0 +1,1 @@
+ALTER TABLE public.restaurants ALTER COLUMN owner_id DROP NOT NULL;
