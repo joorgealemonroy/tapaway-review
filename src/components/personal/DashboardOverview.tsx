@@ -6,7 +6,6 @@ import {
   ArrowUp,
   CalendarDays,
   Loader2,
-  Clock,
   ExternalLink,
   Share2,
 } from "lucide-react";
@@ -23,7 +22,6 @@ import { toast } from "sonner";
 import {
   getPersonalHubSummary,
   getPersonalHubDaily,
-  losAngelesDayLabel,
   losAngelesWeekday,
   type HubDailyPoint,
   type HubEventSummary,
@@ -244,7 +242,6 @@ export const DashboardOverview = ({ profile, links, onGoToTab, isReadOnlyView = 
 
   const displayName =
     profile.full_name?.trim() || (profile.username ? `@${profile.username}` : "Your hub");
-  const nameInitial = (profile.full_name || profile.username || "?").trim().charAt(0).toUpperCase();
 
   const goTo = (tab: string) => {
     onGoToTab(tab);
@@ -388,7 +385,7 @@ export const DashboardOverview = ({ profile, links, onGoToTab, isReadOnlyView = 
                 </div>
                 <p className="mt-2 text-sm text-muted-foreground">
                   {peakDay
-                    ? `${peakDay.events.hub_view ?? 0} visits landed on ${losAngelesDayLabel(peakDay.date)}.`
+                    ? `${peakDay.events.hub_view ?? 0} visits landed on ${new Date(peakDay.date).toLocaleDateString("en-US", { timeZone: "America/Los_Angeles", month: "short", day: "numeric" })}.`
                     : "Once visits come in, your strongest day will appear here."}
                 </p>
               </Card>
@@ -430,54 +427,6 @@ export const DashboardOverview = ({ profile, links, onGoToTab, isReadOnlyView = 
           </Card>
         </div>
 
-        {/* When your clicks happened — per-day link clicks (America/Los_Angeles days) */}
-        {dailyClicks !== null && !statsLoading && (
-          <Card className="p-4 card-elevated mt-3">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                <Clock className="w-4 h-4 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold">When your clicks happened</p>
-                <p className="text-xs text-muted-foreground">Link clicks, day by day — last 14 days</p>
-              </div>
-            </div>
-            {dailyClicks.every((d) => (d.events["link_click"] ?? 0) === 0) ? (
-              <p className="text-sm text-muted-foreground">
-                No link clicks in the last 14 days yet — when someone taps a link on your
-                hub, you'll see exactly which day it happened here.
-              </p>
-            ) : (
-              <ul className="divide-y divide-border">
-                {[...dailyClicks].reverse().map((day) => {
-                  const clicks = day.events["link_click"] ?? 0;
-                  const visits = day.events["hub_view"] ?? 0;
-                  return (
-                    <li key={day.date} className="py-2 flex items-center justify-between gap-3">
-                      <p className="text-sm font-medium min-w-0 flex-1">
-                        {losAngelesWeekday(day.date)}, {losAngelesDayLabel(day.date)}
-                      </p>
-                      <p className="text-xs text-muted-foreground shrink-0">
-                        {clicks > 0 ? (
-                          <span className="font-bold text-primary text-sm">
-                            {clicks} {clicks === 1 ? "click" : "clicks"}
-                          </span>
-                        ) : (
-                          "No clicks"
-                        )}
-                        {visits > 0 && (
-                          <span>
-                            {" "}· {visits} {visits === 1 ? "visit" : "visits"}
-                          </span>
-                        )}
-                      </p>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </Card>
-        )}
       </section>
 
       {/* Engagement: playbook + feature discovery */}
