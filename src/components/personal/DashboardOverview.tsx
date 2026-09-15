@@ -254,7 +254,7 @@ export const DashboardOverview = ({ profile, links, onGoToTab, isReadOnlyView = 
   const hubUrl = profile.username ? `${window.location.origin}/${profile.username}` : null;
   const locationLabel = profile.contact_address
     ?.split(",")
-    .slice(-2)
+    .slice(-3)
     .map((part) => part.trim())
     .filter(Boolean)
     .join(", ");
