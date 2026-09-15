@@ -2,20 +2,16 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AccountStatusStrip } from "@/components/dashboard/AccountStatusStrip";
 import {
-  CheckCircle2,
-  Circle,
-  ChevronRight,
-  Eye,
-  MousePointerClick,
+  ArrowUp,
+  CalendarDays,
+  Copy,
   TrendingUp,
-  TrendingDown,
-  Minus,
   Loader2,
   Clock,
+  ExternalLink,
+  Share2,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { isSubscriptionAllowed } from "@/lib/subscriptionStatus";
 import {
   MilestoneBadges,
@@ -25,7 +21,7 @@ import {
   type DiscoveryFeature,
 } from "@/components/dashboard/ClientEngagement";
 import { WelcomeIntro } from "@/components/dashboard/WelcomeIntro";
-import { ExternalLink } from "lucide-react";
+import { toast } from "sonner";
 import {
   getPersonalHubSummary,
   getPersonalHubDaily,
@@ -71,6 +67,7 @@ interface OverviewProfile {
   contact_enabled?: boolean | null;
   next_billing_date?: string | null;
   created_at?: string | null;
+  contact_address?: string | null;
 }
 
 export interface DashboardOverviewProps {
@@ -80,14 +77,6 @@ export interface DashboardOverviewProps {
   onGoToTab: (tab: string) => void;
   /** Admin previewing someone else's hub — suppress nudges/discovery. */
   isReadOnlyView?: boolean;
-}
-
-interface ChecklistItem {
-  id: string;
-  label: string;
-  hint: string;
-  done: boolean;
-  targetTab: string;
 }
 
 interface ProgressStats {
@@ -180,12 +169,6 @@ export const DashboardOverview = ({ profile, links, isTrialing, onGoToTab, isRea
   }, [profile.id]);
 
   const activeLinks = links.filter((l) => l.is_active !== false);
-  const hasGoogleReview = activeLinks.some(
-    (l) =>
-      l.link_type === "google_review" ||
-      (l.url && l.url.includes("search.google.com/local/writereview")),
-  );
-
   // Feature usage for "Try this" discovery — checked against real data, never
   // assumed. Read-only views skip it (discovery cards are suppressed there).
   useEffect(() => {
@@ -265,58 +248,6 @@ export const DashboardOverview = ({ profile, links, isTrialing, onGoToTab, isRea
     profile.full_name?.trim() || (profile.username ? `@${profile.username}` : "Your hub");
   const nameInitial = (profile.full_name || profile.username || "?").trim().charAt(0).toUpperCase();
 
-  // Banner/logo hubs show the full picture as the header — headline & bio
-  // are intentionally skipped there, so don't nag about them.
-  const hideHeadlineStep =
-    profile.header_type === "banner" || profile.header_type === "logo";
-
-  const checklist: ChecklistItem[] = [
-    {
-      id: "photo",
-      label: "Profile photo",
-      hint: "People tap more when they see a face or logo.",
-      done: !!profile.profile_photo_url,
-      targetTab: "links",
-    },
-    {
-      id: "headline",
-      label: "Headline & bio",
-      hint: "Tell visitors who you are in one line.",
-      done: !!profile.headline?.trim() && !!profile.bio?.trim(),
-      targetTab: "links",
-    },
-    {
-      id: "first-link",
-      label: "First link added",
-      hint: "Google review, Instagram, booking — whatever matters.",
-      done: activeLinks.length > 0,
-      targetTab: "links",
-    },
-    {
-      id: "google",
-      label: "Google review link",
-      hint: "The #1 driver of reviews for businesses.",
-      done: hasGoogleReview,
-      targetTab: "links",
-    },
-    {
-      id: "contact",
-      label: "Contact card",
-      hint: "Let visitors save your info to their phone in one tap.",
-      done: !!profile.contact_enabled,
-      targetTab: "design",
-    },
-    {
-      id: "card",
-      label: "First card claimed",
-      hint: "Tap your card to link it to this hub.",
-      done: !!profile.card_confirmed,
-      targetTab: isTrialing ? "links" : "cards",
-    },
-  ].filter((c) => !(hideHeadlineStep && c.id === "headline"));
-
-  const doneCount = checklist.filter((c) => c.done).length;
-
   // Trend vs last week — framed as progress, never shamed.
   const trend =
     stats === null
@@ -342,41 +273,79 @@ export const DashboardOverview = ({ profile, links, isTrialing, onGoToTab, isRea
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  const hubUrl = profile.username ? `${window.location.origin}/${profile.username}` : null;
+  const locationLabel = profile.contact_address
+    ?.split(",")
+    .slice(-2)
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .join(", ");
+  const weeklyChange = stats && stats.prevWeek > 0
+    ? Math.round(((stats.week - stats.prevWeek) / stats.prevWeek) * 100)
+    : null;
+  const peakDay = dailyClicks
+    ?.filter((day) => (day.events.hub_view ?? 0) > 0)
+    .reduce<HubDailyPoint | null>((best, day) => {
+      if (!best || (day.events.hub_view ?? 0) > (best.events.hub_view ?? 0)) return day;
+      return best;
+    }, null);
+  const milestoneTargets = [50, 100, 250, 500, 1000];
+  const milestoneTarget = milestoneTargets.find((target) => target > (stats?.total ?? 0))
+    ?? Math.ceil((stats?.total ?? 0) / 1000 + 1) * 1000;
+  const milestoneProgress = Math.min(100, ((stats?.total ?? 0) / milestoneTarget) * 100);
+
+  const shareHub = async () => {
+    if (!hubUrl) return;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: displayName, url: hubUrl });
+      } else {
+        await navigator.clipboard.writeText(hubUrl);
+        toast.success("Hub link copied");
+      }
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      await navigator.clipboard.writeText(hubUrl);
+      toast.success("Hub link copied");
+    }
+  };
+
   return (
     <div className="space-y-4 sm:space-y-6 animate-fade-in">
-      {/* 1. Account status — plan, live/paused, trial countdown */}
-      <AccountStatusStrip
-        planType={profile.plan_type}
-        subscriptionStatus={profile.subscription_status}
-        trialEndsAt={profile.trial_ends_at}
-        paymentState={profile.payment_state ?? null}
-        nextBillingDate={profile.next_billing_date ?? null}
-        pausedAction={
-          <Button className="min-h-[44px] w-full sm:w-auto" onClick={() => goTo("plan")}>
-            View plan options
-          </Button>
-        }
-      />
-
-      {/* Live hub strip — no photo here; design lives in the Design tab */}
+      {/* Live hub command block */}
       {profile.username && (
-        <Card className="p-3 sm:p-4 card-elevated">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
-              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold truncate">Your hub is live</p>
-              <p className="text-xs text-muted-foreground truncate font-mono">
-                tapaway.co/{profile.username}
+        <Card className="overflow-hidden border-border bg-card p-4 sm:p-6 card-elevated">
+          <div className="flex items-center gap-2 text-xs font-bold uppercase text-emerald-500">
+            <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+            {isPaused ? "Paused" : "Live"}
+          </div>
+          <div className="mt-3 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+            <div className="min-w-0">
+              <h1 className="max-w-xl text-3xl font-black leading-tight sm:text-5xl">
+                {isPaused ? "Your hub is currently paused." : "Your hub is taking taps."}
+              </h1>
+              <p className="mt-2 truncate text-sm text-muted-foreground sm:text-base">
+                tapaway.co/{profile.username}{locationLabel ? ` · ${locationLabel}` : ""}
               </p>
             </div>
-            <Button asChild variant="outline" size="sm" className="min-h-[44px] shrink-0">
-              <a href={`/${profile.username}`} target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="w-4 h-4 mr-1.5" />
-                View
-              </a>
-            </Button>
+            <div className="grid w-full grid-cols-2 gap-2 lg:w-auto lg:min-w-[360px]">
+              {isPaused ? (
+                <Button className="col-span-2 min-h-[48px]" onClick={() => goTo("plan")}>
+                  View plan options
+                </Button>
+              ) : (
+                <>
+                  <Button className="min-h-[48px]" onClick={shareHub}>
+                    <Share2 className="mr-2 h-4 w-4" /> Share your hub
+                  </Button>
+                  <Button asChild variant="outline" className="min-h-[48px]">
+                    <a href={`/${profile.username}`} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="mr-2 h-4 w-4" /> View
+                    </a>
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
         </Card>
       )}
@@ -408,77 +377,78 @@ export const DashboardOverview = ({ profile, links, isTrialing, onGoToTab, isRea
         </>
       )}
 
-      {/* 2. Your progress — own stats only */}
-      <section aria-label="Your progress">
-        <h2 className="text-lg sm:text-xl font-bold mb-3">Your progress</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <Card className="p-4 card-elevated">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                <Eye className="w-4 h-4 text-primary" />
-              </div>
-              <p className="text-sm font-medium text-muted-foreground">Visits this week</p>
-            </div>
-            {statsLoading ? (
+      <section aria-label="Hub performance" className="space-y-5">
+        <div>
+          <p className="mb-3 text-xs font-black uppercase text-muted-foreground">Momentum</p>
+          {statsLoading ? (
+            <Card className="flex min-h-24 items-center justify-center card-elevated">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-            ) : (
-              <>
-                <p className="text-3xl font-bold">{stats?.week ?? 0}</p>
-                {trend && (
-                  <p
-                    className={cn(
-                      "text-xs mt-1 flex items-center gap-1",
-                      trend.kind === "up" && "text-emerald-600",
-                      trend.kind === "down" && "text-amber-600",
-                      trend.kind !== "up" && trend.kind !== "down" && "text-muted-foreground",
-                    )}
-                  >
-                    {trend.kind === "up" && <TrendingUp className="w-3.5 h-3.5" />}
-                    {trend.kind === "down" && <TrendingDown className="w-3.5 h-3.5" />}
-                    {trend.kind === "flat" && <Minus className="w-3.5 h-3.5" />}
-                    {trend.label}
-                  </p>
-                )}
-              </>
-            )}
-          </Card>
-
-          <Card className="p-4 card-elevated">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center shrink-0">
-                <MousePointerClick className="w-4 h-4 text-accent" />
-              </div>
-              <p className="text-sm font-medium text-muted-foreground">Link clicks this week</p>
-            </div>
-            {statsLoading ? (
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-            ) : (
-              <>
-                <p className="text-3xl font-bold">{stats?.linkClicksWeek ?? 0}</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {stats && stats.linkClicksWeek > 0
-                    ? "People are tapping through."
-                    : "Share your link to get clicks."}
+            </Card>
+          ) : (
+            <div className="grid gap-3 md:grid-cols-2">
+              <Card className="p-4 card-elevated">
+                <div className="flex items-center gap-2 text-xl font-black">
+                  {weeklyChange !== null && weeklyChange > 0 && <ArrowUp className="h-5 w-5" />}
+                  {weeklyChange === null
+                    ? stats?.week ? "A fresh start" : "Ready for the first tap"
+                    : `${weeklyChange > 0 ? "+" : ""}${weeklyChange}%`}
+                </div>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  {weeklyChange === null
+                    ? stats?.week
+                      ? `${stats.week} visits this week — your first weekly baseline.`
+                      : "Share your hub to start building momentum."
+                    : weeklyChange >= 0
+                      ? "More visits than last week. Your cards are getting out there."
+                      : "A quieter week so far — every tap still counts."}
                 </p>
-              </>
-            )}
-          </Card>
-
-          <Card className="p-4 card-elevated">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
-                <TrendingUp className="w-4 h-4 text-emerald-600" />
-              </div>
-              <p className="text-sm font-medium text-muted-foreground">Total visits</p>
+              </Card>
+              <Card className="p-4 card-elevated">
+                <div className="flex items-center gap-2 text-xl font-black">
+                  <CalendarDays className="h-5 w-5 text-primary" />
+                  {peakDay ? `${losAngelesWeekday(peakDay.date)} rush` : "Your busiest day"}
+                </div>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  {peakDay
+                    ? `${peakDay.events.hub_view ?? 0} visits landed on ${losAngelesDayLabel(peakDay.date)}.`
+                    : "Once visits come in, your strongest day will appear here."}
+                </p>
+              </Card>
             </div>
-            {statsLoading ? (
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-            ) : (
-              <>
-                <p className="text-3xl font-bold">{stats?.total ?? 0}</p>
-                <p className="text-xs text-muted-foreground mt-1">All time, your hub only.</p>
-              </>
-            )}
+          )}
+        </div>
+
+        <div>
+          <p className="mb-3 text-xs font-black uppercase text-muted-foreground">The numbers</p>
+          <Card className="p-4 card-elevated">
+            <div className="grid grid-cols-3 divide-x divide-border text-center">
+              {[
+                { value: stats?.week ?? 0, top: "visits", bottom: "this week" },
+                { value: stats?.linkClicksWeek ?? 0, top: "link taps", bottom: "this week" },
+                { value: stats?.total ?? 0, top: "total", bottom: "visits" },
+              ].map((item) => (
+                <div key={`${item.top}-${item.bottom}`} className="min-w-0 px-2 sm:px-5">
+                  <p className="text-3xl font-black sm:text-4xl">{item.value}</p>
+                  <p className="mt-1 text-xs leading-tight text-muted-foreground">
+                    {item.top}<br />{item.bottom}
+                  </p>
+                </div>
+              ))}
+            </div>
+            <div className="mt-5">
+              <div className="mb-2 flex items-center justify-between gap-3 text-sm font-bold">
+                <span>First {milestoneTarget} visits</span>
+                <span className="text-primary">
+                  {stats?.total ?? 0} of {milestoneTarget} · {Math.max(0, milestoneTarget - (stats?.total ?? 0))} to go
+                </span>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full rounded-full bg-primary transition-[width] duration-500"
+                  style={{ width: `${milestoneProgress}%` }}
+                />
+              </div>
+            </div>
           </Card>
         </div>
 
@@ -529,62 +499,6 @@ export const DashboardOverview = ({ profile, links, isTrialing, onGoToTab, isRea
               </ul>
             )}
           </Card>
-        )}
-      </section>
-
-      {/* 3. Setup checklist — "here's what you've got done so far" */}
-      <section aria-label="Setup checklist">
-        <div className="flex items-baseline justify-between mb-3">
-          <h2 className="text-lg sm:text-xl font-bold">Your setup</h2>
-          <span className="text-sm text-muted-foreground">
-            {doneCount} of {checklist.length} done
-          </span>
-        </div>
-        <Card className="card-elevated overflow-hidden">
-          <ul className="divide-y divide-border">
-            {checklist.map((item) => (
-              <li key={item.id}>
-                <button
-                  onClick={() => goTo(item.targetTab)}
-                  className="w-full flex items-center gap-3 p-4 min-h-[64px] text-left transition-colors hover:bg-muted/50 active:bg-muted"
-                >
-                  <span className="shrink-0" aria-hidden>
-                    {item.done ? (
-                      <CheckCircle2 className="w-6 h-6 text-emerald-500" />
-                    ) : (
-                      <Circle className="w-6 h-6 text-muted-foreground/40" />
-                    )}
-                  </span>
-                  <span className="flex-1 min-w-0">
-                    <span
-                      className={cn(
-                        "block font-medium text-sm sm:text-base",
-                        item.done && "text-muted-foreground",
-                      )}
-                    >
-                      {item.label}
-                      {item.done && <span className="sr-only"> (done)</span>}
-                    </span>
-                    {!item.done && (
-                      <span className="block text-xs text-muted-foreground mt-0.5 truncate">
-                        {item.hint}
-                      </span>
-                    )}
-                  </span>
-                  {!item.done && (
-                    <span className="shrink-0 text-xs font-semibold text-primary flex items-center gap-1">
-                      Set up <ChevronRight className="w-4 h-4" />
-                    </span>
-                  )}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </Card>
-        {doneCount === checklist.length && (
-          <p className="text-sm text-muted-foreground mt-3 text-center">
-            🎉 All set — now share your link everywhere.
-          </p>
         )}
       </section>
 
