@@ -707,6 +707,25 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
   },
 ];
 
+// Platforms exposed in the "Add link" modal. Existing links of cut types still render.
+export const LINK_MODAL_PLATFORM_TYPES: readonly string[] = [
+  "instagram",
+  "tiktok",
+  "youtube",
+  "facebook",
+  "google_review",
+  "yelp",
+  "directions",
+  "phone",
+  "website",
+  "email",
+  "whatsapp",
+  "venmo",
+  "cashapp",
+  "paypal",
+];
+
+
 // Detect platform from URL
 export const detectPlatformFromUrl = (url: string): string | null => {
   const urlLower = url.toLowerCase();
