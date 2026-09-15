@@ -385,7 +385,7 @@ export const DashboardOverview = ({ profile, links, onGoToTab, isReadOnlyView = 
                 </div>
                 <p className="mt-2 text-sm text-muted-foreground">
                   {peakDay
-                    ? `${peakDay.events.hub_view ?? 0} visits landed on ${losAngelesDayLabel(peakDay.date)}.`
+                    ? `${peakDay.events.hub_view ?? 0} visits landed on ${new Date(peakDay.date).toLocaleDateString("en-US", { timeZone: "America/Los_Angeles", month: "short", day: "numeric" })}.`
                     : "Once visits come in, your strongest day will appear here."}
                 </p>
               </Card>
