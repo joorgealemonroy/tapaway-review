@@ -2,7 +2,6 @@ import { motion } from "framer-motion";
 import { useInView } from "framer-motion";
 import { useRef } from "react";
 import { Check } from "lucide-react";
-import mockup from "@/assets/done-for-you-mockup.png.asset.json";
 
 const bullets = [
   "We set up your review + social hub",
