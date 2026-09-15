@@ -242,7 +242,6 @@ export const DashboardOverview = ({ profile, links, onGoToTab, isReadOnlyView = 
 
   const displayName =
     profile.full_name?.trim() || (profile.username ? `@${profile.username}` : "Your hub");
-  const nameInitial = (profile.full_name || profile.username || "?").trim().charAt(0).toUpperCase();
 
   const goTo = (tab: string) => {
     onGoToTab(tab);
