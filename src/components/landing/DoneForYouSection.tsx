@@ -37,7 +37,7 @@ export const DoneForYouSection = () => {
           <div className="relative flex min-h-64 flex-col justify-between overflow-hidden border-b border-border bg-muted/30 px-7 py-6 md:min-h-80 md:border-b-0 md:border-r md:px-10">
             <p className="text-xs font-bold uppercase text-muted-foreground">You</p>
             <img
-              src={mockup.url}
+              src="/done-for-you-mockup.png"
               alt="TapAway hub and NFC card"
               className="mx-auto h-auto max-h-80 w-full max-w-xs object-contain md:max-h-96"
               loading="lazy"
