@@ -180,7 +180,7 @@ export const DashboardOverview = ({ profile, links, onGoToTab, isReadOnlyView = 
             .select("id", { count: "exact", head: true })
             .eq("profile_id", profile.id),
           supabase
-            .from("sms_campaigns" as any)
+            .from("sms_campaigns")
             .select("id", { count: "exact", head: true })
             .eq("profile_id", profile.id),
         ]);
