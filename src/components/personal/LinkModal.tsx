@@ -190,7 +190,9 @@ export const LinkModal = ({
   }, [inputValue, selectedPlatform]);
 
   const availablePlatforms = PLATFORM_CONFIGS.filter(
-    p => !existingTypes.includes(p.type) || editingLink?.type === p.type
+    p =>
+      LINK_MODAL_PLATFORM_TYPES.includes(p.type) &&
+      (!existingTypes.includes(p.type) || editingLink?.type === p.type)
   );
 
   const handleSelectPlatform = (platform: PlatformConfig) => {
