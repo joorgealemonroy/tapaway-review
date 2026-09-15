@@ -3759,7 +3759,7 @@ export type Database = {
           next_billing_date: string | null
           onboarding_completed: boolean | null
           onboarding_step: number | null
-          owner_id: string
+          owner_id: string | null
           owner_name: string | null
           owner_phone: string | null
           payment_state: string
@@ -3827,7 +3827,7 @@ export type Database = {
           next_billing_date?: string | null
           onboarding_completed?: boolean | null
           onboarding_step?: number | null
-          owner_id: string
+          owner_id?: string | null
           owner_name?: string | null
           owner_phone?: string | null
           payment_state?: string
@@ -3895,7 +3895,7 @@ export type Database = {
           next_billing_date?: string | null
           onboarding_completed?: boolean | null
           onboarding_step?: number | null
-          owner_id?: string
+          owner_id?: string | null
           owner_name?: string | null
           owner_phone?: string | null
           payment_state?: string
