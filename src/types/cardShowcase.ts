@@ -13,4 +13,19 @@ export interface CardDesign {
   hubUrl: string | null;
   hubScreenshotPath: string | null;
   hubScreenshotUrl: string | null;
+  hubPreview: HubPreviewData | null;
+}
+
+export interface HubPreviewAction {
+  id: string;
+  type: string;
+  label: string;
+  url: string;
+}
+
+export interface HubPreviewData {
+  name: string;
+  description: string | null;
+  logoUrl: string | null;
+  actions: HubPreviewAction[];
 }

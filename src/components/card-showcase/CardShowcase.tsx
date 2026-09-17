@@ -3,6 +3,8 @@ import { ChevronLeft, ChevronRight, ExternalLink, Loader2, Pause, Play } from "l
 import { useCardShowcase } from "@/hooks/useCardShowcase";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
+import ShowcasePhone from "./ShowcasePhone";
+import type { HubPreviewData } from "@/types/cardShowcase";
 
 const CardShowcaseScene = lazy(() => import("./CardShowcaseScene"));
 
@@ -32,8 +34,8 @@ const preloadImage = (url: string) => new Promise<void>((resolve, reject) => {
   image.src = url;
 });
 
-const preloadDesign = async (front: string, back: string | null, hubPreview: string | null) => {
-  const urls = [front, back, hubPreview].filter((url): url is string => Boolean(url));
+const preloadDesign = async (front: string, back: string | null, hubPreview: HubPreviewData | null) => {
+  const urls = [front, back, hubPreview?.logoUrl].filter((url): url is string => Boolean(url));
   await Promise.all(urls.map(preloadImage));
 };
 
@@ -80,7 +82,7 @@ export default function CardShowcase({ width = "min(620px, 100%)" }: CardShowcas
     setViewerFailed(false);
     const next = designs[(index + 1) % designs.length];
     if (next && next.id !== design?.id) {
-      void preloadDesign(next.frontImageUrl, next.backImageUrl, next.hubScreenshotUrl).catch(() => undefined);
+      void preloadDesign(next.frontImageUrl, next.backImageUrl, next.hubPreview).catch(() => undefined);
     }
   }, [design?.id, designs, index]);
 
@@ -89,7 +91,7 @@ export default function CardShowcase({ width = "min(620px, 100%)" }: CardShowcas
     const nextIndex = (index + direction + designs.length) % designs.length;
     const next = designs[nextIndex];
     try {
-      await preloadDesign(next.frontImageUrl, next.backImageUrl, next.hubScreenshotUrl);
+      await preloadDesign(next.frontImageUrl, next.backImageUrl, next.hubPreview);
       setReady(false);
       setIndex(nextIndex);
     } catch {
@@ -101,13 +103,14 @@ export default function CardShowcase({ width = "min(620px, 100%)" }: CardShowcas
   if (!design) return <div className="h-[430px] w-full max-w-[620px]" aria-label="No card designs are currently available" />;
 
   const show3d = webgl && !reducedMotion && !viewerFailed;
-  const hasHub = Boolean(design.hubScreenshotUrl && design.hubUrl);
+  const hasHub = Boolean(design.hubPreview && design.hubUrl);
 
   return (
     <div ref={rootRef} className="mx-auto flex w-full flex-col items-center" style={{ maxWidth: width }}>
-      <div className={`flex w-full items-center justify-center ${hasHub ? "gap-3 sm:gap-6 lg:gap-8" : ""}`}>
-        <div className={`relative shrink-0 ${hasHub ? "w-[124px] sm:w-[175px] lg:w-[210px]" : "w-[210px] sm:w-[250px]"}`}>
-          <div className="relative aspect-[53.98/85.6] w-full" aria-live="polite">
+      <div className={`showcase-pair relative flex justify-center ${hasHub ? "items-end" : "items-center"}`}>
+        {hasHub && <div className="showcase-pool-light pointer-events-none absolute -bottom-[3%] left-[4%] right-[-2%] h-[22%]" aria-hidden="true" />}
+        <div className={`relative z-10 shrink-0 ${hasHub ? "showcase-card" : "w-[210px] sm:w-[250px] aspect-[53.98/85.6]"}`}>
+          <div className="relative h-full w-full" aria-live="polite">
             {show3d && !ready && <div className="absolute inset-0 grid place-items-center" aria-label="Loading printed card"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>}
             {!show3d && <img src={design.frontImageUrl} alt={`${design.businessName} printed NFC card front`} className="absolute inset-0 h-full w-full rounded-[6%] object-contain shadow-xl" loading="eager" decoding="sync" />}
             {show3d && <div className="absolute inset-0">
@@ -120,12 +123,7 @@ export default function CardShowcase({ width = "min(620px, 100%)" }: CardShowcas
           </div>
         </div>
 
-        {hasHub && <a href={design.hubUrl ?? undefined} aria-label={`View ${design.businessName} live hub`} className="group relative block w-[172px] shrink-0 sm:w-[220px] lg:w-[250px]" target="_blank" rel="noreferrer">
-          <div className="relative aspect-[390/844] overflow-hidden rounded-[30px] border-[7px] border-secondary bg-secondary shadow-xl sm:rounded-[38px] sm:border-[9px]">
-            <img src={design.hubScreenshotUrl ?? ""} alt={`${design.businessName} live mobile hub preview`} className="h-full w-full object-cover object-top" loading={index === 0 ? "eager" : "lazy"} decoding="async" />
-            <span className="absolute left-1/2 top-2 h-4 w-16 -translate-x-1/2 rounded-full bg-foreground sm:h-5 sm:w-20" aria-hidden="true" />
-          </div>
-        </a>}
+        {hasHub && <ShowcasePhone design={design} />}
       </div>
 
       <div className="mt-3 flex min-h-12 w-full max-w-md items-center justify-center gap-2">
