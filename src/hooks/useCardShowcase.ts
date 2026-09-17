@@ -28,27 +28,40 @@ const loadHubPreview = async (item: { hub_kind: string | null; hub_id: string | 
       description: typeof record.header_subtitle === "string" && record.header_subtitle ? record.header_subtitle : typeof record.header_title === "string" ? record.header_title : null,
       logoUrl: typeof record.logo_url === "string" ? record.logo_url : null,
       actions: restaurantActions(record),
+      profile: null,
+      links: [],
+      blocks: [],
     };
   }
 
-  const [{ data: profileRows }, { data: links }] = await Promise.all([
+  const [{ data: profileRows }, { data: links }, { data: blocks }] = await Promise.all([
     supabase.rpc("get_public_personal_profile", { _slug: item.hub_slug }),
     supabase
       .from("personal_links")
-      .select("id,link_type,label,url,sort_order,is_active,is_archived")
+      .select("id,link_type,label,url,pill_color,sort_order,is_active,is_featured,display_style,cover_image_url,grid_size,is_archived,thumbnail_url")
       .eq("profile_id", item.hub_id)
       .eq("is_active", true)
       .or("is_archived.is.null,is_archived.eq.false")
-      .order("sort_order", { ascending: true })
-      .limit(4),
+      .order("sort_order", { ascending: true }),
+    supabase
+      .from("personal_blocks")
+      .select("id,block_type,content,alignment,sort_order,is_archived")
+      .eq("profile_id", item.hub_id)
+      .eq("is_active", true)
+      .or("is_archived.is.null,is_archived.eq.false")
+      .order("sort_order", { ascending: true }),
   ]);
   const profile = Array.isArray(profileRows) ? profileRows[0] : null;
   if (!profile) return null;
+  const activeLinks = links ?? [];
   return {
     name: profile.full_name || item.hub_slug,
     description: profile.headline || profile.bio || null,
     logoUrl: profile.profile_photo_url || null,
-    actions: (links ?? []).map((link) => ({ id: link.id, type: link.link_type, label: link.label, url: link.url })),
+    actions: activeLinks.slice(0, 4).map((link) => ({ id: link.id, type: link.link_type, label: link.label, url: link.url })),
+    profile,
+    links: activeLinks,
+    blocks: (blocks ?? []).map((block) => ({ ...block, content: block.content ?? {} })),
   };
 };
 
