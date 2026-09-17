@@ -76,7 +76,7 @@ function CardMesh({ design, paused, visible, onReady, onCycle }: CardMeshProps) 
     });
     readyFrames.current = 0;
     if (designRef.current.id !== design.id) {
-      elapsed.current = 6.75;
+      elapsed.current = 6.232;
       designRef.current = design;
     }
   }, [maps, design.id]);
@@ -93,9 +93,9 @@ function CardMesh({ design, paused, visible, onReady, onCycle }: CardMeshProps) 
     const progress = cycle < 3 ? 0 : (cycle - 3) / 5;
     const eased = progress < 0.5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2;
     group.current.rotation.y = eased * Math.PI * 2;
-    if (progress >= 0.75 && !cycleSent.current) {
+    if (progress >= 0.64 && !cycleSent.current && Math.abs(Math.cos(group.current.rotation.y)) < 0.08) {
       cycleSent.current = true;
-      if (Math.abs(Math.cos(group.current.rotation.y)) < 0.08) onCycle();
+      onCycle();
     }
     if (cycle < 0.2) cycleSent.current = false;
   });
