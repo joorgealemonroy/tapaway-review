@@ -1,5 +1,5 @@
 import { Canvas, ThreeEvent, useFrame, useThree } from "@react-three/fiber";
-import { ContactShadows, Environment, Lightformer, useTexture } from "@react-three/drei";
+import { Environment, Lightformer, useTexture } from "@react-three/drei";
 import { Suspense, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import type { CardDesign } from "@/types/cardShowcase";
@@ -125,7 +125,7 @@ function CardMesh({ design, paused, visible, interactive = true, onReady, onCycl
   const dragMoved = useRef(false);
   const pointerStart = useRef({ x: 0, y: 0, yaw: START_YAW });
   const manualYaw = useRef(START_YAW);
-  const { gl } = useThree();
+  const { gl, scene, camera } = useThree();
   const sourceMaps = useTexture([design.frontImageUrl, design.backImageUrl ?? blankBack]);
   const maxAnisotropy = Math.min(8, gl.capabilities.getMaxAnisotropy());
   const maps = useMemo(
@@ -133,7 +133,7 @@ function CardMesh({ design, paused, visible, interactive = true, onReady, onCycl
     [maxAnisotropy, sourceMaps],
   );
   const frontGeometry = useMemo(() => makeFaceGeometry(false), []);
-  const backGeometry = useMemo(() => makeFaceGeometry(true), []);
+  const backGeometry = useMemo(() => makeFaceGeometry(false), []);
   const edgeGeometry = useMemo(makeEdgeGeometry, []);
 
   useEffect(() => () => {
@@ -152,7 +152,7 @@ function CardMesh({ design, paused, visible, interactive = true, onReady, onCycl
     if (readyFrames.current < 2) {
       readyFrames.current += 1;
       if (readyFrames.current === 2) {
-        gl.render(gl.scene, gl.camera);
+        gl.render(scene, camera);
         onReady();
         if (onPoster) {
           try { onPoster(gl.domElement.toDataURL("image/png")); } catch { /* poster capture is optional */ }
@@ -164,18 +164,18 @@ function CardMesh({ design, paused, visible, interactive = true, onReady, onCycl
   useFrame((_, rawDelta) => {
     if (!yawGroup.current || !visible || paused || dragging.current) return;
     elapsed.current += Math.min(rawDelta, 0.05);
-    const cycle = elapsed.current % 8;
-    const progress = cycle < 3 ? 0 : (cycle - 3) / 5;
-    const eased = progress < 0.5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2;
-    const yaw = START_YAW + eased * Math.PI * 2;
+    const cycleDuration = 16;
+    const cycle = elapsed.current % cycleDuration;
+    const progress = cycle / cycleDuration;
+    const yaw = START_YAW + progress * Math.PI * 2;
     yawGroup.current.rotation.y = yaw;
     manualYaw.current = yaw;
     const cameraRelativeEdge = Math.abs(Math.cos(yaw)) < 0.045;
-    if (progress > 0.6 && cameraRelativeEdge && !cycleSent.current) {
+    if (progress > 0.68 && cameraRelativeEdge && !cycleSent.current) {
       cycleSent.current = true;
       onCycle();
     }
-    if (cycle < 0.2) cycleSent.current = false;
+    if (cycle < 0.3) cycleSent.current = false;
   });
 
   const onPointerDown = (event: ThreeEvent<PointerEvent>) => {
@@ -183,7 +183,8 @@ function CardMesh({ design, paused, visible, interactive = true, onReady, onCycl
     pointerStart.current = { x: event.clientX, y: event.clientY, yaw: manualYaw.current };
     dragMoved.current = false;
     dragging.current = true;
-    event.target.setPointerCapture(event.pointerId);
+    const target = event.target as Element;
+    target.setPointerCapture(event.pointerId);
   };
   const onPointerMove = (event: ThreeEvent<PointerEvent>) => {
     if (!interactive || !dragging.current || !yawGroup.current) return;
@@ -197,19 +198,20 @@ function CardMesh({ design, paused, visible, interactive = true, onReady, onCycl
   };
   const onPointerUp = (event: ThreeEvent<PointerEvent>) => {
     dragging.current = false;
-    if (event.target.hasPointerCapture(event.pointerId)) event.target.releasePointerCapture(event.pointerId);
+    const target = event.target as Element;
+    if (target.hasPointerCapture(event.pointerId)) target.releasePointerCapture(event.pointerId);
   };
 
   return (
     <group rotation={[THREE.MathUtils.degToRad(-4), 0, THREE.MathUtils.degToRad(-2)]}>
       <group ref={yawGroup} rotation={[0, START_YAW, 0]}>
-        <mesh geometry={edgeGeometry} castShadow onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
+        <mesh geometry={edgeGeometry} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
           <meshPhysicalMaterial color="#ffffff" metalness={0} roughness={0.46} clearcoat={0.2} clearcoatRoughness={0.34} ior={1.46} transmission={0} opacity={1} />
         </mesh>
-        <mesh geometry={frontGeometry} position={[0, 0, HALF_DEPTH]} castShadow onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
+        <mesh geometry={frontGeometry} position={[0, 0, HALF_DEPTH]} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
           <meshPhysicalMaterial map={maps[0]} color="#ffffff" metalness={0} roughness={0.36} clearcoat={0.25} clearcoatRoughness={0.3} ior={1.46} transmission={0} opacity={1} emissive="#000000" side={THREE.FrontSide} />
         </mesh>
-        <mesh geometry={backGeometry} position={[0, 0, -HALF_DEPTH]} rotation={[0, Math.PI, 0]} castShadow onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
+        <mesh geometry={backGeometry} position={[0, 0, -HALF_DEPTH]} rotation={[0, Math.PI, 0]} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
           <meshPhysicalMaterial map={maps[1]} color="#ffffff" metalness={0} roughness={0.36} clearcoat={0.25} clearcoatRoughness={0.3} ior={1.46} transmission={0} opacity={1} emissive="#000000" side={THREE.FrontSide} />
         </mesh>
       </group>
@@ -224,15 +226,14 @@ export interface CardShowcaseSceneProps extends CardMeshProps {
 export default function CardShowcaseScene(props: CardShowcaseSceneProps) {
   return (
     <Canvas
-      shadows
       dpr={props.mobile ? 1 : [1, 1.5]}
-      camera={{ position: [0, 0, 22], fov: 28, near: 0.1, far: 100 }}
+      camera={{ position: [0, 0, props.mobile ? 22.8 : 22], fov: 28, near: 0.1, far: 100 }}
       gl={{ antialias: true, alpha: true, powerPreference: "high-performance", preserveDrawingBuffer: true }}
       frameloop={props.visible ? "always" : "never"}
       aria-label={`3D printed card for ${props.design.businessName}`}
       style={{ background: "transparent", touchAction: "pan-y" }}
     >
-      <directionalLight position={[-7, 10, 12]} intensity={1.8} castShadow shadow-mapSize={[1024, 1024]} />
+      <directionalLight position={[-7, 10, 12]} intensity={1.8} />
       <directionalLight position={[8, 3, 10]} intensity={0.65} />
       <directionalLight position={[2, 4, -8]} intensity={0.48} />
       <Suspense fallback={null}>
@@ -242,7 +243,10 @@ export default function CardShowcaseScene(props: CardShowcaseSceneProps) {
           <Lightformer color="#f4f4f2" intensity={1.5} position={[7, 2, 8]} rotation-y={-0.45} scale={[7, 4, 1]} />
           <Lightformer color="#ffffff" intensity={0.8} position={[1, 5, -7]} rotation-y={Math.PI} scale={[5, 3, 1]} />
         </Environment>
-        <ContactShadows position={[0, -4.72, 0]} opacity={0.18} scale={8} blur={3.2} far={5} />
+        <mesh position={[0, -4.5, -0.35]} rotation-x={-Math.PI / 2} scale={[3.5, 0.55, 1]}>
+          <circleGeometry args={[1, 64]} />
+          <meshBasicMaterial color="#000000" transparent opacity={0.12} depthWrite={false} />
+        </mesh>
       </Suspense>
     </Canvas>
   );

@@ -1,5 +1,5 @@
 import { Component, lazy, ReactNode, Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCardShowcase } from "@/hooks/useCardShowcase";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -41,7 +41,6 @@ export default function CardShowcase({ width = "min(310px, 76vw)" }: CardShowcas
   const { designs, loading } = useCardShowcase();
   const [index, setIndex] = useState(0);
   const [ready, setReady] = useState(false);
-  const [paused, setPaused] = useState(false);
   const [visible, setVisible] = useState(true);
   const [webgl, setWebgl] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
@@ -77,6 +76,7 @@ export default function CardShowcase({ width = "min(310px, 76vw)" }: CardShowcas
 
   useEffect(() => {
     setReady(false);
+    setViewerFailed(false);
     const next = designs[(index + 1) % designs.length];
     if (next && next.id !== design?.id) void preloadPair(next.frontImageUrl, next.backImageUrl).catch(() => undefined);
   }, [design?.id, designs, index]);
@@ -103,7 +103,6 @@ export default function CardShowcase({ width = "min(310px, 76vw)" }: CardShowcas
     <div ref={rootRef} className="flex flex-col items-center gap-3" style={{ width }} onKeyDown={(event) => {
       if (event.key === "ArrowLeft") void move(-1);
       if (event.key === "ArrowRight") void move(1);
-      if (event.key === " ") { event.preventDefault(); setPaused((value) => !value); }
     }}>
       <div className="relative w-full aspect-[53.98/85.6]" aria-live="polite">
         <img
@@ -119,7 +118,7 @@ export default function CardShowcase({ width = "min(310px, 76vw)" }: CardShowcas
               <Suspense fallback={null}>
                 <CardShowcaseScene
                   design={design}
-                  paused={paused}
+                  paused={false}
                   visible={visible}
                   mobile={isMobile}
                   onReady={() => setReady(true)}
@@ -134,7 +133,6 @@ export default function CardShowcase({ width = "min(310px, 76vw)" }: CardShowcas
       <div className="flex min-h-9 items-center justify-center gap-2">
         {designs.length > 1 && <Button variant="ghost" size="icon" aria-label="Previous card design" onClick={() => void move(-1)}><ChevronLeft className="h-4 w-4" /></Button>}
         <p className="min-w-28 text-center text-sm font-semibold text-foreground">{design.businessName}</p>
-        {show3d && <Button variant="ghost" size="icon" aria-label={paused ? "Play card rotation" : "Pause card rotation"} onClick={() => setPaused((value) => !value)}>{paused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}</Button>}
         {designs.length > 1 && <Button variant="ghost" size="icon" aria-label="Next card design" onClick={() => void move(1)}><ChevronRight className="h-4 w-4" /></Button>}
       </div>
     </div>
