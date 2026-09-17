@@ -75,6 +75,8 @@ All colors MUST be HSL.
     --brand-teal: 182 85% 39%;
     --brand-teal-dark: 182 85% 30%;
     --brand-gold: 48 96% 53%;
+    --hero-background: 222 47% 11%;
+    --hero-foreground: 210 40% 98%;
     
     /* Holiday/Christmas Tokens */
     --holiday-mint: 164 73% 65%;
@@ -151,6 +153,8 @@ All colors MUST be HSL.
     --ring: 187 85% 45%;
 
     --brand-teal: 187 85% 45%;
+    --hero-background: 222 47% 11%;
+    --hero-foreground: 210 40% 98%;
     --text-primary: 210 40% 98%;
     --text-muted: 215 20% 65%;
     --surface: 222 47% 11%;

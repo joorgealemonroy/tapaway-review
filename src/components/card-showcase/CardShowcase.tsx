@@ -129,13 +129,13 @@ export default function CardShowcase({ width = "min(620px, 100%)" }: CardShowcas
       </div>
 
       <div className="mt-3 flex min-h-12 w-full max-w-md items-center justify-center gap-2">
-        {designs.length > 1 && <Button type="button" variant="ghost" size="icon" className="h-11 w-11 text-background hover:bg-background/10 hover:text-background" onClick={() => void move(-1)} aria-label="Previous business"><ChevronLeft /></Button>}
+        {designs.length > 1 && <Button type="button" variant="ghost" size="icon" className="h-11 w-11 text-hero-foreground hover:bg-hero-foreground/10 hover:text-hero-foreground" onClick={() => void move(-1)} aria-label="Previous business"><ChevronLeft /></Button>}
         <div className="min-w-0 flex-1 text-center">
-          <p className="truncate text-sm font-semibold text-background">{design.businessName}</p>
+          <p className="truncate text-sm font-semibold text-hero-foreground">{design.businessName}</p>
           {design.hubUrl && <a href={design.hubUrl} target="_blank" rel="noreferrer" className="mt-0.5 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline" aria-label={`View ${design.businessName} live hub`}>View live hub <ExternalLink className="h-3 w-3" /></a>}
         </div>
-        <Button type="button" variant="ghost" size="icon" className="h-11 w-11 text-background hover:bg-background/10 hover:text-background" onClick={() => setPaused((value) => !value)} aria-label={paused ? "Play card rotation" : "Pause card rotation"}>{paused ? <Play /> : <Pause />}</Button>
-        {designs.length > 1 && <Button type="button" variant="ghost" size="icon" className="h-11 w-11 text-background hover:bg-background/10 hover:text-background" onClick={() => void move(1)} aria-label="Next business"><ChevronRight /></Button>}
+        <Button type="button" variant="ghost" size="icon" className="h-11 w-11 text-hero-foreground hover:bg-hero-foreground/10 hover:text-hero-foreground" onClick={() => setPaused((value) => !value)} aria-label={paused ? "Play card rotation" : "Pause card rotation"}>{paused ? <Play /> : <Pause />}</Button>
+        {designs.length > 1 && <Button type="button" variant="ghost" size="icon" className="h-11 w-11 text-hero-foreground hover:bg-hero-foreground/10 hover:text-hero-foreground" onClick={() => void move(1)} aria-label="Next business"><ChevronRight /></Button>}
       </div>
     </div>
   );

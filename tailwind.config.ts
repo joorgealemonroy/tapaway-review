@@ -60,6 +60,10 @@ export default {
         brand: {
           teal: "hsl(var(--brand-teal))",
         },
+        hero: {
+          DEFAULT: "hsl(var(--hero-background))",
+          foreground: "hsl(var(--hero-foreground))",
+        },
         text: {
           primary: "hsl(var(--text-primary))",
           muted: "hsl(var(--text-muted))",

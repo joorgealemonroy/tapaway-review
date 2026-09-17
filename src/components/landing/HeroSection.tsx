@@ -50,7 +50,7 @@ const clientFeedback = [
 export const HeroSection = () => {
   return (
     <>
-      <section className="relative min-h-[90vh] flex items-center overflow-hidden bg-foreground text-background">
+      <section className="relative min-h-[90vh] flex items-center overflow-hidden bg-hero text-hero-foreground">
         
         <div className="relative w-full max-w-6xl mx-auto px-6 sm:px-8 py-8 md:py-20">
           <div className="grid lg:grid-cols-[0.9fr_1.1fr] gap-7 lg:gap-10 items-center">
@@ -62,13 +62,13 @@ export const HeroSection = () => {
             className="text-left flex flex-col"
           >
             {/* Main Headline */}
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-normal text-background leading-[1.08] mb-5 md:mb-8">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-normal text-hero-foreground leading-[1.08] mb-5 md:mb-8">
               Turn Taps into{" "}
               <span className="text-primary whitespace-nowrap">5-Star Reviews.</span>
             </h1>
 
             {/* Subheadline */}
-            <p className="text-base md:text-lg text-background/70 leading-relaxed mb-6 md:mb-9 max-w-xl">
+            <p className="text-base md:text-lg text-hero-foreground/70 leading-relaxed mb-6 md:mb-9 max-w-xl">
               Collect reviews effortlessly with branded NFC Cards. Zero setup. <span className="text-primary font-bold">$0 Today</span>
             </p>
 
@@ -86,14 +86,14 @@ export const HeroSection = () => {
                 >
                   <Link
                     to="/start"
-                    className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-7 py-4 rounded-xl bg-primary text-primary-foreground font-bold text-base shadow-[0_0_20px_rgba(59,130,246,0.5)] hover:shadow-[0_0_30px_rgba(59,130,246,0.6)] transition-all"
+                    className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-7 py-4 rounded-xl bg-primary text-primary-foreground font-bold text-base shadow-lg hover:bg-primary/90 transition-all"
                   >
                     Send Me My Cards
                     <ArrowRight className="w-5 h-5" />
                   </Link>
                 </motion.div>
 
-                <p className="text-xs text-center text-background/60 mt-3 w-full">
+                <p className="text-xs text-center text-hero-foreground/60 mt-3 w-full">
                   Pay $0 today. Cancel anytime.
                 </p>
               </div>
