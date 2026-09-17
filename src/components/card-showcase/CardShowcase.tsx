@@ -92,6 +92,27 @@ export default function CardShowcase({ width = "min(620px, 100%)" }: CardShowcas
     }
   }, [design?.id, designs, index]);
 
+  // Warm every remaining design in the background so later switches are instant.
+  useEffect(() => {
+    if (designs.length < 2) return;
+    const scheduler = window as unknown as { requestIdleCallback?: (fn: () => void) => number };
+    const idle = (cb: () => void) => {
+      if (scheduler.requestIdleCallback) return scheduler.requestIdleCallback(cb);
+      return window.setTimeout(cb, 1200);
+    };
+    let cancelled = false;
+    idle(() => {
+      if (cancelled) return;
+      void (async () => {
+        for (const item of designs) {
+          if (cancelled) return;
+          await preloadDesign(item.frontImageUrl, item.backImageUrl, item.hubPreview).catch(() => undefined);
+        }
+      })();
+    });
+    return () => { cancelled = true; };
+  }, [designs]);
+
   const move = useCallback(async (direction: number) => {
     if (designs.length < 2) return;
     const nextIndex = (index + direction + designs.length) % designs.length;
@@ -129,7 +150,11 @@ export default function CardShowcase({ width = "min(620px, 100%)" }: CardShowcas
           </div>
         </div>
 
-        {hasHub && <ShowcasePhone design={design} />}
+        {hasHub && (
+          <div key={design.id} className="showcase-fade-in shrink-0">
+            <ShowcasePhone design={design} />
+          </div>
+        )}
       </div>
 
       <div className="mt-1 flex min-h-11 items-center justify-center gap-2">

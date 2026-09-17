@@ -11,16 +11,16 @@ interface HomepageHubPreviewProps {
 export default function HomepageHubPreview({ preview, businessName }: HomepageHubPreviewProps) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.5);
+  const [minHeight, setMinHeight] = useState(860);
 
   useEffect(() => {
     const viewport = viewportRef.current;
     if (!viewport) return;
     const update = () => {
+      // Width always drives the scale so the hub never spills past the phone screen.
       const widthScale = viewport.clientWidth / 430;
-      const canvas = viewport.querySelector<HTMLElement>(".homepage-hub-content");
-      const contentHeight = canvas?.scrollHeight || 860;
-      const heightScale = viewport.clientHeight / contentHeight;
-      setScale(Math.max(widthScale, heightScale));
+      setScale(widthScale);
+      setMinHeight(widthScale > 0 ? viewport.clientHeight / widthScale : 860);
     };
     update();
     const observer = new ResizeObserver(update);
@@ -46,8 +46,8 @@ export default function HomepageHubPreview({ preview, businessName }: HomepageHu
   return (
     <div ref={viewportRef} className="relative h-full w-full overflow-hidden" aria-label={`${businessName} live hub preview`}>
       <div
-        className="homepage-hub-canvas homepage-hub-content pointer-events-none absolute left-1/2 top-0 w-[430px] origin-top"
-        style={{ transform: `translateX(-50%) scale(${scale})` }}
+        className="homepage-hub-canvas homepage-hub-content pointer-events-none absolute left-1/2 top-0 w-[430px] origin-top bg-hub-preview [backface-visibility:hidden] [will-change:transform]"
+        style={{ transform: `translateX(-50%) scale(${scale})`, minHeight: `${minHeight}px` }}
       >
         <ProfilePreviewRenderer
           profile={preview.profile}
