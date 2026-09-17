@@ -92,7 +92,7 @@ interface LinkData {
 interface BlockData {
   id: string;
   block_type: string;
-  content: Record<string, unknown>;
+  content: unknown;
   is_active?: boolean | null;
   sort_order: number;
   alignment?: string | null;
@@ -104,6 +104,7 @@ interface ProfilePreviewRendererProps {
   blocks: BlockData[];
   isPreview?: boolean;
   onLinkClick?: (url: string) => void;
+  displayMode?: "default" | "showcase";
 }
 
 function ProfilePreviewRendererComponent({
@@ -112,6 +113,7 @@ function ProfilePreviewRendererComponent({
   blocks,
   isPreview = false,
   onLinkClick,
+  displayMode = "default",
 }: ProfilePreviewRendererProps) {
   // Cover image (set in the Design tab). This is the ONLY header decoration
   // rendered now. Legacy header_type values are stored but not honored.
@@ -826,9 +828,9 @@ function ProfilePreviewRendererComponent({
       <div className="relative w-full">
         {/* Full-bleed photo banner. The profile photo IS the header */}
         {isBannerHeader ? (
-          <div className="h-56 overflow-hidden relative">
+          <div className={`${displayMode === "showcase" ? "h-[380px]" : "h-56"} overflow-hidden relative`}>
             <img
-              src={getOptimizedImageUrl(profile.profile_photo_url!, 400, 80)}
+              src={getOptimizedImageUrl(profile.profile_photo_url || "", 400, 80)}
               alt=""
               className="h-full w-full object-cover object-top"
             />
@@ -948,7 +950,7 @@ function ProfilePreviewRendererComponent({
               color: (() => {
                 const btn = profile.button_theme;
                 const isHex = btn && /^#[0-9A-Fa-f]{3,6}$/.test(btn);
-                const bg = isHex ? btn! : (isDarkBg ? '#FFFFFF' : '#1A1A1A');
+                const bg = isHex && btn ? btn : (isDarkBg ? '#FFFFFF' : '#1A1A1A');
                 return isColorDark(bg) ? '#FFFFFF' : '#1A1A1A';
               })(),
             }}

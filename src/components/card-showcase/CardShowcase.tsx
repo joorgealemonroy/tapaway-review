@@ -35,7 +35,13 @@ const preloadImage = (url: string) => new Promise<void>((resolve, reject) => {
 });
 
 const preloadDesign = async (front: string, back: string | null, hubPreview: HubPreviewData | null) => {
-  const urls = [front, back, hubPreview?.logoUrl].filter((url): url is string => Boolean(url));
+  const urls = [
+    front,
+    back,
+    hubPreview?.profile.profile_photo_url,
+    hubPreview?.profile.header_image_url,
+    ...(hubPreview?.links.flatMap((link) => [link.cover_image_url, link.thumbnail_url]) ?? []),
+  ].filter((url): url is string => Boolean(url));
   await Promise.all(urls.map(preloadImage));
 };
 

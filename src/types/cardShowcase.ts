@@ -1,3 +1,5 @@
+import type { CachedBlock, CachedLink, CachedProfile } from "@/hooks/useProfileCache";
+
 export interface CardDesign {
   id: string;
   businessName: string;
@@ -28,4 +30,7 @@ export interface HubPreviewData {
   description: string | null;
   logoUrl: string | null;
   actions: HubPreviewAction[];
+  profile: CachedProfile;
+  links: CachedLink[];
+  blocks: CachedBlock[];
 }
