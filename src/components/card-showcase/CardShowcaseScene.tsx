@@ -207,7 +207,7 @@ function CardMesh({ design, paused, visible, interactive = true, onReady, onCycl
   };
 
   return (
-    <group position={[0, -0.16, 0]} rotation={[THREE.MathUtils.degToRad(-3), 0, THREE.MathUtils.degToRad(-1.5)]}>
+    <group position={[0, -0.54, 0]} rotation={[THREE.MathUtils.degToRad(-3), 0, THREE.MathUtils.degToRad(-1.5)]}>
       <group ref={yawGroup} rotation={[0, START_YAW, 0]}>
         <mesh geometry={edgeGeometry} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
           <meshPhysicalMaterial color="#ffffff" metalness={0} roughness={0.48} clearcoat={0.22} clearcoatRoughness={0.34} ior={1.46} transmission={0} opacity={1} />
@@ -231,7 +231,7 @@ export default function CardShowcaseScene(props: CardShowcaseSceneProps) {
   return (
     <Canvas
       dpr={[1, 2]}
-      camera={{ position: [0, 0, 18.1], fov: 28, near: 0.1, far: 100 }}
+      camera={{ position: [0, 0, 19.6], fov: 28, near: 0.1, far: 100 }}
       gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
       frameloop={props.visible ? "always" : "never"}
       aria-label={`3D printed card for ${props.design.businessName}`}
@@ -248,7 +248,7 @@ export default function CardShowcaseScene(props: CardShowcaseSceneProps) {
           <Lightformer color="#f7f7f5" intensity={1.1} position={[7, 2, 8]} rotation-y={-0.45} scale={[7, 4, 1]} />
           <Lightformer color="#ffffff" intensity={0.55} position={[1, 5, -7]} rotation-y={Math.PI} scale={[5, 3, 1]} />
         </Environment>
-        <mesh position={[0, -4.28, -0.35]} rotation-x={-Math.PI / 2} scale={[3.4, 0.46, 1]}>
+        <mesh position={[0, -4.66, -0.35]} rotation-x={-Math.PI / 2} scale={[3.4, 0.46, 1]}>
           <circleGeometry args={[1, 64]} />
           <meshBasicMaterial color="#000000" transparent opacity={0.1} depthWrite={false} />
         </mesh>
