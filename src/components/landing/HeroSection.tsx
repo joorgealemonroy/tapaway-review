@@ -50,9 +50,9 @@ const clientFeedback = [
 export const HeroSection = () => {
   return (
     <>
-      <section className="relative min-h-[90vh] flex items-center overflow-hidden bg-hero text-hero-foreground">
+      <section className="relative min-h-[90vh] flex items-center overflow-x-clip bg-hero text-hero-foreground">
         
-        <div className="relative w-full max-w-6xl mx-auto px-6 sm:px-8 py-8 md:py-20">
+        <div className="relative w-full max-w-6xl mx-auto px-6 sm:px-8 py-8 pb-12 md:py-20 md:pb-24">
           <div className="grid lg:grid-cols-[0.9fr_1.1fr] gap-7 lg:gap-10 items-center">
           {/* Left: Copy */}
           <motion.div
