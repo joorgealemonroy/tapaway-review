@@ -1,121 +1,223 @@
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Canvas, ThreeEvent, useFrame, useThree } from "@react-three/fiber";
 import { ContactShadows, Environment, Lightformer, useTexture } from "@react-three/drei";
-import { Suspense, useLayoutEffect, useMemo, useRef } from "react";
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import type { CardDesign } from "@/types/cardShowcase";
 
-const WIDTH = 3.154;
-const HEIGHT = 5;
-const DEPTH = 0.0444;
-const RADIUS = 0.186;
+export const CARD_WIDTH = 5.398;
+export const CARD_HEIGHT = 8.56;
+export const CARD_DEPTH = 0.076;
+export const CARD_RADIUS = 0.318;
+export const CARD_BEVEL = 0.008;
 
+const HALF_DEPTH = CARD_DEPTH / 2;
+const START_YAW = THREE.MathUtils.degToRad(15);
 const blankBack = (() => {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="638" height="1007"><rect width="100%" height="100%" fill="white"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="Arial,sans-serif" font-size="34" fill="#777">BLANK WHITE BACK</text></svg>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1713"><rect width="100%" height="100%" fill="white"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="Arial,sans-serif" font-size="48" fill="#777">BLANK WHITE BACK</text></svg>`;
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 })();
 
-const roundedShape = () => {
-  const x = -WIDTH / 2;
-  const y = -HEIGHT / 2;
+const roundedShape = (inset = 0) => {
+  const width = CARD_WIDTH - inset * 2;
+  const height = CARD_HEIGHT - inset * 2;
+  const radius = CARD_RADIUS - inset;
+  const x = -width / 2;
+  const y = -height / 2;
   const shape = new THREE.Shape();
-  shape.moveTo(x + RADIUS, y);
-  shape.lineTo(x + WIDTH - RADIUS, y);
-  shape.quadraticCurveTo(x + WIDTH, y, x + WIDTH, y + RADIUS);
-  shape.lineTo(x + WIDTH, y + HEIGHT - RADIUS);
-  shape.quadraticCurveTo(x + WIDTH, y + HEIGHT, x + WIDTH - RADIUS, y + HEIGHT);
-  shape.lineTo(x + RADIUS, y + HEIGHT);
-  shape.quadraticCurveTo(x, y + HEIGHT, x, y + HEIGHT - RADIUS);
-  shape.lineTo(x, y + RADIUS);
-  shape.quadraticCurveTo(x, y, x + RADIUS, y);
+  shape.moveTo(x + radius, y);
+  shape.lineTo(x + width - radius, y);
+  shape.absarc(x + width - radius, y + radius, radius, -Math.PI / 2, 0, false);
+  shape.lineTo(x + width, y + height - radius);
+  shape.absarc(x + width - radius, y + height - radius, radius, 0, Math.PI / 2, false);
+  shape.lineTo(x + radius, y + height);
+  shape.absarc(x + radius, y + height - radius, radius, Math.PI / 2, Math.PI, false);
+  shape.lineTo(x, y + radius);
+  shape.absarc(x + radius, y + radius, radius, Math.PI, Math.PI * 1.5, false);
   return shape;
 };
 
-const makeFaceGeometry = () => {
-  const geometry = new THREE.ShapeGeometry(roundedShape(), 32);
+const makeFaceGeometry = (flipU: boolean) => {
+  const geometry = new THREE.ShapeGeometry(roundedShape(), 48);
   const position = geometry.attributes.position;
   const uv = geometry.attributes.uv;
-  for (let i = 0; i < uv.count; i += 1) {
-    uv.setXY(i, (position.getX(i) + WIDTH / 2) / WIDTH, (position.getY(i) + HEIGHT / 2) / HEIGHT);
+  for (let index = 0; index < uv.count; index += 1) {
+    const u = (position.getX(index) + CARD_WIDTH / 2) / CARD_WIDTH;
+    uv.setXY(index, flipU ? 1 - u : u, (position.getY(index) + CARD_HEIGHT / 2) / CARD_HEIGHT);
   }
   uv.needsUpdate = true;
+  geometry.computeVertexNormals();
   return geometry;
+};
+
+const makeEdgeGeometry = () => {
+  const outer = roundedShape().getSpacedPoints(192);
+  const inner = roundedShape(CARD_BEVEL).getSpacedPoints(192);
+  const vertices: number[] = [];
+  const indices: number[] = [];
+  const rings = [
+    { points: outer, z: HALF_DEPTH - CARD_BEVEL },
+    { points: inner, z: HALF_DEPTH },
+    { points: inner, z: -HALF_DEPTH },
+    { points: outer, z: -HALF_DEPTH + CARD_BEVEL },
+  ];
+  rings.forEach(({ points, z }) => points.forEach((point) => vertices.push(point.x, point.y, z)));
+  const ringSize = outer.length;
+  for (let ring = 0; ring < rings.length - 1; ring += 1) {
+    for (let index = 0; index < ringSize; index += 1) {
+      const next = (index + 1) % ringSize;
+      const a = ring * ringSize + index;
+      const b = ring * ringSize + next;
+      const c = (ring + 1) * ringSize + next;
+      const d = (ring + 1) * ringSize + index;
+      indices.push(a, b, d, b, c, d);
+    }
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute(vertices, 3));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  geometry.computeBoundingBox();
+  return geometry;
+};
+
+const makeContainedTexture = (source: THREE.Texture, anisotropy: number) => {
+  const image = source.image as CanvasImageSource & { width?: number; height?: number; naturalWidth?: number; naturalHeight?: number };
+  const sourceWidth = image.naturalWidth ?? image.width ?? 1;
+  const sourceHeight = image.naturalHeight ?? image.height ?? 1;
+  const canvas = document.createElement("canvas");
+  canvas.width = 1200;
+  canvas.height = Math.round(canvas.width * CARD_HEIGHT / CARD_WIDTH);
+  const context = canvas.getContext("2d");
+  if (!context) return source;
+  context.fillStyle = "#ffffff";
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  const scale = Math.min(canvas.width / sourceWidth, canvas.height / sourceHeight);
+  const drawWidth = sourceWidth * scale;
+  const drawHeight = sourceHeight * scale;
+  context.drawImage(image, (canvas.width - drawWidth) / 2, (canvas.height - drawHeight) / 2, drawWidth, drawHeight);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.wrapS = texture.wrapT = THREE.ClampToEdgeWrapping;
+  texture.minFilter = THREE.LinearMipmapLinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  texture.generateMipmaps = true;
+  texture.anisotropy = anisotropy;
+  texture.needsUpdate = true;
+  return texture;
 };
 
 interface CardMeshProps {
   design: CardDesign;
   paused: boolean;
   visible: boolean;
+  interactive?: boolean;
   onReady: () => void;
   onCycle: () => void;
+  onPoster?: (poster: string) => void;
 }
 
-function CardMesh({ design, paused, visible, onReady, onCycle }: CardMeshProps) {
-  const group = useRef<THREE.Group>(null);
+function CardMesh({ design, paused, visible, interactive = true, onReady, onCycle, onPoster }: CardMeshProps) {
+  const yawGroup = useRef<THREE.Group>(null);
   const elapsed = useRef(0);
-  const designRef = useRef(design);
   const cycleSent = useRef(false);
   const readyFrames = useRef(0);
-  const maps = useTexture([design.frontImageUrl, design.backImageUrl ?? blankBack]);
-  const faceGeometry = useMemo(makeFaceGeometry, []);
-  const edgeGeometry = useMemo(() => new THREE.ExtrudeGeometry(roundedShape(), {
-    depth: DEPTH,
-    bevelEnabled: true,
-    bevelSegments: 2,
-    steps: 1,
-    bevelSize: 0.012,
-    bevelThickness: 0.008,
-    curveSegments: 32,
-  }).translate(0, 0, -DEPTH / 2), []);
+  const dragging = useRef(false);
+  const dragMoved = useRef(false);
+  const pointerStart = useRef({ x: 0, y: 0, yaw: START_YAW });
+  const manualYaw = useRef(START_YAW);
+  const { gl } = useThree();
+  const sourceMaps = useTexture([design.frontImageUrl, design.backImageUrl ?? blankBack]);
+  const maxAnisotropy = Math.min(8, gl.capabilities.getMaxAnisotropy());
+  const maps = useMemo(
+    () => sourceMaps.map((texture) => makeContainedTexture(texture, maxAnisotropy)),
+    [maxAnisotropy, sourceMaps],
+  );
+  const frontGeometry = useMemo(() => makeFaceGeometry(false), []);
+  const backGeometry = useMemo(() => makeFaceGeometry(true), []);
+  const edgeGeometry = useMemo(makeEdgeGeometry, []);
+
+  useEffect(() => () => {
+    maps.forEach((map, index) => { if (map !== sourceMaps[index]) map.dispose(); });
+    frontGeometry.dispose();
+    backGeometry.dispose();
+    edgeGeometry.dispose();
+  }, [backGeometry, edgeGeometry, frontGeometry, maps, sourceMaps]);
 
   useLayoutEffect(() => {
-    maps.forEach((map) => {
-      map.colorSpace = THREE.SRGBColorSpace;
-      map.wrapS = map.wrapT = THREE.ClampToEdgeWrapping;
-      map.anisotropy = 4;
-      map.needsUpdate = true;
-    });
     readyFrames.current = 0;
-    if (designRef.current.id !== design.id) {
-      elapsed.current = 6.232;
-      designRef.current = design;
-    }
-  }, [maps, design.id]);
+  }, [design.id, maps]);
 
-  useFrame((_, rawDelta) => {
-    if (!group.current || !visible) return;
+  useFrame(() => {
+    if (!yawGroup.current || !visible) return;
     if (readyFrames.current < 2) {
       readyFrames.current += 1;
-      if (readyFrames.current === 2) onReady();
+      if (readyFrames.current === 2) {
+        gl.render(gl.scene, gl.camera);
+        onReady();
+        if (onPoster) {
+          try { onPoster(gl.domElement.toDataURL("image/png")); } catch { /* poster capture is optional */ }
+        }
+      }
     }
-    if (paused) return;
+  });
+
+  useFrame((_, rawDelta) => {
+    if (!yawGroup.current || !visible || paused || dragging.current) return;
     elapsed.current += Math.min(rawDelta, 0.05);
     const cycle = elapsed.current % 8;
     const progress = cycle < 3 ? 0 : (cycle - 3) / 5;
     const eased = progress < 0.5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2;
-    group.current.rotation.y = eased * Math.PI * 2;
-    if (progress >= 0.64 && !cycleSent.current && Math.abs(Math.cos(group.current.rotation.y)) < 0.08) {
+    const yaw = START_YAW + eased * Math.PI * 2;
+    yawGroup.current.rotation.y = yaw;
+    manualYaw.current = yaw;
+    const cameraRelativeEdge = Math.abs(Math.cos(yaw)) < 0.045;
+    if (progress > 0.6 && cameraRelativeEdge && !cycleSent.current) {
       cycleSent.current = true;
       onCycle();
     }
     if (cycle < 0.2) cycleSent.current = false;
   });
 
+  const onPointerDown = (event: ThreeEvent<PointerEvent>) => {
+    if (!interactive) return;
+    pointerStart.current = { x: event.clientX, y: event.clientY, yaw: manualYaw.current };
+    dragMoved.current = false;
+    dragging.current = true;
+    event.target.setPointerCapture(event.pointerId);
+  };
+  const onPointerMove = (event: ThreeEvent<PointerEvent>) => {
+    if (!interactive || !dragging.current || !yawGroup.current) return;
+    const dx = event.clientX - pointerStart.current.x;
+    const dy = event.clientY - pointerStart.current.y;
+    if (!dragMoved.current && Math.abs(dx) < 5) return;
+    if (!dragMoved.current && Math.abs(dy) > Math.abs(dx)) return;
+    dragMoved.current = true;
+    manualYaw.current = pointerStart.current.yaw + dx * 0.012;
+    yawGroup.current.rotation.y = manualYaw.current;
+  };
+  const onPointerUp = (event: ThreeEvent<PointerEvent>) => {
+    dragging.current = false;
+    if (event.target.hasPointerCapture(event.pointerId)) event.target.releasePointerCapture(event.pointerId);
+  };
+
   return (
-    <group ref={group} rotation={[THREE.MathUtils.degToRad(-4), 0, THREE.MathUtils.degToRad(-2)]}>
-      <mesh geometry={edgeGeometry} castShadow>
-        <meshPhysicalMaterial color="white" metalness={0} roughness={0.52} clearcoat={0.16} clearcoatRoughness={0.5} />
-      </mesh>
-      <mesh geometry={faceGeometry} position={[0, 0, DEPTH / 2 + 0.016]} castShadow>
-        <meshPhysicalMaterial map={maps[0]} metalness={0} roughness={0.6} clearcoat={0.12} polygonOffset polygonOffsetFactor={-1} />
-      </mesh>
-      <mesh geometry={faceGeometry} position={[0, 0, -DEPTH / 2 - 0.016]} rotation={[0, Math.PI, 0]} castShadow>
-        <meshPhysicalMaterial map={maps[1]} metalness={0} roughness={0.6} clearcoat={0.12} polygonOffset polygonOffsetFactor={-1} />
-      </mesh>
+    <group rotation={[THREE.MathUtils.degToRad(-4), 0, THREE.MathUtils.degToRad(-2)]}>
+      <group ref={yawGroup} rotation={[0, START_YAW, 0]}>
+        <mesh geometry={edgeGeometry} castShadow onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
+          <meshPhysicalMaterial color="#ffffff" metalness={0} roughness={0.46} clearcoat={0.2} clearcoatRoughness={0.34} ior={1.46} transmission={0} opacity={1} />
+        </mesh>
+        <mesh geometry={frontGeometry} position={[0, 0, HALF_DEPTH]} castShadow onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
+          <meshPhysicalMaterial map={maps[0]} color="#ffffff" metalness={0} roughness={0.36} clearcoat={0.25} clearcoatRoughness={0.3} ior={1.46} transmission={0} opacity={1} emissive="#000000" side={THREE.FrontSide} />
+        </mesh>
+        <mesh geometry={backGeometry} position={[0, 0, -HALF_DEPTH]} rotation={[0, Math.PI, 0]} castShadow onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
+          <meshPhysicalMaterial map={maps[1]} color="#ffffff" metalness={0} roughness={0.36} clearcoat={0.25} clearcoatRoughness={0.3} ior={1.46} transmission={0} opacity={1} emissive="#000000" side={THREE.FrontSide} />
+        </mesh>
+      </group>
     </group>
   );
 }
 
-interface CardShowcaseSceneProps extends CardMeshProps {
+export interface CardShowcaseSceneProps extends CardMeshProps {
   mobile: boolean;
 }
 
@@ -124,20 +226,23 @@ export default function CardShowcaseScene(props: CardShowcaseSceneProps) {
     <Canvas
       shadows
       dpr={props.mobile ? 1 : [1, 1.5]}
-      camera={{ position: [0, 0.15, 7.35], fov: 35, near: 0.1, far: 50 }}
-      gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
+      camera={{ position: [0, 0, 22], fov: 28, near: 0.1, far: 100 }}
+      gl={{ antialias: true, alpha: true, powerPreference: "high-performance", preserveDrawingBuffer: true }}
       frameloop={props.visible ? "always" : "never"}
       aria-label={`3D printed card for ${props.design.businessName}`}
+      style={{ background: "transparent", touchAction: "pan-y" }}
     >
-      <ambientLight intensity={1.2} />
-      <directionalLight position={[4, 6, 6]} intensity={2.2} castShadow shadow-mapSize={[1024, 1024]} />
+      <directionalLight position={[-7, 10, 12]} intensity={1.8} castShadow shadow-mapSize={[1024, 1024]} />
+      <directionalLight position={[8, 3, 10]} intensity={0.65} />
+      <directionalLight position={[2, 4, -8]} intensity={0.48} />
       <Suspense fallback={null}>
         <CardMesh {...props} />
-        <Environment resolution={128}>
-          <Lightformer intensity={2.4} position={[0, 5, 4]} scale={[8, 3, 1]} />
-          <Lightformer intensity={1.2} position={[-5, 0, 2]} rotation-y={Math.PI / 2} scale={[6, 2, 1]} />
+        <Environment resolution={128} background={false}>
+          <Lightformer color="#ffffff" intensity={3.2} position={[-5, 7, 8]} rotation-x={-0.35} scale={[9, 5, 1]} />
+          <Lightformer color="#f4f4f2" intensity={1.5} position={[7, 2, 8]} rotation-y={-0.45} scale={[7, 4, 1]} />
+          <Lightformer color="#ffffff" intensity={0.8} position={[1, 5, -7]} rotation-y={Math.PI} scale={[5, 3, 1]} />
         </Environment>
-        <ContactShadows position={[0, -2.75, 0]} opacity={0.2} scale={7} blur={2.8} far={4} />
+        <ContactShadows position={[0, -4.72, 0]} opacity={0.18} scale={8} blur={3.2} far={5} />
       </Suspense>
     </Canvas>
   );

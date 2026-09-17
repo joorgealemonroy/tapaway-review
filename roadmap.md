@@ -4,3 +4,4 @@
 - [x] Match the Solo overview blocks to the provided reference while preserving the rest of the dashboard; remove the Solo “Your setup” section.
 - [x] Build real NFC card showcase and secure admin manager per approved plan
 - [ ] Repair and validate the physical PVC card showcase, reusable 3D admin preview, and rotatable interactions
+  - [ ] Validate responsive camera framing without changing physical card dimensions or per-design displayed scale
