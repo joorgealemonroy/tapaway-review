@@ -125,7 +125,7 @@ function CardMesh({ design, paused, visible, interactive = true, onReady, onCycl
   const dragMoved = useRef(false);
   const pointerStart = useRef({ x: 0, y: 0, yaw: START_YAW });
   const manualYaw = useRef(START_YAW);
-  const { gl } = useThree();
+  const { gl, scene, camera } = useThree();
   const sourceMaps = useTexture([design.frontImageUrl, design.backImageUrl ?? blankBack]);
   const maxAnisotropy = Math.min(8, gl.capabilities.getMaxAnisotropy());
   const maps = useMemo(
@@ -152,7 +152,7 @@ function CardMesh({ design, paused, visible, interactive = true, onReady, onCycl
     if (readyFrames.current < 2) {
       readyFrames.current += 1;
       if (readyFrames.current === 2) {
-        gl.render(gl.scene, gl.camera);
+        gl.render(scene, camera);
         onReady();
         if (onPoster) {
           try { onPoster(gl.domElement.toDataURL("image/png")); } catch { /* poster capture is optional */ }
@@ -183,7 +183,8 @@ function CardMesh({ design, paused, visible, interactive = true, onReady, onCycl
     pointerStart.current = { x: event.clientX, y: event.clientY, yaw: manualYaw.current };
     dragMoved.current = false;
     dragging.current = true;
-    event.target.setPointerCapture(event.pointerId);
+    const target = event.target as Element;
+    target.setPointerCapture(event.pointerId);
   };
   const onPointerMove = (event: ThreeEvent<PointerEvent>) => {
     if (!interactive || !dragging.current || !yawGroup.current) return;
@@ -197,7 +198,8 @@ function CardMesh({ design, paused, visible, interactive = true, onReady, onCycl
   };
   const onPointerUp = (event: ThreeEvent<PointerEvent>) => {
     dragging.current = false;
-    if (event.target.hasPointerCapture(event.pointerId)) event.target.releasePointerCapture(event.pointerId);
+    const target = event.target as Element;
+    if (target.hasPointerCapture(event.pointerId)) target.releasePointerCapture(event.pointerId);
   };
 
   return (
