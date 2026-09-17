@@ -94,7 +94,7 @@ export const HeroSection = () => {
                 </motion.div>
 
                 <p className="text-xs text-center text-hero-foreground/60 mt-3 w-full">
-                  Pay $0 today. Cancel anytime.
+                  $0 to start. Free setup & shipping.
                 </p>
               </div>
 
