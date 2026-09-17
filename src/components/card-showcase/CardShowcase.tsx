@@ -150,7 +150,11 @@ export default function CardShowcase({ width = "min(620px, 100%)" }: CardShowcas
           </div>
         </div>
 
-        {hasHub && <ShowcasePhone design={design} />}
+        {hasHub && (
+          <div key={design.id} className="showcase-fade-in shrink-0">
+            <ShowcasePhone design={design} />
+          </div>
+        )}
       </div>
 
       <div className="mt-1 flex min-h-11 items-center justify-center gap-2">
