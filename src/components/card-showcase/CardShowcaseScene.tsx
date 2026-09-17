@@ -12,7 +12,9 @@ export const CARD_BEVEL = 0.008;
 
 const HALF_DEPTH = CARD_DEPTH / 2;
 const START_YAW = THREE.MathUtils.degToRad(15);
-const ROTATION_DURATION = 16;
+const FRONT_HOLD_DURATION = 3;
+const ROTATION_DURATION = 5;
+const CYCLE_DURATION = FRONT_HOLD_DURATION + ROTATION_DURATION;
 const blankBack = (() => {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1713"><rect width="100%" height="100%" fill="white"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="Arial,sans-serif" font-size="48" fill="#777">BLANK WHITE BACK</text></svg>`;
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
@@ -165,8 +167,8 @@ function CardMesh({ design, paused, visible, interactive = true, onReady, onCycl
   useFrame((_, rawDelta) => {
     if (!yawGroup.current || !visible || paused || dragging.current) return;
     elapsed.current += Math.min(rawDelta, 0.05);
-    const cycle = elapsed.current % ROTATION_DURATION;
-    const progress = cycle / ROTATION_DURATION;
+    const cycle = elapsed.current % CYCLE_DURATION;
+    const progress = cycle <= FRONT_HOLD_DURATION ? 0 : (cycle - FRONT_HOLD_DURATION) / ROTATION_DURATION;
     const yaw = START_YAW + progress * Math.PI * 2;
     yawGroup.current.rotation.y = yaw;
     manualYaw.current = yaw;
@@ -198,7 +200,7 @@ function CardMesh({ design, paused, visible, interactive = true, onReady, onCycl
   };
   const onPointerUp = (event: ThreeEvent<PointerEvent>) => {
     const normalizedYaw = THREE.MathUtils.euclideanModulo(manualYaw.current - START_YAW, Math.PI * 2);
-    elapsed.current = normalizedYaw / (Math.PI * 2) * ROTATION_DURATION;
+    elapsed.current = FRONT_HOLD_DURATION + normalizedYaw / (Math.PI * 2) * ROTATION_DURATION;
     dragging.current = false;
     const target = event.target as Element;
     if (target.hasPointerCapture(event.pointerId)) target.releasePointerCapture(event.pointerId);
@@ -208,13 +210,13 @@ function CardMesh({ design, paused, visible, interactive = true, onReady, onCycl
     <group rotation={[THREE.MathUtils.degToRad(-4), 0, THREE.MathUtils.degToRad(-2)]}>
       <group ref={yawGroup} rotation={[0, START_YAW, 0]}>
         <mesh geometry={edgeGeometry} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
-          <meshPhysicalMaterial color="#ffffff" metalness={0} roughness={0.46} clearcoat={0.2} clearcoatRoughness={0.34} ior={1.46} transmission={0} opacity={1} />
+          <meshPhysicalMaterial color="#ffffff" metalness={0} roughness={0.4} clearcoat={0.3} clearcoatRoughness={0.28} ior={1.46} transmission={0} opacity={1} />
         </mesh>
         <mesh geometry={frontGeometry} position={[0, 0, HALF_DEPTH]} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
-          <meshPhysicalMaterial map={maps[0]} color="#ffffff" metalness={0} roughness={0.36} clearcoat={0.25} clearcoatRoughness={0.3} ior={1.46} transmission={0} opacity={1} emissive="#000000" side={THREE.FrontSide} />
+          <meshPhysicalMaterial map={maps[0]} color="#ffffff" metalness={0} roughness={0.31} clearcoat={0.38} clearcoatRoughness={0.25} ior={1.46} transmission={0} opacity={1} emissive="#000000" side={THREE.FrontSide} />
         </mesh>
         <mesh geometry={backGeometry} position={[0, 0, -HALF_DEPTH]} rotation={[0, Math.PI, 0]} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
-          <meshPhysicalMaterial map={maps[1]} color="#ffffff" metalness={0} roughness={0.36} clearcoat={0.25} clearcoatRoughness={0.3} ior={1.46} transmission={0} opacity={1} emissive="#000000" side={THREE.FrontSide} />
+          <meshPhysicalMaterial map={maps[1]} color="#ffffff" metalness={0} roughness={0.31} clearcoat={0.38} clearcoatRoughness={0.25} ior={1.46} transmission={0} opacity={1} emissive="#000000" side={THREE.FrontSide} />
         </mesh>
       </group>
     </group>
@@ -230,7 +232,7 @@ export default function CardShowcaseScene(props: CardShowcaseSceneProps) {
     <Canvas
       dpr={[1, 2]}
       camera={{ position: [0, 0, props.mobile ? 21 : 22], fov: 28, near: 0.1, far: 100 }}
-      gl={{ antialias: true, alpha: true, powerPreference: "high-performance", preserveDrawingBuffer: true }}
+      gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
       frameloop={props.visible ? "always" : "never"}
       aria-label={`3D printed card for ${props.design.businessName}`}
       style={{ background: "transparent", touchAction: "pan-y" }}

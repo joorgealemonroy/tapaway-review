@@ -1,24 +1,11 @@
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { ArrowRight, Star, TrendingUp } from "lucide-react";
-import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import TapAwayCard3D from "@/components/TapAwayCard3D";
-import { useIsMobile } from "@/hooks/use-mobile";
 import victorAsset from "@/assets/victor-ramirez.jpg.asset.json";
 import soniaAsset from "@/assets/sonia-berumen.jpg.asset.json";
 import manuelAsset from "@/assets/manuel-monroy.jpg.asset.json";
 import joshAsset from "@/assets/josh.jpg.asset.json";
-
-const cities = [
-  "San Diego",
-  "Los Angeles", 
-  "Austin",
-  "Miami",
-  "Oregon",
-  "Chicago",
-  "Colorado",
-  "Nevada",
-];
 
 const clientFeedback = [
   {
@@ -61,47 +48,33 @@ const clientFeedback = [
 ];
 
 export const HeroSection = () => {
-  const [currentCity, setCurrentCity] = useState(0);
-  const isMobile = useIsMobile();
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentCity((prev) => (prev + 1) % cities.length);
-    }, 2500);
-    return () => clearInterval(interval);
-  }, []);
-
   return (
     <>
-      <section className="relative min-h-[90vh] flex items-center overflow-hidden bg-background">
-        <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-muted/30" />
+      <section className="relative min-h-[90vh] flex items-center overflow-hidden bg-foreground text-background">
         
         <div className="relative w-full max-w-6xl mx-auto px-6 sm:px-8 py-8 md:py-20">
-          <div className="grid lg:grid-cols-2 gap-10 lg:gap-12 items-center">
+          <div className="grid lg:grid-cols-[0.9fr_1.1fr] gap-7 lg:gap-10 items-center">
           {/* Left: Copy */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="text-left"
+            className="text-left flex flex-col"
           >
             {/* Main Headline */}
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tight text-foreground leading-[1.08] mb-5 md:mb-8">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-normal text-background leading-[1.08] mb-5 md:mb-8">
               Turn Taps into{" "}
               <span className="text-primary whitespace-nowrap">5-Star Reviews.</span>
             </h1>
 
-            {/* Mobile card visual */}
-            {isMobile && (
-              <div className="mt-10 flex justify-center mb-6">
-                <TapAwayCard3D width="min(285px, 82vw)" />
-              </div>
-            )}
-
             {/* Subheadline */}
-            <p className="text-base md:text-lg text-muted-foreground leading-relaxed mb-8 md:mb-12 max-w-xl">
+            <p className="text-base md:text-lg text-background/70 leading-relaxed mb-6 md:mb-9 max-w-xl">
               Collect reviews effortlessly with branded NFC Cards. Zero setup. <span className="text-primary font-bold">$0 Today</span>
             </p>
+
+            <div className="mb-7 lg:hidden">
+              <TapAwayCard3D width="100%" />
+            </div>
 
             {/* CTAs */}
             <div className="flex flex-col sm:flex-row gap-4 justify-start items-start">
@@ -120,7 +93,7 @@ export const HeroSection = () => {
                   </Link>
                 </motion.div>
 
-                <p className="text-xs text-center text-muted-foreground mt-3 w-full">
+                <p className="text-xs text-center text-background/60 mt-3 w-full">
                   Pay $0 today. Cancel anytime.
                 </p>
               </div>
@@ -129,40 +102,14 @@ export const HeroSection = () => {
           </motion.div>
 
           {/* Right: Visual */}
-          {!isMobile && <motion.div
+          <motion.div
             initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.7, delay: 0.2 }}
-            className="relative mt-16 lg:mt-0 hidden lg:block"
+            className="relative hidden lg:block"
           >
-            <div className="flex flex-col items-center gap-6">
-              <TapAwayCard3D width="min(310px, 30vw)" />
-
-              {/* Rotating City Social Proof */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.5, delay: 1 }}
-                className="flex items-center gap-2 text-sm text-muted-foreground mt-8"
-              >
-                <span>Active in</span>
-                <div className="relative h-5 overflow-hidden w-24">
-                  <AnimatePresence mode="wait">
-                    <motion.span
-                      key={cities[currentCity]}
-                      initial={{ y: 20, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      exit={{ y: -20, opacity: 0 }}
-                      transition={{ duration: 0.4, ease: "easeInOut" }}
-                      className="absolute inset-0 font-semibold text-foreground text-center"
-                    >
-                      {cities[currentCity]}
-                    </motion.span>
-                  </AnimatePresence>
-                </div>
-              </motion.div>
-            </div>
-          </motion.div>}
+            <TapAwayCard3D width="100%" />
+          </motion.div>
           </div>
         </div>
       </section>
