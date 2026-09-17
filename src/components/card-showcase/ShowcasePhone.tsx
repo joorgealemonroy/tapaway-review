@@ -10,12 +10,18 @@ export default function ShowcasePhone({ design }: ShowcasePhoneProps) {
   if (!design.hubPreview || !design.hubUrl) return null;
 
   return (
-    <a
-      href={design.hubUrl}
+    <div
+      role="link"
+      tabIndex={0}
       aria-label={`View ${design.businessName} live hub from hub preview`}
-      className="showcase-phone group relative block shrink-0"
-      target="_blank"
-      rel="noreferrer"
+      className="showcase-phone group relative block shrink-0 cursor-pointer"
+      onClick={() => window.open(design.hubUrl || "", "_blank", "noopener,noreferrer")}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          window.open(design.hubUrl || "", "_blank", "noopener,noreferrer");
+        }
+      }}
     >
       <div className="relative h-full w-full">
         <div className="showcase-phone-screen absolute bottom-[2.7%] left-[7.5%] right-[7.5%] top-[2.6%] overflow-hidden bg-hub-preview [container-type:inline-size]">
@@ -23,6 +29,6 @@ export default function ShowcasePhone({ design }: ShowcasePhoneProps) {
         </div>
         <img src={phoneFrameAsset.url} alt="" aria-hidden="true" className="pointer-events-none absolute inset-0 z-10 h-full w-full select-none" />
       </div>
-    </a>
+    </div>
   );
 }
