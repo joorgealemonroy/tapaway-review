@@ -52,7 +52,7 @@ type DesignDatabaseUpdates = Partial<{
 
 type DesignPreviewUpdates = Parameters<Props["onUpdate"]>[0];
 
-// One curated set of solid page colors — no gradients, no fades.
+// One curated set of solid page colors. No gradients, no fades.
 const BG_PRESETS = [
   "#ffffff",
   "#f5f5f5",
@@ -71,7 +71,7 @@ const isSolidHex = (value: string) => /^#[0-9A-Fa-f]{6}$/.test(value);
 /**
  * Simplified design editor: profile photo, cover image, and one good
  * background color picker. Legacy header styles (header_type, banner shapes,
- * logo scale, etc.) are intentionally not offered anymore — see the hub
+ * logo scale, etc.) are intentionally not offered anymore. See the hub
  * render for how stored legacy values fall back to the clean default.
  */
 export const DashboardDesignTab = ({
@@ -103,7 +103,7 @@ export const DashboardDesignTab = ({
   const saveInFlightRef = useRef(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savedStatusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Consecutive failed flushes — after a few, stop auto-retrying so a
+  // Consecutive failed flushes. After a few, stop auto-retrying so a
   // persistent failure doesn't loop forever; the user retries manually.
   const consecutiveFailuresRef = useRef(0);
   const MAX_AUTO_RETRIES = 3;
@@ -152,7 +152,7 @@ export const DashboardDesignTab = ({
         Object.keys(queuedUpdatesRef.current).length > 0 &&
         consecutiveFailuresRef.current < MAX_AUTO_RETRIES
       ) {
-        // Back off between automatic retries — don't hammer the network.
+        // Back off between automatic retries. Don't hammer the network.
         setTimeout(() => { void flushDesignSave(); }, 2500);
       }
     }
@@ -193,7 +193,7 @@ export const DashboardDesignTab = ({
     setPendingHeaderType(dbValue);
     queueDesignSave({ header_type: dbValue }, { headerType: dbValue });
     toast.success(
-      type === "banner" ? "Photo banner on — looking sharp." : "Classic header on."
+      type === "banner" ? "Photo banner on. Looking sharp." : "Classic header on."
     );
   };
 
@@ -329,7 +329,7 @@ export const DashboardDesignTab = ({
   const photoInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
 
-  // A stored legacy gradient still renders on the hub — the picker just can't
+  // A stored legacy gradient still renders on the hub. The picker just can't
   // edit it, so show it honestly as "Custom".
   const currentIsGradient = typeof pendingBgColor === "string" &&
     (pendingBgColor.startsWith("linear-gradient") || pendingBgColor.startsWith("radial-gradient"));
@@ -414,7 +414,7 @@ export const DashboardDesignTab = ({
 
       <div className="h-px bg-border" />
 
-      {/* Header style — the big photo banner look vs classic */}
+      {/* Header style. The big photo banner look vs classic */}
       <section className="space-y-4">
         <div>
           <h3 className="text-base font-semibold text-foreground">Header style</h3>
@@ -559,7 +559,7 @@ export const DashboardDesignTab = ({
 
       <div className="h-px bg-border" />
 
-      {/* Background color — one good picker */}
+      {/* Background color. One good picker */}
       <section className="space-y-4">
         <div>
           <h3 className="text-base font-semibold text-foreground">Page background</h3>
@@ -639,7 +639,7 @@ export const DashboardDesignTab = ({
           </div>
         </div>
         <p className="text-xs text-muted-foreground">
-          Dark colors work best with light text, light colors with dark text — your
+          Dark colors work best with light text, light colors with dark text. Your
           page adjusts text automatically.
         </p>
       </section>
@@ -689,7 +689,7 @@ export const DashboardDesignTab = ({
             setCropperOpen(open);
             if (!open) {
               // Release the blob URL created in handleFileSelect (remote URLs
-              // used by "adjust crop" are not blob URLs — leave those alone).
+              // used by "adjust crop" are not blob URLs. Leave those alone).
               setCropperSrc((src) => {
                 if (src?.startsWith("blob:")) URL.revokeObjectURL(src);
                 return null;

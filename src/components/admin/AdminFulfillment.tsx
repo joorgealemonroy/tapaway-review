@@ -1,4 +1,4 @@
-// AdminFulfillment — the demo/card fulfillment pipeline board.
+// AdminFulfillment. The demo/card fulfillment pipeline board.
 //
 // Single source of truth: personal_profiles.pipeline_status.
 // Stage order: created (draft / ready_for_review / changes_requested)
@@ -6,7 +6,7 @@
 // → closed (converted / inactive).
 //
 // Approve actions reuse the shared approveDemo() helper (which also fires
-// award-demo-commission, the $5/demo payout hook) — logic is NOT duplicated
+// award-demo-commission, the $5/demo payout hook). Logic is NOT duplicated
 // here. Card↔hub activation linking is the sibling's activate RPC; the
 // "Mark activated" button below only advances the pipeline stage.
 
@@ -275,7 +275,7 @@ export default function AdminFulfillment() {
   };
 
   const handleClose = async (row: Row, status: "converted" | "inactive") => {
-    const label = status === "converted" ? "converted (paying)" : "closed — no interest";
+    const label = status === "converted" ? "converted (paying)" : "closed. No interest";
     if (
       !window.confirm(
         `Mark "${row.full_name || row.username || "this hub"}" as ${label}?\n\nYou can reopen it from this board later.`
@@ -289,7 +289,7 @@ export default function AdminFulfillment() {
         // converted_at marks a real sale; a "no interest" close leaves it null.
         ...(status === "converted" ? { converted_at: new Date().toISOString() } : {}),
       });
-      toast.success(status === "converted" ? "Marked as converted." : "Closed — no interest.");
+      toast.success(status === "converted" ? "Marked as converted." : "Closed. No interest.");
       await load();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Update failed");
@@ -302,7 +302,7 @@ export default function AdminFulfillment() {
     setActingId(row.id);
     try {
       await updateRow(row.id, { pipeline_status: "delivered" });
-      toast.success("Reopened — back to the Delivered lane.");
+      toast.success("Reopened. Back to the Delivered lane.");
       await load();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Update failed");
@@ -375,7 +375,7 @@ export default function AdminFulfillment() {
           disabled={busy}
         >
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowLeft className="h-4 w-4" />}
-          Reopen — back to Delivered
+          Reopen. Back to Delivered
         </Button>
       );
     }
@@ -458,7 +458,7 @@ export default function AdminFulfillment() {
           </div>
         ) : visible.length === 0 ? (
           <div className="text-center py-12 text-white/40 text-sm">
-            Nothing here. {tab !== "all" ? "This queue is clear — nice." : "No rep-created demos yet."}
+            Nothing here. {tab !== "all" ? "This queue is clear. Nice." : "No rep-created demos yet."}
           </div>
         ) : (
           <div className="space-y-3">

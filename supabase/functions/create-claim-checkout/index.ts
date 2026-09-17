@@ -116,7 +116,7 @@ Deno.serve(async (req) => {
       // SKU UNIFICATION: this is the SAME $199/yr Solo yearly product that
       // create-checkout-session sells for yearly Solo signups
       // (metadata tapaway_plan=annual_value_pass, 'TapAway Solo').
-      // Do not create a second yearly SKU — both paths resolve to this one.
+      // Do not create a second yearly SKU. Both paths resolve to this one.
       const prod = await findOrCreateProduct(stripe, 'tapaway_plan', 'annual_value_pass', 'TapAway Solo');
       const price = await findOrCreatePrice(stripe, prod, 19900, 'year');
       lineItems.push({ price, quantity: 1 });
@@ -145,7 +145,7 @@ Deno.serve(async (req) => {
           return json({ error: 'This hub already has an active subscription.' }, 409);
         }
       } catch (_e) {
-        // Subscription no longer exists in Stripe — allow a fresh checkout.
+        // Subscription no longer exists in Stripe. Allow a fresh checkout.
       }
     }
 

@@ -6,14 +6,14 @@ export const TRIAL_PRICE_ID = "price_1Sl3aCDg8DaTuVNZtL0SAQrl";
 // IMPORTANT: All CTAs must use this URL
 export const TRIAL_URL = "https://buy.stripe.com/3cIdR98y34vp31v0wagYU0b";
 
-// Card Club Add-on ($5/mo recurring — 3 cards/month, shipping included)
+// Card Club Add-on ($5/mo recurring. 3 cards/month, shipping included)
 export const CARD_ADDON_PRICE_ID = "price_1TMM0LDg8DaTuVNZUgZ4GtWJ";
 
-// One-Time Card Order ($10 — 3 NFC cards)
+// One-Time Card Order ($10. 3 NFC cards)
 export const CARD_ONETIME_PRICE_ID = "price_1TMM0LDg8DaTuVNZZ2EfLZrk";
 
 // ---------------------------------------------------------------------------
-// UNIVERSAL PRICING — single source of truth for every customer-facing price.
+// UNIVERSAL PRICING. Single source of truth for every customer-facing price.
 // Base software $20/mo · Card Club add-on +$5/mo ($25/mo total) · $199/yr annual.
 // ---------------------------------------------------------------------------
 export const PRICING = {
@@ -47,7 +47,7 @@ export const PRICING = {
     amount: 199,
     display: "$199",
     interval: "/year",
-    blurb: "Save $41 a year vs paying monthly — Card Club membership included free.",
+    blurb: "Save $41 a year vs paying monthly. Card Club membership included free.",
   },
 } as const;
 

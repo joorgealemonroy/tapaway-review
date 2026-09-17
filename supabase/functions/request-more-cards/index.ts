@@ -1,4 +1,4 @@
-// request-more-cards — customer-initiated add-on card request.
+// request-more-cards. Customer-initiated add-on card request.
 //
 // Allowance is derived server-side from the account's own plan record:
 //   Venue-family plans → 15 cards per calendar month
@@ -323,7 +323,7 @@ serve(async (req) => {
       shipping.shipping_address_line2,
       [shipping.shipping_city, shipping.shipping_state, shipping.shipping_postal_code].filter(Boolean).join(', '),
       shipping.shipping_country,
-    ].filter(Boolean).join('<br>') || 'No shipping address on file — please confirm with customer';
+    ].filter(Boolean).join('<br>') || 'No shipping address on file. Please confirm with customer';
 
     const internalHtml = `
 <!DOCTYPE html>

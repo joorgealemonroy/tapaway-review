@@ -31,7 +31,7 @@ async function hmac(payload: string): Promise<string> {
   return b64url(new Uint8Array(sig));
 }
 
-export const HUB_SALES_TOKEN_TTL_SECONDS = 24 * 60 * 60; // 24h — must outlive a sales visit.
+export const HUB_SALES_TOKEN_TTL_SECONDS = 24 * 60 * 60; // 24h. Must outlive a sales visit.
 
 /** Mint a token for a hub. Only ever called from an admin-verified path. */
 export async function signHubSalesToken(hubId: string, ttlSeconds = HUB_SALES_TOKEN_TTL_SECONDS) {
@@ -75,7 +75,7 @@ export async function verifyHubSalesToken(token: unknown): Promise<string | null
   }
 }
 
-/** Decode without verifying — for logging only. Never use for authorisation. */
+/** Decode without verifying. For logging only. Never use for authorisation. */
 export function peekHubSalesToken(token: string): { h?: string; exp?: number } | null {
   try {
     return JSON.parse(new TextDecoder().decode(fromB64url(token.split(".")[0])));

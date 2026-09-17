@@ -199,7 +199,7 @@ serve(async (req) => {
     // DISCOUNT COPY HONESTY (2026-09-09): discount pay links and any other
     // immediate-charge checkout land here with subscription_status already
     // 'active' (verify-checkout persisted the real Stripe status first). Those
-    // buyers were charged TODAY — sending them the trial "welcome" template
+    // buyers were charged TODAY. Sending them the trial "welcome" template
     // ("you won't be charged today") would be a lie. Pick the paid variant
     // instead; trial signups (subscription_status='trialing') keep `welcome`.
     const alreadyActive = (restaurant as { subscription_status?: string | null }).subscription_status === 'active';

@@ -280,7 +280,7 @@ const AdminCards = () => {
                             {card.destination_value}
                           </span>
                         ) : (
-                          <span className="text-muted-foreground">—</span>
+                          <span className="text-muted-foreground"></span>
                         )}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">

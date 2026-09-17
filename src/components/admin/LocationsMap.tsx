@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { BusinessLocation, badgeFor } from "@/hooks/useLocationIntel";
 
 const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
-/** Real vector Map ID from the project — required for AdvancedMarker rendering. */
+/** Real vector Map ID from the project. Required for AdvancedMarker rendering. */
 const MAP_ID = import.meta.env.VITE_GOOGLE_MAPS_MAP_ID as string | undefined;
 
 export type MarkerTone =
@@ -147,7 +147,7 @@ const Markers = ({ locations, selectedId, onSelect, onCapabilityIssue }: Markers
   const clusterer = useRef<MarkerClusterer | null>(null);
   // Marker instances never affect rendered output, so they live in a ref.
   const markersRef = useRef<globalThis.Map<string, Marker>>(new globalThis.Map());
-  // One stable callback per id — a new function identity per render would make
+  // One stable callback per id. A new function identity per render would make
   // React detach/reattach every ref on every render.
   const refCallbacks = useRef<globalThis.Map<string, (m: Marker | null) => void>>(
     new globalThis.Map(),
@@ -235,7 +235,7 @@ const Markers = ({ locations, selectedId, onSelect, onCapabilityIssue }: Markers
     } else if (settled && !ready) {
       onCapabilityIssue(
         "The map reports isAdvancedMarkersAvailable = false, so no pins can be created. " +
-          "That capability requires a Map ID that is accepted for this origin and key — " +
+          "That capability requires a Map ID that is accepted for this origin and key. " +
           `confirm VITE_GOOGLE_MAPS_MAP_ID (${MAP_ID ?? "not set"}) belongs to the same Google Cloud project as the browser key and that this origin is on the key's referrer list.`,
       );
     } else {
@@ -386,7 +386,7 @@ const MapShell = ({
 
     // Google names the precise cause (ApiTargetBlockedMapError,
     // RefererNotAllowedMapError, BillingNotEnabledMapError, …) in the message it
-    // emits. Listen passively — unrelated errors are ignored, not consumed — and
+    // emits. Listen passively. Unrelated errors are ignored, not consumed. And
     // stay installed until a Maps error actually matches.
     const onError = (e: ErrorEvent) => {
       const text = `${e.message ?? ""} ${String(e.error ?? "")}`;
@@ -418,13 +418,13 @@ const MapShell = ({
     if (effectiveFault === "auth") {
       const CAUSE: Record<string, string> = {
         ApiTargetBlockedMapError:
-          "API restriction — the browser key's \"Restrict key\" API list does not include Maps JavaScript API. Add it (and Maps Static/Places if used) in Google Cloud Console → Credentials.",
+          "API restriction. The browser key's \"Restrict key\" API list does not include Maps JavaScript API. Add it (and Maps Static/Places if used) in Google Cloud Console → Credentials.",
         RefererNotAllowedMapError:
-          "Referrer restriction — this origin is not on the key's allowed HTTP referrer list. Add both the root and wildcard patterns for it.",
+          "Referrer restriction. This origin is not on the key's allowed HTTP referrer list. Add both the root and wildcard patterns for it.",
         BillingNotEnabledMapError:
-          "Billing — billing is not enabled on the Google Cloud project that owns this key.",
+          "Billing. Billing is not enabled on the Google Cloud project that owns this key.",
         ApiNotActivatedMapError:
-          "API activation — Maps JavaScript API is not enabled on the key's Google Cloud project.",
+          "API activation. Maps JavaScript API is not enabled on the key's Google Cloud project.",
         InvalidKeyMapError: "The browser key value is not valid for this project.",
         ExpiredKeyMapError: "The browser key has expired and must be regenerated.",
       };
@@ -492,7 +492,7 @@ const MapShell = ({
       )}
       {locations.length === 0 && !capabilityIssue && (
         <div className="pointer-events-none absolute inset-x-0 bottom-4 mx-auto w-fit rounded-full bg-slate-900/85 px-4 py-2 text-xs text-white">
-          No mapped locations in this view — run Hydrate Place IDs or clear the filter.
+          No mapped locations in this view. Run Hydrate Place IDs or clear the filter.
         </div>
       )}
     </div>

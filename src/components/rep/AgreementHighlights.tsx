@@ -3,7 +3,7 @@ import { FileText, DollarSign, Calendar, AlertTriangle, Scale } from "lucide-rea
 export default function AgreementHighlights() {
   const highlights = [
     { icon: Scale, text: "You are a 1099 independent contractor, not an employee" },
-    { icon: DollarSign, text: "$5 per demo hub you build, once an admin approves it — that's your full pay" },
+    { icon: DollarSign, text: "$5 per demo hub you build, once an admin approves it. That's your full pay" },
     { icon: DollarSign, text: "No commissions, no closing pay, no tiers, no recurring payments of any kind" },
     { icon: Calendar, text: "Payouts are sent every Tuesday at 12 PM PT, with a W-9 and bank details on file" },
     { icon: FileText, text: "You must provide valid ACH banking details + a W-9" },

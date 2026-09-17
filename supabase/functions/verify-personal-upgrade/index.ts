@@ -55,7 +55,7 @@ serve(async (req) => {
       );
     }
 
-    // Trust Stripe session metadata — never the client request body.
+    // Trust Stripe session metadata. Never the client request body.
     const profileId = metadata.profile_id;
     const oldUsername = metadata.old_username;
     const newUsername = metadata.new_username;
@@ -122,7 +122,7 @@ serve(async (req) => {
       });
     }
     if (ownerRow.user_id !== authData.user.id) {
-      console.warn("[verify-personal-upgrade] Caller does not own bound profile — refusing");
+      console.warn("[verify-personal-upgrade] Caller does not own bound profile. Refusing");
       return new Response(JSON.stringify({ error: "Session does not belong to caller" }), {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

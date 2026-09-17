@@ -120,25 +120,25 @@ const PersonalShopShowcase = () => {
             viewport={{ once: true }}
             transition={{ delay: 0.1 }}
           >
-            Digital products, courses, PDFs — list them on your hub and get paid instantly.
+            Digital products, courses, PDFs. List them on your hub and get paid instantly.
           </motion.p>
         </div>
 
-        {/* Single composed layout — scaled down on mobile */}
+        {/* Single composed layout. Scaled down on mobile */}
         <div className="flex justify-center">
           <div
             className="relative scale-[0.78] sm:scale-[0.85] md:scale-100 origin-top"
             style={{ width: 480, height: 520 }}
           >
-            {/* Profile card — center */}
+            {/* Profile card. Center */}
             <div className="absolute z-10 left-1/2 -translate-x-1/2 top-0">
               <ProfileCard />
             </div>
-            {/* Revenue card — top right, slight rotation */}
+            {/* Revenue card. Top right, slight rotation */}
             <div className="absolute z-20 right-0 top-4" style={{ rotate: "4deg" }}>
               <RevenueCard />
             </div>
-            {/* Product card — bottom left, slight rotation */}
+            {/* Product card. Bottom left, slight rotation */}
             <div className="absolute z-20 left-0 bottom-8" style={{ rotate: "-3deg" }}>
               <ProductCard />
             </div>

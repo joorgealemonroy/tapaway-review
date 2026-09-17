@@ -15,7 +15,7 @@
 --
 -- AUTH: both use the project's service-role key from Vault (same pattern as
 -- the trial-followup-daily job in 20260909011500). The Vault secret
--- 'tapaway_service_role_key' is already created (Fix 4) — no new secret needed.
+-- 'tapaway_service_role_key' is already created (Fix 4). No new secret needed.
 -- If it is missing, the jobs fail closed and log an error; nothing sends.
 --
 -- Idempotent; safe to re-run.
@@ -86,7 +86,7 @@ CREATE TRIGGER trg_fulfillment_stage_email
 
 SELECT cron.unschedule('trial-ending-email-daily');
 
--- Daily at 16:00 UTC = 9:00 AM PDT / 8:00 AM PST — one hour before the
+-- Daily at 16:00 UTC = 9:00 AM PDT / 8:00 AM PST. One hour before the
 -- trial-followup SMS job so the two never land at the same moment.
 SELECT cron.schedule(
   'trial-ending-email-daily',

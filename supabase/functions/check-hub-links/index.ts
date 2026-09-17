@@ -36,7 +36,7 @@ const BATCH_SIZE = 10;
  *  server_error        5xx from the origin
  *  tls_error           certificate / handshake failure
  *  timeout             no response inside the timeout, after a retry
- *  blocked_unverifiable 401/403/429 or anti-bot walls — says nothing about the link
+ *  blocked_unverifiable 401/403/429 or anti-bot walls. Says nothing about the link
  */
 type Classification =
   | "healthy"
@@ -100,7 +100,7 @@ const isBotProtected = (url: string): boolean => {
   }
 };
 
-/** Mirrors src/lib/brokenLinks.ts — malformed legacy social URLs. */
+/** Mirrors src/lib/brokenLinks.ts. Malformed legacy social URLs. */
 const PLATFORM_DOMAIN_RE =
   /^(?:www\.)?(?:facebook|fb|instagram|tiktok|twitter|x|threads|linkedin|discord|twitch|snapchat|pinterest|telegram|venmo|yelp|t)\.(?:com|net|tv|gg|me)$/i;
 const TRUNCATED_SEGMENTS = new Set(["people", "pages", "p", "profile.php", "company", "in", "biz"]);
@@ -185,7 +185,7 @@ async function probe(
     try {
       let res = await attempt(round === 0 ? "HEAD" : "GET");
       if (res.status === 405 || res.status === 403 || res.status === 404 || res.status === 501 || res.status === 429) {
-        // Many origins reject HEAD outright — always confirm with a GET.
+        // Many origins reject HEAD outright. Always confirm with a GET.
         try {
           res = await attempt("GET");
         } catch {
@@ -213,8 +213,8 @@ async function probe(
           classification: "blocked_unverifiable",
           http_status: res.status,
           detail: isBotProtected(url)
-            ? "Host blocks automated checks — verify manually"
-            : `HTTP ${res.status} to automated checks — not proof the link is broken`,
+            ? "Host blocks automated checks. Verify manually"
+            : `HTTP ${res.status} to automated checks. Not proof the link is broken`,
           final_url: finalUrl,
           attempts,
         };
@@ -419,7 +419,7 @@ serve(async (req) => {
     }
 
     // The admin's persistent false-positive/acknowledged override is never
-    // touched here — the upsert only writes detected fields.
+    // touched here. The upsert only writes detected fields.
     let upsertError: string | null = null;
     for (let i = 0; i < rows.length; i += 200) {
       const { error } = await supabase

@@ -24,7 +24,7 @@ export const RefundGuarantee = () => {
           <div>
             <h3 className="font-bold text-base mb-0.5">30-Day Money-Back Guarantee</h3>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Use TapAway for 30 days. If you don't see new reviews come in, we'll refund you — no questions asked.
+              Use TapAway for 30 days. If you don't see new reviews come in, we'll refund you. No questions asked.
             </p>
           </div>
         </div>

@@ -25,7 +25,7 @@ export const FinalCTA = () => {
           transition={{ duration: 0.5 }}
           className="text-2xl md:text-3xl font-black mb-3"
         >
-          Turn Your Happy Guests Into 5-Star Reviews — Starting This Week
+          Turn Your Happy Guests Into 5-Star Reviews. Starting This Week
         </motion.h2>
         
         <motion.p

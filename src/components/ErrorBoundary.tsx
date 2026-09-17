@@ -19,7 +19,7 @@ interface State {
 
 /**
  * Persist a crash into public.client_errors.
- * `user_id` is deliberately NOT sent — a BEFORE INSERT trigger stamps auth.uid()
+ * `user_id` is deliberately NOT sent. A BEFORE INSERT trigger stamps auth.uid()
  * server-side so ownership can never be spoofed from the browser.
  */
 const logErrorToBackend = async (
@@ -55,7 +55,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     const errorId = `err_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    // Always log the real Error object (stack preserved) — every environment.
+    // Always log the real Error object (stack preserved). Every environment.
     console.error(`[ErrorBoundary ${errorId}]`, error);
     console.error(`[ErrorBoundary ${errorId}] component stack:`, errorInfo.componentStack);
     this.setState({ errorId, componentStack: errorInfo.componentStack ?? undefined });
@@ -90,7 +90,7 @@ export class ErrorBoundary extends Component<Props, State> {
       this.setState({ copied: true });
       setTimeout(() => this.setState({ copied: false }), 2000);
     } catch {
-      /* clipboard unavailable — details are still visible on screen */
+      /* clipboard unavailable. Details are still visible on screen */
     }
   };
 

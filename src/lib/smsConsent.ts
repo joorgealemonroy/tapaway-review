@@ -4,7 +4,7 @@
 // wording shown at opt-in is what we persist for audit purposes.
 
 export const SMS_MARKETING_CONSENT_TEXT =
-  "I agree to receive recurring automated MARKETING text messages from TapAway and its participating merchant partners at the phone number I provided — including promotions, discount alerts, and loyalty rewards. Consent is not a condition of any purchase. Msg & data rates may apply. Msg frequency varies. Reply STOP to cancel at any time, or HELP for help. See our Terms and Privacy Policy.";
+  "I agree to receive recurring automated MARKETING text messages from TapAway and its participating merchant partners at the phone number I provided. Including promotions, discount alerts, and loyalty rewards. Consent is not a condition of any purchase. Msg & data rates may apply. Msg frequency varies. Reply STOP to cancel at any time, or HELP for help. See our Terms and Privacy Policy.";
 
 export const SMS_TRANSACTIONAL_CONSENT_TEXT =
   "I agree to receive recurring automated REVIEW REMINDERS and service notifications from TapAway and its participating merchant partners at the phone number I provided. This is separate from marketing consent above. Consent is not a condition of any purchase. Msg & data rates may apply. Msg frequency varies. Reply STOP to cancel at any time, or HELP for help. See our Terms and Privacy Policy.";

@@ -10,7 +10,7 @@ import {
 } from "./CommandPanels";
 
 /**
- * ADMIN ONLY — never import this into client-facing code. It ranks Jorge's
+ * ADMIN ONLY. Never import this into client-facing code. It ranks Jorge's
  * own businesses by tap volume for his eyes only.
  */
 const Trend = ({ pct }: { pct: number | null }) => {

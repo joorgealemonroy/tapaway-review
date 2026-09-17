@@ -12,7 +12,7 @@ const faqs = [
   {
     question: "Does it work on iPhone and Android?",
     answer:
-      "Yes! TapAway cards work with all modern iPhones (iPhone 7 and newer) and most Android phones with NFC. Just tap and it opens instantly — no app download needed.",
+      "Yes! TapAway cards work with all modern iPhones (iPhone 7 and newer) and most Android phones with NFC. Just tap and it opens instantly. No app download needed.",
   },
   {
     question: "Do I need to download an app?",
@@ -22,7 +22,7 @@ const faqs = [
   {
     question: "Can I change my links after I get my card?",
     answer:
-      "Yes! You can update your links anytime through your TapAway dashboard. Your card stays the same — only your links change.",
+      "Yes! You can update your links anytime through your TapAway dashboard. Your card stays the same. Only your links change.",
   },
   {
     question: "How fast do the cards ship?",
@@ -32,7 +32,7 @@ const faqs = [
   {
     question: "What links can I add?",
     answer:
-      "Anything you want — Instagram, TikTok, YouTube, Spotify, PayPal, Venmo, your website, booking link, portfolio, and more. No limits.",
+      "Anything you want. Instagram, TikTok, YouTube, Spotify, PayPal, Venmo, your website, booking link, portfolio, and more. No limits.",
   },
 ];
 

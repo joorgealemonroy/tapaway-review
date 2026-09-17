@@ -1,5 +1,5 @@
 /**
- * Monthly NFC card allowance by plan — server-side source of truth.
+ * Monthly NFC card allowance by plan. Server-side source of truth.
  * Mirrors src/lib/cardAllowance.ts. Never trust a client-supplied limit.
  *
  *   Venue-family plans → 15 cards per month

@@ -166,7 +166,7 @@ export const AdminPreflight = () => {
                     <TableRow key={restaurant.id}>
                       <TableCell className="font-medium">{restaurant.restaurant_name}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">
-                        {restaurant.owner_name || "—"}
+                        {restaurant.owner_name || "Not available"}
                       </TableCell>
                       <TableCell>
                         {restaurant.custom_slug ? (
@@ -190,7 +190,7 @@ export const AdminPreflight = () => {
                             {productionUrl}/{restaurant.custom_slug}
                           </code>
                         ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
+                          <span className="text-xs text-muted-foreground"></span>
                         )}
                       </TableCell>
                       <TableCell>

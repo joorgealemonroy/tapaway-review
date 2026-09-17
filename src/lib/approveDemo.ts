@@ -1,4 +1,4 @@
-// Shared demo-approval helper — the ONE place that performs an admin
+// Shared demo-approval helper. The ONE place that performs an admin
 // approval of a rep-created demo hub. Reuses the exact update set from
 // AdminPendingHubApprovals.approve() plus the award-demo-commission
 // edge-function call ($5/demo rep payout hook).
@@ -62,14 +62,14 @@ export function approveToastText(award: string | null, awardError?: boolean): {
   if (award === "locked_quality_gate") {
     return {
       kind: "success",
-      text: "Approved — bonus locked by Quality Gate (rep <5% conversion)",
+      text: "Approved. Bonus locked by Quality Gate (rep <5% conversion)",
     };
   }
   if (award === "voided") {
     return {
       kind: "success",
-      text: "Approved — daily cap reached, no bonus awarded",
+      text: "Approved. Daily cap reached, no bonus awarded",
     };
   }
-  return { kind: "success", text: "Demo approved — rep bonus awarded" };
+  return { kind: "success", text: "Demo approved. Rep bonus awarded" };
 }

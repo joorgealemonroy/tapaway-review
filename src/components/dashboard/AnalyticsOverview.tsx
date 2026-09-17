@@ -27,7 +27,7 @@ interface AnalyticsData {
   directionsClicks: number;
   menuViews: number;
   chartData: Array<{ date: string; taps: number }>;
-  /** Null when there is no data — never render placeholders as facts. */
+  /** Null when there is no data. Never render placeholders as facts. */
   mostClicked: string | null;
   peakDay: string | null;
   /** Per-day per-link clicks, chronological, zero-filled (America/Los_Angeles). */
@@ -102,7 +102,7 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
 
         const totalTaps = daysBack <= 7 ? tapStats.tapsThisWeek : tapStats.tapsLast30d;
 
-        // Most-clicked link — only from real clicks, never a placeholder.
+        // Most-clicked link. Only from real clicks, never a placeholder.
         let mostClicked: string | null = null;
         let bestCount = 0;
         for (const type of LINK_CLICK_EVENT_TYPES) {
@@ -172,7 +172,7 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
   // Most recent day first for the per-day list.
   const daysDesc = [...analytics.clicksByDay].reverse();
 
-  // "New reviews" headline prefers the verified per-review count — Google's own
+  // "New reviews" headline prefers the verified per-review count. Google's own
   // review records can only undercount (the API returns the newest few), never
   // claim more reviews than were actually received. The weekly snapshot net
   // delta is the fallback when no per-review data exists yet.
@@ -221,14 +221,14 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
                   )}
                 </>
               ) : (
-                <>No taps in the last {daysBack} days yet — once customers start tapping, your trends will show up here.</>
+                <>No taps in the last {daysBack} days yet. Once customers start tapping, your trends will show up here.</>
               )}
             </p>
           </div>
         </div>
       </Card>
 
-      {/* Google review growth — real counts from weekly Google snapshots.
+      {/* Google review growth. Real counts from weekly Google snapshots.
           Hidden until the first sync lands; never a placeholder number. */}
       {analytics.reviewDelta?.status === "ok" && (
         <Card className="p-4 sm:p-6 card-elevated border-yellow-500/20 bg-yellow-500/5 animate-scale-in">
@@ -267,7 +267,7 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
         </Card>
       )}
 
-      {/* Empty state: no fake stats — point the owner at the setup that drives taps. */}
+      {/* Empty state: no fake stats. Point the owner at the setup that drives taps. */}
       {analytics.totalTaps === 0 && (
         <Card className="p-5 sm:p-6 card-elevated border-primary/20 bg-primary/5">
           <h3 className="text-lg font-bold mb-1">Let's get your first taps 🚀</h3>
@@ -333,7 +333,7 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
               <p className="text-sm font-medium text-muted-foreground">Most Clicked</p>
             </div>
           </div>
-          <p className="text-2xl font-bold">{analytics.mostClicked ?? "—"}</p>
+          <p className="text-2xl font-bold">{analytics.mostClicked ?? "Not available"}</p>
           <p className="text-xs text-muted-foreground mt-1">Most popular action</p>
         </Card>
 
@@ -346,7 +346,7 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
               <p className="text-sm font-medium text-muted-foreground">Peak Day</p>
             </div>
           </div>
-          <p className="text-2xl font-bold">{analytics.peakDay ?? "—"}</p>
+          <p className="text-2xl font-bold">{analytics.peakDay ?? "Not available"}</p>
           <p className="text-xs text-muted-foreground mt-1">Most active day</p>
         </Card>
       </div>
@@ -423,7 +423,7 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
         )}
       </Card>
 
-      {/* When clicks happened — per-day, per-link breakdown (America/Los_Angeles days) */}
+      {/* When clicks happened. Per-day, per-link breakdown (America/Los_Angeles days) */}
       <Card className="p-6 card-elevated">
         <div className="mb-4">
           <h3 className="text-xl font-bold mb-1 flex items-center gap-2">
@@ -431,12 +431,12 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
             When your clicks happened
           </h3>
           <p className="text-sm text-muted-foreground">
-            Which buttons got tapped, day by day — last {daysBack} days
+            Which buttons got tapped, day by day. Last {daysBack} days
           </p>
         </div>
         {analytics.totalClicks === 0 ? (
           <p className="text-sm text-muted-foreground">
-            No link clicks in the last {daysBack} days yet — when customers tap a button on
+            No link clicks in the last {daysBack} days yet. When customers tap a button on
             your hub, you'll see exactly which day it happened here.
           </p>
         ) : (

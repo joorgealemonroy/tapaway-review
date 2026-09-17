@@ -130,7 +130,7 @@ const YelpDebugModal: React.FC<Props> = ({ restaurant, onClose, onUpdated }) => 
                 google_place_id
               </div>
               <div className="font-mono break-all">
-                {restaurant.google_place_id || "—"}
+                {restaurant.google_place_id || "Not available"}
               </div>
             </div>
             <div className="bg-gray-50 rounded-md px-2 py-1.5">
@@ -138,7 +138,7 @@ const YelpDebugModal: React.FC<Props> = ({ restaurant, onClose, onUpdated }) => 
                 google_review_url
               </div>
               <div className="font-mono break-all">
-                {restaurant.google_review_url || "—"}
+                {restaurant.google_review_url || "Not available"}
               </div>
             </div>
           </div>
@@ -150,7 +150,7 @@ const YelpDebugModal: React.FC<Props> = ({ restaurant, onClose, onUpdated }) => 
                 yelp_business_id
               </div>
               <div className="font-mono break-all">
-                {restaurant.yelp_business_id || "—"}
+                {restaurant.yelp_business_id || "Not available"}
               </div>
             </div>
             <div className="bg-gray-50 rounded-md px-2 py-1.5">
@@ -158,7 +158,7 @@ const YelpDebugModal: React.FC<Props> = ({ restaurant, onClose, onUpdated }) => 
                 yelp_review_url
               </div>
               <div className="font-mono break-all">
-                {restaurant.yelp_review_url || "—"}
+                {restaurant.yelp_review_url || "Not available"}
               </div>
             </div>
           </div>

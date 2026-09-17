@@ -20,12 +20,12 @@ const BLOCKED_STATUSES = new Set([
 
 /**
  * Legacy paid restaurant plans. Users with a completed restaurant on one of
- * these plans keep the old Business dashboard. Everyone else — including all
- * new signups — is routed to Business Lite (PersonalDashboard).
+ * these plans keep the old Business dashboard. Everyone else. Including all
+ * new signups. Is routed to Business Lite (PersonalDashboard).
  */
 export const LEGACY_BUSINESS_PLANS = new Set<string>([
   'venue',
-  'venue_yearly', // yearly billing variant of venue — same dashboard routing as venue
+  'venue_yearly', // yearly billing variant of venue. Same dashboard routing as venue
   'venue_pack',
   'solo_pro',
   'multi',

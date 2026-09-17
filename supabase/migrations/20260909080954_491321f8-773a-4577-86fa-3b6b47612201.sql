@@ -1,4 +1,4 @@
--- Fix: expired-hub gating — close the "free forever" leak.
+-- Fix: expired-hub gating. Close the "free forever" leak.
 --
 -- get_public_restaurant_hub previously only filtered on is_approved = true, so a
 -- restaurant whose trial ended without payment (subscription_status = 'canceled',

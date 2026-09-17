@@ -301,7 +301,7 @@ const generateUserWelcomeEmail = (data: PersonalWelcomeEmailRequest): string => 
                     <tr>
                       <td>
                         <p style="margin: 0 0 8px; color: #18181b; font-size: 16px; font-weight: 600;">Want to share your profile with a simple tap?</p>
-                        <p style="margin: 0 0 20px; color: #52525b; font-size: 14px; line-height: 1.6;">Level up your networking with our premium TapAway NFC cards. No apps required — just tap your card to someone's phone to instantly share your hub.</p>
+                        <p style="margin: 0 0 20px; color: #52525b; font-size: 14px; line-height: 1.6;">Level up your networking with our premium TapAway NFC cards. No apps required. Just tap your card to someone's phone to instantly share your hub.</p>
                         <a href="${pricingUrl}" target="_blank" style="display: inline-block; padding: 14px 32px; background-color: #ffffff; color: #18181b; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px; border: 2px solid #18181b;">
                           Shop Custom NFC Cards
                         </a>
@@ -363,7 +363,7 @@ const handler = async (req: Request): Promise<Response> => {
       const internalResult = await resend.emails.send({
         from: EMAIL_FROM,
         to: [INTERNAL_EMAIL_RECIPIENT],
-        subject: `New TapAway Personal Signup — @${data.username}`,
+        subject: `New TapAway Personal Signup: @${data.username}`,
         html: internalHtml,
       });
       

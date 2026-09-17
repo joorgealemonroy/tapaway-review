@@ -56,7 +56,7 @@ export const ClaimStep = ({
   const accentColor = vibeMetadata?.accentColor || "#22c55e";
   const glowColor = vibeMetadata?.glowColor || "transparent";
 
-  // Cycling placeholder — 1.5s interval
+  // Cycling placeholder. 1.5s interval
   useEffect(() => {
     const interval = setInterval(() => {
       setPlaceholderIdx((prev) => (prev + 1) % PLACEHOLDERS.length);
@@ -192,7 +192,7 @@ export const ClaimStep = ({
       )}
 
       <div className="relative z-10 max-w-[400px] mx-auto space-y-4">
-        {/* Vibe indicator row — compact inline */}
+        {/* Vibe indicator row. Compact inline */}
         {vibeMetadata && (
           <div className="flex items-center justify-between text-xs opacity-60">
             <button
@@ -211,7 +211,7 @@ export const ClaimStep = ({
         {/* Title */}
         <h2 className="text-xl font-bold text-foreground">Create your TapAway</h2>
 
-        {/* Username — front and center */}
+        {/* Username. Front and center */}
         <div className="space-y-3">
           <Label htmlFor="username" className="text-base font-semibold text-foreground">
             Claim your link
@@ -260,11 +260,11 @@ export const ClaimStep = ({
           </AnimatePresence>
 
           {usernameStatus === "taken" && (
-            <p className="text-sm text-destructive">That one's taken — try another!</p>
+            <p className="text-sm text-destructive">That one's taken. Try another!</p>
           )}
         </div>
 
-        {/* Auth section — only show once username is ready */}
+        {/* Auth section. Only show once username is ready */}
         <AnimatePresence>
           {usernameReady && (
             <motion.div
@@ -278,7 +278,7 @@ export const ClaimStep = ({
                 <>
                   <div className="flex items-center gap-2 rounded-lg bg-muted/50 border border-border px-4 py-3 text-sm text-muted-foreground">
                     <Check className="h-4 w-4 text-green-500 shrink-0" />
-                    Signed in — tap continue to finish
+                    Signed in. Tap continue to finish
                   </div>
                   <Button onClick={handleOAuthContinue} className="w-full h-14 text-base font-semibold">
                     Continue

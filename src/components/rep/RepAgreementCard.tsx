@@ -41,7 +41,7 @@ export function RepAgreementCard({ userId }: RepAgreementCardProps) {
     // Create a text version of the agreement for download
     const agreementText = `
 TapAway Sales Partner Independent Contractor Agreement
-Version 1.0 — Effective Immediately
+Version 1.0. Effective Immediately
 
 [Full agreement text would be included here]
 

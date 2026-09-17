@@ -3,12 +3,12 @@
 -- right after customers tapped your card."
 --
 -- Reuses the existing google_reviews table (populated from the Places API,
--- newest-first) — this migration only adds the attribution flags.
+-- newest-first). This migration only adds the attribution flags.
 --
 -- How attribution works: a review published at time T is marked
 -- attributed_to_tapaway when at least one google_click event exists for the
 -- same restaurant in the 48 hours before T. Correlation, labeled honestly in
--- the UI as "likely from TapAway" — never claimed as certain.
+-- the UI as "likely from TapAway". Never claimed as certain.
 
 ALTER TABLE public.google_reviews
   ADD COLUMN IF NOT EXISTS attributed_to_tapaway boolean NOT NULL DEFAULT false,

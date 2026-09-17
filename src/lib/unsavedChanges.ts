@@ -2,7 +2,7 @@
  * Unsaved-changes guard registry for the business dashboard.
  *
  * Tabs like Menu and Settings hold local edits that live only in component
- * state — switching tabs unmounts the Radix TabsContent and discards them
+ * state. Switching tabs unmounts the Radix TabsContent and discards them
  * silently. Each editable tab registers a dirty-checker here; the dashboard
  * shell (src/pages/Dashboard.tsx) consults it before switching tabs and on
  * beforeunload.
@@ -17,7 +17,7 @@ export interface UnsavedGuard {
 const guards = new Map<string, UnsavedGuard>();
 
 /**
- * Register a tab's dirty-checker. Returns an unregister function —
+ * Register a tab's dirty-checker. Returns an unregister function 
  * call it from the registering component's effect cleanup.
  */
 export function registerUnsavedGuard(tab: string, guard: UnsavedGuard): () => void {

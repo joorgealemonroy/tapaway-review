@@ -260,7 +260,7 @@ export const AvMealPrepHub = ({ restaurant, trackEvent }: AvMealPrepHubProps) =>
         {/* Feedback CTA */}
         <section className="card" style={{ marginTop: "12px" }}>
           <h1>{restaurant.avm_question_title || "How was your meal?"}</h1>
-          <p className="sub">{restaurant.avm_question_subtitle || "Share feedback in seconds — no login."}</p>
+          <p className="sub">{restaurant.avm_question_subtitle || "Share feedback in seconds. No login."}</p>
           <div className="row" style={{ marginTop: "10px" }}>
             <button className="btn btn-green" onClick={handleLovedClick}>
               {restaurant.avm_positive_label || "Loved it! 💚"}
@@ -396,7 +396,7 @@ export const AvMealPrepHub = ({ restaurant, trackEvent }: AvMealPrepHubProps) =>
             </button>
           </div>
           <div className="sub" style={{ textAlign: "center", marginTop: "8px" }}>
-            Love your meals? Share with a friend — they'll thank you later 😋.
+            Love your meals? Share with a friend. They'll thank you later 😋.
           </div>
         </section>
 
@@ -426,7 +426,7 @@ export const AvMealPrepHub = ({ restaurant, trackEvent }: AvMealPrepHubProps) =>
                 <h3 style={{ margin: "0 0 8px", fontSize: "18px", fontWeight: 900 }}>
                   {restaurant.avm_positive_label || "Loved it! 💚"}
                 </h3>
-                <p className="sub">Quick shout-out — helps others pick.</p>
+                <p className="sub">Quick shout-out. Helps others pick.</p>
                 <form onSubmit={handleLoveSubmit}>
                   <div className="field">
                     <input name="name" type="text" placeholder="Your name" required />
@@ -495,7 +495,7 @@ export const AvMealPrepHub = ({ restaurant, trackEvent }: AvMealPrepHubProps) =>
               </>
             ) : (
               <div style={{ textAlign: "center" }}>
-                <h3>Got it — thank you 🙏</h3>
+                <h3>Got it. Thank you 🙏</h3>
                 <p className="sub">We'll review this personally and make it right.</p>
               </div>
             )}

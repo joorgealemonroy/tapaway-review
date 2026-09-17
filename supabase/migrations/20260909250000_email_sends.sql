@@ -1,6 +1,6 @@
 -- Email send log (email backend workstream): every outbound email sent through
 -- supabase/functions/_shared/email.ts writes a row here. Bodies are NEVER
--- stored — only recipient, template key, subject, status, Resend id, and error.
+-- stored. Only recipient, template key, subject, status, Resend id, and error.
 --
 -- opened_at is reserved for future Resend open/delivery webhooks (no webhook
 -- receiver exists yet; see EMAIL-BACKEND.md).

@@ -233,7 +233,7 @@ Deno.serve(async (req) => {
         return json({ ok: true });
       }
 
-      // Operational fields only — never changes access, billing or the live hub.
+      // Operational fields only. Never changes access, billing or the live hub.
       case "update_ops": {
         if (!locationId) return json({ error: "locationId required" }, 400);
         const patch: Record<string, unknown> = {};
@@ -473,8 +473,8 @@ Deno.serve(async (req) => {
               location_state: "ambiguous_match",
               needs_review: true,
               review_reason: corroborated.length === 0
-                ? `${places.length} Google result(s), none corroborated by name plus address or phone — admin confirmation required`
-                : `${corroborated.length} equally strong Google matches — admin confirmation required`,
+                ? `${places.length} Google result(s), none corroborated by name plus address or phone. Admin confirmation required`
+                : `${corroborated.length} equally strong Google matches. Admin confirmation required`,
             }).eq("id", row.id);
 
           } catch (e) {
@@ -545,7 +545,7 @@ Deno.serve(async (req) => {
               logError = "rate_limited";
               outcome = {
                 hydration_status: "retry_queued",
-                hydration_error: "Google rate limit — queued for retry",
+                hydration_error: "Google rate limit. Queued for retry",
                 hydration_attempted_at: nowIso,
               };
             } else if (resp.status === 404 || resp.status === 400) {

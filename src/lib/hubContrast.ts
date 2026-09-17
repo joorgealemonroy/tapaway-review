@@ -2,8 +2,8 @@
  * Shared readability rules for public hubs.
  *
  * A hub's page background can be set to anything (a sampled logo color, a
- * gradient, white, black). Every surface that draws the hub — the live page,
- * the dashboard preview and the rep phone preview — derives its text and
+ * gradient, white, black). Every surface that draws the hub. The live page,
+ * the dashboard preview and the rep phone preview. Derives its text and
  * button colors from this single helper so they can never drift apart.
  */
 

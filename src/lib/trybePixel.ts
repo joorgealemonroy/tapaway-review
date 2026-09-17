@@ -1,14 +1,14 @@
 /**
  * Trybe attribution pixel (custom domain: track.tapaway.co).
  *
- * Loaded ONLY after the visitor accepts tracking consent (see @/lib/consent) —
+ * Loaded ONLY after the visitor accepts tracking consent (see @/lib/consent) 
  * the exact same gate as the Meta Pixel. Before consent, nothing is fetched
  * from Trybe and no data leaves the browser.
  *
  * Loaded at most once per page (guarded by a module flag + data attribute).
  *
  * What it tracks: pageview/attribution data via the Trybe-hosted pixel.js
- * (served from our own domain, track.tapaway.co). Pixel only — no server-side
+ * (served from our own domain, track.tapaway.co). Pixel only. No server-side
  * order events. Trial/purchase events require the Trybe Orders API and its
  * key, which must stay in edge-function secrets, never in frontend code.
  */
@@ -77,7 +77,7 @@ export function watchConsentForTrybePixel(): () => void {
 
 /**
  * Trybe visitor id, if the consent-gated pixel has loaded and exposes it.
- * Returns "" when tracking was declined or the pixel isn't ready — callers
+ * Returns "" when tracking was declined or the pixel isn't ready. Callers
  * pass it through to checkout, where an empty value simply means "no
  * creator attribution for this order".
  */

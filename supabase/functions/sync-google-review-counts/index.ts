@@ -2,7 +2,7 @@
 //
 // Weekly snapshot of each restaurant's Google review count (and rating) via
 // the Places API Place Details endpoint. Powers the client dashboard's
-// "new Google reviews in the last N days" card. No per-client OAuth required —
+// "new Google reviews in the last N days" card. No per-client OAuth required 
 // uses the server-side GOOGLE_PLACES_API_KEY_SERVER secret (same key as
 // auto-yelp-from-place). Runs weekly via pg_cron; safe to invoke manually.
 

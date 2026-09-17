@@ -117,7 +117,7 @@ serve(async (req) => {
       }
 
       if (!emailsToCheck.includes(userEmail || "")) {
-        // Log but allow if metadata email matches — billing email may differ (Apple Pay, Google Pay)
+        // Log but allow if metadata email matches. Billing email may differ (Apple Pay, Google Pay)
         console.warn("[set-user-password] Stripe session emails don't match user email:", emailsToCheck, "vs", userEmail);
         // Check customer ID as fallback
         const stripeCustomerId = user.user.user_metadata?.stripe_customer_id || 

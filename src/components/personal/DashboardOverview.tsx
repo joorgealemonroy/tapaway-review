@@ -28,11 +28,11 @@ import {
 } from "@/lib/clientStats";
 
 /**
- * DashboardOverview — the overview-first landing tab for the Solo (personal)
+ * DashboardOverview. The overview-first landing tab for the Solo (personal)
  * dashboard. Answers "here's what you've got done so far":
  *
  * 1. Account status header (plan, Hub Live/Paused, trial countdown)
- * 2. Your progress — own stats only: visits this week + trend vs last week,
+ * 2. Your progress. Own stats only: visits this week + trend vs last week,
  *    link clicks this week, total visits. No cross-business comparisons.
  * 3. Setup checklist with done/todo states, each linking to the right tab.
  *
@@ -71,7 +71,7 @@ export interface DashboardOverviewProps {
   links: OverviewLink[];
   isTrialing: boolean;
   onGoToTab: (tab: string) => void;
-  /** Admin previewing someone else's hub — suppress nudges/discovery. */
+  /** Admin previewing someone else's hub. Suppress nudges/discovery. */
   isReadOnlyView?: boolean;
 }
 
@@ -80,7 +80,7 @@ interface ProgressStats {
   prevWeek: number;
   total: number;
   linkClicksWeek: number;
-  /** All-time link clicks — feeds the first-link-click milestone. */
+  /** All-time link clicks. Feeds the first-link-click milestone. */
   linkClicksAllTime: number;
 }
 
@@ -89,7 +89,7 @@ export const DashboardOverview = ({ profile, links, onGoToTab, isReadOnlyView = 
   /** Per-day clicks/visits from the edge function; null when unavailable (legacy fallback in use). */
   const [dailyClicks, setDailyClicks] = useState<HubDailyPoint[] | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
-  /** Feature usage for "Try this" discovery cards — null until loaded. */
+  /** Feature usage for "Try this" discovery cards. Null until loaded. */
   const [featureUsage, setFeatureUsage] = useState<{ customerInfo: boolean; sms: boolean } | null>(null);
 
   // Own-stats only: this profile's visits and link clicks. No comparisons.
@@ -150,7 +150,7 @@ export const DashboardOverview = ({ profile, links, onGoToTab, isReadOnlyView = 
             linkClicksWeek: clicksRes.count ?? 0,
             linkClicksAllTime: clicksAllRes.count ?? 0,
           });
-          // No per-day data on the legacy path — the card below stays hidden
+          // No per-day data on the legacy path. The card below stays hidden
           // rather than showing stale guesses.
           setDailyClicks(null);
         }
@@ -165,7 +165,7 @@ export const DashboardOverview = ({ profile, links, onGoToTab, isReadOnlyView = 
   }, [profile.id]);
 
   const activeLinks = links.filter((l) => l.is_active !== false);
-  // Feature usage for "Try this" discovery — checked against real data, never
+  // Feature usage for "Try this" discovery. Checked against real data, never
   // assumed. Read-only views skip it (discovery cards are suppressed there).
   useEffect(() => {
     if (isReadOnlyView) return;
@@ -325,7 +325,7 @@ export const DashboardOverview = ({ profile, links, onGoToTab, isReadOnlyView = 
         </Card>
       )}
 
-      {/* One-time first-run intro — new accounts only, never in admin view */}
+      {/* One-time first-run intro. New accounts only, never in admin view */}
       {!isReadOnlyView && (
         <WelcomeIntro
           accountId={profile.id}
@@ -371,11 +371,11 @@ export const DashboardOverview = ({ profile, links, onGoToTab, isReadOnlyView = 
                 <p className="mt-2 text-sm text-muted-foreground">
                   {weeklyChange === null
                     ? stats?.week
-                      ? `${stats.week} visits this week — your first weekly baseline.`
+                      ? `${stats.week} visits this week. Your first weekly baseline.`
                       : "Share your hub to start building momentum."
                     : weeklyChange >= 0
                       ? "More visits than last week. Your cards are getting out there."
-                      : "A quieter week so far — every tap still counts."}
+                      : "A quieter week so far. Every tap still counts."}
                 </p>
               </Card>
               <Card className="p-4 card-elevated">

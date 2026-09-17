@@ -65,7 +65,7 @@ function generateMagicLinkEmailHtml(fullName: string, magicLink: string): string
     <tr>
       <td style="text-align:center;padding-top:32px;">
         <p style="margin:0 0 8px 0;font-size:13px;color:#666666;">
-          Need help? Reply to this email — we'll take care of you.
+          Need help? Reply to this email. We'll take care of you.
         </p>
         <p style="margin:0;font-size:12px;color:#4a4a4a;">
           © ${new Date().getFullYear()} TapAway. All rights reserved.
@@ -80,7 +80,7 @@ function generateMagicLinkEmailHtml(fullName: string, magicLink: string): string
 function generateMagicLinkEmailText(fullName: string, magicLink: string): string {
   const firstName = fullName?.split(" ")[0] || "there";
   
-  return `TapAway — Set Up Your Business Account
+  return `TapAway. Set Up Your Business Account
 
 Hey ${firstName},
 
@@ -92,7 +92,7 @@ This link expires in 24 hours. You can close and reopen it anytime before settin
 If you didn't request this, you can safely ignore this email.
 
 Need help? Reply to this email.
-— TapAway`;
+ TapAway`;
 }
 
 async function sendEmail(to: string, subject: string, html: string, text: string): Promise<boolean> {

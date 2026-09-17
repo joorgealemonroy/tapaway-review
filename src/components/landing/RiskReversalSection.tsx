@@ -11,7 +11,7 @@ export const RiskReversalSection = () => {
   const bullets = [
     "Cards designed, printed & shipped to you",
     "Your hub built and live within days",
-    "No charge until day 14 — cancel anytime",
+    "No charge until day 14. Cancel anytime",
   ];
 
   return (
@@ -32,7 +32,7 @@ export const RiskReversalSection = () => {
               Your first 14 days are on us.
             </h2>
             <p className="text-base md:text-lg text-white/70 mb-6 leading-relaxed max-w-xl mx-auto md:mx-0">
-              4 custom cards with your logo, your hub built for you, and the full dashboard — free for 14 days.
+              4 custom cards with your logo, your hub built for you, and the full dashboard. Free for 14 days.
             </p>
 
             <ul className="space-y-3 mb-8 text-left max-w-md mx-auto md:mx-0">

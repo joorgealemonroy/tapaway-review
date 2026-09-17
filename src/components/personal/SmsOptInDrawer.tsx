@@ -53,7 +53,7 @@ export const SmsOptInDrawer = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // VIP list is a MARKETING campaign — marketing consent is required.
+    // VIP list is a MARKETING campaign. Marketing consent is required.
     if (!marketingConsent) {
       toast.error("Please check the marketing consent box to join the VIP list.");
       return;
@@ -73,7 +73,7 @@ export const SmsOptInDrawer = ({
         name: parsed.data.name,
         phone: parsed.data.phone,
         email: null,
-        // Legacy field — true if the user opted into either program.
+        // Legacy field. True if the user opted into either program.
         sms_opt_in: marketingConsent || transactionalConsent,
         sms_opt_in_at: optInAt,
         sms_marketing_opt_in: marketingConsent,
@@ -84,7 +84,7 @@ export const SmsOptInDrawer = ({
 
       if (error) throw error;
 
-      // A2P 10DLC audit trail — store the exact consent copy shown per campaign.
+      // A2P 10DLC audit trail. Store the exact consent copy shown per campaign.
       await supabase.from("sms_signup_submissions" as any).insert({
         name: parsed.data.name,
         phone: parsed.data.phone,

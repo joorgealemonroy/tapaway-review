@@ -6,23 +6,23 @@ import { Button } from "@/components/ui/button";
 const faqs = [
   {
     q: "What is TapAway?",
-    a: "TapAway gives your business a tap card that puts your whole business in your customer's pocket. One tap opens a custom mobile hub with your Instagram, menu, Google reviews, booking, directions, and contact info \u2014 everything in one place. You don't build anything. We do it all for you.",
+    a: "TapAway gives your business a tap card that puts your whole business in your customer's pocket. One tap opens a custom mobile hub with your Instagram, menu, Google reviews, booking, directions, and contact info , everything in one place. You don't build anything. We do it all for you.",
   },
   {
     q: "How do the NFC tap cards work?",
-    a: "Your customer holds their phone near the card and your hub opens instantly \u2014 no app, no scanning, no typing a web address. It uses NFC, the same tap technology as contactless payments. It's the fastest way to get a customer from standing at your counter to looking at your whole business on their phone.",
+    a: "Your customer holds their phone near the card and your hub opens instantly , no app, no scanning, no typing a web address. It uses NFC, the same tap technology as contactless payments. It's the fastest way to get a customer from standing at your counter to looking at your whole business on their phone.",
   },
   {
     q: "Do the cards work with iPhones?",
-    a: "Yes. iPhone 7 and newer all support NFC tap \u2014 your customers just hold their phone near the card and it works. No app to download, nothing to set up on their end.",
+    a: "Yes. iPhone 7 and newer all support NFC tap , your customers just hold their phone near the card and it works. No app to download, nothing to set up on their end.",
   },
   {
     q: "Do they work with Android?",
-    a: "Yes. Most Android phones have NFC built in, and the tap works the same way \u2014 hold the phone near the card and the hub opens. No app needed.",
+    a: "Yes. Most Android phones have NFC built in, and the tap works the same way , hold the phone near the card and the hub opens. No app needed.",
   },
   {
     q: "What's the difference between TapAway's cards and a QR code?",
-    a: "Speed and completion. A tap takes one second \u2014 your customer holds their phone near the card and they're in. A QR code means opening the camera, lining it up, and hoping it scans. In a busy moment, that friction is the difference between a customer who sees your whole business and one who gives up.",
+    a: "Speed and completion. A tap takes one second , your customer holds their phone near the card and they're in. A QR code means opening the camera, lining it up, and hoping it scans. In a busy moment, that friction is the difference between a customer who sees your whole business and one who gives up.",
   },
   {
     q: "How much does TapAway cost?",
@@ -30,27 +30,27 @@ const faqs = [
   },
   {
     q: "What's included in my subscription?",
-    a: "Everything, honestly. We build your custom hub for you, print and ship your tap cards, track every tap so you can see it's working, and handle any changes or questions along the way. You run your business \u2014 we handle the TapAway side.",
+    a: "Everything, honestly. We build your custom hub for you, print and ship your tap cards, track every tap so you can see it's working, and handle any changes or questions along the way. You run your business , we handle the TapAway side.",
   },
   {
     q: "How does the 14-day free trial work?",
-    a: "You get full access for 14 days \u2014 your hub built, your cards shipped, everything live. We ask for a card on file at signup so we can verify it, but if you cancel before day 14, you're never billed. No charges, no games.",
+    a: "You get full access for 14 days , your hub built, your cards shipped, everything live. We ask for a card on file at signup so we can verify it, but if you cancel before day 14, you're never billed. No charges, no games.",
   },
   {
     q: "What is the $1 verification hold?",
-    a: "When you sign up, we place a temporary $1 authorization on your card to make sure it's valid. It's immediately voided \u2014 it drops off your statement on its own and you're never actually charged. It's just a check, not a fee.",
+    a: "When you sign up, we place a temporary $1 authorization on your card to make sure it's valid. It's immediately voided , it drops off your statement on its own and you're never actually charged. It's just a check, not a fee.",
   },
   {
     q: 'What does "done-for-you setup" actually mean?',
-    a: "It means you lift no finger. Tell us about your business, send us your links and info, and we build your hub, print your cards, and ship them to you. When the box arrives, you're live. If something needs to change later \u2014 new menu, new hours, new Instagram \u2014 just tell us and we'll update it.",
+    a: "It means you lift no finger. Tell us about your business, send us your links and info, and we build your hub, print your cards, and ship them to you. When the box arrives, you're live. If something needs to change later , new menu, new hours, new Instagram , just tell us and we'll update it.",
   },
   {
     q: "How do my customers leave Google reviews with TapAway?",
-    a: "They tap your card, your hub opens, and they hit the review button that takes them straight to your Google review page. That one-tap path is why it works \u2014 Victor Ramirez picked up 44 new reviews in 30 days, Sonia Berumen added 33, and Amelia Zavala added 20. The connection is the whole product; more reviews are one of the biggest things that flow through it.",
+    a: "They tap your card, your hub opens, and they hit the review button that takes them straight to your Google review page. That one-tap path is why it works , Victor Ramirez picked up 44 new reviews in 30 days, Sonia Berumen added 33, and Amelia Zavala added 20. The connection is the whole product; more reviews are one of the biggest things that flow through it.",
   },
   {
     q: "What happens after the trial ends?",
-    a: "Your subscription starts automatically and your billing begins \u2014 that's it. There are no contracts, and you can cancel anytime. If TapAway isn't earning its keep, walk away. We'd rather earn the next month than lock you into this one.",
+    a: "Your subscription starts automatically and your billing begins , that's it. There are no contracts, and you can cancel anytime. If TapAway isn't earning its keep, walk away. We'd rather earn the next month than lock you into this one.",
   },
 ];
 
@@ -124,7 +124,7 @@ const Faq = () => {
         <section className="border border-primary/30 bg-primary/5 rounded-xl p-8 text-center space-y-4 mt-8">
           <h2 className="text-2xl font-black text-foreground">Still have a question?</h2>
           <p className="text-muted-foreground max-w-xl mx-auto">
-            Call or text us at (909) 285-6321 — a real person answers.
+            Call or text us at (909) 285-6321. A real person answers.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Button asChild size="lg">

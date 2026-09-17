@@ -46,7 +46,7 @@ const CardFront = ({
   >
     <img src="/tapaway-card-front-v2.svg" alt="TapAway card front" className="w-full h-full object-cover" />
 
-    {/* Custom headline block — covers the artwork's default copy */}
+    {/* Custom headline block. Covers the artwork's default copy */}
     <div
       className="absolute left-0 right-0 bg-white flex flex-col items-center justify-center px-5 text-center"
       style={{ top: "15%", height: "13.5%" }}

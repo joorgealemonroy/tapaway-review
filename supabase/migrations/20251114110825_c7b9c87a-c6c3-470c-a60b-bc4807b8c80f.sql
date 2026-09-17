@@ -48,7 +48,7 @@ CREATE TABLE public.avm_trainer_bundles (
 -- Add AV-specific settings columns to restaurants table
 ALTER TABLE public.restaurants
 ADD COLUMN IF NOT EXISTS avm_question_title TEXT DEFAULT 'How was your meal?',
-ADD COLUMN IF NOT EXISTS avm_question_subtitle TEXT DEFAULT 'Share feedback in seconds — no login.',
+ADD COLUMN IF NOT EXISTS avm_question_subtitle TEXT DEFAULT 'Share feedback in seconds. No login.',
 ADD COLUMN IF NOT EXISTS avm_positive_label TEXT DEFAULT 'Loved it! 💚',
 ADD COLUMN IF NOT EXISTS avm_negative_label TEXT DEFAULT 'Could be better';
 

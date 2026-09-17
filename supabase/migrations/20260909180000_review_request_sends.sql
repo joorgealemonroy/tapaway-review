@@ -7,17 +7,17 @@
 --   1. Strip every non-digit character.
 --   2. If the result is 10 digits, prepend "1" (assume North American).
 --   3. If the result is 11 digits starting with "1", keep it.
---   4. Otherwise keep the digits as-is (international / unusual — no guessing).
+--   4. Otherwise keep the digits as-is (international / unusual. No guessing).
 --   5. Prefix with "+" (E.164-ish).
 -- phone_hash = lowercase hex SHA-256 of the normalized phone string.
 -- No salt/pepper: salts would break cross-check consistency between the
 -- edge function and any future RPC/UI lookup, and a rotating pepper would
--- silently break dedup (re-texting people — the exact thing this prevents).
+-- silently break dedup (re-texting people. The exact thing this prevents).
 -- Note this is an anti-duplicate key, not a privacy shield: phone numbers are
 -- low-entropy, so the hashes are only visible to the owning business (RLS)
 -- and admins, never to other businesses or the public.
 --
--- Backfill: nothing to backfill from — sms_campaigns / restaurant_sms_campaigns
+-- Backfill: nothing to backfill from. Sms_campaigns / restaurant_sms_campaigns
 -- only store aggregate counts (no per-phone history), and trial-followup's log
 -- (trial_nurture_log) records texts to business OWNERS, not customers. Dedup
 -- therefore starts at deploy time: the first post-deploy review-request send
@@ -56,7 +56,7 @@ CREATE INDEX IF NOT EXISTS review_request_sends_sent_at_idx
 ALTER TABLE public.review_request_sends ENABLE ROW LEVEL SECURITY;
 
 -- Owners see their own business's rows (read-only; writes go through the
--- service-role edge function only — same convention as sms_campaigns).
+-- service-role edge function only. Same convention as sms_campaigns).
 DROP POLICY IF EXISTS "Owners view own review request sends" ON public.review_request_sends;
 CREATE POLICY "Owners view own review request sends" ON public.review_request_sends
   FOR SELECT TO authenticated

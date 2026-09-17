@@ -604,7 +604,7 @@ const Onboarding = () => {
           </div>
           
           <p className="text-sm text-muted-foreground mt-8 mb-6">
-            You don't need to do anything right now — we'll take care of the setup.
+            You don't need to do anything right now. We'll take care of the setup.
           </p>
           
           <Button onClick={() => navigate('/dashboard')} size="lg" className="w-full">

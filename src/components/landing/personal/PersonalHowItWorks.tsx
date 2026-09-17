@@ -9,7 +9,7 @@ const steps = [
     icon: Globe,
     title: "Create your hub in minutes",
     description:
-      "Add all your links, social platforms, and payment apps — one beautiful page with your own URL (tapaway.co/you).",
+      "Add all your links, social platforms, and payment apps. One beautiful page with your own URL (tapaway.co/you).",
   },
   {
     number: "02",
@@ -44,7 +44,7 @@ export const PersonalHowItWorks = () => {
             How It Works
           </h2>
           <p className="text-muted-foreground text-lg">
-            Your personal hub — set up in minutes, share everywhere.
+            Your personal hub. Set up in minutes, share everywhere.
           </p>
         </motion.div>
 

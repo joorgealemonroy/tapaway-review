@@ -2,7 +2,7 @@
  * Client-facing stats data layer for the TapAway client dashboard.
  *
  * FRAMING RULE (owner decision 2026-09-09): these helpers return RAW numbers and
- * trends only — never any judgment about whether the numbers are "good" or "bad".
+ * trends only. Never any judgment about whether the numbers are "good" or "bad".
  * The dashboard UI owns the framing (e.g. showing progress / momentum language).
  * The `hasMeaningfulTraffic` boolean exists so the UI can choose an encouraging
  * "early days" empty state instead of rendering a near-empty chart.
@@ -34,7 +34,7 @@ export interface ClientTapStats {
   /** All-time taps. */
   totalTaps: number;
   /**
-   * False when the hub has very few taps — the UI should show an encouraging
+   * False when the hub has very few taps. The UI should show an encouraging
    * "early days" state instead of a near-empty chart.
    */
   hasMeaningfulTraffic: boolean;
@@ -58,7 +58,7 @@ const daysAgo = (n: number): string => {
  *
  * All client-facing "per day" stats bucket on the owner's business timezone,
  * not server UTC and not whatever timezone the viewer's browser happens to be
- * in. A tap at 11pm PT is "today" in PT even though it is tomorrow in UTC —
+ * in. A tap at 11pm PT is "today" in PT even though it is tomorrow in UTC 
  * bucketing on UTC would show it on the wrong day for this user.
  */
 export function americaLosAngelesDayKey(iso: string): string {
@@ -234,7 +234,7 @@ const zeroClicks = (): Record<LinkClickEventType, number> => ({
 /**
  * Fetch per-link clicks per day for the last `days` days (default 14),
  * chronological and zero-filled, bucketed in America/Los_Angeles. Answers
- * "WHEN did the clicks happen" — and which link got them.
+ * "WHEN did the clicks happen". And which link got them.
  */
 export async function getClientLinkClicksByDay(
   restaurantId: string,
@@ -322,7 +322,7 @@ export async function getClientLastTapAt(
 /**
  * Per-review attribution for one client hub, from the google_reviews table
  * (refreshed daily by the attribute-google-reviews edge function, newest-first).
- * Returns raw counts only — the dashboard UI owns the "likely from TapAway"
+ * Returns raw counts only. The dashboard UI owns the "likely from TapAway"
  * framing. A review counts as attributed when a google_click event exists for
  * the restaurant in the 48 hours before the review's publish time.
  */
@@ -331,7 +331,7 @@ export interface AttributedReviews {
   newReviews: number;
   /**
    * Of those, how many followed a TapAway review-button tap. Hard-clamped to
-   * never exceed newReviews — we must never claim more attributed reviews
+   * never exceed newReviews. We must never claim more attributed reviews
    * than the reviews actually received.
    */
   attributed: number;
@@ -362,7 +362,7 @@ export async function getAttributedReviews(
 
 /**
  * Google review count delta for one client hub, from weekly Places API
- * snapshots (google_review_snapshots). Returns raw numbers only — the
+ * snapshots (google_review_snapshots). Returns raw numbers only. The
  * dashboard UI owns the framing.
  *
  * Statuses:
@@ -384,7 +384,7 @@ export interface GoogleReviewDelta {
   latestCount: number;
   /** ISO timestamp of the latest snapshot. */
   latestAt: string;
-  /** True when only one snapshot exists in the window — no real delta yet. */
+  /** True when only one snapshot exists in the window. No real delta yet. */
   isFirstSync: boolean;
 }
 
@@ -430,7 +430,7 @@ export async function getGoogleReviewDelta(
 
 /**
  * All-time count of review-link clicks (Google + Yelp) for one client hub.
- * Feeds the "first review click" milestone. Always real counts — never
+ * Feeds the "first review click" milestone. Always real counts. Never
  * estimated, never fabricated.
  */
 export async function getClientReviewClickTotal(
@@ -500,7 +500,7 @@ export function useClientStats(
 }
 
 /* ------------------------------------------------------------------ *
- * Solo (personal) hubs — reads go through the `analytics-report` edge
+ * Solo (personal) hubs. Reads go through the `analytics-report` edge
  * function, which serves human-validated traffic from `analytics_hits`
  * for the caller's own hub. The legacy `personal_analytics` table is no
  * longer written to (visits/link clicks moved to the centralized `track`

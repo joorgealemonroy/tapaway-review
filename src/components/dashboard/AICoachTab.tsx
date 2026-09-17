@@ -577,10 +577,10 @@ const SentimentCard = ({
         {/* Stats Row */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mt-4 text-sm">
           <span className="text-muted-foreground">
-            👍 Happy guests — {positiveCount} review{positiveCount !== 1 ? 's' : ''}
+            👍 Happy guests. {positiveCount} review{positiveCount !== 1 ? 's' : ''}
           </span>
           <span className="text-muted-foreground">
-            😕 Needs attention — {negativeCount} review{negativeCount !== 1 ? 's' : ''}
+            😕 Needs attention. {negativeCount} review{negativeCount !== 1 ? 's' : ''}
           </span>
         </div>
       </CardContent>

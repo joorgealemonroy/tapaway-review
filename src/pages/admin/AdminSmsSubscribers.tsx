@@ -241,7 +241,7 @@ const AdminSmsSubscribers = () => {
                     <TableCell className="font-medium">
                       {rest?.restaurant_name || rest?.custom_slug || r.restaurant_id.slice(0, 8)}
                     </TableCell>
-                    <TableCell>{r.name || "—"}</TableCell>
+                    <TableCell>{r.name || "Not available"}</TableCell>
                     <TableCell className="font-mono text-xs">{r.phone}</TableCell>
                     <TableCell>
                       <span
@@ -255,7 +255,7 @@ const AdminSmsSubscribers = () => {
                       </span>
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
-                      {r.sms_opt_in_at ? new Date(r.sms_opt_in_at).toLocaleString() : "—"}
+                      {r.sms_opt_in_at ? new Date(r.sms_opt_in_at).toLocaleString() : "Not available"}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
                       {new Date(r.created_at).toLocaleString()}

@@ -195,7 +195,7 @@ const handler = async (req: Request): Promise<Response> => {
           <hr style="border: none; border-top: 1px solid #eee; margin: 32px 0;">
           
           <p style="font-size: 12px; color: #999;">
-            TapAway — Helping restaurants get more reviews<br>
+            TapAway. Helping restaurants get more reviews<br>
             <a href="https://tapaway.co" style="color: #0ba5a4;">tapaway.co</a>
           </p>
         </div>

@@ -94,7 +94,7 @@ const ConsentRow = ({
 /**
  * A2P 10DLC compliant dual SMS consent block.
  *
- * Renders TWO INDEPENDENT unchecked-by-default checkboxes — one for MARKETING
+ * Renders TWO INDEPENDENT unchecked-by-default checkboxes. One for MARKETING
  * texts (promos/discounts/loyalty), one for TRANSACTIONAL texts (review
  * reminders/service notifications). Carriers require these two campaigns to
  * have separate opt-ins with their own disclosures; ticking one MUST NOT tick
@@ -137,7 +137,7 @@ export const SmsConsentBlock = ({
       />
 
       <p className="text-[11px] text-muted-foreground pl-7">
-        Each opt-in is independent — checking one does not enroll you in the other.{" "}
+        Each opt-in is independent. Checking one does not enroll you in the other.{" "}
         <a href="/privacy" target="_blank" rel="noopener noreferrer" className="underline">
           Privacy
         </a>{" "}

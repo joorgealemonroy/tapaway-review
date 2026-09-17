@@ -56,7 +56,7 @@ const bucketOf = (status: string | null): Bucket | null => {
 };
 
 const fmtDate = (iso: string | null) =>
-  iso ? new Date(iso).toLocaleDateString() : "—";
+  iso ? new Date(iso).toLocaleDateString() : "Not available";
 
 const AdminPendingHubApprovals = () => {
   const navigate = useNavigate();
@@ -213,7 +213,7 @@ const AdminPendingHubApprovals = () => {
       toast.error("Failed to send note: " + error.message);
       return;
     }
-    toast.success("Changes requested — rep notified on their dashboard");
+    toast.success("Changes requested. Rep notified on their dashboard");
     const id = noteTarget.id;
     setRows((prev) =>
       prev.map((r) =>

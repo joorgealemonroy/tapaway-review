@@ -130,10 +130,10 @@ export const LinksStep = ({
 
   const templateBannerText = useMemo(() => {
     switch (selectedTemplate) {
-      case "social-star": return "Fill in your handles below — tap any link to edit";
-      case "business-pro": return "Add your professional info — tap any link to edit";
-      case "creative": return "Showcase your work — tap any link to edit, add images below";
-      case "minimal": return "Just the essentials — tap any link to edit";
+      case "social-star": return "Fill in your handles below. Tap any link to edit";
+      case "business-pro": return "Add your professional info. Tap any link to edit";
+      case "creative": return "Showcase your work. Tap any link to edit, add images below";
+      case "minimal": return "Just the essentials. Tap any link to edit";
       default: return null;
     }
   }, [selectedTemplate]);
@@ -425,7 +425,7 @@ export const LinksStep = ({
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-sm text-foreground truncate">{link.label}</p>
                         {isEmpty && link.placeholder ? (
-                          <p className="text-xs text-amber-500/80 italic truncate">{link.placeholder} — tap to fill in</p>
+                          <p className="text-xs text-amber-500/80 italic truncate">{link.placeholder}. Tap to fill in</p>
                         ) : (
                           <p className="text-xs text-muted-foreground truncate">{link.value}</p>
                         )}
@@ -505,7 +505,7 @@ export const LinksStep = ({
     if (carouselItems.length === 0) {
       return (
         <div className="space-y-4 text-center py-6">
-          <p className="text-sm text-muted-foreground">No links yet — add your first one!</p>
+          <p className="text-sm text-muted-foreground">No links yet. Add your first one!</p>
           <div className="flex gap-2 justify-center">
             <Button variant="outline" size="sm" onClick={() => { setEditingLink(null); setLinkModalOpen(true); }}>
               <Plus className="h-4 w-4 mr-1" /> Add link

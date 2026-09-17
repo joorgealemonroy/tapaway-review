@@ -1,9 +1,9 @@
-// EmailTemplateCard — one card in the /admin/emails template gallery.
+// EmailTemplateCard. One card in the /admin/emails template gallery.
 //
 // Previews are fetched from the canonical email-template-preview edge
 // function (renders supabase/functions/_shared/email.ts with sample data),
 // so the subject, preheader, and HTML Jorge sees are EXACTLY what clients
-// receive. No local markup mirror — there is nothing to drift.
+// receive. No local markup mirror. There is nothing to drift.
 //
 // The iframe is measured at its native 600px width so the scaled card
 // preview is sized to the real content, whatever the template looks like.
@@ -75,7 +75,7 @@ export default function EmailTemplateCard({
   return (
     <>
       {/* `relative` keeps the hidden 600px measuring iframe inside the card's
-          clipping box — without it, it escapes to the page and forces a
+          clipping box. Without it, it escapes to the page and forces a
           horizontal scrollbar on mobile. */}
       <Card className="relative overflow-hidden">
         <CardContent className="p-0">
@@ -95,7 +95,7 @@ export default function EmailTemplateCard({
               <div className="flex flex-col items-center justify-center gap-2 py-10 px-6 text-center">
                 <AlertTriangle className="h-6 w-6 text-amber-400" />
                 <p className="text-xs text-white/60">
-                  Preview backend isn't live yet — deploy the
+                  Preview backend isn't live yet. Deploy the
                   email-template-preview edge function to see the real email.
                 </p>
               </div>
@@ -106,7 +106,7 @@ export default function EmailTemplateCard({
             )}
           </button>
 
-          {/* Hidden measuring render: same 600px HTML, real height — never visible. */}
+          {/* Hidden measuring render: same 600px HTML, real height. Never visible. */}
           {preview && (
             <iframe
               title=""
@@ -170,7 +170,7 @@ export default function EmailTemplateCard({
         <DialogContent className="max-w-[680px] w-[95vw] max-h-[90vh] overflow-y-auto p-0">
           <DialogHeader className="p-4 pb-2">
             <DialogTitle className="text-sm">
-              {template.label} — what the client gets
+              {template.label}. What the client gets
             </DialogTitle>
             <p className="text-xs text-muted-foreground pt-1">
               Subject: {subject}

@@ -1,4 +1,4 @@
-// trial-followup — daily trial-nurture SMS sequence (Fix #4).
+// trial-followup. Daily trial-nurture SMS sequence (Fix #4).
 // Invoked ONLY by the pg_cron job 'trial-followup-daily'; never from the client.
 // Texts restaurant owners on day 3 / 10 / 13 of their 14-day trial while their
 // subscription_status is 'trialing', via the same Twilio connector gateway used
@@ -42,15 +42,15 @@ function buildMessage(day: number, business: string, slug: string | null): strin
   let body: string;
   if (day === 3) {
     body =
-      `Hey! Jorge here — it's day 3 of your TapAway trial at ${biz}. ` +
+      `Hey! Jorge here. It's day 3 of your TapAway trial at ${biz}. ` +
       `How are the cards landing?${hub} Need anything tweaked? Just reply to this text.`;
   } else if (day === 10) {
     body =
-      `Heads up — your TapAway trial at ${biz} ends in 4 days, then your hub + cards go dark. ` +
+      `Heads up. Your TapAway trial at ${biz} ends in 4 days, then your hub + cards go dark. ` +
       `Want to keep the reviews rolling? Just reply to this text and I'll keep you live.`;
   } else {
     body =
-      `Last call — your TapAway trial at ${biz} ends tomorrow. ` +
+      `Last call. Your TapAway trial at ${biz} ends tomorrow. ` +
       `One reply keeps your hub + cards live, no extra steps. Just reply to this text and you're set.`;
   }
 
@@ -147,7 +147,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Already-logged (restaurant_id, day) pairs — skip so we never double-send.
+    // Already-logged (restaurant_id, day) pairs. Skip so we never double-send.
     const { data: logged, error: logQErr } = await admin
       .from("trial_nurture_log")
       .select("restaurant_id, day_number")

@@ -146,7 +146,7 @@ export const MenuBlockEditor = ({ sections, onSectionsChange }: Props) => {
       const skipped = payload.skipped?.length ?? 0;
       toast.success(
         `Added ${read.length} sections (${countMenuItems(read)} items)` +
-          (skipped > 0 ? ` — ${skipped} page(s) couldn't be read` : "")
+          (skipped > 0 ? `. ${skipped} page(s) couldn't be read` : "")
       );
     } catch (err) {
       console.error("Menu photo read error:", err);
@@ -247,7 +247,7 @@ export const MenuBlockEditor = ({ sections, onSectionsChange }: Props) => {
           )}
         </div>
         <p className="text-xs text-muted-foreground">
-          Take or upload up to {MAX_PHOTOS} photos of the printed menu — AI reads every page and
+          Take or upload up to {MAX_PHOTOS} photos of the printed menu. AI reads every page and
           builds the sections for you.
         </p>
 

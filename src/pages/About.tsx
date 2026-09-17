@@ -84,7 +84,7 @@ const About = () => {
           <h2 className="text-2xl font-bold text-foreground">Who we are</h2>
           <p className="text-muted-foreground leading-relaxed">
             TapAway is a done-for-you digital platform for businesses. We create physical NFC and QR
-            tap cards — your customer taps one with their phone, and your entire business opens right in
+            tap cards. Your customer taps one with their phone, and your entire business opens right in
             their pocket: your Instagram, your Google reviews, your menu, your booking link, directions, and
             your contact info, all in one custom mobile hub.
           </p>
@@ -102,7 +102,7 @@ const About = () => {
           <h2 className="text-2xl font-bold text-foreground">The founder</h2>
           <p className="text-muted-foreground leading-relaxed">
             TapAway was founded by Jorge Monroy in Fontana, California. He's a solo operator who builds the
-            hubs, prints the cards, and handles the whole operation himself — backed by real businesses in
+            hubs, prints the cards, and handles the whole operation himself. Backed by real businesses in
             his own community that use TapAway every day.
           </p>
         </section>
@@ -110,14 +110,14 @@ const About = () => {
         <section className="space-y-3">
           <h2 className="text-2xl font-bold text-foreground">What TapAway does</h2>
           <p className="text-muted-foreground leading-relaxed">
-            Most businesses run on repeat customers and word of mouth — but too many customer relationships
+            Most businesses run on repeat customers and word of mouth. But too many customer relationships
             end the moment someone walks out the door. TapAway changes that.
           </p>
           <p className="text-muted-foreground leading-relaxed">
             A TapAway card sits at your counter, your register, your station, or on your keychain. When a
             customer taps it, they land on a mobile hub built just for your business: follow you on
             Instagram, leave a Google review, browse your menu or services, book their next visit, get
-            directions back, or reach out — all from one tap. It's the connection between your business and
+            directions back, or reach out. All from one tap. It's the connection between your business and
             your customer, in their pocket forever.
           </p>
           <p className="text-muted-foreground leading-relaxed">
@@ -130,7 +130,7 @@ const About = () => {
           <h2 className="text-2xl font-bold text-foreground">Who it's for</h2>
           <p className="text-muted-foreground leading-relaxed">
             TapAway is built for the businesses that run on relationships: restaurants, barbershops,
-            salons, cafés, and auto shops. If your customers come in, sit down, and talk to you — TapAway
+            salons, cafés, and auto shops. If your customers come in, sit down, and talk to you. TapAway
             keeps that conversation going after they leave.
           </p>
         </section>
@@ -139,7 +139,7 @@ const About = () => {
           <h2 className="text-2xl font-bold text-foreground">Pricing</h2>
           <p className="text-muted-foreground leading-relaxed">
             Simple, month to month, cancel anytime. Every plan starts with a 14-day free trial. A card on
-            file is required — we place a $1 hold to verify it, and the hold is voided immediately. Cancel
+            file is required. We place a $1 hold to verify it, and the hold is voided immediately. Cancel
             anytime; when you cancel, billing stops.
           </p>
           <div className="grid sm:grid-cols-2 gap-3">

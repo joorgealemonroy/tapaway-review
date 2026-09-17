@@ -110,7 +110,7 @@ const sinceForRange = (range: RangeKey): string | null => {
 };
 
 const relativeTime = (iso: string | null) => {
-  if (!iso) return "—";
+  if (!iso) return "Not available";
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 60000);
   if (mins < 1) return "just now";
@@ -197,7 +197,7 @@ const AdminUnifiedAccountsTable = () => {
     try {
       localStorage.setItem(SORT_STORAGE_KEY, JSON.stringify({ key: sortKey, dir: sortDir }));
     } catch {
-      /* storage unavailable — sorting still works, just not persisted */
+      /* storage unavailable. Sorting still works, just not persisted */
     }
   }, [sortKey, sortDir]);
 
@@ -205,7 +205,7 @@ const AdminUnifiedAccountsTable = () => {
     try {
       localStorage.setItem(RANGE_STORAGE_KEY, range);
     } catch {
-      /* storage unavailable — range still works, just not persisted */
+      /* storage unavailable. Range still works, just not persisted */
     }
   }, [range]);
 
@@ -221,7 +221,7 @@ const AdminUnifiedAccountsTable = () => {
           );
         if (rErr) throw rErr;
 
-        // Personal profiles (Solo) — hide unapproved rep demos (in queue instead)
+        // Personal profiles (Solo). Hide unapproved rep demos (in queue instead)
         const { data: profiles, error: pErr } = await supabase
           .from("personal_profiles")
           .select(
@@ -287,7 +287,7 @@ const AdminUnifiedAccountsTable = () => {
           pipeline: (r.is_approved === false ? "review" : "live") as PipelineKey,
         }));
 
-        // Every Solo hub is listed — drafts and in-review demos included — and
+        // Every Solo hub is listed. Drafts and in-review demos included. And
         // labelled with its pipeline stage instead of being hidden.
         const liteRows: UnifiedRow[] = (profiles ?? [])
           .map((p) => ({
@@ -332,7 +332,7 @@ const AdminUnifiedAccountsTable = () => {
   const filtered = useMemo(() => {
     const s = search.trim().toLowerCase();
     // "las islas marias gardena" must find the hub whose slug is
-    // "islasmariasgardena" — compare with separators stripped too.
+    // "islasmariasgardena". Compare with separators stripped too.
     const squashed = s.replace(/[^a-z0-9]/g, "");
     const sameLocalDay = (iso: string | null, day: Date) => {
       if (!iso) return false;
@@ -539,7 +539,7 @@ const AdminUnifiedAccountsTable = () => {
         : data?.sms?.skipped
           ? `SMS: ${data.sms.skipped}`
           : "SMS failed";
-      toast.success(`Nudge sent — ${emailBit} · ${smsBit}`);
+      toast.success(`Nudge sent. ${emailBit} · ${smsBit}`);
     } catch (e) {
       toast.error("Nudge failed: " + (e instanceof Error ? e.message : "unknown"));
     } finally {
@@ -548,7 +548,7 @@ const AdminUnifiedAccountsTable = () => {
   };
 
   /**
-   * "Hub ready" notification — fulfills the signup promise ("we'll send you
+   * "Hub ready" notification. Fulfills the signup promise ("we'll send you
    * a text and an email the moment your hub is ready"). One tap sends the
    * hub_ready email plus the short SMS version when a phone is on file.
    * The server refuses to double-send unless forced.
@@ -577,7 +577,7 @@ const AdminUnifiedAccountsTable = () => {
         : data?.sms?.skipped
           ? `SMS: ${data.sms.skipped}`
           : "SMS failed";
-      toast.success(`Hub-ready sent — ${emailBit} · ${smsBit}`);
+      toast.success(`Hub-ready sent. ${emailBit} · ${smsBit}`);
     } catch (e) {
       toast.error("Hub-ready failed: " + (e instanceof Error ? e.message : "unknown"));
     } finally {
@@ -588,7 +588,7 @@ const AdminUnifiedAccountsTable = () => {
   /**
    * Complimentary toggle (locked 2026-09-09): Jorge gifts accounts and
    * doesn't track them. One tap marks/unmarks payment_state='complimentary'.
-   * Complimentary accounts never get billed or broadcast-chased — no
+   * Complimentary accounts never get billed or broadcast-chased. No
    * feature-update emails, no trial texts, no payment nudges.
    */
   const toggleComplimentary = async (r: UnifiedRow) => {
@@ -597,7 +597,7 @@ const AdminUnifiedAccountsTable = () => {
       !window.confirm(
         isComp
           ? `Remove complimentary status from ${r.name}?\n\nThey'll be treated as a normal account again (billing + broadcasts resume).`
-          : `Mark ${r.name} as COMPLIMENTARY?\n\nThis account will never get billed or broadcast-chased — no feature-update emails, no trial texts, no payment nudges. Use it for gifted/family accounts.`
+          : `Mark ${r.name} as COMPLIMENTARY?\n\nThis account will never get billed or broadcast-chased. No feature-update emails, no trial texts, no payment nudges. Use it for gifted/family accounts.`
       )
     )
       return;
@@ -613,7 +613,7 @@ const AdminUnifiedAccountsTable = () => {
         prev.map((x) => (x.id === r.id && x.kind === r.kind ? { ...x, payment_state: value } : x)),
       );
       toast.success(
-        isComp ? "Complimentary removed." : "Marked complimentary — never billed or chased.",
+        isComp ? "Complimentary removed." : "Marked complimentary. Never billed or chased.",
       );
     } catch (e) {
       toast.error("Toggle failed: " + (e instanceof Error ? e.message : "unknown"));
@@ -689,7 +689,7 @@ const AdminUnifiedAccountsTable = () => {
           ))}
         </div>
 
-        {/* Exact calendar day — shows every account created that day, all
+        {/* Exact calendar day. Shows every account created that day, all
             statuses and pipeline stages, so nothing is hidden. */}
         <Popover>
           <PopoverTrigger asChild>
@@ -829,7 +829,7 @@ const AdminUnifiedAccountsTable = () => {
             setZeroTapsOnly(false);
             setBrokenOnly(false);
           }}
-          title="Show live hubs, newest changes first — a just-approved hub lands at the top"
+          title="Show live hubs, newest changes first. A just-approved hub lands at the top"
           className={`h-9 px-3 rounded-md text-xs font-medium border transition-colors ${
             sortKey === "recent"
               ? "bg-emerald-500/15 border-emerald-400/40 text-emerald-200"
@@ -918,7 +918,7 @@ const AdminUnifiedAccountsTable = () => {
                     )}
                   </td>
                   <td className="p-2.5 text-[11px] font-mono text-white/60">
-                    {r.slug ?? "—"}
+                    {r.slug ?? "Not available"}
                   </td>
                   <td className="p-2.5 text-right pr-4 text-white/90 font-medium tabular-nums">
                     {r.taps.toLocaleString()}
@@ -944,10 +944,10 @@ const AdminUnifiedAccountsTable = () => {
                         {r.broken_links} broken
                       </span>
                     ) : (
-                      <span className="text-white/25 text-[11px]">—</span>
+                      <span className="text-white/25 text-[11px]"></span>
                     )}
                   </td>
-                  <td className="p-2.5 text-white/60 text-xs">{r.plan_type ?? "—"}</td>
+                  <td className="p-2.5 text-white/60 text-xs">{r.plan_type ?? "Not available"}</td>
 
                   <td className="p-2.5">
                     <span
@@ -962,30 +962,30 @@ const AdminUnifiedAccountsTable = () => {
                           : "bg-white/[0.04] text-white/50"
                       }`}
                     >
-                      {r.subscription_status ?? "—"}
+                      {r.subscription_status ?? "Not available"}
                     </span>
                     {r.payment_state === "complimentary" && (
                       <span
                         className="ml-1.5 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] bg-purple-500/15 text-purple-300"
-                        title="Complimentary — this account never gets billed or broadcast-chased"
+                        title="Complimentary. This account never gets billed or broadcast-chased"
                       >
                         Gifted
                       </span>
                     )}
                   </td>
                   <td className="p-2.5 text-[11px] text-white/50">
-                    {r.created_at ? new Date(r.created_at).toLocaleDateString() : "—"}
+                    {r.created_at ? new Date(r.created_at).toLocaleDateString() : "Not available"}
                   </td>
                   <td className="p-2.5">
                     <div className="flex items-center justify-end gap-1">
-                      {/* Hub-ready notification — one tap sends the email + SMS "your hub is ready" */}
+                      {/* Hub-ready notification. One tap sends the email + SMS "your hub is ready" */}
                       <Button
                         onClick={() => sendHubReady(r)}
                         disabled={notifying === r.id}
                         size="icon"
                         variant="ghost"
                         className="h-10 w-10 text-emerald-300/80 hover:text-emerald-300 hover:bg-emerald-500/10"
-                        title="Send 'your hub is ready' — email + text with their hub link"
+                        title="Send 'your hub is ready'. Email + text with their hub link"
                       >
                         {notifying === r.id ? (
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -993,7 +993,7 @@ const AdminUnifiedAccountsTable = () => {
                           <BellRing className="h-3.5 w-3.5" />
                         )}
                       </Button>
-                      {/* Payment-recovery nudge — past-due rows only */}
+                      {/* Payment-recovery nudge. Past-due rows only */}
                       {r.subscription_status === "past_due" && (
                         <Button
                           onClick={() => sendRecoveryNudge(r)}
@@ -1010,7 +1010,7 @@ const AdminUnifiedAccountsTable = () => {
                           )}
                         </Button>
                       )}
-                      {/* Complimentary toggle — one tap, any account */}
+                      {/* Complimentary toggle. One tap, any account */}
                       <Button
                         onClick={() => toggleComplimentary(r)}
                         disabled={gifting === r.id}
@@ -1023,8 +1023,8 @@ const AdminUnifiedAccountsTable = () => {
                         }`}
                         title={
                           r.payment_state === "complimentary"
-                            ? "Complimentary — this account never gets billed or broadcast-chased. Tap to remove."
-                            : "Mark as complimentary — never gets billed or broadcast-chased"
+                            ? "Complimentary. This account never gets billed or broadcast-chased. Tap to remove."
+                            : "Mark as complimentary. Never gets billed or broadcast-chased"
                         }
                       >
                         {gifting === r.id ? (
@@ -1144,7 +1144,7 @@ const AdminUnifiedAccountsTable = () => {
           </table>
         </div>
 
-        {/* Mobile cards — no horizontal sliding */}
+        {/* Mobile cards. No horizontal sliding */}
         <div className="md:hidden space-y-2">
           {filtered.map((r) => (
             <div
@@ -1162,7 +1162,7 @@ const AdminUnifiedAccountsTable = () => {
                 <div className="flex-1 min-w-0">
                   <div className="font-medium text-white/90 truncate text-sm">{r.name}</div>
                   <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                    <span className="text-[10px] font-mono text-white/40">@{r.slug ?? "—"}</span>
+                    <span className="text-[10px] font-mono text-white/40">@{r.slug ?? "Not available"}</span>
                     <span
                       className={`inline-flex items-center px-1.5 py-px rounded-full text-[10px] ${
                         r.subscription_status === "active"
@@ -1174,7 +1174,7 @@ const AdminUnifiedAccountsTable = () => {
                           : "bg-white/[0.04] text-white/50"
                       }`}
                     >
-                      {r.subscription_status ?? "—"}
+                      {r.subscription_status ?? "Not available"}
                     </span>
                     {(r.pipeline ?? "live") !== "live" && (
                       <span className={`inline-flex items-center px-1.5 py-px rounded-full text-[10px] ${PIPELINE_META[r.pipeline ?? "live"].cls}`}>
@@ -1226,7 +1226,7 @@ const AdminUnifiedAccountsTable = () => {
                   size="icon"
                   variant="ghost"
                   className="h-10 w-10 text-emerald-300/80 border border-emerald-500/20"
-                  title="Send 'your hub is ready' — email + text with their hub link"
+                  title="Send 'your hub is ready'. Email + text with their hub link"
                 >
                   {notifying === r.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <BellRing className="h-4 w-4" />}
                 </Button>

@@ -119,7 +119,7 @@ if (event.type === 'checkout.session.completed') {
         })
       );
 
-      // Get or create user — look up by verified email with the admin API
+      // Get or create user. Look up by verified email with the admin API
       // filter param (exact match) instead of listUsers(), which only returns
       // the first page of identities and misses existing customers past 50 users.
       const normalizedEmail = customerEmail.trim().toLowerCase();
@@ -192,10 +192,10 @@ if (event.type === 'checkout.session.completed') {
       const greetingName = userData?.user?.user_metadata?.greeting_name || null;
 
       // ============================================================
-      // $1 TRIAL CARD VERIFICATION (CARD-CHECK) — fail-closed.
+      // $1 TRIAL CARD VERIFICATION (CARD-CHECK). Fail-closed.
       // Runs only for true trials (subscriptionStatus === 'trialing').
       // Exempt: van sales (metadata.van_sale, immediate charge) and any
-      // immediate-charge session (status 'active') — the charge itself is
+      // immediate-charge session (status 'active'). The charge itself is
       // the verification there.
       // ============================================================
       let cardCheckRan = false;
@@ -207,7 +207,7 @@ if (event.type === 'checkout.session.completed') {
         let cardCheck: CardCheckResult | null = null;
 
         // Idempotency: if a check was already recorded for THIS subscription,
-        // reuse it — retries (and the verify-checkout fallback) must never
+        // reuse it. Retries (and the verify-checkout fallback) must never
         // double-run the $1 auth.
         let priorStatus: string | null = null;
         let priorMessage: string | null = null;
@@ -264,15 +264,15 @@ if (event.type === 'checkout.session.completed') {
           }
         }
 
-        // Server-derived from Stripe session metadata. Declared once here —
-        // before the card-check fail-closed branch below, which needs it —
+        // Server-derived from Stripe session metadata. Declared once here 
+        // before the card-check fail-closed branch below, which needs it 
         // instead of in the claim block further down (avoids a TDZ crash).
         const claimRestaurantId = session.metadata?.claim_restaurant_id || null;
 
         if (cardCheckStatus !== 'passed') {
           // FAIL CLOSED: cancel the dead-card trial in Stripe immediately, then
           // record the failure on the restaurant row WITHOUT marking it
-          // 'trialing' — the trial never goes live. /onboarding reads
+          // 'trialing'. The trial never goes live. /onboarding reads
           // card_check_message to show the customer what to fix.
           try {
             await stripe.subscriptions.cancel(subscriptionId);
@@ -293,7 +293,7 @@ if (event.type === 'checkout.session.completed') {
 
           if (claimRestaurantId) {
             // Failed claim: still hand the demo hub to the payer so a retry
-            // updates this same row — but keep it paused, never 'trialing'.
+            // updates this same row. But keep it paused, never 'trialing'.
             const { error: failClaimErr } = await supabaseAdmin
               .from('restaurants')
               .update({
@@ -347,7 +347,7 @@ if (event.type === 'checkout.session.completed') {
 
       // Rep-created demo hub ownership hand-off.
       // When metadata.claim_restaurant_id is present, transfer that hub to the
-      // paying user, clear its expiration, and short-circuit — no new restaurant
+      // paying user, clear its expiration, and short-circuit. No new restaurant
       // is created, and the rep's dashboard loses the row because created_by
       // is cleared.
       // (claimRestaurantId was declared once above, before the card-check
@@ -602,7 +602,7 @@ if (event.type === 'checkout.session.completed') {
       }
 
       // ============================================================
-      // SALES REP COMMISSION HANDLING — TRIAL-SAFE
+      // SALES REP COMMISSION HANDLING. TRIAL-SAFE
       // Create commission as trial_pending with 0 points.
       // Real activation happens in invoice.paid handler.
       // ============================================================
@@ -653,7 +653,7 @@ if (event.type === 'checkout.session.completed') {
               points_value: 0,
               period_label: periodLabel,
               stripe_subscription_id: subscriptionId || null,
-              note: `Upfront commission for ${session.metadata?.restaurant_name || 'restaurant'} (${metaPlanTier} ${metaBillingCycle}) — awaiting first payment`,
+              note: `Upfront commission for ${session.metadata?.restaurant_name || 'restaurant'} (${metaPlanTier} ${metaBillingCycle}). Awaiting first payment`,
             });
 
           if (commissionError) {
@@ -686,7 +686,7 @@ if (event.type === 'checkout.session.completed') {
       }
 
       // ============================================================
-      // PROMO TOKEN BURN — Mark token as used on successful checkout
+      // PROMO TOKEN BURN. Mark token as used on successful checkout
       // ============================================================
       const promoToken = session.metadata?.promo_token;
       if (promoToken && promoToken.length > 0) {
@@ -808,7 +808,7 @@ if (event.type === 'checkout.session.completed') {
                       body: JSON.stringify({
                         from: emailFrom,
                         to: [creatorEmail],
-                        subject: `New Booking! 📅 — ${productData.title}`,
+                        subject: `New Booking! 📅: ${productData.title}`,
                         html: `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;"><h1 style="font-size:22px;color:#111;">New Booking! 📅</h1><p style="color:#555;font-size:15px;line-height:1.6;"><strong>${(bookingData as any).buyer_email}</strong> has paid and booked:</p><div style="background:#f8f8f8;border-radius:8px;padding:16px;margin:16px 0;"><p style="margin:0 0 4px;font-weight:600;">${productData.title}</p><p style="margin:0;color:#555;">${dateFormatted} at ${timeFormatted} (${tzLabel})</p><p style="margin:4px 0 0;color:#555;">${productData.duration_minutes || 30} minutes</p></div></div>`,
                       }),
                     });
@@ -823,7 +823,7 @@ if (event.type === 'checkout.session.completed') {
                       body: JSON.stringify({
                         from: emailFrom,
                         to: [(bookingData as any).buyer_email],
-                        subject: `Booking Confirmed! 📅 — ${productData.title}`,
+                        subject: `Booking Confirmed! 📅: ${productData.title}`,
                         html: `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;"><h1 style="font-size:22px;color:#111;">Your Booking is Confirmed! ✅</h1><p style="color:#555;font-size:15px;line-height:1.6;">You've booked <strong>${productData.title}</strong> with ${creatorProfile.full_name}.</p><div style="background:#f8f8f8;border-radius:8px;padding:16px;margin:16px 0;"><p style="margin:0 0 4px;font-weight:600;">${dateFormatted}</p><p style="margin:0;color:#555;">${timeFormatted} (${tzLabel}) · ${productData.duration_minutes || 30} min</p></div><p style="color:#999;font-size:13px;">The creator will reach out with meeting details.</p></div>`,
                       }),
                     });
@@ -939,7 +939,7 @@ if (event.type === 'checkout.session.completed') {
                     body: JSON.stringify({
                       from: emailFrom,
                       to: [creatorEmail],
-                      subject: `You made a sale! 🎉 — ${product.title}`,
+                      subject: `You made a sale! 🎉: ${product.title}`,
                       html: creatorHtml,
                     }),
                   });
@@ -959,7 +959,7 @@ if (event.type === 'checkout.session.completed') {
     }
 
     // ============================================================
-    // IN-PERSON CLOSE — activate a prebuilt solo hub after payment
+    // IN-PERSON CLOSE. Activate a prebuilt solo hub after payment
     // Source of truth for activation. Idempotent + state verified.
     // ============================================================
     if (event.type === 'checkout.session.completed') {
@@ -997,7 +997,7 @@ if (event.type === 'checkout.session.completed') {
 
         if (profileId && userId) {
           if (cardType === 'card_addon') {
-            // Card Club: only toggle the flag — user must request cards manually via dashboard
+            // Card Club: only toggle the flag. User must request cards manually via dashboard
             await supabaseAdmin
               .from('personal_profiles')
               .update({ has_card_addon: true })
@@ -1043,7 +1043,7 @@ if (event.type === 'checkout.session.completed') {
                   body: JSON.stringify({
                     from: emailFrom.includes('<') ? emailFrom : `TapAway <${emailFrom}>`,
                     to: [emailInternal],
-                    subject: `📦 One-Time Card Order — 3 cards`,
+                    subject: `📦 One-Time Card Order: 3 cards`,
                     html: `<p><strong>${session.metadata?.shipping_name || 'Customer'}</strong> ordered 3 cards (one-time).</p>
                            <p>${session.metadata?.shipping_line1 || ''}${session.metadata?.shipping_line2 ? ', ' + session.metadata.shipping_line2 : ''}<br/>
                            ${session.metadata?.shipping_city || ''}, ${session.metadata?.shipping_state || ''} ${session.metadata?.shipping_postal_code || ''}</p>
@@ -1156,7 +1156,7 @@ if (event.type === 'checkout.session.completed') {
     }
 
     // ============================================================
-    // INVOICE.PAID — State-machine for rep commission lifecycle
+    // INVOICE.PAID. State-machine for rep commission lifecycle
     // ============================================================
     if (event.type === 'invoice.paid') {
       const invoice = event.data.object as any;
@@ -1194,7 +1194,7 @@ if (event.type === 'checkout.session.completed') {
         //   the first attributed invoice. Trybe's commission rule should be
         //   set to a flat 30% in the Trybe dashboard; the stop is here.
         // - Per-invoice dedup via a reported-invoice list (retries safe).
-        // - Never throws — never fails the webhook.
+        // - Never throws. Never fails the webhook.
         try {
           const trybeSubId = typeof invoice.subscription === "string" ? invoice.subscription : (invoice.subscription as any)?.id;
           if (trybeSubId && (invoice.amount_paid ?? 0) > 0) {
@@ -1220,9 +1220,9 @@ if (event.type === 'checkout.session.completed') {
             const vid = tMeta.trybe_visitor_id || "";
 
             if (!tracked) {
-              console.log("[trybe] untracked product — skipping");
+              console.log("[trybe] untracked product. Skipping");
             } else if (!vid) {
-              console.log("[trybe] no visitor id on subscription — skipping (cannot attribute)");
+              console.log("[trybe] no visitor id on subscription. Skipping (cannot attribute)");
             } else {
               const invoiceDate = invoice.created ? new Date(invoice.created * 1000) : new Date();
               const windowStart = tMeta.trybe_attribution_start ? new Date(tMeta.trybe_attribution_start) : invoiceDate;
@@ -1234,9 +1234,9 @@ if (event.type === 'checkout.session.completed') {
               if (!Array.isArray(reported)) reported = [];
 
               if (invoiceDate > windowEnd) {
-                console.log("[trybe] past 12-month attribution window — skipping");
+                console.log("[trybe] past 12-month attribution window. Skipping");
               } else if (reported.includes(invoice.id)) {
-                console.log("[trybe] invoice already reported — skipping");
+                console.log("[trybe] invoice already reported. Skipping");
               } else {
                 const cust: any = invoice.customer;
                 const email =
@@ -1288,7 +1288,7 @@ if (event.type === 'checkout.session.completed') {
 
         if (existingComm) {
           if (existingComm.status === 'trial_pending') {
-            // FIRST REAL PAYMENT — upgrade trial_pending
+            // FIRST REAL PAYMENT. Upgrade trial_pending
             const isAnnual = existingComm.billing_cycle === 'annual';
             const isRestaurant = existingComm.plan_tier === 'restaurant';
 
@@ -1377,7 +1377,7 @@ if (event.type === 'checkout.session.completed') {
     }
 
     // ============================================================
-    // FAILED PAYMENT — nudge the owner to update their card.
+    // FAILED PAYMENT. Nudge the owner to update their card.
     // invoice.payment_failed was NOT handled before; owners only found out
     // from Stripe's own emails (or not at all). This sends the canonical
     // payment_failed template via the shared email library (logged).
@@ -1667,7 +1667,7 @@ async function sendDashboardAccessEmail(userId: string, email: string, businessN
   const link = `${baseUrl}/auth/magic?token=${raw}`;
   const resendKey = Deno.env.get('RESEND_API_KEY');
   if (!resendKey) {
-    console.error('[stripe-webhook][in_person_close] RESEND_API_KEY missing — access email not sent');
+    console.error('[stripe-webhook][in_person_close] RESEND_API_KEY missing. Access email not sent');
     return;
   }
 
@@ -1676,7 +1676,7 @@ async function sendDashboardAccessEmail(userId: string, email: string, businessN
     <tr><td style="text-align:center;padding-bottom:32px;"><img src="https://tapaway.co/tapaway-logo-email.png" alt="TapAway" width="120" /></td></tr>
     <tr><td style="background:#1a1a1a;border-radius:16px;padding:40px 32px;text-align:center;border:1px solid #2a2a2a;">
       <h1 style="margin:0 0 16px 0;font-size:24px;color:#ffffff;">Access your TapAway dashboard</h1>
-      <p style="margin:0 0 32px 0;font-size:16px;color:#a1a1a1;line-height:1.6;">Your ${businessName} account is active. Tap below to open your dashboard — no password needed.</p>
+      <p style="margin:0 0 32px 0;font-size:16px;color:#a1a1a1;line-height:1.6;">Your ${businessName} account is active. Tap below to open your dashboard. No password needed.</p>
       <a href="${link}" style="display:inline-block;background:#6BCB77;color:#000;font-size:16px;font-weight:600;padding:14px 32px;border-radius:8px;text-decoration:none;">Access My Dashboard</a>
       <p style="margin:24px 0 0 0;font-size:13px;color:#666;">This link works for 7 days. You can set a password later in your account settings.</p>
     </td></tr>
@@ -1709,7 +1709,7 @@ async function handleInPersonClose(stripe: Stripe, session: Stripe.Checkout.Sess
   const subscriptionId = typeof session.subscription === 'string' ? session.subscription : session.subscription?.id;
   const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id;
   if (!paidOk || !subscriptionId || !customerId) {
-    console.log('[stripe-webhook][in_person_close] Not activating — unverified state', {
+    console.log('[stripe-webhook][in_person_close] Not activating. Unverified state', {
       hubId, status: session.status, payment_status: session.payment_status, subscriptionId, customerId,
     });
     return;
@@ -1717,13 +1717,13 @@ async function handleInPersonClose(stripe: Stripe, session: Stripe.Checkout.Sess
 
   const subscription = await stripe.subscriptions.retrieve(subscriptionId);
   if (!['active', 'trialing'].includes(subscription.status)) {
-    console.log('[stripe-webhook][in_person_close] Not activating — subscription state', subscription.status);
+    console.log('[stripe-webhook][in_person_close] Not activating. Subscription state', subscription.status);
     return;
   }
   const priceId = subscription.items.data[0]?.price?.id;
   const interval = subscription.items.data[0]?.price?.recurring?.interval;
   if (!priceId || !interval) {
-    console.log('[stripe-webhook][in_person_close] Not activating — no recognizable price');
+    console.log('[stripe-webhook][in_person_close] Not activating. No recognizable price');
     return;
   }
 
@@ -1740,7 +1740,7 @@ async function handleInPersonClose(stripe: Stripe, session: Stripe.Checkout.Sess
 
   // Idempotency: a replayed event for the same subscription is a no-op.
   if (hub.stripe_subscription_id === subscriptionId && hub.subscription_status === 'active') {
-    console.log('[stripe-webhook][in_person_close] Already activated — no-op', hubId);
+    console.log('[stripe-webhook][in_person_close] Already activated. No-op', hubId);
     return;
   }
   // Never attach a second live subscription to the same hub.
@@ -1792,7 +1792,7 @@ async function handleInPersonClose(stripe: Stripe, session: Stripe.Checkout.Sess
 
   const { error: updErr } = await admin.from('personal_profiles').update(update).eq('id', hubId);
   if (updErr) {
-    // stripe_price_id may not exist on this table — retry without it.
+    // stripe_price_id may not exist on this table. Retry without it.
     delete update.stripe_price_id;
     const { error: retryErr } = await admin.from('personal_profiles').update(update).eq('id', hubId);
     if (retryErr) {

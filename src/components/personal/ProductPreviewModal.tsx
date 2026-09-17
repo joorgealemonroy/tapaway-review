@@ -129,7 +129,7 @@ function ModalContent({ product, onBuy }: { product: Product; onBuy: (id: string
             onClick={() => onBuy(product.id)}
             className="w-full px-6 py-3 bg-primary text-primary-foreground rounded-xl font-semibold hover:opacity-90 transition-opacity text-base"
           >
-            Buy Now — ${(product.price_cents / 100).toFixed(2)}
+            Buy Now. ${(product.price_cents / 100).toFixed(2)}
           </button>
         </div>
       )}

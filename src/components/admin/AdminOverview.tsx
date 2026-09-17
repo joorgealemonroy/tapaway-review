@@ -23,7 +23,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 /**
- * Admin command center — short by design.
+ * Admin command center. Short by design.
  * Money (real Stripe MRR), what needs action today, and quick actions.
  * Deep analytics live at /admin/analytics.
  */
@@ -75,7 +75,7 @@ const AdminOverview = ({ onOpenAccounts }: { onOpenAccounts: () => void }) => {
   const [nudging, setNudging] = useState<string | null>(null);
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
 
-  // Dismissed ("not now") action items — persisted locally so they stay out
+  // Dismissed ("not now") action items. Persisted locally so they stay out
   // of the way until the underlying situation changes or Jorge restores them.
   const DISMISS_KEY = "tapaway-admin-dismissed-actions";
   const [dismissed, setDismissed] = useState<Set<string>>(() => {
@@ -90,7 +90,7 @@ const AdminOverview = ({ onOpenAccounts }: { onOpenAccounts: () => void }) => {
     try {
       localStorage.setItem(DISMISS_KEY, JSON.stringify([...next]));
     } catch {
-      /* storage unavailable — dismissals just won't persist */
+      /* storage unavailable. Dismissals just won't persist */
     }
   };
   const dismissItem = (key: string) => {
@@ -215,7 +215,7 @@ const AdminOverview = ({ onOpenAccounts }: { onOpenAccounts: () => void }) => {
         </Panel>
       )}
 
-      {/* Money — real Stripe numbers */}
+      {/* Money. Real Stripe numbers */}
       <div className="grid grid-cols-3 gap-3">
         <Panel className="p-4">
           <div className="text-[11px] uppercase tracking-widest text-white/40">MRR</div>
@@ -400,7 +400,7 @@ const AdminOverview = ({ onOpenAccounts }: { onOpenAccounts: () => void }) => {
                 >
                   {showDismissed
                     ? "Hide snoozed"
-                    : `${dismissedCount} snoozed — show`}
+                    : `${dismissedCount} snoozed. Show`}
                 </button>
                 {showDismissed && (
                   <div className="mt-2 space-y-1.5">
@@ -465,7 +465,7 @@ const AdminOverview = ({ onOpenAccounts }: { onOpenAccounts: () => void }) => {
 
       <p className="text-center text-xs text-white/30 pb-2">
         <DollarSign className="h-3 w-3 inline mr-1" />
-        MRR is live Stripe billing — never an estimate.
+        MRR is live Stripe billing. Never an estimate.
       </p>
     </div>
   );

@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 
 // ============================================================
-// APPLICATION FEE — Change this to take a cut of each sale
+// APPLICATION FEE. Change this to take a cut of each sale
 // e.g. 0.10 = 10%, 0.05 = 5%, 0 = no fee
 // ============================================================
 const APPLICATION_FEE_PERCENT = 0;

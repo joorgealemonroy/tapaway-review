@@ -60,7 +60,7 @@ serve(async (req) => {
 
     const metadata = session.metadata || {};
     const customerEmail = session.customer_email || (session.customer as Stripe.Customer)?.email;
-    // Phone collected at Stripe checkout (phone_number_collection) — used to
+    // Phone collected at Stripe checkout (phone_number_collection). Used to
     // text the client when their hub is ready.
     const customerPhone =
       session.customer_details?.phone || (session.customer as Stripe.Customer)?.phone || null;
@@ -215,7 +215,7 @@ serve(async (req) => {
     // ── $1 trial card verification (CARD-CHECK) ──
     // Fail-closed: a declined/dead card must never produce a live trial row.
     // Van sales (metadata.van_sale === "true") charge immediately, so the
-    // charge itself is the verification — they skip this check.
+    // charge itself is the verification. They skip this check.
     if (subscriptionStatus === 'trialing' && metadata.van_sale !== "true") {
       const stripeCustomerId = typeof session.customer === 'string' ? session.customer : session.customer?.id;
       const stripeSubscriptionId = typeof session.subscription === 'string' ? session.subscription : session.subscription?.id;
@@ -446,7 +446,7 @@ serve(async (req) => {
         planType: detectedPlanType,
         needsPasswordSetup: tempPassword !== null,
         clientIp,
-        handoff, // van sale: { success, channel, sent_to } — no raw link, ever
+        handoff, // van sale: { success, channel, sent_to }. No raw link, ever
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

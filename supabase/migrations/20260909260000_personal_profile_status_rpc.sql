@@ -7,8 +7,8 @@
 -- This companion RPC lets the public hub page distinguish "profile exists but
 -- the subscription lapsed" (show the graceful trial-ended preview) from
 -- "no such profile" (show Profile not found). It returns ONLY minimal,
--- already-public branding metadata for approved profiles — never links,
--- blocks, contact info, or billing fields — regardless of subscription
+-- already-public branding metadata for approved profiles. Never links,
+-- blocks, contact info, or billing fields. Regardless of subscription
 -- status. Content (links/blocks) stays gated behind the live-only RPC, so
 -- the banner is a conversion surface, not a leak.
 --

@@ -116,7 +116,7 @@ const CardResolver = () => {
         sessionStorage.removeItem("tapaway_card_vip");
       }
       
-      // Defer auth check — only needed for unclaimed cards
+      // Defer auth check. Only needed for unclaimed cards
       supabase.auth.getUser().then(({ data: { user } }) => {
         if (!user) {
           setShowOverview(true);
@@ -204,7 +204,7 @@ const CardResolver = () => {
 
         if (data.userId && data.isNewUser) {
           // New user was created server-side; sign in not possible here
-          // since no password was provided in this flow — redirect to signup
+          // since no password was provided in this flow. Redirect to signup
         }
 
         const { data: { user } } = await supabase.auth.getUser();
@@ -251,7 +251,7 @@ const CardResolver = () => {
         });
 
         sessionStorage.setItem("tapaway_card_email", email.trim().toLowerCase());
-        // SECURITY: password is not stored across navigation — user re-enters or uses magic link.
+        // SECURITY: password is not stored across navigation. User re-enters or uses magic link.
         sessionStorage.setItem("tapaway_card_preauthed", "true");
         navigate(`/start?card=${publicCode}`);
       }
@@ -262,7 +262,7 @@ const CardResolver = () => {
     }
   };
 
-  // Loading / redirecting — dark to match profile theme
+  // Loading / redirecting. Dark to match profile theme
   if (cardStatus === "loading" || cardStatus === "redirecting") {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">

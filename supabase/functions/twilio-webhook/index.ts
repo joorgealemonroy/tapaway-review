@@ -76,10 +76,10 @@ Deno.serve(async (req) => {
       const ok = await verifyTwilioSignature(authToken, signature, url, params);
       if (!ok) {
         console.warn("twilio-webhook signature verification failed", { from });
-        return twiml(200); // Silent 200 — do NOT leak validity signal.
+        return twiml(200); // Silent 200. Do NOT leak validity signal.
       }
     } else {
-      console.warn("twilio-webhook missing TWILIO_AUTH_TOKEN or signature — rejecting");
+      console.warn("twilio-webhook missing TWILIO_AUTH_TOKEN or signature. Rejecting");
       return twiml(200);
     }
 

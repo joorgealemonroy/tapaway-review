@@ -33,7 +33,7 @@ serve(async (req) => {
       (restaurant?.owner_id && restaurant.owner_id === auth.user.id);
     const callerIsAdmin = await isAdmin(auth.user.id);
     if (!owns && !callerIsAdmin) {
-      console.warn("[create-billing-portal] Forbidden — customer not owned by caller");
+      console.warn("[create-billing-portal] Forbidden. Customer not owned by caller");
       return jsonResponse({ error: "Forbidden" }, 403, corsHeaders);
     }
 

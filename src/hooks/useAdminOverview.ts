@@ -145,7 +145,7 @@ export interface AtRiskRow {
 
 /**
  * MRR is derived from the two account tables because there is no synced
- * Stripe subscriptions table in the DB — the webhook only writes
+ * Stripe subscriptions table in the DB. The webhook only writes
  * subscription_status / plan_type onto restaurants + personal_profiles.
  *
  * Plan → $/mo mapping (keep in sync with create-checkout-session PLAN_CONFIG
@@ -158,7 +158,7 @@ export interface AtRiskRow {
  *   (plan is yearly → yearly_price / 12, else → monthly price).
  * Only subscription_status IN ('active','past_due') counts; trialing pays $0
  * until it converts; payment_state='complimentary' is always excluded.
- * Known imprecision: grandfathered Solo accounts billed at $15 read as $20 —
+ * Known imprecision: grandfathered Solo accounts billed at $15 read as $20 
  * the DB cannot tell them apart from $20 signups.
  */
 const RESTAURANT_PLAN_MRR: Record<string, number> = {
@@ -335,7 +335,7 @@ export function useAdminOverview(enabled: boolean, range: EngagementRange, daily
       mrr: total,
       paying,
       trialsActive: counts.trialing,
-      note: "Derived from plan prices in the DB — no Stripe sync table exists.",
+      note: "Derived from plan prices in the DB. No Stripe sync table exists.",
     });
     setMrrLoading(false);
   }, [counts.trialing]);
@@ -774,7 +774,7 @@ export function useAdminOverview(enabled: boolean, range: EngagementRange, daily
      invoice.failed / subscription.updated(past_due) events are synced. There
      is also no synced invoices table, so per-account failed payments can't be
      listed from the DB. 'canceled' recency uses updated_at because the tables
-     carry no canceled_at column — treat as approximate. */
+     carry no canceled_at column. Treat as approximate. */
   const loadAtRisk = useCallback(async () => {
     setAtRiskLoading(true);
     const since14 = daysAgo(14);

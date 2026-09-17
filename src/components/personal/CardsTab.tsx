@@ -47,7 +47,7 @@ export const CardsTab = ({ profileId, userId, hasCardAddon, planType, stripeCust
   const [submitting, setSubmitting] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [editingAddress, setEditingAddress] = useState(false);
-  // One-time 3-pack price by plan — deliberately steep so the $5/mo Card Club
+  // One-time 3-pack price by plan. Deliberately steep so the $5/mo Card Club
   // subscription is the obvious choice for anyone who needs cards regularly.
   const oneTimePrice = (planType || "").startsWith("venue") ? 49 : 29;
   const [address, setAddress] = useState<ShippingAddress>({
@@ -84,7 +84,7 @@ export const CardsTab = ({ profileId, userId, hasCardAddon, planType, stripeCust
       // Only show form expanded if address is incomplete
       setEditingAddress(!isAddressComplete(prefilled));
     } else {
-      // No prior requests — try fetching address from Stripe
+      // No prior requests. Try fetching address from Stripe
       if (stripeCustomerId) {
         try {
           const { data: addrData } = await supabase.functions.invoke("create-card-order", {
@@ -271,10 +271,10 @@ export const CardsTab = ({ profileId, userId, hasCardAddon, planType, stripeCust
             {editingAddress ? <AddressForm /> : <AddressSummary />}
             <Button onClick={handleCheckout} disabled={submitting} className="w-full min-h-[44px]">
               {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Package className="h-4 w-4 mr-2" />}
-              Order 3 Cards — ${oneTimePrice}
+              Order 3 Cards. ${oneTimePrice}
             </Button>
             <p className="text-xs text-muted-foreground text-center">
-              Need cards every month? Ask us about Card Club — 3 cards/month for $5/mo.
+              Need cards every month? Ask us about Card Club. 3 cards/month for $5/mo.
             </p>
           </CardContent>
         </Card>

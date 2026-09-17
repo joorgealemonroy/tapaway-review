@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
 
     if (existingUser) {
       // NEVER reset or return passwords from this public endpoint (previous
-      // "@tapaway.co / +test" backdoor removed — was an account-takeover vector).
+      // "@tapaway.co / +test" backdoor removed. Was an account-takeover vector).
       return new Response(
         JSON.stringify({ error: "An account with this email already exists. Please log in." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }

@@ -24,7 +24,7 @@ serve(async (req) => {
   }
 
   try {
-    // Require authenticated caller — this is only invoked from the logged-in dashboard.
+    // Require authenticated caller. This is only invoked from the logged-in dashboard.
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(

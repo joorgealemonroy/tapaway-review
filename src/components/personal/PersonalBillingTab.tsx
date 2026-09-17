@@ -79,7 +79,7 @@ export function PersonalBillingTab({ profile, onUpgrade }: PersonalBillingTabPro
                 <span className="text-3xl font-bold">Free Trial</span>
               </div>
               <p className="text-sm text-blue-600 dark:text-blue-400 font-medium mt-1">
-                ⏳ {trialDaysLeft} days left — your trial ends {trialEndDate?.toLocaleDateString()}. Then {isAnnual ? "$199/year" : "$20/month"}.
+                ⏳ {trialDaysLeft} days left. Your trial ends {trialEndDate?.toLocaleDateString()}. Then {isAnnual ? "$199/year" : "$20/month"}.
               </p>
             </div>
           ) : (
@@ -132,7 +132,7 @@ export function PersonalBillingTab({ profile, onUpgrade }: PersonalBillingTabPro
               <CreditCard className="h-5 w-5 text-amber-600 dark:text-amber-400" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-foreground">Card Club — unlocks with any paid plan</p>
+              <p className="text-sm font-semibold text-foreground">Card Club. Unlocks with any paid plan</p>
               <p className="text-xs text-muted-foreground mt-0.5">
                 Once you activate, add the Card Club at checkout for $5/mo and get up to 3 NFC cards shipped monthly, free shipping included.
               </p>

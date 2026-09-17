@@ -12,7 +12,7 @@ interface MediaItem {
 interface ImageLightboxProps {
   /** New mixed-media prop */
   media?: MediaItem[];
-  /** @deprecated Legacy prop — use `media` instead */
+  /** @deprecated Legacy prop. Use `media` instead */
   images?: string[];
   currentIndex: number;
   isOpen: boolean;

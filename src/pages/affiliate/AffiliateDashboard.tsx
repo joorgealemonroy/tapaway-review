@@ -328,7 +328,7 @@ const AffiliateDashboard = () => {
                         {ref.referred_profile?.full_name || "Unknown"}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        @{ref.referred_profile?.username || "—"} · {new Date(ref.created_at).toLocaleDateString()}
+                        @{ref.referred_profile?.username || "Not available"} · {new Date(ref.created_at).toLocaleDateString()}
                       </p>
                     </div>
                     <div className="text-right flex-shrink-0">

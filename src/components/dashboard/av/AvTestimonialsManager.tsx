@@ -106,12 +106,12 @@ export const AvTestimonialsManager = ({ restaurantId }: AvTestimonialsManagerPro
             />
           </div>
           <div>
-            <Label htmlFor="author">Author * (e.g., "— Jasmine M.")</Label>
+            <Label htmlFor="author">Author * (e.g., " Jasmine M.")</Label>
             <Input
               id="author"
               value={newTestimonial.author}
               onChange={(e) => setNewTestimonial({...newTestimonial, author: e.target.value})}
-              placeholder="— Jasmine M."
+              placeholder=" Jasmine M."
             />
           </div>
           <Button onClick={handleAdd} disabled={loading} className="w-full">

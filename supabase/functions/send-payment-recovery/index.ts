@@ -1,21 +1,21 @@
-// send-payment-recovery — one-tap payment-recovery nudge for Jorge.
+// send-payment-recovery. One-tap payment-recovery nudge for Jorge.
 //
 // Locked decision 2026-09-09: on a past-due client's admin view, one tap sends
 // the canonical `payment_failed` email template with a Stripe billing-portal
 // link (so the client can fix their card in 30 seconds), plus the SMS
 // equivalent when the client has a phone on file. Recovering a failed payment
-// should be as frictionless as possible — Jorge once messaged a past-due
+// should be as frictionless as possible. Jorge once messaged a past-due
 // client manually and they paid immediately.
 //
 // Request (admin JWT required): { account_id, kind: 'restaurant' | 'personal' }
 //
 // What it does:
 //   1. Loads the account (email, name, phone, stripe_customer_id, status).
-//   2. Refuses gifted accounts (payment_state='complimentary') — those never
+//   2. Refuses gifted accounts (payment_state='complimentary'). Those never
 //      get chased. Requires a stripe_customer_id (portal session needs it).
 //   3. Creates a Stripe billing-portal session for the customer.
 //   4. Sends the canonical `payment_failed` template with the portal URL as
-//      the CTA ("Update my card") — logged to email_sends like other sends.
+//      the CTA ("Update my card"). Logged to email_sends like other sends.
 //   5. If a phone is on file, sends a short SMS with the same link via the
 //      Twilio connector gateway (same path as trial-followup / send-mass-sms).
 //
@@ -58,7 +58,7 @@ async function resolveAccount(
     if (error) return { error: error.message };
     if (!data) return { error: "Account not found." };
     if ((data as { payment_state?: string }).payment_state === "complimentary") {
-      return { error: "This is a complimentary (gifted) account — never chased." };
+      return { error: "This is a complimentary (gifted) account. Never chased." };
     }
     return {
       account: {
@@ -81,10 +81,10 @@ async function resolveAccount(
     if (!data) return { error: "Account not found." };
     // payment_state on personal_profiles exists after migration
     // 20260909320000_personal_payment_state.sql (applied before this function
-    // is deployed) — complimentary (gifted) Solo accounts are never chased.
+    // is deployed). Complimentary (gifted) Solo accounts are never chased.
     const row = data as Record<string, unknown>;
     if (row.payment_state === "complimentary") {
-      return { error: "This is a complimentary (gifted) account — never chased." };
+      return { error: "This is a complimentary (gifted) account. Never chased." };
     }
     return {
       account: {
@@ -126,7 +126,7 @@ serve(async (req) => {
     const { account, error: resolveErr } = await resolveAccount(admin, account_id, kind);
     if (!account) return jsonResponse({ error: resolveErr || "Account not found." }, 400, corsHeaders);
     if (!account.stripeCustomerId) {
-      return jsonResponse({ error: "No Stripe customer on this account — can't make a billing link." }, 400, corsHeaders);
+      return jsonResponse({ error: "No Stripe customer on this account. Can't make a billing link." }, 400, corsHeaders);
     }
 
     // Billing-portal session: the 30-second fix link.
@@ -138,7 +138,7 @@ serve(async (req) => {
     });
     const portalUrl = portalSession.url;
 
-    // 1. Email — canonical payment_failed template; the portal URL is the
+    // 1. Email. Canonical payment_failed template; the portal URL is the
     //    "Update my card" CTA. Logged to email_sends by sendTemplatedEmail.
     let emailResult: { ok: boolean; skipped?: string; error?: string } = { ok: false, skipped: "no email on file" };
     if (account.email) {
@@ -154,7 +154,7 @@ serve(async (req) => {
       emailResult = sent.ok ? { ok: true } : { ok: false, error: sent.error || "send failed" };
     }
 
-    // 2. SMS — only when a phone is on file. Same Twilio connector gateway
+    // 2. SMS. Only when a phone is on file. Same Twilio connector gateway
     //    used by trial-followup / send-mass-sms.
     let smsResult: { ok: boolean; skipped?: string; error?: string } = { ok: false, skipped: "no phone on file" };
     if (account.phone) {
@@ -164,7 +164,7 @@ serve(async (req) => {
       if (!lovableKey || !twilioKey || !twilioFrom) {
         smsResult = { ok: false, skipped: "Twilio not connected" };
       } else {
-        const body = `TapAway: your card didn't go through — update it here in 30 seconds: ${portalUrl}`;
+        const body = `TapAway: your card didn't go through. Update it here in 30 seconds: ${portalUrl}`;
         try {
           const res = await fetch(`${TWILIO_GATEWAY}/Messages.json`, {
             method: "POST",

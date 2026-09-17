@@ -88,7 +88,7 @@ const LeadFormSheet = ({ profileId, accentColor }: Props) => {
 
       if (error) throw error;
 
-      // Fire-and-forget notification — server re-reads the row and derives all content.
+      // Fire-and-forget notification. Server re-reads the row and derives all content.
       if (inserted?.id) {
         supabase.functions
           .invoke("notify-new-lead", { body: { submissionId: inserted.id } })

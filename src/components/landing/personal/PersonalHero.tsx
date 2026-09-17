@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 // Jorge's real profile assets
 const PROFILE = {
   name: "Jorge Monroy",
-  bio: "Building TapAway — a faster way to share who you are.",
+  bio: "Building TapAway. A faster way to share who you are.",
   username: "jorge",
   pfp: "https://xfrvckdcrqvkqdwjzopt.supabase.co/storage/v1/object/public/personal-photos/87672793-9bcb-4cf9-b2d6-657dcaa36187/profile.jpg?t=1767860088497",
   banner: "https://xfrvckdcrqvkqdwjzopt.supabase.co/storage/v1/object/public/personal-photos/87672793-9bcb-4cf9-b2d6-657dcaa36187/header.jpg?t=1767751867827",
@@ -81,7 +81,7 @@ export const PersonalHero = () => {
             </h1>
 
             <p className="text-base md:text-lg text-muted-foreground leading-relaxed mb-6 max-w-xl mx-auto lg:mx-0">
-              Share all your links from one beautiful profile — Instagram, TikTok, YouTube, website, payments.{" "}
+              Share all your links from one beautiful profile. Instagram, TikTok, YouTube, website, payments.{" "}
               <span className="font-semibold text-foreground">Set up in under 3 minutes.</span>
             </p>
 
@@ -188,7 +188,7 @@ export const PersonalHero = () => {
                         </div>
                       </div>
 
-                      {/* Grid cards — Instagram + TikTok side by side */}
+                      {/* Grid cards. Instagram + TikTok side by side */}
                       <div className="grid grid-cols-2 gap-2 mb-2">
                         {[LINKS.instagram, LINKS.tiktok].map((link) =>
                         <div

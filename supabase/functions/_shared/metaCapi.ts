@@ -8,7 +8,7 @@
  *
  * Privacy: events fire ONLY for people who completed a real checkout on
  * tapaway.co (they gave us their email/phone to buy). The browser pixel
- * (src/lib/metaPixel.ts) remains consent-gated — nothing is sent to Meta
+ * (src/lib/metaPixel.ts) remains consent-gated. Nothing is sent to Meta
  * from the browser without opt-in. Server events carry only SHA-256 hashes
  * of email/phone, never raw values.
  *
@@ -23,7 +23,7 @@
 export interface MetaCapiEvent {
   /** Standard Meta event name: Lead, Purchase, InitiateCheckout, StartTrial... */
   eventName: string;
-  /** Unique per event — shared with the browser pixel for dedup. */
+  /** Unique per event. Shared with the browser pixel for dedup. */
   eventId: string;
   email?: string | null;
   /** Any format; digits are extracted and hashed. */

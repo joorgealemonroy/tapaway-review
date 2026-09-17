@@ -3,23 +3,23 @@
 // $1 card-verification hold for trial signups.
 //
 // Input:  { customerId } OR { paymentMethodId } (optionally both; paymentMethodId wins)
-//         Optional: { clientIp } — end-user IP to rate-limit on instead of the caller IP
-//                   { idempotencyKey } — forwarded to Stripe to dedupe retries
+//         Optional: { clientIp }. End-user IP to rate-limit on instead of the caller IP
+//                   { idempotencyKey }. Forwarded to Stripe to dedupe retries
 //
 // What it does:
 //   1. Resolves a usable card payment method server-side (never trusts a
-//      client-supplied full card number — only Stripe IDs).
+//      client-supplied full card number. Only Stripe IDs).
 //   2. Creates a $1.00 USD PaymentIntent (capture_method='manual', confirm=true,
-//      off_session=true) and IMMEDIATELY cancels it — the hold is voided and
+//      off_session=true) and IMMEDIATELY cancels it. The hold is voided and
 //      never captured. A declined/errored card surfaces Stripe's decline code.
 //   3. Returns { ok: true } or { ok: false, code, message } with plain-language
 //      messages the frontend can show the customer directly.
 //
 // This function does NOT create any subscription and does NOT gate on admin.
 // It is invoked server-to-server by the checkout verifier functions
-// (verify-personal-checkout, stripe-webhook) with the service-role bearer —
+// (verify-personal-checkout, stripe-webhook) with the service-role bearer 
 // the bearer check below rejects any other caller. It never logs raw card
-// data — only the last4 and the result.
+// data. Only the last4 and the result.
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Stripe from 'https://esm.sh/stripe@14.21.0';
@@ -76,11 +76,11 @@ const DECLINE_MESSAGES: Record<string, string> = {
   authentication_required:
     "Your bank needs extra verification for this card. Please go back to checkout and try again, or use a different card.",
   processing_error:
-    "Something went wrong on our end — please try again.",
+    "Something went wrong on our end. Please try again.",
   rate_limit_error:
-    "Something went wrong on our end — please try again.",
+    "Something went wrong on our end. Please try again.",
   api_error:
-    "Something went wrong on our end — please try again.",
+    "Something went wrong on our end. Please try again.",
   payment_method_unactivated:
     "This card isn't activated yet. Please activate it with your bank or try a different card.",
   issuer_not_available:
@@ -94,7 +94,7 @@ function plainLanguageMessage(code: string | null | undefined): string {
   return "Your card couldn't be verified. Please try a different card or contact your bank.";
 }
 
-// Very loose IP check — just enough to pick a sensible rate-limit key.
+// Very loose IP check. Just enough to pick a sensible rate-limit key.
 function looksLikeIp(value: unknown): value is string {
   return typeof value === 'string' && /^[0-9a-fA-F:.]{3,45}$/.test(value.trim());
 }
@@ -150,7 +150,7 @@ serve(async (req) => {
     }
 
     // Resolve the payment method server-side. We only ever accept Stripe IDs
-    // here — never raw card numbers.
+    // here. Never raw card numbers.
     let resolvedPmId: string | null = null;
     let resolvedCustomerId: string | null = null;
     let last4: string | null = null;
@@ -226,7 +226,7 @@ serve(async (req) => {
       by: paymentMethodId ? 'paymentMethodId' : 'customerId',
     });
 
-    // $1.00 auth hold: manual capture + off_session. Never captured — we
+    // $1.00 auth hold: manual capture + off_session. Never captured. We
     // cancel immediately below. The card is only verified, never charged.
     let intent: Stripe.PaymentIntent;
     try {
@@ -247,7 +247,7 @@ serve(async (req) => {
           : []),
       );
     } catch (piErr: unknown) {
-      // The $1 auth itself failed — this is the decline signal we want.
+      // The $1 auth itself failed. This is the decline signal we want.
       const err = piErr as { code?: string; decline_code?: string; message?: string; type?: string };
       const code = err.decline_code || err.code || 'card_error';
       console.log(`${FUNCTION_NAME} Card verification failed:`, {

@@ -1,4 +1,4 @@
-// send-van-handoff — van sale password-setup handoff.
+// send-van-handoff. Van sale password-setup handoff.
 //
 // After a van sale provisions (subscription starts 'active', no trial), the
 // owner needs their own login for the hub. This function generates a
@@ -16,7 +16,7 @@
 // Exactly-once guarantee: path (a) atomically claims the send with
 // UPDATE ... WHERE van_handoff_sent_at IS NULL before sending, so the
 // 4-second poll from /admin/van can never double-text the owner. The raw
-// link is NEVER logged server-side and NEVER returned to the caller —
+// link is NEVER logged server-side and NEVER returned to the caller 
 // responses only report which channel the link went out on.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -31,7 +31,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-// Twilio connector gateway — same infra as trial-followup / send-mass-sms.
+// Twilio connector gateway. Same infra as trial-followup / send-mass-sms.
 const TWILIO_GATEWAY = "https://connector-gateway.lovable.dev/twilio";
 const STOP_SUFFIX = "\nReply STOP to opt out.";
 const MAX_SMS_LEN = 600;
@@ -81,7 +81,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return json(405, { error: "Method not allowed" });
 
-  // 10/hour per caller — this is not a hot path (once per sale + manual resends).
+  // 10/hour per caller. This is not a hot path (once per sale + manual resends).
   if (!checkRateLimit(getRateLimitKey(req, "send-van-handoff"), 10, 60 * 60 * 1000)) {
     return rateLimitResponse(corsHeaders);
   }
@@ -247,7 +247,7 @@ serve(async (req) => {
         }
         // Email fallback: canonical password_setup template via the shared
         // library (same copy as before, branded wrapper, email_sends logging).
-        // The setup link is passed as a template var — bodies are never logged.
+        // The setup link is passed as a template var. Bodies are never logged.
         const firstName = business.split(" ")[0] || "there";
         const mailResult = await sendTemplatedEmail({
           to: accountEmail,

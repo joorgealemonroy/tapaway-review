@@ -45,7 +45,7 @@ function otpHtml(code: string) {
 <div style="background:#f0fdfa;border:2px dashed #0d9488;border-radius:12px;padding:20px;margin-bottom:24px;">
 <span style="font-size:36px;font-weight:800;letter-spacing:6px;color:#0d9488;">${code}</span></div>
 <p style="margin:0 0 24px;font-size:13px;color:#9ca3af;">This code expires in 10 minutes.</p>
-<p style="margin:0;font-size:14px;color:#6b7280;">Need help? Reply to this email.<br/>— TapAway</p>
+<p style="margin:0;font-size:14px;color:#6b7280;">Need help? Reply to this email.<br/><br/>TapAway</p>
 </td></tr></table></body></html>`;
 }
 
@@ -64,7 +64,7 @@ function welcomeHtml(biz: string) {
 <ul style="margin:0;padding:0 0 0 20px;color:#374151;line-height:1.8;font-size:15px;">
 <li>Your NFC cards ship in 1–2 business days</li><li>Your review + social hub is ready to use</li><li>We'll help you optimize anytime</li></ul></div>
 <p style="margin:0;font-size:13px;color:#6b7280;text-align:center;border-top:1px solid #e5e7eb;padding-top:20px;">
-<strong>Trial reminder:</strong> No charge today. Cancel anytime before day 14.<br/><br/>— TapAway</p>
+<strong>Trial reminder:</strong> No charge today. Cancel anytime before day 14.<br/><br/>TapAway</p>
 </td></tr></table></body></html>`;
 }
 
@@ -80,7 +80,7 @@ function buyerHtml(title: string, price: string, downloadUrl: string, logoUrl: s
 <p style="color:#555;font-size:15px;line-height:1.6;margin:0 0 24px;text-align:center;">Thank you for purchasing <strong>${title}</strong> for ${price}.</p>
 <div style="text-align:center;margin-bottom:24px;">
 <a href="${downloadUrl}" style="display:inline-block;background:#0d9488;color:#fff;padding:14px 32px;border-radius:10px;text-decoration:none;font-weight:700;font-size:15px;">Download Now</a></div>
-<p style="color:#9ca3af;font-size:13px;text-align:center;margin:0;">This download link expires in 72 hours. Need help? Reply to this email.<br/>— TapAway</p>
+<p style="color:#9ca3af;font-size:13px;text-align:center;margin:0;">This download link expires in 72 hours. Need help? Reply to this email.<br/><br/>TapAway</p>
 </td></tr></table></body></html>`;
 }
 
@@ -97,7 +97,7 @@ function creatorHtml(title: string, maskedBuyer: string, price: string, logoUrl:
 <div style="background:#f0fdfa;border-radius:12px;padding:16px;margin-bottom:24px;text-align:center;">
 <p style="margin:0 0 4px;font-weight:700;color:#111827;font-size:16px;">${title}</p>
 <p style="margin:0;color:#0d9488;font-weight:800;font-size:20px;">${price}</p></div>
-<p style="color:#9ca3af;font-size:13px;text-align:center;margin:0;">You can view all your sales in your TapAway dashboard.<br/>— TapAway</p>
+<p style="color:#9ca3af;font-size:13px;text-align:center;margin:0;">You can view all your sales in your TapAway dashboard.<br/><br/>TapAway</p>
 </td></tr></table></body></html>`;
 }
 
@@ -136,7 +136,7 @@ serve(async (req) => {
 
     // 2. Welcome
     console.log("[send-test-emails] Sending Welcome →", email);
-    results.welcome = await sendEmail(resendApiKey, from, email, "You're all set — TapAway is live 🎉", welcomeHtml(biz));
+    results.welcome = await sendEmail(resendApiKey, from, email, "You're all set. TapAway is live 🎉", welcomeHtml(biz));
     await delay(1200);
 
     // 3. Buyer purchase confirmation

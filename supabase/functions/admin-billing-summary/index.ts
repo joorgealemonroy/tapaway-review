@@ -1,4 +1,4 @@
-// Admin billing summary — the single source of truth for MRR.
+// Admin billing summary. The single source of truth for MRR.
 // Sums REAL Stripe recurring revenue (active + trialing + past_due
 // subscriptions), so grandfathered and yearly plans are counted at their
 // actual billed amounts. Also returns past-due invoices and trials ending
@@ -128,7 +128,7 @@ serve(async (req) => {
       startingAfter = page.data[page.data.length - 1].id;
     }
 
-    // Trials ending in the next 3 days (DB — these are TapAway profiles).
+    // Trials ending in the next 3 days (DB. These are TapAway profiles).
     const threeDaysOut = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
     const { data: trialsEnding } = await admin
       .from("personal_profiles")

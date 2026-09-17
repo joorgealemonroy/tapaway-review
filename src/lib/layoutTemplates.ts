@@ -23,7 +23,7 @@ export const LAYOUT_TEMPLATES: LayoutTemplate[] = [
   {
     id: "social-star",
     name: "Social Star",
-    description: "All your social links in one place — perfect for creators",
+    description: "All your social links in one place. Perfect for creators",
     emoji: "⭐",
     defaultLinks: [
       { type: "instagram", label: "Instagram", placeholder: "@yourhandle" },
@@ -38,7 +38,7 @@ export const LAYOUT_TEMPLATES: LayoutTemplate[] = [
   {
     id: "business-pro",
     name: "Business Pro",
-    description: "Contact card + professional links — great for networking",
+    description: "Contact card + professional links. Great for networking",
     emoji: "💼",
     defaultLinks: [
       { type: "website", label: "Website", placeholder: "https://yoursite.com" },
@@ -79,7 +79,7 @@ export const LAYOUT_TEMPLATES: LayoutTemplate[] = [
   {
     id: "minimal",
     name: "Minimal",
-    description: "Clean & simple — just the essentials",
+    description: "Clean & simple. Just the essentials",
     emoji: "✨",
     defaultLinks: [
       { type: "website", label: "Website", placeholder: "https://yoursite.com" },

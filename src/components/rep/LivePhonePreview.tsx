@@ -363,7 +363,7 @@ export const LivePhonePreview = ({
                 style={{ background: cardBg, border: `1px solid ${border}` }}
               >
                 <p className="text-[11px] font-semibold mb-2" style={{ color: heading }}>
-                  Connect — Join our VIP Club for updates!
+                  Connect. Join our VIP Club for updates!
                 </p>
                 <div
                   className="w-full px-3 py-2 rounded-lg text-[11px]"

@@ -143,7 +143,7 @@ const EmailLeadsTab = ({ profileId }: Props) => {
     <div className="space-y-6">
       {/* Plain-language explainer */}
       <p className="text-sm text-muted-foreground">
-        Collect info from people who visit your page — quote requests, questions, contact details.
+        Collect info from people who visit your page. Quote requests, questions, contact details.
         When someone fills out your form, you get a notification and their answers land here.
       </p>
 

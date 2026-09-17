@@ -110,11 +110,11 @@ const Terms = () => {
 
           {/* 3. NATURE OF SERVICE */}
           <section>
-            <h2 className="text-2xl font-bold mb-4">3. Nature of Service — Software Tool Only</h2>
+            <h2 className="text-2xl font-bold mb-4">3. Nature of Service. Software Tool Only</h2>
             <p className="text-muted-foreground mb-4">
               <strong>TAPAWAY IS A SOFTWARE TOOL ONLY.</strong> TapAway provides NFC cards, QR codes, personal profile 
               hosting, a Review Hub, analytics dashboard, and AI-powered features designed to help individuals share their 
-              information and businesses collect customer reviews. TapAway is a technology platform—nothing more.
+              information and businesses collect customer reviews. TapAway is a technology platform. Nothing more.
             </p>
             <p className="text-muted-foreground mb-4">
               <strong>WE DO NOT GUARANTEE:</strong>
@@ -180,7 +180,7 @@ const Terms = () => {
 
           {/* 6. PROHIBITED CONDUCT */}
           <section>
-            <h2 className="text-2xl font-bold mb-4">6. Prohibited Conduct — Zero Tolerance Policy</h2>
+            <h2 className="text-2xl font-bold mb-4">6. Prohibited Conduct. Zero Tolerance Policy</h2>
             <p className="text-muted-foreground mb-4">
               <strong>YOU AGREE NOT TO:</strong>
             </p>
@@ -329,7 +329,7 @@ const Terms = () => {
               TapAway NFC cards and QR codes are physical products subject to the following:
             </p>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li>NFC cards are optional — your hub/profile works without a physical card</li>
+              <li>NFC cards are optional. Your hub/profile works without a physical card</li>
               <li>NFC cards require NFC-compatible devices to function</li>
               <li>We are not responsible for device incompatibility</li>
               <li>Cards are subject to normal wear and environmental conditions</li>
@@ -415,7 +415,7 @@ const Terms = () => {
             </p>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
               <li>We collect account information, profile data, analytics data, and usage data</li>
-              <li>We use first-party analytics for tracking — not third-party analytics platforms</li>
+              <li>We use first-party analytics for tracking. Not third-party analytics platforms</li>
               <li>We do NOT sell, rent, or share your data with advertisers or data brokers</li>
               <li>Payment information is handled exclusively by Stripe</li>
               <li>Data is retained until you request deletion</li>

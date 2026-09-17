@@ -1,5 +1,5 @@
 /**
- * "Logo header" style — the logo is shown whole (never cropped) at the top of
+ * "Logo header" style. The logo is shown whole (never cropped) at the top of
  * the hub, sitting directly on the page background, and the page then flows
  * straight into the standard TapAway Solo layout.
  *
@@ -50,7 +50,7 @@ export function logoImageStyle(value?: string | null): React.CSSProperties {
 
 /**
  * Inline style for the logo inside a fixed-width mock (dashboard preview, rep
- * phone preview) where `vh` units would be wrong — scale off the mock width.
+ * phone preview) where `vh` units would be wrong. Scale off the mock width.
  */
 export function logoPreviewStyle(
   value: string | null | undefined,

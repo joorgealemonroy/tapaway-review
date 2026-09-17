@@ -184,7 +184,7 @@ export function DashboardContactCard({
             Let visitors save your contact info to their phone with one tap
           </p>
           <p className="text-xs text-muted-foreground mt-1">
-            This is the card people see on your hub — as an icon, or a "Save Contact" button. Anything you change here shows up there.
+            This is the card people see on your hub. As an icon, or a "Save Contact" button. Anything you change here shows up there.
           </p>
         </CollapsibleTrigger>
         <Switch

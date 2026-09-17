@@ -8,7 +8,7 @@
 -- Semantics: payment_state='complimentary' means the account never gets
 -- billed or broadcast-chased (send-feature-update, trial-followup, and the
 -- new send-payment-recovery nudge all exclude it). Clearing the toggle sets
--- it back to 'unknown_manual' — Jorge then sets the real value by looking
+-- it back to 'unknown_manual'. Jorge then sets the real value by looking
 -- at the account's Stripe state.
 --
 -- Idempotent via IF NOT EXISTS; safe to re-run.

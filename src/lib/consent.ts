@@ -21,7 +21,7 @@ function readStored(): ConsentState {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw === "accepted" || raw === "declined") return raw;
   } catch {
-    /* storage unavailable — treat as pending */
+    /* storage unavailable. Treat as pending */
   }
   return "pending";
 }
@@ -42,7 +42,7 @@ export function setConsent(state: "accepted" | "declined"): void {
   try {
     localStorage.setItem(STORAGE_KEY, state);
   } catch {
-    /* ignore — consent just won't persist this session */
+    /* ignore. Consent just won't persist this session */
   }
   listeners.forEach((l) => {
     try {

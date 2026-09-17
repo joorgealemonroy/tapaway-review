@@ -25,7 +25,7 @@ export const SMS_MAX_LEN = 160;
 /**
  * One pre-written message. `{businessName}` and `{hubLink}` are placeholders
  * filled from the owner's profile/restaurant when the gallery is shown.
- * The STOP opt-out line is appended by the server — templates never include it.
+ * The STOP opt-out line is appended by the server. Templates never include it.
  */
 export interface SmsTemplate {
   id: string;
@@ -155,7 +155,7 @@ const SmsTemplateGallery = ({ businessName, hubLink, onUse }: SmsTemplateGallery
                     "shrink-0 text-xs font-medium tabular-nums mr-2",
                     tooLong ? "text-destructive" : "text-muted-foreground",
                   )}
-                  title={tooLong ? "Too long once your name and link are filled in — trim it in the composer" : "Characters after filling in your name and link"}
+                  title={tooLong ? "Too long once your name and link are filled in. Trim it in the composer" : "Characters after filling in your name and link"}
                 >
                   {count}/{SMS_MAX_LEN}
                 </span>
@@ -167,7 +167,7 @@ const SmsTemplateGallery = ({ businessName, hubLink, onUse }: SmsTemplateGallery
                   </p>
                   {tooLong && (
                     <p className="text-xs text-destructive">
-                      This one's over 160 characters with your name and link — you
+                      This one's over 160 characters with your name and link. You
                       can still use it and trim it down in the composer.
                     </p>
                   )}

@@ -87,7 +87,7 @@ CREATE POLICY "Buyers can view own purchases"
     AND buyer_email = public.current_user_email()
   );
 
--- ===== 6. STORAGE: personal-link-images — require auth + owner folder =====
+-- ===== 6. STORAGE: personal-link-images. Require auth + owner folder =====
 DROP POLICY IF EXISTS "Anyone can upload link images" ON storage.objects;
 CREATE POLICY "Auth users upload own link images"
   ON storage.objects FOR INSERT
@@ -97,7 +97,7 @@ CREATE POLICY "Auth users upload own link images"
     AND (storage.foldername(name))[1] = auth.uid()::text
   );
 
--- ===== 7. STORAGE: restaurant-logos — drop overly broad authenticated DELETE/UPDATE/upload =====
+-- ===== 7. STORAGE: restaurant-logos. Drop overly broad authenticated DELETE/UPDATE/upload =====
 DROP POLICY IF EXISTS "Authenticated users can delete logos" ON storage.objects;
 DROP POLICY IF EXISTS "Authenticated users can update logos" ON storage.objects;
 DROP POLICY IF EXISTS "Authenticated users can upload logos" ON storage.objects;

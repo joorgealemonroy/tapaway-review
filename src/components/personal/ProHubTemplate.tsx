@@ -81,7 +81,7 @@ export const ProHubTemplate = memo(({
       className="min-h-screen w-full flex flex-col items-center px-4 py-8 relative"
       style={{ backgroundColor: '#020617' }}
     >
-      {/* Brand color radial glow — top section only */}
+      {/* Brand color radial glow. Top section only */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
@@ -136,7 +136,7 @@ export const ProHubTemplate = memo(({
         </div>
       )}
 
-      {/* Single social tile — full width landscape */}
+      {/* Single social tile. Full width landscape */}
       {socialTiles.length === 1 && (
         <div className="w-full max-w-sm mb-4 relative z-10">
           <button
@@ -163,7 +163,7 @@ export const ProHubTemplate = memo(({
         </div>
       )}
 
-      {/* ── C. Standard Links — Glassmorphism ── */}
+      {/* ── C. Standard Links. Glassmorphism ── */}
       <div className="w-full max-w-sm space-y-3 relative z-10">
         {standardLinks.map((link) => {
           const config = getPlatformConfig(link.link_type);

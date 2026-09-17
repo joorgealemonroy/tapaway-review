@@ -35,7 +35,7 @@ serve(async (req) => {
       });
     }
 
-    // Require an authenticated caller — the resolved userId comes from the JWT / Stripe session, never the client body.
+    // Require an authenticated caller. The resolved userId comes from the JWT / Stripe session, never the client body.
     const authHeader = req.headers.get('Authorization') || '';
     if (!authHeader.startsWith('Bearer ')) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
@@ -96,7 +96,7 @@ serve(async (req) => {
     const metadataUserId = (session.metadata?.user_id || session.metadata?.userId || session.client_reference_id) as string | undefined;
     const userId = metadataUserId || callerUserId;
     if (metadataUserId && metadataUserId !== callerUserId) {
-      console.warn('[verify-checkout] Session metadata user does not match caller — refusing');
+      console.warn('[verify-checkout] Session metadata user does not match caller. Refusing');
       return new Response(JSON.stringify({ error: 'Session does not belong to caller' }), {
         status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -201,7 +201,7 @@ serve(async (req) => {
           success: false,
           cardCheckFailed: true,
           message: existingRestaurant.card_check_message
-            || "We couldn't verify your card — double-check the details or try a different card.",
+            || "We couldn't verify your card. Double-check the details or try a different card.",
         }), {
           status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },

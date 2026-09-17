@@ -111,7 +111,7 @@ export type StatusKey =
 export const STATUS_LABELS: Record<StatusKey, string> = {
   active_paid: "Active Paid",
   active_complimentary: "Active Complimentary",
-  active_unknown: "Active — Billing Unknown",
+  active_unknown: "Active. Billing Unknown",
   trial: "Current Trials",
   failed_trial: "Failed Trials",
   payment_attention: "Payment Attention Required",

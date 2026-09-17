@@ -1,7 +1,7 @@
-// AdminDiscounts — Jorge's QUICK DISCOUNT TOOL (/admin/discounts).
+// AdminDiscounts. Jorge's QUICK DISCOUNT TOOL (/admin/discounts).
 //
 // Mobile-first, one-thumb flow for offering a discount on the spot when
-// standing in front of a business owner — under a minute, no Stripe dashboard:
+// standing in front of a business owner. Under a minute, no Stripe dashboard:
 //   1. "New discount": name, percent-or-$-off, duration (once / X months / forever)
 //      -> creates a Stripe coupon + row in public.admin_coupons.
 //   2. Per discount: "Make pay link" -> pick plan (Solo $20/mo / Venue $39/mo)
@@ -11,7 +11,7 @@
 //
 // Admin-only (useAdminGuard). All Stripe/DB work runs inside the
 // create-admin-coupon edge function (admin-gated via is_admin()).
-// Hard rule: everything stays subscription-recurring — no one-time sales,
+// Hard rule: everything stays subscription-recurring. No one-time sales,
 // no activation fees (sales-tax constraint).
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -225,9 +225,9 @@ export default function AdminDiscounts() {
     if (!linkUrl) return;
     try {
       await navigator.clipboard.writeText(linkUrl);
-      toast.success("Link copied — ready to send");
+      toast.success("Link copied. Ready to send");
     } catch {
-      toast.error("Copy failed — long-press the link instead");
+      toast.error("Copy failed. Long-press the link instead");
     }
   };
 
@@ -255,7 +255,7 @@ export default function AdminDiscounts() {
           </Button>
           <div>
             <h1 className="text-xl font-bold">Quick Discount</h1>
-            <p className="text-sm text-white/50">Discount on the spot — under a minute</p>
+            <p className="text-sm text-white/50">Discount on the spot. Under a minute</p>
           </div>
         </div>
 
@@ -282,7 +282,7 @@ export default function AdminDiscounts() {
                   id="disc-name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Closing deal — Maria's Cafe"
+                  placeholder="e.g. Closing deal. Maria's Cafe"
                   className="bg-white/10 border-white/10 text-white placeholder:text-white/30 h-12"
                 />
               </div>
@@ -372,7 +372,7 @@ export default function AdminDiscounts() {
                   id="disc-note"
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
-                  placeholder="Why you're giving it — for your records"
+                  placeholder="Why you're giving it. For your records"
                   className="bg-white/10 border-white/10 text-white placeholder:text-white/30"
                   rows={2}
                 />
@@ -468,7 +468,7 @@ export default function AdminDiscounts() {
                         <div className="space-y-3">
                           <div className="flex items-center gap-2 text-emerald-400">
                             <CheckCircle2 className="h-5 w-5" />
-                            <span className="font-medium">Ready — hand them your phone</span>
+                            <span className="font-medium">Ready. Hand them your phone</span>
                           </div>
                           <a
                             href={linkUrl}

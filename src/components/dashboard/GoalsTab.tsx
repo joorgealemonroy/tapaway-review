@@ -371,8 +371,8 @@ export const GoalsTab = ({ restaurantId, isDemoView = false }: GoalsTabProps) =>
                   <span className="text-muted-foreground">Progress</span>
                   <span className="font-semibold">
                     {config.type === 'rating' 
-                      ? `${currentValue.toFixed(1)} / ${targetValue > 0 ? targetValue.toFixed(1) : '—'}` 
-                      : `${Math.round(currentValue)} / ${targetValue > 0 ? Math.round(targetValue) : '—'}`
+                      ? `${currentValue.toFixed(1)} / ${targetValue > 0 ? targetValue.toFixed(1) : 'Not available'}` 
+                      : `${Math.round(currentValue)} / ${targetValue > 0 ? Math.round(targetValue) : 'Not available'}`
                     }
                   </span>
                 </div>
@@ -388,7 +388,7 @@ export const GoalsTab = ({ restaurantId, isDemoView = false }: GoalsTabProps) =>
 
       <Card className="p-6 bg-blue-50 border-blue-200">
         <p className="text-sm text-blue-900 text-center">
-          <strong>Don't worry</strong> — we're adding more goal types soon. These three are just the beginning! 🎯
+          <strong>Don't worry</strong>. We're adding more goal types soon. These three are just the beginning! 🎯
         </p>
       </Card>
 

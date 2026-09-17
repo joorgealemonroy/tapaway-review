@@ -45,7 +45,7 @@ export const EngagementTab = ({ restaurantId, isDemoView = false }: EngagementTa
   const [saving, setSaving] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
-  // One tap on the trash icon used to delete permanently — confirm first.
+  // One tap on the trash icon used to delete permanently. Confirm first.
   const [deleteTarget, setDeleteTarget] = useState<Engagement | null>(null);
 
   useEffect(() => {
@@ -120,7 +120,7 @@ export const EngagementTab = ({ restaurantId, isDemoView = false }: EngagementTa
       setPollOptions(['', '']);
       fetchEngagements();
     } catch (error: any) {
-      toast({ title: "Not created", description: error?.message || "We couldn't create that — please try again.", variant: "destructive" });
+      toast({ title: "Not created", description: error?.message || "We couldn't create that. Please try again.", variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -151,7 +151,7 @@ export const EngagementTab = ({ restaurantId, isDemoView = false }: EngagementTa
       toast({ title: "Success", description: `Engagement ${!currentStatus ? 'activated' : 'deactivated'}` });
       fetchEngagements();
     } catch (error: any) {
-      toast({ title: "Not updated", description: error?.message || "We couldn't update that — please try again.", variant: "destructive" });
+      toast({ title: "Not updated", description: error?.message || "We couldn't update that. Please try again.", variant: "destructive" });
     } finally {
       setTogglingId(null);
     }
@@ -173,7 +173,7 @@ export const EngagementTab = ({ restaurantId, isDemoView = false }: EngagementTa
       setDeleteTarget(null);
       fetchEngagements();
     } catch (error: any) {
-      toast({ title: "Not deleted", description: error?.message || "We couldn't delete that — please try again.", variant: "destructive" });
+      toast({ title: "Not deleted", description: error?.message || "We couldn't delete that. Please try again.", variant: "destructive" });
     } finally {
       setDeleting(false);
     }
@@ -394,7 +394,7 @@ export const EngagementTab = ({ restaurantId, isDemoView = false }: EngagementTa
         )}
       </div>
 
-      {/* Delete confirmation — one tap used to delete permanently. */}
+      {/* Delete confirmation. One tap used to delete permanently. */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open && !deleting) setDeleteTarget(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -403,7 +403,7 @@ export const EngagementTab = ({ restaurantId, isDemoView = false }: EngagementTa
             </AlertDialogTitle>
             <AlertDialogDescription>
               This can't be undone
-              {deleteTarget?.type === "poll" ? " — the poll results go with it." : "."}
+              {deleteTarget?.type === "poll" ? ". The poll results go with it." : "."}
               {" "}It's removed from your review hub right away.
             </AlertDialogDescription>
           </AlertDialogHeader>

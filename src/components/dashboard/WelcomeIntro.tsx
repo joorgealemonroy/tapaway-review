@@ -1,5 +1,5 @@
 /**
- * WelcomeIntro — one-time first-run introduction for new client accounts.
+ * WelcomeIntro. One-time first-run introduction for new client accounts.
  *
  * Scenario: after a van-mode sale the owner gets a password-setup link,
  * creates their password, and lands in their dashboard for the very first
@@ -9,16 +9,16 @@
  *
  * Shows EXACTLY ONCE per account:
  *  - seen state in localStorage, keyed per account id
- *    (`tapaway_welcome_intro:<accountId>`) — the same lighter-weight
+ *    (`tapaway_welcome_intro:<accountId>`). The same lighter-weight
  *    mechanism the engagement milestones use (`tapaway_milestones:<id>`),
  *    so no migration and no profile-schema change is needed.
  *  - first-run gate: only accounts created within the last FIRST_RUN_DAYS
- *    ever qualify. Existing (older) clients never see it — they were
+ *    ever qualify. Existing (older) clients never see it. They were
  *    already onboarded, and the intro isn't meant to ambush them.
  *  - suppressed in demo previews and admin read-only views.
  *
  * Dismissing (Next through the last step, Skip tour, or the X) marks it
- * seen — it never reappears on this device for that account.
+ * seen. It never reappears on this device for that account.
  *
  * Shared by both dashboards:
  *  - business: src/pages/Dashboard.tsx (overview tab)
@@ -53,16 +53,16 @@ import { cn } from "@/lib/utils";
 export type WelcomeIntroKind = "business" | "personal";
 
 export interface WelcomeIntroProps {
-  /** restaurant.id or profile.id — seen state is keyed per account. */
+  /** restaurant.id or profile.id. Seen state is keyed per account. */
   accountId: string;
   kind: WelcomeIntroKind;
   /** Business name or profile display name. */
   displayName: string;
-  /** Hub path like "/joes-tacos" — null when not set yet. */
+  /** Hub path like "/joes-tacos". Null when not set yet. */
   hubPath: string | null;
-  /** Account creation timestamp — first-run gate. */
+  /** Account creation timestamp. First-run gate. */
   createdAt: string | null;
-  /** True in demo previews / admin read-only views — never show there. */
+  /** True in demo previews / admin read-only views. Never show there. */
   suppressed?: boolean;
   /** Tab navigation for "Take me there" buttons. */
   onNavigateTab?: (tab: string) => void;
@@ -85,7 +85,7 @@ function markIntroSeen(accountId: string): void {
   try {
     localStorage.setItem(seenKey(accountId), "1");
   } catch {
-    // localStorage unavailable — intro simply shows again next visit.
+    // localStorage unavailable. Intro simply shows again next visit.
   }
 }
 
@@ -100,7 +100,7 @@ interface Lever {
   iconClass: string;
   title: string;
   body: string;
-  /** Dashboard tab for "Take me there" — null when there's nowhere to go. */
+  /** Dashboard tab for "Take me there". Null when there's nowhere to go. */
   tab: string | null;
 }
 
@@ -111,21 +111,21 @@ function leversFor(kind: WelcomeIntroKind): Lever[] {
         icon: MessageSquare,
         iconClass: "bg-sky-500/10 text-sky-600",
         title: "Text your customers",
-        body: "Review requests, flash deals, reminders — straight to their phones. The built-in templates make it a two-minute job.",
+        body: "Review requests, flash deals, reminders. Straight to their phones. The built-in templates make it a two-minute job.",
         tab: "sms",
       },
       {
         icon: Megaphone,
         iconClass: "bg-amber-500/10 text-amber-600",
         title: "Promotions & polls",
-        body: "Give people a reason to tap again — a flash deal, an event, a quick question for your regulars.",
+        body: "Give people a reason to tap again. A flash deal, an event, a quick question for your regulars.",
         tab: "engagement",
       },
       {
         icon: BarChart3,
         iconClass: "bg-emerald-500/10 text-emerald-600",
         title: "Tap stats",
-        body: "See exactly how many people are tapping, and when — right here on your Overview. Real numbers, never fluff.",
+        body: "See exactly how many people are tapping, and when. Right here on your Overview. Real numbers, never fluff.",
         tab: null,
       },
     ];
@@ -135,21 +135,21 @@ function leversFor(kind: WelcomeIntroKind): Lever[] {
       icon: MessageSquare,
       iconClass: "bg-sky-500/10 text-sky-600",
       title: "Text your customers",
-      body: "Announcements, reminders, follow-ups — straight to their phones. The built-in templates make it a two-minute job.",
+      body: "Announcements, reminders, follow-ups. Straight to their phones. The built-in templates make it a two-minute job.",
       tab: "sms",
     },
     {
       icon: Users,
       iconClass: "bg-violet-500/10 text-violet-600",
       title: "Customer info",
-      body: "Collect info from page visitors — quote requests, questions, contact details. Their answers land in one tidy list.",
+      body: "Collect info from page visitors. Quote requests, questions, contact details. Their answers land in one tidy list.",
       tab: "leads",
     },
     {
       icon: BarChart3,
       iconClass: "bg-emerald-500/10 text-emerald-600",
       title: "Visit stats",
-      body: "See how many people visit your hub and what they tap — under Stats. Real numbers, never fluff.",
+      body: "See how many people visit your hub and what they tap. Under Stats. Real numbers, never fluff.",
       tab: "analytics",
     },
   ];
@@ -245,8 +245,7 @@ export function WelcomeIntro({
           {step === 0 && (
             <p className="text-[15px] leading-relaxed text-foreground">
               TapAway turns a simple tap of your card into{" "}
-              <strong>more reviews, more customers, and more sales</strong> —
-              everything runs from one page your customers already have in
+              <strong>more reviews, more customers, and more sales</strong>. Everything runs from one page your customers already have in
               their hands. This dashboard is your control center for all of
               it.
             </p>
@@ -255,7 +254,7 @@ export function WelcomeIntro({
           {step === 1 && (
             <div className="space-y-4">
               <p className="text-[15px] leading-relaxed">
-                This is what customers see when they tap your card — it's
+                This is what customers see when they tap your card. It's
                 already working. Go ahead, take a look:
               </p>
               {hubPath ? (
@@ -267,13 +266,13 @@ export function WelcomeIntro({
                 </Button>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  Your hub link is still being set up — it'll show up here as
+                  Your hub link is still being set up. It'll show up here as
                   soon as it's ready.
                 </p>
               )}
               <p className="text-sm text-muted-foreground">
                 Everything customers see here is controlled from this
-                dashboard — links, menu, photos, all of it.
+                dashboard. Links, menu, photos, all of it.
               </p>
             </div>
           )}
@@ -317,7 +316,7 @@ export function WelcomeIntro({
             <div className="space-y-4">
               <p className="text-[15px] leading-relaxed">
                 Put a card at the register and ask your staff to mention it at
-                checkout — that's the{" "}
+                checkout. That's the{" "}
                 <strong>#1 way owners get their first taps</strong>.
               </p>
               <div className="flex items-start gap-3 p-3 rounded-xl border border-amber-500/30 bg-amber-500/5">
@@ -327,8 +326,7 @@ export function WelcomeIntro({
                 <p className="text-sm leading-snug">
                   <span className="font-semibold">The "Get more taps" playbook</span>
                   <span className="text-muted-foreground">
-                    {" "}on your Overview has six more quick wins like it —
-                    receipts, your Instagram bio, Google profile, and more.
+                    {" "}on your Overview has six more quick wins like it. Receipts, your Instagram bio, Google profile, and more.
                   </span>
                 </p>
               </div>

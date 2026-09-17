@@ -112,7 +112,7 @@ const ReviewHub = () => {
 
     const status = data?.[0];
     // This only runs after the live hub RPC resolved nothing, so any status
-    // row here means "the hub exists but isn't live" — lapsed subscription OR
+    // row here means "the hub exists but isn't live". Lapsed subscription OR
     // a trial that was never handed out (unapproved). Both get the recovery
     // gate rather than "Hub Not Found". Comped accounts (payment_state =
     // 'complimentary') are never treated as paused.
@@ -252,7 +252,7 @@ const ReviewHub = () => {
 
 
   const trackEvent = async (eventName: string, eventData?: any) => {
-    // Admin/staff views must never inflate a client's numbers — Jorge
+    // Admin/staff views must never inflate a client's numbers. Jorge
     // previewing a hub, a rep demoing one, etc. are not customer traffic.
     if (!restaurant || isAdmin) return;
 
@@ -708,7 +708,7 @@ const ReviewHub = () => {
             </div>
           ))}
 
-          {/* SMS VIP TEXT LIST — primary CTA */}
+          {/* SMS VIP TEXT LIST. Primary CTA */}
           <button
             type="button"
             onClick={() => setSmsDrawerOpen(true)}

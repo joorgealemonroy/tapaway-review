@@ -202,7 +202,7 @@ Deno.serve(async (req) => {
  *     "testimonials": [
  *       {
  *         "quote": "Portions are perfect and always fresh.",
- *         "author": "— Jasmine M."
+ *         "author": " Jasmine M."
  *       }
  *     ]
  *   }'

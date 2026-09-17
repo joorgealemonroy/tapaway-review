@@ -1,12 +1,12 @@
-// AdminEmails — Jorge's EMAIL COMMAND CENTER (/admin/emails).
+// AdminEmails. Jorge's EMAIL COMMAND CENTER (/admin/emails).
 //
 // Three tabs, one phone screen:
-//   Templates — every email template the system sends, rendered as actual
+//   Templates. Every email template the system sends, rendered as actual
 //               HTML previews (what the client gets, not a description),
 //               with subject line, preheader, and the event that triggers it.
-//   Sent      — send history from the email_sends log (searchable, filterable,
+//   Sent. Send history from the email_sends log (searchable, filterable,
 //               honest empty state).
-//   Compose   — feature-update broadcast composer: headline + body + optional
+//   Compose. Feature-update broadcast composer: headline + body + optional
 //               CTA → live preview → confirm with recipient count → send.
 //
 // Admin-only (useAdminGuard). "Back to Admin" per admin convention.
@@ -55,7 +55,7 @@ export default function AdminEmails() {
 
         <h1 className="text-xl font-bold">Emails</h1>
         <p className="text-sm text-white/50 mt-1 mb-5">
-          Every email the system sends — what they look like, who got them,
+          Every email the system sends. What they look like, who got them,
           and a way to send an update.
         </p>
 
@@ -86,7 +86,7 @@ export default function AdminEmails() {
         {tab === "templates" && (
           <div>
             <p className="text-xs text-white/40 mb-3">
-              Rendered from the canonical email templates — the exact HTML,
+              Rendered from the canonical email templates. The exact HTML,
               subject, and preheader clients receive. Tap any card for the
               full-size version.
             </p>

@@ -1,7 +1,7 @@
-// Shared TapAway email library — the single send path for all transactional
+// Shared TapAway email library. The single send path for all transactional
 // email. Every send renders a branded template (or caller-supplied HTML for
 // one-off internal notices), POSTs to Resend, and writes a row to the
-// public.email_sends log table. Bodies are NEVER logged — only the
+// public.email_sends log table. Bodies are NEVER logged. Only the
 // recipient, template key, subject, status, Resend id, and error.
 //
 // Migration pattern for existing functions (5 lines):
@@ -18,7 +18,7 @@
 //
 // For one-off internal/operational emails that don't fit a template, use
 // sendEmailAndLog() directly with templateKey "internal" (or a descriptive
-// key) and your own subject/html — you still get send logging for free.
+// key) and your own subject/html. You still get send logging for free.
 import { escapeHtml } from "./sanitize.ts";
 
 const RESEND_URL = "https://api.resend.com/emails";
@@ -89,9 +89,9 @@ function wrapEmail(a: WrapArgs): string {
 </td></tr>
 <tr><td style="text-align:center;padding-top:24px;">
   <p style="margin:0 0 6px 0;font-size:12px;color:#9ca3af;">
-    TapAway — tap a card, grow your business.</p>
+    TapAway. Tap a card, grow your business.</p>
   <p style="margin:0;font-size:12px;color:#9ca3af;">
-    Questions? Just reply to this email — a human reads every one.</p>
+    Questions? Just reply to this email. A human reads every one.</p>
 </td></tr>
 </table></td></tr></table></body></html>`;
 }
@@ -112,7 +112,7 @@ export interface EmailTemplate {
 
 const DASHBOARD_URL = `${SITE_URL}/dashboard`;
 const REPLY_FOOTER =
-  "You're getting this because you signed up for TapAway. Reply anytime — we actually read these.";
+  "You're getting this because you signed up for TapAway. Reply anytime. We actually read these.";
 
 function stepsList(items: string[]): string {
   return `<div style="background:#f0fdf4;border-radius:12px;padding:20px 20px 20px 22px;margin:20px 0;">
@@ -128,10 +128,10 @@ function billingBox(lines: string[]): string {
 }
 
 export const TEMPLATES: Record<string, EmailTemplate> = {
-  // a. Just signed up — what happens next.
+  // a. Just signed up. What happens next.
   welcome: {
     key: "welcome",
-    subject: () => "You're in — here's what happens next 🎉",
+    subject: () => "You're in. Here's what happens next 🎉",
     preheader: () =>
       "Your hub is live, your cards are being made, and your 14-day trial just started.",
     html: (v) =>
@@ -140,9 +140,9 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
         headline: `Welcome to TapAway, ${v.name || "friend"} 👋`,
         introHtml: `<p style="margin:0 0 8px 0;">Your setup for <strong>${v.businessName || "your business"}</strong> is complete and your free 14-day trial is on. Here's the play-by-play:</p>`,
         bodyHtml: stepsList([
-          `<strong>Your cards are being made</strong> — they ship in 1–2 business days.`,
-          `<strong>Your hub is already live</strong> — every tap or scan lands customers on your reviews, links, and info.`,
-          `<strong>Nothing to install, nothing to train</strong> — set the cards by the register and let them work.`,
+          `<strong>Your cards are being made</strong>. They ship in 1–2 business days.`,
+          `<strong>Your hub is already live</strong>. Every tap or scan lands customers on your reviews, links, and info.`,
+          `<strong>Nothing to install, nothing to train</strong>. Set the cards by the register and let them work.`,
         ]) +
           `<p style="margin:0;">Want a head start? Open your dashboard and make sure your hub looks exactly how you want it.</p>`,
         ctaLabel: "Open my dashboard",
@@ -151,39 +151,39 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
           `Trial reminder: you won't be charged today. Cancel anytime before day 14 if it's not for you.<br><br>${REPLY_FOOTER}`,
       }),
     text: (v) =>
-      `TapAway — You're in 🎉\n\nWelcome, ${v.name || "friend"}! Your setup for ${v.businessName || "your business"} is complete and your free 14-day trial is on.\n\nWhat happens next:\n- Your cards are being made — they ship in 1–2 business days.\n- Your hub is already live.\n- Nothing to install or train.\n\nOpen your dashboard: ${v.dashboardUrl || DASHBOARD_URL}\n\nTrial reminder: you won't be charged today. Cancel anytime before day 14.\n— TapAway`,
+      `TapAway. You're in 🎉\n\nWelcome, ${v.name || "friend"}! Your setup for ${v.businessName || "your business"} is complete and your free 14-day trial is on.\n\nWhat happens next:\n- Your cards are being made. They ship in 1–2 business days.\n- Your hub is already live.\n- Nothing to install or train.\n\nOpen your dashboard: ${v.dashboardUrl || DASHBOARD_URL}\n\nTrial reminder: you won't be charged today. Cancel anytime before day 14.\n\nTapAway`,
   },
 
-  // a2. Just signed up with NO trial — paid today (discount pay links, any
+  // a2. Just signed up with NO trial. Paid today (discount pay links, any
   // immediate-charge checkout). Same vars as `welcome`, but honest copy:
   // the card WAS charged and the subscription is already active. Picked by
   // finalize-onboarding when subscription_status is already 'active'.
   welcome_paid: {
     key: "welcome_paid",
-    subject: () => "You're in — here's what happens next 🎉",
+    subject: () => "You're in. Here's what happens next 🎉",
     preheader: () =>
       "Your hub is live, your cards are being made, and your subscription is active.",
     html: (v) =>
       wrapEmail({
         preheader: "Your hub is live, your cards are being made, and your subscription is active.",
         headline: `Welcome to TapAway, ${v.name || "friend"} 👋`,
-        introHtml: `<p style="margin:0 0 8px 0;">Your setup for <strong>${v.businessName || "your business"}</strong> is complete and your subscription is <strong>active now</strong> — your card was charged today. Here's the play-by-play:</p>`,
+        introHtml: `<p style="margin:0 0 8px 0;">Your setup for <strong>${v.businessName || "your business"}</strong> is complete and your subscription is <strong>active now</strong>. Your card was charged today. Here's the play-by-play:</p>`,
         bodyHtml: stepsList([
-          `<strong>Your cards are being made</strong> — they ship in 1–2 business days.`,
-          `<strong>Your hub is already live</strong> — every tap or scan lands customers on your reviews, links, and info.`,
-          `<strong>Nothing to install, nothing to train</strong> — set the cards by the register and let them work.`,
+          `<strong>Your cards are being made</strong>. They ship in 1–2 business days.`,
+          `<strong>Your hub is already live</strong>. Every tap or scan lands customers on your reviews, links, and info.`,
+          `<strong>Nothing to install, nothing to train</strong>. Set the cards by the register and let them work.`,
         ]) +
           `<p style="margin:0;">Want a head start? Open your dashboard and make sure your hub looks exactly how you want it.</p>`,
         ctaLabel: "Open my dashboard",
         ctaUrl: String(v.dashboardUrl || DASHBOARD_URL),
         footerNote:
-          `Your subscription renews monthly — no trial, no surprises. Cancel anytime from your dashboard.<br><br>${REPLY_FOOTER}`,
+          `Your subscription renews monthly. No trial, no surprises. Cancel anytime from your dashboard.<br><br>${REPLY_FOOTER}`,
       }),
     text: (v) =>
-      `TapAway — You're in 🎉\n\nWelcome, ${v.name || "friend"}! Your setup for ${v.businessName || "your business"} is complete and your subscription is active now — your card was charged today.\n\nWhat happens next:\n- Your cards are being made — they ship in 1–2 business days.\n- Your hub is already live.\n- Nothing to install or train.\n\nOpen your dashboard: ${v.dashboardUrl || DASHBOARD_URL}\n\nYour subscription renews monthly — no trial, no surprises. Cancel anytime.\n— TapAway`,
+      `TapAway. You're in 🎉\n\nWelcome, ${v.name || "friend"}! Your setup for ${v.businessName || "your business"} is complete and your subscription is active now. Your card was charged today.\n\nWhat happens next:\n- Your cards are being made. They ship in 1–2 business days.\n- Your hub is already live.\n- Nothing to install or train.\n\nOpen your dashboard: ${v.dashboardUrl || DASHBOARD_URL}\n\nYour subscription renews monthly. No trial, no surprises. Cancel anytime.\n\nTapAway`,
   },
 
-  // b. Cards printed — the fulfillment pipeline hit the printed stage.
+  // b. Cards printed. The fulfillment pipeline hit the printed stage.
   card_printed: {
     key: "card_printed",
     subject: (v) => `Your cards just came off the printer 🖨️`,
@@ -193,93 +193,93 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
       wrapEmail({
         preheader: "They're real, they're yours, and they're one step closer to your counter.",
         headline: "Hot off the printer 🖨️",
-        introHtml: `<p style="margin:0 0 8px 0;">Good news, ${v.name || "friend"} — your TapAway NFC cards for <strong>${v.businessName || "your business"}</strong> just came off the printer.</p>`,
+        introHtml: `<p style="margin:0 0 8px 0;">Good news, ${v.name || "friend"}. Your TapAway NFC cards for <strong>${v.businessName || "your business"}</strong> just came off the printer.</p>`,
         bodyHtml:
           `<p style="margin:0 0 8px 0;">Here's what's happening now:</p>` +
           stepsList([
             `<strong>We're activating your cards</strong> so every tap opens your hub.`,
-            `<strong>Then they're headed your way</strong> — you'll get another email the moment they're on the move.`,
+            `<strong>Then they're headed your way</strong>. You'll get another email the moment they're on the move.`,
           ]) +
-          `<p style="margin:0;">While you wait, take 2 minutes to preview your hub — it's what every customer will see.</p>`,
+          `<p style="margin:0;">While you wait, take 2 minutes to preview your hub. It's what every customer will see.</p>`,
         ctaLabel: "Preview my hub",
         ctaUrl: String(v.hubUrl || SITE_URL),
         footerNote: REPLY_FOOTER,
       }),
     text: (v) =>
-      `TapAway — Hot off the printer 🖨️\n\nGood news, ${v.name || "friend"} — your TapAway NFC cards for ${v.businessName || "your business"} just came off the printer.\n\nWhat's next:\n- We're activating your cards so every tap opens your hub.\n- Then they're headed your way.\n\nPreview your hub: ${v.hubUrl || SITE_URL}\n— TapAway`,
+      `TapAway. Hot off the printer 🖨️\n\nGood news, ${v.name || "friend"}. Your TapAway NFC cards for ${v.businessName || "your business"} just came off the printer.\n\nWhat's next:\n- We're activating your cards so every tap opens your hub.\n- Then they're headed your way.\n\nPreview your hub: ${v.hubUrl || SITE_URL}\n\nTapAway`,
   },
 
   // c. Cards delivered / on the way. Pass deliveryNote to stay honest about
-  // which one it is ("They shipped — landing in 1–2 days" vs "They're in
+  // which one it is ("They shipped. Landing in 1–2 days" vs "They're in
   // your hands").
   card_delivered: {
     key: "card_delivered",
     subject: () => "Your TapAway cards are officially yours 🎉",
     preheader: (v) =>
-      String(v.deliveryNote || "They're in your hands — time to put them to work."),
+      String(v.deliveryNote || "They're in your hands. Time to put them to work."),
     html: (v) =>
       wrapEmail({
-        preheader: String(v.deliveryNote || "They're in your hands — time to put them to work."),
+        preheader: String(v.deliveryNote || "They're in your hands. Time to put them to work."),
         headline: "Your cards are officially yours 🎉",
-        introHtml: `<p style="margin:0 0 8px 0;">${v.deliveryNote || `Your TapAway cards for <strong>${v.businessName || "your business"}</strong> are delivered — in your hands and ready to work.`}</p>`,
+        introHtml: `<p style="margin:0 0 8px 0;">${v.deliveryNote || `Your TapAway cards for <strong>${v.businessName || "your business"}</strong> are delivered. In your hands and ready to work.`}</p>`,
         bodyHtml:
           `<p style="margin:0 0 8px 0;">The #1 move that gets the first taps:</p>` +
           stepsList([
-            `<strong>Put a card by the register</strong> — right where customers pay and wait.`,
-            `<strong>Tell your team the one-liner:</strong> "Tap that card to leave us a quick review — it takes 10 seconds."`,
+            `<strong>Put a card by the register</strong>. Right where customers pay and wait.`,
+            `<strong>Tell your team the one-liner:</strong> "Tap that card to leave us a quick review. It takes 10 seconds."`,
             `<strong>Watch the taps roll in</strong> from your dashboard.`,
           ]) +
-          `<p style="margin:0;">Questions about placement or setup? Reply to this email — we'll sort it out together.</p>`,
+          `<p style="margin:0;">Questions about placement or setup? Reply to this email. We'll sort it out together.</p>`,
         ctaLabel: "Open my dashboard",
         ctaUrl: String(v.dashboardUrl || DASHBOARD_URL),
         footerNote: REPLY_FOOTER,
       }),
     text: (v) =>
-      `TapAway — Your cards are officially yours 🎉\n\n${v.deliveryNote || `Your TapAway cards for ${v.businessName || "your business"} are delivered.`}\n\nThe #1 move for first taps:\n- Put a card by the register.\n- Tell your team: "Tap that card to leave us a quick review — it takes 10 seconds."\n- Watch the taps roll in from your dashboard: ${v.dashboardUrl || DASHBOARD_URL}\n— TapAway`,
+      `TapAway. Your cards are officially yours 🎉\n\n${v.deliveryNote || `Your TapAway cards for ${v.businessName || "your business"} are delivered.`}\n\nThe #1 move for first taps:\n- Put a card by the register.\n- Tell your team: "Tap that card to leave us a quick review. It takes 10 seconds."\n- Watch the taps roll in from your dashboard: ${v.dashboardUrl || DASHBOARD_URL}\n\nTapAway`,
   },
 
-  // d. Trial has 3 days left (sent on day 11). Billing-focused angle —
+  // d. Trial has 3 days left (sent on day 11). Billing-focused angle 
   // distinct from the day 3/10/13 trial-followup SMS sequence.
   trial_ending: {
     key: "trial_ending",
-    subject: () => "3 days left — here's exactly what happens on day 14",
+    subject: () => "3 days left. Here's exactly what happens on day 14",
     preheader: (v) =>
-      `Your card gets charged ${v.amount || "your plan rate"} on ${v.chargeDate || "day 14"}. Keep it going or cancel — your call.`,
+      `Your card gets charged ${v.amount || "your plan rate"} on ${v.chargeDate || "day 14"}. Keep it going or cancel. Your call.`,
     html: (v) =>
       wrapEmail({
         preheader: `Your card gets charged ${v.amount || "your plan rate"} on ${v.chargeDate || "day 14"}.`,
         headline: "Your trial ends in 3 days",
-        introHtml: `<p style="margin:0 0 8px 0;">Hey ${v.name || "friend"} — quick, no-surprises rundown on what's about to happen with <strong>${v.businessName || "your business"}</strong>:</p>`,
+        introHtml: `<p style="margin:0 0 8px 0;">Hey ${v.name || "friend"}. Quick, no-surprises rundown on what's about to happen with <strong>${v.businessName || "your business"}</strong>:</p>`,
         bodyHtml:
           billingBox([
             `📅 <strong>On ${v.chargeDate || "day 14"}</strong>, your card on file will be charged <strong>${v.amount || "your plan's monthly rate"}</strong>.`,
             `🔁 After that, your subscription continues month to month. Your hub and cards keep working, no interruption.`,
             `🚪 <strong>Not feeling it?</strong> Cancel from your dashboard before ${v.chargeDate || "day 14"} and you pay nothing. No hard feelings, no hoops.`,
           ]) +
-          `<p style="margin:0;">If TapAway's been earning its keep — reviews coming in, customers tapping — you don't need to do a thing. It just keeps working.</p>`,
+          `<p style="margin:0;">If TapAway's been earning its keep, with reviews coming in and customers tapping, you don't need to do a thing. It just keeps working.</p>`,
         ctaLabel: "Review my plan",
         ctaUrl: String(v.dashboardUrl || DASHBOARD_URL),
         footerNote: `This is a one-time heads-up, not the start of a drip campaign.<br><br>${REPLY_FOOTER}`,
       }),
     text: (v) =>
-      `TapAway — Your trial ends in 3 days\n\nHey ${v.name || "friend"} — here's exactly what happens with ${v.businessName || "your business"}:\n\n- On ${v.chargeDate || "day 14"}, your card on file will be charged ${v.amount || "your plan's monthly rate"}.\n- After that, your subscription continues month to month. No interruption.\n- Not feeling it? Cancel from your dashboard before ${v.chargeDate || "day 14"} and you pay nothing.\n\nReview your plan: ${v.dashboardUrl || DASHBOARD_URL}\n— TapAway`,
+      `TapAway. Your trial ends in 3 days\n\nHey ${v.name || "friend"}. Here's exactly what happens with ${v.businessName || "your business"}:\n\n- On ${v.chargeDate || "day 14"}, your card on file will be charged ${v.amount || "your plan's monthly rate"}.\n- After that, your subscription continues month to month. No interruption.\n- Not feeling it? Cancel from your dashboard before ${v.chargeDate || "day 14"} and you pay nothing.\n\nReview your plan: ${v.dashboardUrl || DASHBOARD_URL}\n\nTapAway`,
   },
 
-  // e. A subscription payment failed — update the card.
+  // e. A subscription payment failed. Update the card.
   payment_failed: {
     key: "payment_failed",
-    subject: () => "Your card didn't go through — 30-second fix 💳",
+    subject: () => "Your card didn't go through. 30-second fix 💳",
     preheader: () => "Update your payment info to keep your hub live.",
     html: (v) =>
       wrapEmail({
         preheader: "Update your payment info to keep your hub live.",
         headline: "Quick payment hiccup",
-        introHtml: `<p style="margin:0 0 8px 0;">Hey ${v.name || "friend"} — we tried to charge${v.amount ? ` <strong>${v.amount}</strong>` : ""} for <strong>${v.businessName || "your TapAway plan"}</strong> and your card said no. Happens all the time — expired cards, new numbers, bank being cautious.</p>`,
+        introHtml: `<p style="margin:0 0 8px 0;">Hey ${v.name || "friend"}. We tried to charge${v.amount ? ` <strong>${v.amount}</strong>` : ""} for <strong>${v.businessName || "your TapAway plan"}</strong> and your card said no. Happens all the time. Expired cards, new numbers, bank being cautious.</p>`,
         bodyHtml:
           `<p style="margin:0 0 8px 0;">The fix takes 30 seconds:</p>` +
           stepsList([
             `<strong>Open your dashboard</strong> and head to Billing.`,
-            `<strong>Update your card</strong> — we'll retry automatically.`,
+            `<strong>Update your card</strong>. We'll retry automatically.`,
           ]) +
           `<p style="margin:0;">Your hub stays live for now, but update it soon so nothing pauses. If the card looks fine on your end, reply to this email and we'll dig in.</p>`,
         ctaLabel: "Update my card",
@@ -287,21 +287,21 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
         footerNote: REPLY_FOOTER,
       }),
     text: (v) =>
-      `TapAway — Quick payment hiccup\n\nHey ${v.name || "friend"} — we tried to charge${v.amount ? ` ${v.amount}` : ""} for ${v.businessName || "your TapAway plan"} and your card said no.\n\nFix it in 30 seconds: open your dashboard and update your card under Billing: ${v.dashboardUrl || DASHBOARD_URL}\n\nYour hub stays live for now, but update it soon so nothing pauses.\n— TapAway`,
+      `TapAway. Quick payment hiccup\n\nHey ${v.name || "friend"}. We tried to charge${v.amount ? ` ${v.amount}` : ""} for ${v.businessName || "your TapAway plan"} and your card said no.\n\nFix it in 30 seconds: open your dashboard and update your card under Billing: ${v.dashboardUrl || DASHBOARD_URL}\n\nYour hub stays live for now, but update it soon so nothing pauses.\n\nTapAway`,
   },
 
   // f. Van-sale password setup. Same copy as the send-van-handoff email
-  // (HANDOFF.md) — unified look via the brand wrapper. The setup link is
+  // (HANDOFF.md). Unified look via the brand wrapper. The setup link is
   // passed as a var; links are never written to any log.
   password_setup: {
     key: "password_setup",
-    subject: () => "Your TapAway hub is ready — create your password",
+    subject: () => "Your TapAway hub is ready. Create your password",
     preheader: () => "One click, one password, and your dashboard is yours.",
     html: (v) =>
       wrapEmail({
         preheader: "One click, one password, and your dashboard is yours.",
         headline: "Your hub is ready",
-        introHtml: `<p style="margin:0;">Hey ${v.firstName || "there"} — your TapAway hub for <strong>${v.business || "your business"}</strong> is live! Create your password below to take over your dashboard.</p>`,
+        introHtml: `<p style="margin:0;">Hey ${v.firstName || "there"}. Your TapAway hub for <strong>${v.business || "your business"}</strong> is live! Create your password below to take over your dashboard.</p>`,
         bodyHtml: "",
         ctaLabel: "Create my password",
         ctaUrl: String(v.setupLink || SITE_URL),
@@ -309,11 +309,11 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
           "This link expires soon and only works once. If you didn't just sign up with Jorge in person, you can safely ignore this email.",
       }),
     text: (v) =>
-      `TapAway — Your hub is ready\n\nHey ${v.firstName || "there"},\n\nYour TapAway hub for ${v.business || "your business"} is live! Create your password here:\n\n${v.setupLink || SITE_URL}\n\nThis link expires soon and only works once. If you didn't just sign up with Jorge in person, you can safely ignore this email.\n\n— TapAway`,
+      `TapAway. Your hub is ready\n\nHey ${v.firstName || "there"},\n\nYour TapAway hub for ${v.business || "your business"} is live! Create your password here:\n\n${v.setupLink || SITE_URL}\n\nThis link expires soon and only works once. If you didn't just sign up with Jorge in person, you can safely ignore this email.\n\n\nTapAway`,
   },
 
   // g. Generic layout for Jorge's manual sends: headline + body + CTA.
-  // body is plain text — blank lines become paragraphs (escaped first, so safe).
+  // body is plain text. Blank lines become paragraphs (escaped first, so safe).
   feature_update: {
     key: "feature_update",
     subject: (v) => String(v.subject || "Something new from TapAway"),
@@ -331,7 +331,7 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
       return wrapEmail({
         preheader: String(v.preheader || ""),
         headline: String(v.headline || "Quick update"),
-        introHtml: `<p style="margin:0 0 8px 0;">Hey ${v.name || "friend"} —</p>`,
+        introHtml: `<p style="margin:0 0 8px 0;">Hey ${v.name || "friend"},</p>`,
         bodyHtml: paras || "<p>Details inside.</p>",
         ctaLabel: v.ctaLabel ? String(v.ctaLabel) : undefined,
         ctaUrl: v.ctaUrl ? String(v.ctaUrl) : undefined,
@@ -339,10 +339,10 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
       });
     },
     text: (v) =>
-      `TapAway — ${v.headline || "Quick update"}\n\nHey ${v.name || "friend"} —\n\n${v.body || ""}\n\n${v.ctaUrl || ""}\n— TapAway`,
+      `TapAway. ${v.headline || "Quick update"}\n\nHey ${v.name || "friend"},\n\n${v.body || ""}\n\n${v.ctaUrl || ""}\n\nTapAway`,
   },
 
-  // hub_ready. Sent when Jorge finishes building a client's hub — the
+  // hub_ready. Sent when Jorge finishes building a client's hub. The
   // "we'll text and email you the moment your hub is ready" promise from
   // signup. Fired by the send-hub-ready function from the admin.
   // Vars: name, username, hubUrl.
@@ -350,32 +350,32 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
     key: "hub_ready",
     subject: (v) => `Your TapAway hub is ready 🎉`,
     preheader: () =>
-      "We built it for you — here's your link, ready to share.",
+      "We built it for you. Here's your link, ready to share.",
     html: (v) =>
       wrapEmail({
-        preheader: "We built it for you — here's your link, ready to share.",
+        preheader: "We built it for you. Here's your link, ready to share.",
         headline: `Your hub is ready 🎉`,
-        introHtml: `<p style="margin:0 0 8px 0;">Hey ${v.name || "friend"} — great news. We just finished building your TapAway hub and it's live right now.</p>`,
+        introHtml: `<p style="margin:0 0 8px 0;">Hey ${v.name || "friend"}. Great news. We just finished building your TapAway hub and it's live right now.</p>`,
         bodyHtml:
           `<p style="margin:0 0 8px 0;">This is the page every customer will land on when they tap your card or scan your QR code. Take a look:</p>` +
           stepsList([
-            `<strong>Your reviews</strong> — one tap takes customers straight to Google.`,
-            `<strong>Your links</strong> — socials, menu, directions, everything in one place.`,
-            `<strong>Your look</strong> — we matched it to your brand.`,
+            `<strong>Your reviews</strong>. One tap takes customers straight to Google.`,
+            `<strong>Your links</strong>. Socials, menu, directions, everything in one place.`,
+            `<strong>Your look</strong>. We matched it to your brand.`,
           ]) +
-          `<p style="margin:0 0 18px 0;">Want anything changed — colors, links, wording? Just reply to this email and we'll take care of it.</p>` +
+          `<p style="margin:0 0 18px 0;">Want anything changed, such as colors, links, or wording? Just reply to this email and we'll take care of it.</p>` +
           `<div style="border-top:1px solid #e5e7eb;padding-top:18px;">
              <p style="margin:0 0 8px 0;font-weight:700;color:#111827;">Your dashboard</p>
              <p style="margin:0 0 6px 0;">Manage your hub, order cards, and handle billing from your dashboard.</p>
              <p style="margin:0 0 6px 0;">Sign in at <a href="${SITE_URL}/auth" style="color:#0d9488;">tapaway.co/auth</a> with the email you signed up with.</p>
-             <p style="margin:0;">First time signing in? Use the "Forgot password" link on the sign-in page to set a password — we'll email a 6-digit code.</p>
+             <p style="margin:0;">First time signing in? Use the "Forgot password" link on the sign-in page to set a password. We'll email a 6-digit code.</p>
            </div>`,
         ctaLabel: "View my hub",
         ctaUrl: String(v.hubUrl || SITE_URL),
         footerNote: REPLY_FOOTER,
       }),
     text: (v) =>
-      `TapAway — Your hub is ready 🎉\n\nHey ${v.name || "friend"} — great news. We just finished building your TapAway hub and it's live right now.\n\nThis is the page every customer will land on when they tap your card or scan your QR code:\n${v.hubUrl || SITE_URL}\n\nWant anything changed — colors, links, wording? Just reply and we'll take care of it.\n\nYOUR DASHBOARD\nManage your hub, order cards, and handle billing from your dashboard.\nSign in at ${SITE_URL}/auth with the email you signed up with.\nFirst time signing in? Use the "Forgot password" link on the sign-in page to set a password — we'll email a 6-digit code.\n\n— TapAway`,
+      `TapAway. Your hub is ready 🎉\n\nHey ${v.name || "friend"}. Great news. We just finished building your TapAway hub and it's live right now.\n\nThis is the page every customer will land on when they tap your card or scan your QR code:\n${v.hubUrl || SITE_URL}\n\nWant anything changed, such as colors, links, or wording? Just reply and we'll take care of it.\n\nYOUR DASHBOARD\nManage your hub, order cards, and handle billing from your dashboard.\nSign in at ${SITE_URL}/auth with the email you signed up with.\nFirst time signing in? Use the "Forgot password" link on the sign-in page to set a password. We'll email a 6-digit code.\n\n\nTapAway`,
   },
 };
 
@@ -392,7 +392,7 @@ export interface SendEmailOptions {
   replyTo?: string;
   /** Log key: a TEMPLATES key, or "internal" / descriptive key for one-offs. */
   templateKey: string;
-  /** Optional account correlation — powers dedup checks without extra queries. */
+  /** Optional account correlation. Powers dedup checks without extra queries. */
   profileId?: string | null;
   attachments?: Array<{ filename: string; content: string }>;
 }
@@ -407,7 +407,7 @@ function getLogClient(): Promise<any | null> {
   const url = Deno.env.get("SUPABASE_URL");
   const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!url || !key) {
-    console.warn("[email] SUPABASE_URL/SERVICE_ROLE_KEY missing — skipping email_sends log");
+    console.warn("[email] SUPABASE_URL/SERVICE_ROLE_KEY missing. Skipping email_sends log");
     return Promise.resolve(null);
   }
   return import("https://esm.sh/@supabase/supabase-js@2").then((mod) =>
@@ -417,7 +417,7 @@ function getLogClient(): Promise<any | null> {
 
 /**
  * Sends an email via Resend and logs it to public.email_sends.
- * Never logs bodies. Logging is best-effort — a log failure never fails the send.
+ * Never logs bodies. Logging is best-effort. A log failure never fails the send.
  */
 export async function sendEmailAndLog(opts: SendEmailOptions): Promise<SendEmailResult> {
   const resendApiKey = Deno.env.get("RESEND_API_KEY");
@@ -549,7 +549,7 @@ export interface TemplatedEmailOptions {
 
 /**
  * Renders a registered template (all vars HTML-escaped) and sends it via
- * sendEmailAndLog. Throws on unknown templateKey — fail loud, not silent.
+ * sendEmailAndLog. Throws on unknown templateKey. Fail loud, not silent.
  */
 export async function sendTemplatedEmail(opts: TemplatedEmailOptions): Promise<SendEmailResult> {
   const template = TEMPLATES[opts.templateKey];

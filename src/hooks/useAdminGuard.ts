@@ -8,7 +8,7 @@ import { useAdminAccess } from "@/hooks/useAdminAccess";
  *
  * Only redirects once BOTH auth and the admin check have fully resolved.
  * A transient session gap (token refresh, tab refocus, preview reload) must
- * never be treated as "not an admin" — that previously ejected admins to the
+ * never be treated as "not an admin". That previously ejected admins to the
  * homepage while they were still signed in.
  */
 export const useAdminGuard = () => {

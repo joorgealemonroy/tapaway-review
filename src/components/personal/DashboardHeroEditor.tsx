@@ -168,10 +168,10 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
         if (!data) setUsernameError("This username is already taken");
       } catch (err) {
         console.error("Error checking username:", err);
-        // Don't silently reset — the check genuinely failed (offline, etc.)
+        // Don't silently reset. The check genuinely failed (offline, etc.)
         // and the user would otherwise hit a confusing save error.
         setUsernameStatus("unknown");
-        setUsernameError("Couldn't check username availability — check your connection and try again");
+        setUsernameError("Couldn't check username availability. Check your connection and try again");
       }
     }, 500);
 
@@ -221,10 +221,10 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
           .eq("owner_user_id", user.id)
           .eq("destination_type", "profile");
         if (nfcError) {
-          // Profile already saved — don't throw, but the user must know
+          // Profile already saved. Don't throw, but the user must know
           // their physical cards still point at the old username.
           console.error("Failed to sync NFC cards with new username:", nfcError);
-          toast.error("Profile saved, but your NFC cards couldn't be updated — contact support so they still point to your new URL.");
+          toast.error("Profile saved, but your NFC cards couldn't be updated. Contact support so they still point to your new URL.");
         }
       }
 

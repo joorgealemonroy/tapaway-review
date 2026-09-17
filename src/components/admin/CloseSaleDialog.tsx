@@ -11,7 +11,7 @@ export type CloseSaleTarget = { id: string; name: string } | null;
 
 /**
  * In-person close: mints a 24h signed presentation link for one solo hub.
- * The customer opens it (or scans the QR) and pays — no account, no password.
+ * The customer opens it (or scans the QR) and pays. No account, no password.
  */
 export default function CloseSaleDialog({
   target,
@@ -55,7 +55,7 @@ export default function CloseSaleDialog({
     <Dialog open={!!target} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Close sale — {target?.name}</DialogTitle>
+          <DialogTitle>Close sale. {target?.name}</DialogTitle>
         </DialogHeader>
 
         {loading || !url ? (

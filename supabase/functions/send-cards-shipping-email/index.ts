@@ -1,9 +1,9 @@
-// send-cards-shipping-email — "your cards are on the way" email.
+// send-cards-shipping-email. "your cards are on the way" email.
 //
 // Now sends the canonical card_delivered template via the shared email
 // library (branded HTML + email_sends logging). The deliveryNote var keeps
 // the copy honest: this function fires when cards SHIP, so it says they're
-// on the way — the admin-board Delivered lane uses its own note via the
+// on the way. The admin-board Delivered lane uses its own note via the
 // fulfillment-email trigger.
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { sendTemplatedEmail } from "../_shared/email.ts";
@@ -47,7 +47,7 @@ const handler = async (req: Request): Promise<Response> => {
         businessName: "your business",
         dashboardUrl: "https://tapaway.co/dashboard",
         deliveryNote:
-          `Hi ${firstName} — your TapAway NFC cards have shipped and will arrive in 1–2 business days. ` +
+          `Hi ${firstName}. Your TapAway NFC cards have shipped and will arrive in 1–2 business days. ` +
           `We're finishing your setup now so everything is ready when they arrive.`,
       },
     });

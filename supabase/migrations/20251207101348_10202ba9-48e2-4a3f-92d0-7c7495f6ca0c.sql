@@ -91,9 +91,9 @@ BEGIN
       (s_id, 'Camarones Encabronados', 'Shrimp with a combination of spicy peppers', '$33.50', 3),
       (s_id, 'Camarones a la Cucaracha', 'Head-on shrimp cooked in our spicy sauce', '$33.99', 4),
       (s_id, 'Camarones al Vapor', 'Head-on shrimp boiled & marinated with special seasoning', '$31.99', 5),
-      (s_id, 'Aguachile Rojo', 'Shrimp sautéed in lemon — red sauce', '$33.50', 6),
-      (s_id, 'Aguachile Verde', 'Shrimp sautéed in lemon — green sauce', '$33.50', 7),
-      (s_id, 'Aguachile Negro', 'Shrimp sautéed in lemon — black sauce', '$33.50', 8);
+      (s_id, 'Aguachile Rojo', 'Shrimp sautéed in lemon. Red sauce', '$33.50', 6),
+      (s_id, 'Aguachile Verde', 'Shrimp sautéed in lemon. Green sauce', '$33.50', 7),
+      (s_id, 'Aguachile Negro', 'Shrimp sautéed in lemon. Black sauce', '$33.50', 8);
 
     -- Section 5: Ceviches y Aguachiles
     INSERT INTO menu_sections (restaurant_id, name, sort_order) VALUES (r_id, '🍤 Ceviches y Aguachiles', 4) RETURNING id INTO s_id;
@@ -132,7 +132,7 @@ BEGIN
       (s_id, 'Molcajete Cora', NULL, '$40.99', 1),
       (s_id, 'Momias Cora', 'Bacon-wrapped shrimp topped with cheese', '$24.99', 2),
       (s_id, 'Camarones Zarandeados', 'Giant shrimp grilled with spicy & sweet sauce', '$33.99', 3),
-      (s_id, 'Mariscada (para 4)', 'Variety of seafood — recommended for 4 people', '$92.99', 4),
+      (s_id, 'Mariscada (para 4)', 'Variety of seafood. Recommended for 4 people', '$92.99', 4),
       (s_id, 'Chicharrón de Pescado', 'Battered fish with house sauce', '$26.99', 5),
       (s_id, 'Patas de Jaiba', 'Crab legs', '$45.50', 6),
       (s_id, 'Botana Louisiana', NULL, '$41.25', 7),
@@ -152,26 +152,26 @@ BEGIN
     -- Section 10: Platillos
     INSERT INTO menu_sections (restaurant_id, name, sort_order) VALUES (r_id, '🍽️ Platillos', 9) RETURNING id INTO s_id;
     INSERT INTO menu_items (section_id, name, description, price, sort_order) VALUES
-      (s_id, 'Camarones — A la Diabla', 'Shrimp of your choice served with rice & salad', '$24.50', 0),
-      (s_id, 'Camarones — Al Mojo de Ajo', NULL, '$24.50', 1),
-      (s_id, 'Camarones — Rancheros', NULL, '$24.50', 2),
-      (s_id, 'Camarones — Empanizados', NULL, '$24.50', 3),
-      (s_id, 'Camarones — A la Cucaracha', NULL, '$24.50', 4),
-      (s_id, 'Camarones — A la Mantequilla', NULL, '$24.50', 5),
-      (s_id, 'Camarones — A la Veracruzana', NULL, '$24.50', 6),
+      (s_id, 'Camarones. A la Diabla', 'Shrimp of your choice served with rice & salad', '$24.50', 0),
+      (s_id, 'Camarones. Al Mojo de Ajo', NULL, '$24.50', 1),
+      (s_id, 'Camarones. Rancheros', NULL, '$24.50', 2),
+      (s_id, 'Camarones. Empanizados', NULL, '$24.50', 3),
+      (s_id, 'Camarones. A la Cucaracha', NULL, '$24.50', 4),
+      (s_id, 'Camarones. A la Mantequilla', NULL, '$24.50', 5),
+      (s_id, 'Camarones. A la Veracruzana', NULL, '$24.50', 6),
       (s_id, 'Langostinos', NULL, '$27.99', 7),
       (s_id, 'Zarandeados (Camarón)', NULL, '$28.99', 8),
-      (s_id, 'Pulpo — Al Mojo de Ajo', 'Octopus served with rice & salad', 'Market Price', 9),
-      (s_id, 'Pulpo — Rancheros', NULL, 'Market Price', 10),
-      (s_id, 'Pulpo — A la Diabla', NULL, 'Market Price', 11),
-      (s_id, 'Mojarra Frita — Al Natural', 'Fried tilapia served with rice, beans & salad', '$23.99', 12),
-      (s_id, 'Mojarra Frita — A la Diabla', NULL, '$23.99', 13),
-      (s_id, 'Mojarra Frita — Al Mojo de Ajo', NULL, '$23.99', 14),
-      (s_id, 'Filete Basa — A la Plancha', 'Tilapia fillet served with rice, beans & salad', '$23.99', 15),
-      (s_id, 'Filete Basa — A la Diabla', NULL, '$23.99', 16),
-      (s_id, 'Filete Basa — A la Veracruzana', NULL, '$23.99', 17),
-      (s_id, 'Filete Basa — Empanizado', NULL, '$23.99', 18),
-      (s_id, 'Filete Basa — Al Mojo de Ajo', NULL, '$23.99', 19);
+      (s_id, 'Pulpo. Al Mojo de Ajo', 'Octopus served with rice & salad', 'Market Price', 9),
+      (s_id, 'Pulpo. Rancheros', NULL, 'Market Price', 10),
+      (s_id, 'Pulpo. A la Diabla', NULL, 'Market Price', 11),
+      (s_id, 'Mojarra Frita. Al Natural', 'Fried tilapia served with rice, beans & salad', '$23.99', 12),
+      (s_id, 'Mojarra Frita. A la Diabla', NULL, '$23.99', 13),
+      (s_id, 'Mojarra Frita. Al Mojo de Ajo', NULL, '$23.99', 14),
+      (s_id, 'Filete Basa. A la Plancha', 'Tilapia fillet served with rice, beans & salad', '$23.99', 15),
+      (s_id, 'Filete Basa. A la Diabla', NULL, '$23.99', 16),
+      (s_id, 'Filete Basa. A la Veracruzana', NULL, '$23.99', 17),
+      (s_id, 'Filete Basa. Empanizado', NULL, '$23.99', 18),
+      (s_id, 'Filete Basa. Al Mojo de Ajo', NULL, '$23.99', 19);
 
     -- Section 11: Fajitas
     INSERT INTO menu_sections (restaurant_id, name, sort_order) VALUES (r_id, '🌯 Fajitas', 10) RETURNING id INTO s_id;
@@ -227,14 +227,14 @@ BEGIN
       (s_id, 'Cheesecake', NULL, '$7.99', 3);
 
     -- Section 16: Charolas de Ceviche
-    INSERT INTO menu_sections (restaurant_id, name, sort_order) VALUES (r_id, '🥗 Charolas de Ceviche — Ceviche Party Trays', 15) RETURNING id INTO s_id;
+    INSERT INTO menu_sections (restaurant_id, name, sort_order) VALUES (r_id, '🥗 Charolas de Ceviche. Ceviche Party Trays', 15) RETURNING id INTO s_id;
     INSERT INTO menu_items (section_id, name, description, price, sort_order) VALUES
-      (s_id, 'Pescado — Media Charola', 'Half size tray', '$65.99', 0),
-      (s_id, 'Pescado — Charola Completa', 'Full size tray', '$127.99', 1),
-      (s_id, 'Camarón — Media Charola', 'Half size tray', '$75.99', 2),
-      (s_id, 'Camarón — Charola Completa', 'Full size tray', '$147.99', 3),
-      (s_id, 'Poca Madre — Media Charola', 'Cam. crudo, cam. cocido, pulpo y callo de hacha', '$88.99', 4),
-      (s_id, 'Poca Madre — Charola Completa', 'Cam. crudo, cam. cocido, pulpo y callo de hacha', '$160.00', 5);
+      (s_id, 'Pescado. Media Charola', 'Half size tray', '$65.99', 0),
+      (s_id, 'Pescado. Charola Completa', 'Full size tray', '$127.99', 1),
+      (s_id, 'Camarón. Media Charola', 'Half size tray', '$75.99', 2),
+      (s_id, 'Camarón. Charola Completa', 'Full size tray', '$147.99', 3),
+      (s_id, 'Poca Madre. Media Charola', 'Cam. crudo, cam. cocido, pulpo y callo de hacha', '$88.99', 4),
+      (s_id, 'Poca Madre. Charola Completa', 'Cam. crudo, cam. cocido, pulpo y callo de hacha', '$160.00', 5);
 
   END LOOP;
 END $$;

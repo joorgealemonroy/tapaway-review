@@ -130,7 +130,7 @@ const MagicLinkVerify = () => {
               </Button>
 
               <p className="text-xs text-zinc-500 text-center">
-                You can close this tab and come back later — your link stays valid for 24 hours.
+                You can close this tab and come back later. Your link stays valid for 24 hours.
               </p>
             </div>
           </div>

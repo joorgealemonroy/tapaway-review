@@ -49,7 +49,7 @@ const BLOCK_PLACEHOLDER_CONTENT: Record<string, Record<string, string>> = {
   button: { label: "My Link", url: "" },
 };
 
-// Known social platform types — labels keep the platform name as-is
+// Known social platform types. Labels keep the platform name as-is
 const KNOWN_SOCIAL_TYPES = new Set([
   "instagram", "tiktok", "x", "youtube", "snapchat", "facebook",
   "threads", "linkedin", "pinterest", "discord", "twitch", "telegram",
@@ -92,7 +92,7 @@ const LINK_PLACEHOLDERS: Record<string, string> = {
 };
 
 /**
- * Sanitize a link label — keep platform names, replace personal labels with generic ones.
+ * Sanitize a link label. Keep platform names, replace personal labels with generic ones.
  */
 function sanitizeLabel(linkType: string, originalLabel: string): string {
   if (KNOWN_SOCIAL_TYPES.has(linkType)) {

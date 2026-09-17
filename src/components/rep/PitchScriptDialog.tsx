@@ -3,18 +3,18 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Copy, Check, Gift } from 'lucide-react';
 import { toast } from 'sonner';
 
-const SCRIPT = `Hey! I'm dropping off a small gift for the owner — a free demo of TapAway.
+const SCRIPT = `Hey! I'm dropping off a small gift for the owner. A free demo of TapAway.
 
-We help local spots collect more Google reviews without ever pressuring customers. Your staff just leave this card out for every guest, people tap it out of curiosity, and honest reviews come in on their own — no filtering, no incentives, nothing that breaks Google's rules.
-
-
+We help local spots collect more Google reviews without ever pressuring customers. Your staff just leave this card out for every guest, people tap it out of curiosity, and honest reviews come in on their own. No filtering, no incentives, nothing that breaks Google's rules.
 
 
-I've already built you a custom review hub — no signup needed to try it. Take a look and if it's a fit, we can activate for $20/mo Solo or $39/mo Venue, with a 7-day free trial included. If not, keep the cards, no strings.
+
+
+I've already built you a custom review hub. No signup needed to try it. Take a look and if it's a fit, we can activate for $20/mo Solo or $39/mo Venue, with a 7-day free trial included. If not, keep the cards, no strings.
 
 Tap here to see your hub: {{hub_url}}
 
-— {{rep_name}}`;
+{{rep_name}}`;
 
 export const PitchScriptDialog = ({ trigger }: { trigger: React.ReactNode }) => {
   const [copied, setCopied] = useState(false);

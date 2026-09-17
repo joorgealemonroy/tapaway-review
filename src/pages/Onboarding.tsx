@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Check, Loader2, Shield, ArrowRight, User, Building2, CloudUpload, X, Mail, Phone, CreditCard } from "lucide-react";
-// MagicLoadingOverlay removed — concierge model: no auto-builder
+// MagicLoadingOverlay removed. Concierge model: no auto-builder
 import { motion, AnimatePresence } from "framer-motion";
 import { Helmet } from "react-helmet-async";
 import { useAuth } from "@/hooks/useAuth";
@@ -54,7 +54,7 @@ const Onboarding = () => {
   const [promoDiscountType, setPromoDiscountType] = useState<string | null>(null);
   // Token-specific validation state. A plain boolean races with the OAuth
   // param restore: after the stashed query string is navigated back in,
-  // searchParams update and this re-validates the NEW token — but a boolean
+  // searchParams update and this re-validates the NEW token. But a boolean
   // left over from the pre-restore (no-token) pass could let post-auth setup
   // run against the wrong token. The gate below requires the validated token
   // to match the token currently in the URL.
@@ -149,11 +149,11 @@ const Onboarding = () => {
   const [verifyingCheckout, setVerifyingCheckout] = useState(false);
 
   // CARD-CHECK: plain-language message when the $1 card verification failed.
-  // The trial was canceled in Stripe — show the error + retry, never success.
+  // The trial was canceled in Stripe. Show the error + retry, never success.
   const [cardCheckError, setCardCheckError] = useState<string | null>(null);
 
   // ── Validate promo token on mount ──
-  // Re-runs whenever the token in the URL changes — including when the OAuth
+  // Re-runs whenever the token in the URL changes. Including when the OAuth
   // round-trip restore navigates the stashed query string back in. The
   // validation state is keyed to the token it validated so post-auth setup
   // can never proceed against a stale/mismatched token.
@@ -231,14 +231,14 @@ const Onboarding = () => {
             if (error) throw error;
             console.log("[onboarding] Stripe checkout verified:", data);
 
-            // CARD-CHECK: the $1 card verification failed — the trial was
+            // CARD-CHECK: the $1 card verification failed. The trial was
             // canceled in Stripe. Show the plain-language message with a
             // retry path instead of the success screen.
             if (data?.cardCheckFailed) {
               setCardCheckError(
                 typeof data?.message === "string" && data.message.length > 0
                   ? data.message
-                  : "We couldn't verify your card — double-check the details or try a different card."
+                  : "We couldn't verify your card. Double-check the details or try a different card."
               );
               setInitialCheckDone(true);
               return;
@@ -392,7 +392,7 @@ const Onboarding = () => {
         requestBody.promoToken = promoTokenParam;
       }
 
-      // Build headers — only include auth if we have a session
+      // Build headers. Only include auth if we have a session
       const { data: { session } } = await supabase.auth.getSession();
       const headers: Record<string, string> = {};
       if (session?.access_token) {
@@ -443,7 +443,7 @@ const Onboarding = () => {
     setIsLoading(true);
 
     try {
-      // Stash the current query string — the OAuth provider strips query
+      // Stash the current query string. The OAuth provider strips query
       // params from the redirect URI, which would otherwise lose ?card=,
       // ?promo_token=, and ?rep= on the way back. Restored on mount.
       if (window.location.search) {
@@ -522,7 +522,7 @@ const Onboarding = () => {
 
       if (signInError) throw signInError;
 
-      // Session is now set — the completeSetup useEffect will fire automatically
+      // Session is now set. The completeSetup useEffect will fire automatically
       console.log("[onboarding] Email signup successful, session set");
     } catch (err: any) {
       console.error("[onboarding] Email signup failed:", err);
@@ -538,7 +538,7 @@ const Onboarding = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) return;
 
-      // If we already have a session_id, skip — handled in init
+      // If we already have a session_id, skip. Handled in init
       if (searchParams.get("session_id")) return;
 
       const uid = session.user.id;
@@ -622,7 +622,7 @@ const Onboarding = () => {
         }).select("id").single();
 
         if (insertErr && insertErr.code === '23505') {
-          // Duplicate slug — try owner lookup first, then broader recovery
+          // Duplicate slug. Try owner lookup first, then broader recovery
           console.log("[onboarding] Slug collision, attempting recovery");
 
           // Try 1: find by owner_id (any slug)
@@ -644,7 +644,7 @@ const Onboarding = () => {
               ...(savedLogoUrl ? { logo_url: savedLogoUrl } : {}),
             }).eq("id", rId);
           } else {
-            // Try 2: slug taken by another user — append random suffix
+            // Try 2: slug taken by another user. Append random suffix
             const uniqueSlug = `${slug}-${Date.now().toString(36)}`;
             console.log("[onboarding] Slug taken by another user, using fallback:", uniqueSlug);
             const { data: created2, error: insertErr2 } = await supabase.from("restaurants").insert({
@@ -721,13 +721,13 @@ const Onboarding = () => {
         }
       }
 
-      // ── ADMIN/TEST BYPASS: local dev only — never runs in production builds.
+      // ── ADMIN/TEST BYPASS: local dev only. Never runs in production builds.
       // Jorge: to test without Stripe, run `npm run dev` (Vite sets
       // import.meta.env.DEV to true only there) and sign in with tap@tapaway.co.
       const userEmail = session.user.email || '';
       const devBypassEnabled = import.meta.env.DEV === true;
       if (devBypassEnabled && userEmail === 'tap@tapaway.co') {
-        console.log("[onboarding] Admin/test bypass — skipping Stripe (local dev only)");
+        console.log("[onboarding] Admin/test bypass. Skipping Stripe (local dev only)");
         await supabase.from("restaurants").update({
           subscription_status: "active",
           onboarding_completed: true,
@@ -775,7 +775,7 @@ const Onboarding = () => {
     };
 
     // Only run post-auth completion once the OAuth param restore and promo
-    // validation have both settled — the free-promo path depends on
+    // validation have both settled. The free-promo path depends on
     // promoDiscountType being resolved, and rep/card params must be back
     // before the restaurant row is created. The token check closes the race
     // where a stale "validated" flag from the pre-restore pass could let
@@ -816,7 +816,7 @@ const Onboarding = () => {
   }
 
   // CARD-CHECK failure screen: the $1 card verification failed, so the trial
-  // was canceled in Stripe and never went live. Offer a retry — never success.
+  // was canceled in Stripe and never went live. Offer a retry. Never success.
   if (cardCheckError) {
     return (
       <div className="min-h-screen bg-[#0a0e1a] text-white flex flex-col items-center justify-center px-6">
@@ -830,7 +830,7 @@ const Onboarding = () => {
             onClick={() => {
               setCardCheckError(null);
               // Drop session_id so we don't re-verify the dead session, then
-              // restart the flow — saved business info is prefilled.
+              // restart the flow. Saved business info is prefilled.
               navigate("/onboarding", { replace: true });
               goTo("plan", -1);
             }}
@@ -850,7 +850,7 @@ const Onboarding = () => {
     <div className="min-h-screen bg-[#0a0e1a] text-white">
       <Helmet>
         <title>Create Your Hub | TapAway</title>
-        <meta name="description" content="Create your TapAway hub — custom NFC cards, your business links in one place, free 14-day trial." />
+        <meta name="description" content="Create your TapAway hub. Custom NFC cards, your business links in one place, free 14-day trial." />
         <link rel="canonical" href="https://tapaway.co/start" />
       </Helmet>
       {/* Nav */}
@@ -882,7 +882,7 @@ const Onboarding = () => {
                 <p className="text-gray-400">Pick the plan that fits your business.</p>
               </div>
 
-              {/* Billing period toggle — yearly is preselected and pushed as the best value */}
+              {/* Billing period toggle. Yearly is preselected and pushed as the best value */}
               <div className="flex justify-center">
                 <div className="relative grid grid-cols-2 gap-1 p-1 rounded-2xl bg-[#111827] border border-white/10 w-72">
                   <button
@@ -928,7 +928,7 @@ const Onboarding = () => {
                           : "border-white/10 bg-[#111827] hover:border-white/20"
                       }`}
                     >
-                      {/* Trial badge — top left */}
+                      {/* Trial badge. Top left */}
                       <div className="absolute top-0 left-0 bg-emerald-500 text-white text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-br-lg">
                         {d.trialDays}-Day Free Trial
                       </div>
@@ -958,7 +958,7 @@ const Onboarding = () => {
                             <div className="text-2xl font-black text-[#3B82F6] leading-tight">$0 Today</div>
                             {billingInterval === "year" ? (
                               <div className="text-xs text-gray-500">
-                                (then <span className="font-bold text-emerald-400">${d.yearlyPrice}/yr</span> after {d.trialDays} days — ${d.yearlyPerMonth}/mo · {d.yearlyBadge})
+                                (then <span className="font-bold text-emerald-400">${d.yearlyPrice}/yr</span> after {d.trialDays} days. ${d.yearlyPerMonth}/mo · {d.yearlyBadge})
                               </div>
                             ) : (
                               <div className="text-xs text-gray-500">(then ${d.price}/mo after {d.trialDays} days)</div>
@@ -977,11 +977,11 @@ const Onboarding = () => {
                 })}
               </div>
 
-              {/* Trial terms disclosure — required before any trial starts. */}
+              {/* Trial terms disclosure. Required before any trial starts. */}
               <p className="mt-4 text-[11px] leading-relaxed text-gray-500">
                 Trial terms: your free trial starts today and runs{" "}
                 {selectedPlan ? PLAN_DETAILS[selectedPlan].trialDays : 14} days. We'll place a temporary $1 hold
-                to verify your card. It's released automatically — never charged. Unless you cancel before the trial
+                to verify your card. It's released automatically. Never charged. Unless you cancel before the trial
                 ends, your plan renews automatically{billingInterval === "year" && selectedPlan
                   ? <> at the listed yearly price (<span className="font-semibold text-gray-400">${PLAN_DETAILS[selectedPlan].yearlyPrice}/year</span>)</>
                   : " at the listed monthly price"} and your card is charged. Cancel any
@@ -1035,7 +1035,7 @@ const Onboarding = () => {
                 onClick={() => { setHasProtection(true); goTo("info", 1); }}
                 className="w-full h-14 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-lg transition-colors flex items-center justify-center gap-2"
               >
-                Add Protection — $0 Today
+                Add Protection. $0 Today
               </button>
 
               <div className="space-y-2">
@@ -1123,7 +1123,7 @@ const Onboarding = () => {
                 )}
               </div>
 
-              {/* Phone number — required for concierge follow-up */}
+              {/* Phone number. Required for concierge follow-up */}
               <div>
                 <Label className="text-gray-300 text-sm flex items-center gap-2">
                   <Phone className="w-4 h-4" /> Phone Number
@@ -1218,7 +1218,7 @@ const Onboarding = () => {
                     After trial: ${PLAN_DETAILS[selectedPlan].price}{hasProtection ? ` + $${PROTECTION_PRICE}` : ""}/mo
                   </p>
                   <p className="text-xs text-gray-600">
-                    Your 14-day free trial starts today — cards ship free while you try it.
+                    Your 14-day free trial starts today. Cards ship free while you try it.
                   </p>
                 </div>
               )}
@@ -1323,7 +1323,7 @@ const Onboarding = () => {
                   hosted page, so the notice lives on our last screen before
                   the redirect. */}
               <p className="text-center text-xs text-gray-500">
-                We'll place a temporary $1 hold to verify your card. It's released automatically — never charged.
+                We'll place a temporary $1 hold to verify your card. It's released automatically. Never charged.
               </p>
 
               <button

@@ -645,7 +645,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
     setProcessing(true);
     setIsLoading(true);
     setFlowStep("creating");
-    logCheckpoint("Pre-authed user — skipping OTP, creating profile directly");
+    logCheckpoint("Pre-authed user. Skipping OTP, creating profile directly");
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -1351,7 +1351,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
 
             {/* Greylisting / Spam Warning */}
             <p className="text-xs text-center text-muted-foreground px-4">
-              Email taking a while? Check your spam folder or wait a few minutes — some providers may temporarily delay delivery.
+              Email taking a while? Check your spam folder or wait a few minutes. Some providers may temporarily delay delivery.
             </p>
 
             {/* Support Link */}
@@ -1401,12 +1401,12 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
             <div>
               <span className="font-bold text-lg text-foreground">
                 {sessionStorage.getItem("tapaway_card_vip") === "true"
-                  ? "⭐ VIP Access — $0"
+                  ? "⭐ VIP Access. $0"
                   : formData.planType === "yearly" 
-                  ? `Pro Annual — $${(PERSONAL_PRICING.yearly / 12).toFixed(2)}/month`
+                  ? `Pro Annual. $${(PERSONAL_PRICING.yearly / 12).toFixed(2)}/month`
                   : formData.planType === "monthly"
-                  ? `Pro Monthly — $${PERSONAL_PRICING.monthly}/month`
-                  : "Free Plan — $0"
+                  ? `Pro Monthly. $${PERSONAL_PRICING.monthly}/month`
+                  : "Free Plan. $0"
                 }
               </span>
               {sessionStorage.getItem("tapaway_card_vip") === "true" ? (
@@ -1450,7 +1450,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
             
             <div className="flex items-start justify-between pt-2">
               <div>
-                <span className="font-bold text-xl text-foreground">Pro — ${(PERSONAL_PRICING.yearly / 12).toFixed(2)}/month</span>
+                <span className="font-bold text-xl text-foreground">Pro. ${(PERSONAL_PRICING.yearly / 12).toFixed(2)}/month</span>
                 <p className="text-sm text-primary font-medium mt-1">Billed annually ${PERSONAL_PRICING.yearly} • Save ${PERSONAL_PRICING.monthly * 12 - PERSONAL_PRICING.yearly}/year</p>
               </div>
               <div className={`h-6 w-6 rounded-full border-2 flex items-center justify-center ${
@@ -1472,7 +1472,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
           >
             <div className="flex items-center justify-between">
               <div>
-                <span className="font-bold text-foreground">Pro — ${PERSONAL_PRICING.monthly}/month</span>
+                <span className="font-bold text-foreground">Pro. ${PERSONAL_PRICING.monthly}/month</span>
                 <p className="text-sm text-muted-foreground mt-1">All Pro features • Flexible billing</p>
               </div>
               <div className={`h-6 w-6 rounded-full border-2 flex items-center justify-center ${
@@ -1494,7 +1494,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
           >
             <div className="flex items-center justify-between">
               <div>
-                <span className="font-medium text-muted-foreground">Free — $0</span>
+                <span className="font-medium text-muted-foreground">Free. $0</span>
                 <p className="text-sm text-muted-foreground mt-1">Limited features</p>
               </div>
               <div className={`h-6 w-6 rounded-full border-2 flex items-center justify-center ${
@@ -1528,7 +1528,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
         </div>
       )}
 
-      {/* Card Club upsell — signup-only offer */}
+      {/* Card Club upsell. Signup-only offer */}
       {!isFreePlan && (
         <button
           onClick={() => updateFormData({ addExtraCard: !formData.addExtraCard })}
@@ -1547,13 +1547,13 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
             <div className="flex-1">
               <div className="flex items-center gap-2">
                 <Crown className="h-4 w-4 text-primary" />
-                <span className="font-semibold text-foreground">Add Card Club — $5/mo</span>
+                <span className="font-semibold text-foreground">Add Card Club. $5/mo</span>
               </div>
               <p className="text-sm text-muted-foreground mt-1">
                 3 fresh NFC cards every month, free shipping included.
               </p>
               <p className="text-xs font-medium text-amber-600 dark:text-amber-500 mt-1.5">
-                Only available during signup — you won't be able to add Card Club later.
+                Only available during signup. You won't be able to add Card Club later.
               </p>
             </div>
           </div>
@@ -1631,7 +1631,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
             page, so the notice lives on our last screen before the redirect. */}
         {PERSONAL_PAYMENTS_ENABLED && !isFreePlan && (
           <p className="text-xs text-muted-foreground">
-            We'll place a temporary $1 hold to verify your card. It's released automatically — never charged.
+            We'll place a temporary $1 hold to verify your card. It's released automatically. Never charged.
           </p>
         )}
       </div>

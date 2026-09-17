@@ -36,7 +36,7 @@ SELECT
   'Las Nuevas Islas' AS restaurant_name,
   'lasnuevasislas' AS custom_slug,
   'How was your visit?' AS header_title,
-  'Share your experience in seconds — your feedback helps us grow.' AS header_subtitle,
+  'Share your experience in seconds. Your feedback helps us grow.' AS header_subtitle,
   'Our Menu' AS menu_title,
   'standard'::text AS plan_type,
   'active'::text AS subscription_status
