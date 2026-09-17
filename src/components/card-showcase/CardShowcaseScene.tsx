@@ -1,5 +1,5 @@
 import { Canvas, ThreeEvent, useFrame, useThree } from "@react-three/fiber";
-import { ContactShadows, Environment, Lightformer, useTexture } from "@react-three/drei";
+import { Environment, Lightformer, useTexture } from "@react-three/drei";
 import { Suspense, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import type { CardDesign } from "@/types/cardShowcase";
@@ -133,7 +133,7 @@ function CardMesh({ design, paused, visible, interactive = true, onReady, onCycl
     [maxAnisotropy, sourceMaps],
   );
   const frontGeometry = useMemo(() => makeFaceGeometry(false), []);
-  const backGeometry = useMemo(() => makeFaceGeometry(true), []);
+  const backGeometry = useMemo(() => makeFaceGeometry(false), []);
   const edgeGeometry = useMemo(makeEdgeGeometry, []);
 
   useEffect(() => () => {
@@ -205,13 +205,13 @@ function CardMesh({ design, paused, visible, interactive = true, onReady, onCycl
   return (
     <group rotation={[THREE.MathUtils.degToRad(-4), 0, THREE.MathUtils.degToRad(-2)]}>
       <group ref={yawGroup} rotation={[0, START_YAW, 0]}>
-        <mesh geometry={edgeGeometry} castShadow onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
+        <mesh geometry={edgeGeometry} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
           <meshPhysicalMaterial color="#ffffff" metalness={0} roughness={0.46} clearcoat={0.2} clearcoatRoughness={0.34} ior={1.46} transmission={0} opacity={1} />
         </mesh>
-        <mesh geometry={frontGeometry} position={[0, 0, HALF_DEPTH]} castShadow onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
+        <mesh geometry={frontGeometry} position={[0, 0, HALF_DEPTH]} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
           <meshPhysicalMaterial map={maps[0]} color="#ffffff" metalness={0} roughness={0.36} clearcoat={0.25} clearcoatRoughness={0.3} ior={1.46} transmission={0} opacity={1} emissive="#000000" side={THREE.FrontSide} />
         </mesh>
-        <mesh geometry={backGeometry} position={[0, 0, -HALF_DEPTH]} rotation={[0, Math.PI, 0]} castShadow onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
+        <mesh geometry={backGeometry} position={[0, 0, -HALF_DEPTH]} rotation={[0, Math.PI, 0]} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
           <meshPhysicalMaterial map={maps[1]} color="#ffffff" metalness={0} roughness={0.36} clearcoat={0.25} clearcoatRoughness={0.3} ior={1.46} transmission={0} opacity={1} emissive="#000000" side={THREE.FrontSide} />
         </mesh>
       </group>
@@ -226,15 +226,14 @@ export interface CardShowcaseSceneProps extends CardMeshProps {
 export default function CardShowcaseScene(props: CardShowcaseSceneProps) {
   return (
     <Canvas
-      shadows
       dpr={props.mobile ? 1 : [1, 1.5]}
-      camera={{ position: [0, 0, 22], fov: 28, near: 0.1, far: 100 }}
+      camera={{ position: [0, 0, props.mobile ? 22.8 : 22], fov: 28, near: 0.1, far: 100 }}
       gl={{ antialias: true, alpha: true, powerPreference: "high-performance", preserveDrawingBuffer: true }}
       frameloop={props.visible ? "always" : "never"}
       aria-label={`3D printed card for ${props.design.businessName}`}
       style={{ background: "transparent", touchAction: "pan-y" }}
     >
-      <directionalLight position={[-7, 10, 12]} intensity={1.8} castShadow shadow-mapSize={[1024, 1024]} />
+      <directionalLight position={[-7, 10, 12]} intensity={1.8} />
       <directionalLight position={[8, 3, 10]} intensity={0.65} />
       <directionalLight position={[2, 4, -8]} intensity={0.48} />
       <Suspense fallback={null}>
@@ -244,7 +243,10 @@ export default function CardShowcaseScene(props: CardShowcaseSceneProps) {
           <Lightformer color="#f4f4f2" intensity={1.5} position={[7, 2, 8]} rotation-y={-0.45} scale={[7, 4, 1]} />
           <Lightformer color="#ffffff" intensity={0.8} position={[1, 5, -7]} rotation-y={Math.PI} scale={[5, 3, 1]} />
         </Environment>
-        <ContactShadows position={[0, -4.72, 0]} opacity={0.18} scale={8} blur={3.2} far={5} />
+        <mesh position={[0, -4.5, -0.35]} rotation-x={-Math.PI / 2} scale={[3.5, 0.55, 1]}>
+          <circleGeometry args={[1, 64]} />
+          <meshBasicMaterial color="#000000" transparent opacity={0.12} depthWrite={false} />
+        </mesh>
       </Suspense>
     </Canvas>
   );
