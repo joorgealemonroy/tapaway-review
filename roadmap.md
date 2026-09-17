@@ -7,3 +7,4 @@
   - [x] Use slow continuous rotation without play/pause and enlarge the mobile card
   - [x] Validate responsive camera framing without changing physical card dimensions or per-design displayed scale
 - [x] Add the three supplied business card pairs, rotate between enabled businesses, and verify high-quality desktop/mobile drag
+- [x] Correct uploaded card-back orientation, start with Las Islas Portland, and remove the Sugar Bloom loading flash
