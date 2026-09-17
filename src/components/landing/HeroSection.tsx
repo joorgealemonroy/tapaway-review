@@ -63,7 +63,7 @@ export const HeroSection = () => {
           >
             {/* Main Headline */}
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-normal text-hero-foreground leading-[1.08] mb-5 md:mb-8">
-              Your Entire Business,{" "}
+              Your Business,{" "}
               <span className="text-primary whitespace-nowrap">One TapAway.</span>
             </h1>
 
