@@ -132,9 +132,7 @@ export const HeroSection = () => {
             className="relative mt-16 lg:mt-0 hidden lg:block"
           >
             <div className="flex flex-col items-center gap-6">
-              <div style={{ transform: "perspective(1000px) rotateX(10deg) rotateY(-5deg)" }}>
-                <TapAwayCard3D />
-              </div>
+              <TapAwayCard3D width="min(310px, 30vw)" />
 
               {/* Rotating City Social Proof */}
               <motion.div

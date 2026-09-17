@@ -98,6 +98,7 @@ const VanVisit = lazy(() => import("./pages/admin/VanVisit"));
 const AdminDiscounts = lazy(() => import("./pages/admin/AdminDiscounts"));
 const AdminCustomPlans = lazy(() => import("./pages/admin/AdminCustomPlans"));
 const AdminEmails = lazy(() => import("./pages/admin/AdminEmails"));
+const AdminCardShowcase = lazy(() => import("./pages/admin/AdminCardShowcase"));
 const VanSuccess = lazy(() => import("./pages/VanSuccess"));
 const AffiliateDashboard = lazy(() => import("./pages/affiliate/AffiliateDashboard"));
 const Examples = lazy(() => import("./pages/Examples"));
@@ -235,6 +236,7 @@ const App = () => {
                 <Route path="/admin/discounts" element={<AdminDiscounts />} />
                 <Route path="/admin/custom-plans" element={<AdminCustomPlans />} />
                 <Route path="/admin/emails" element={<AdminEmails />} />
+                <Route path="/admin/card-showcase" element={<AdminCardShowcase />} />
                 
                 <Route path="/affiliate" element={<AffiliateDashboard />} />
                 <Route path="/rep-checkout-success" element={<RepCheckoutSuccess />} />

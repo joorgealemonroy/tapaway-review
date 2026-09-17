@@ -63,6 +63,7 @@ import {
   Tag,
   Mail,
   Truck,
+  GalleryVerticalEnd,
 } from "lucide-react";
 
 const SUPER_ADMIN_EMAIL = "tap@tapaway.co";
@@ -115,6 +116,7 @@ const REP_CARDS = [
 ];
 
 const SYSTEM_LINKS = [
+  { label: "Card Showcase", desc: "Manage the printed cards shown on the homepage", icon: GalleryVerticalEnd, path: "/admin/card-showcase" },
   { label: "Analytics", desc: "Validated traffic, quality & conversions", icon: Activity, path: "/admin/analytics" },
   { label: "Locations", desc: "Classified location map data & field ops", icon: MapPin, path: "/admin/locations" },
   { label: "Hub Health", desc: "Verify every live hub is publicly reachable", icon: Activity, path: "/admin/hub-health" },
