@@ -30,7 +30,7 @@ export interface HubPreviewData {
   description: string | null;
   logoUrl: string | null;
   actions: HubPreviewAction[];
-  profile: CachedProfile;
+  profile: CachedProfile | null;
   links: CachedLink[];
   blocks: CachedBlock[];
 }

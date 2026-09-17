@@ -22,6 +22,16 @@ export default function HomepageHubPreview({ preview, businessName }: HomepageHu
     return () => observer.disconnect();
   }, []);
 
+  if (!preview.profile) {
+    return (
+      <div className="flex h-full w-full flex-col items-center justify-center bg-hub-preview px-[9%] text-center text-hub-preview-foreground" aria-label={`${businessName} live hub preview`}>
+        {preview.logoUrl && <img src={preview.logoUrl} alt={`${preview.name} logo`} className="w-[48%] object-contain" />}
+        <p className="mt-[6%] text-[clamp(9px,4.4cqw,17px)] font-bold">{preview.name}</p>
+        {preview.description && <p className="mt-[2%] text-[clamp(6px,2.7cqw,11px)] text-hub-preview-muted">{preview.description}</p>}
+      </div>
+    );
+  }
+
   return (
     <div ref={viewportRef} className="relative h-full w-full overflow-hidden" aria-label={`${businessName} live hub preview`}>
       <div
