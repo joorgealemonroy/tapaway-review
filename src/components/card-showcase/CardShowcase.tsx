@@ -107,7 +107,7 @@ export default function CardShowcase({ width = "min(620px, 100%)" }: CardShowcas
 
   return (
     <div ref={rootRef} className="mx-auto flex w-full flex-col items-center" style={{ maxWidth: width }}>
-      <div className={`showcase-pair relative flex w-full justify-center ${hasHub ? "items-end" : "items-center"}`}>
+      <div className={`showcase-pair relative flex justify-center ${hasHub ? "items-end" : "items-center"}`}>
         {hasHub && <div className="showcase-pool-light pointer-events-none absolute -bottom-[3%] left-[4%] right-[-2%] h-[22%]" aria-hidden="true" />}
         <div className={`relative z-10 shrink-0 ${hasHub ? "showcase-card" : "w-[210px] sm:w-[250px] aspect-[53.98/85.6]"}`}>
           <div className="relative h-full w-full" aria-live="polite">

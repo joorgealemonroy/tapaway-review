@@ -257,6 +257,7 @@ All colors MUST be HSL.
     --showcase-card-width: calc(var(--showcase-phone-width) * 0.88);
     --showcase-gap: clamp(12px, calc(6.6667vw - 12px), 20px);
     gap: var(--showcase-gap);
+    width: min(100%, calc(var(--showcase-card-width) + var(--showcase-phone-width) + var(--showcase-gap)));
   }
 
   .showcase-card {

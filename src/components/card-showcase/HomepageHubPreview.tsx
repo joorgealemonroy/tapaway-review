@@ -1,6 +1,5 @@
 import { ChevronRight } from "lucide-react";
 import { getPlatformConfig } from "@/lib/platformLinks";
-import { sanitizeUrl } from "@/lib/sanitizeUrl";
 import type { HubPreviewData } from "@/types/cardShowcase";
 
 interface HomepageHubPreviewProps {
@@ -38,12 +37,8 @@ export default function HomepageHubPreview({ preview, businessName }: HomepageHu
             const platform = getPlatformConfig(action.type);
             const Icon = platform?.icon;
             return (
-              <a
+              <div
                 key={action.id}
-                href={sanitizeUrl(action.url)}
-                target="_blank"
-                rel="noreferrer"
-                tabIndex={-1}
                 aria-hidden="true"
                 className="flex min-h-[clamp(28px,14cqw,54px)] items-center rounded-[clamp(7px,3.5cqw,14px)] border border-hub-preview-border bg-hub-preview px-[5%] shadow-hub-preview"
               >
@@ -54,7 +49,7 @@ export default function HomepageHubPreview({ preview, businessName }: HomepageHu
                   {action.label}
                 </span>
                 <ChevronRight className="h-[9%] min-h-2.5 w-[9%] min-w-2.5 text-hub-preview-muted" aria-hidden="true" />
-              </a>
+              </div>
             );
           })}
         </div>
