@@ -46,8 +46,8 @@ export default function HomepageHubPreview({ preview, businessName }: HomepageHu
   return (
     <div ref={viewportRef} className="relative h-full w-full overflow-hidden" aria-label={`${businessName} live hub preview`}>
       <div
-        className="homepage-hub-canvas homepage-hub-content pointer-events-none absolute left-1/2 top-0 w-[430px] origin-top"
-        style={{ transform: `translateX(-50%) scale(${scale})` }}
+        className="homepage-hub-canvas homepage-hub-content pointer-events-none absolute left-1/2 top-0 w-[430px] origin-top bg-hub-preview [backface-visibility:hidden] [will-change:transform]"
+        style={{ transform: `translateX(-50%) scale(${scale})`, minHeight: `${minHeight}px` }}
       >
         <ProfilePreviewRenderer
           profile={preview.profile}
