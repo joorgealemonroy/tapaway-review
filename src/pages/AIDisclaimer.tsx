@@ -36,7 +36,7 @@ const AIDisclaimer = () => {
             <p className="text-muted-foreground">
               TapAway's AI features use artificial intelligence and machine learning models to generate suggestions,
               insights, review reply drafts, and business recommendations. These features are designed to assist
-              you—not replace professional judgment. AI outputs are generated automatically based on available data
+              you. Not replace professional judgment. AI outputs are generated automatically based on available data
               and algorithmic processing. They are not reviewed, verified, or endorsed by TapAway staff before
               being presented to you.
             </p>
@@ -96,7 +96,7 @@ const AIDisclaimer = () => {
             <p className="text-muted-foreground">
               <strong>AI FEATURES DO NOT GUARANTEE</strong> any specific business outcomes, including but not limited
               to: increased reviews, higher ratings, more customers, revenue growth, improved reputation, or competitive
-              advantage. AI insights are based on available data and algorithmic analysis—they are not predictive
+              advantage. AI insights are based on available data and algorithmic analysis. They are not predictive
               guarantees. Actual results depend on numerous factors outside TapAway's control.
             </p>
           </section>

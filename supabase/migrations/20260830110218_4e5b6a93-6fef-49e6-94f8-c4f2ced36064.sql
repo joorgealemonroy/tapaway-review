@@ -1,5 +1,5 @@
 -- ============================================================
--- TapAway Location Intelligence — Phase 1 (additive only)
+-- TapAway Location Intelligence. Phase 1 (additive only)
 -- ============================================================
 
 CREATE SCHEMA IF NOT EXISTS private;
@@ -363,7 +363,7 @@ BEGIN
         CASE WHEN _pay = 'paying' THEN 'monthly' WHEN _pay IN ('none','trialing') THEN 'none' ELSE 'unknown' END,
         CASE WHEN r.stripe IS NOT NULL THEN 'stripe_subscription' ELSE 'unknown' END,
         CASE
-          WHEN _pay = 'unknown_manual' THEN 'active without stripe evidence — needs manual classification'
+          WHEN _pay = 'unknown_manual' THEN 'active without stripe evidence. Needs manual classification'
           WHEN _access = 'expired' AND r.sub = 'trialing' THEN 'trial_expired_no_conversion'
           ELSE NULL END,
         r.trial, r.sub, r.rep, _needs, _reason, now()
@@ -386,7 +386,7 @@ BEGIN
           WHEN r.stripe IS NOT NULL THEN 'stripe_subscription' ELSE bl.billing_source END,
         status_reason = CASE
           WHEN bl.classification_is_manual THEN bl.status_reason
-          WHEN _pay = 'unknown_manual' THEN 'active without stripe evidence — needs manual classification'
+          WHEN _pay = 'unknown_manual' THEN 'active without stripe evidence. Needs manual classification'
           WHEN _access = 'expired' AND r.sub = 'trialing' THEN 'trial_expired_no_conversion'
           ELSE bl.status_reason END,
         trial_ends_at = r.trial,

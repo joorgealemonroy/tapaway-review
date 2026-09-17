@@ -197,7 +197,7 @@ const PersonalDashboard = () => {
   const requestedProfileId = searchParams.get("profile_id");
   const [isAdminView, setIsAdminView] = useState(false);
   const [adminViewName, setAdminViewName] = useState("");
-  // Why the profile couldn't be loaded — surfaced instead of a blank screen.
+  // Why the profile couldn't be loaded. Surfaced instead of a blank screen.
   const [loadError, setLoadError] = useState<string | null>(null);
   // Optional note a rep can attach when submitting a demo for admin review.
   const [submitOpen, setSubmitOpen] = useState(false);
@@ -332,13 +332,13 @@ const PersonalDashboard = () => {
         .order("created_at", { ascending: true });
 
       if (profileError || !allProfilesData || allProfilesData.length === 0) {
-        // Never eject a user who is already actively editing — a transient RLS/network
+        // Never eject a user who is already actively editing. A transient RLS/network
         // hiccup or a re-fetch shouldn't kick a rep out of their draft.
         if (profileRef.current) {
           console.warn("[dashboard] refetch returned empty; keeping current profile", profileError);
           return;
         }
-        // A real fetch failure is not the same as "no profiles yet" — never send a
+        // A real fetch failure is not the same as "no profiles yet". Never send a
         // user to onboarding because of a network/RLS hiccup.
         if (profileError) {
           setLoadError(`Couldn't load your profiles: ${profileError.message}`);
@@ -416,7 +416,7 @@ const PersonalDashboard = () => {
       hasLoadedRef.current = true;
     } catch (err) {
       console.error("Error loading data:", err);
-      // Don't eject on transient errors — only surface a toast if we've never loaded.
+      // Don't eject on transient errors. Only surface a toast if we've never loaded.
       if (!profileRef.current) {
         setLoadError(err instanceof Error ? err.message : "Unexpected error while loading this hub.");
         toast.error("Failed to load your profile");
@@ -467,7 +467,7 @@ const PersonalDashboard = () => {
   }, [profile]);
 
   // One-time Card Club offer for signups that selected it at checkout.
-  // This is the only way to join Card Club — no self-serve subscribe exists.
+  // This is the only way to join Card Club. No self-serve subscribe exists.
   useEffect(() => {
     if (profile && localStorage.getItem(PENDING_CARD_CLUB_KEY) && !profile.has_card_addon) {
       setShowCardClubOffer(true);
@@ -689,7 +689,7 @@ const PersonalDashboard = () => {
     setAutosaveStatus("saving");
 
     // Snapshot BEFORE the flush so Undo can restore the state that existed
-    // BEFORE this batch of edits — that's the previous known DB state.
+    // BEFORE this batch of edits. That's the previous known DB state.
     const previousDbSnapshot = lastSavedSnapshotRef.current;
 
     try {
@@ -707,7 +707,7 @@ const PersonalDashboard = () => {
         return;
       }
 
-      // Success — the current state is now what's in the DB.
+      // Success. The current state is now what's in the DB.
       const newSnapshot = {
         hero: heroEditorRef.current?.getSnapshot() ?? null,
         content: unifiedContentRef.current?.getSnapshot() ?? null,
@@ -806,7 +806,7 @@ const PersonalDashboard = () => {
   }, [flushAutosave]);
 
   // Sign out only after any pending edits in the debounce window are
-  // flushed — otherwise those edits are silently lost (the autosave
+  // flushed. Otherwise those edits are silently lost (the autosave
   // beforeunload flush is fire-and-forget and can't be awaited).
   const handleSignOut = useCallback(async () => {
     if (debounceTimerRef.current) {
@@ -832,7 +832,7 @@ const PersonalDashboard = () => {
   }
 
   if (!profile) {
-    // Never leave the user on a blank page — explain what failed and offer a way out.
+    // Never leave the user on a blank page. Explain what failed and offer a way out.
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="max-w-md w-full text-center">
@@ -904,7 +904,7 @@ const PersonalDashboard = () => {
 
 
   const handleSubmitForReview = async () => {
-    // Guard at entry — the username search below is async, so without this a
+    // Guard at entry. The username search below is async, so without this a
     // double-tap would run the whole submit flow twice.
     if (submitting) return;
     setSubmitting(true);
@@ -937,7 +937,7 @@ const PersonalDashboard = () => {
       }
     }
 
-    // NOTE: never write review_note / review_note_at here — the
+    // NOTE: never write review_note / review_note_at here. The
     // `guard_profile_approval_fields` DB trigger rejects the whole update for
     // non-admins, which silently kept hubs stuck in "changes_requested".
     const note = submitNote.trim().slice(0, 600);
@@ -959,7 +959,7 @@ const PersonalDashboard = () => {
     setSubmitNote("");
     if (nextUsername) {
       setProfile(p => p ? { ...p, username: nextUsername! } : p);
-      toast.success(`Sent for approval — public URL will be /${nextUsername}`);
+      toast.success(`Sent for approval. Public URL will be /${nextUsername}`);
     } else {
       toast.success("Sent to admin for approval");
     }
@@ -1042,13 +1042,13 @@ const PersonalDashboard = () => {
           <DialogHeader>
             <DialogTitle>Submit for review</DialogTitle>
             <DialogDescription>
-              Add an optional note for the admin — anything they should know about this demo.
+              Add an optional note for the admin. Anything they should know about this demo.
             </DialogDescription>
           </DialogHeader>
           <Textarea
             value={submitNote}
             onChange={(e) => setSubmitNote(e.target.value)}
-            placeholder="Optional — e.g. Owner wants the logo bigger; still waiting on their Yelp link."
+            placeholder="Optional. E.g. Owner wants the logo bigger; still waiting on their Yelp link."
             rows={4}
             maxLength={600}
             disabled={submitting}
@@ -1530,7 +1530,7 @@ const PersonalDashboard = () => {
       />
 
 
-      {/* Image Cropper — profile photo (square) */}
+      {/* Image Cropper. Profile photo (square) */}
       {rawImageUrl && (
         <ImageCropper
           open={cropperOpen}

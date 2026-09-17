@@ -1,4 +1,4 @@
-// create-admin-coupon — Jorge's QUICK DISCOUNT TOOL edge function.
+// create-admin-coupon. Jorge's QUICK DISCOUNT TOOL edge function.
 //
 // Admin-only. Three actions (body.action):
 //   create   {name, percent_off XOR amount_off_cents, duration: 'once'|'repeating'|'forever',
@@ -15,7 +15,7 @@
 //            -> deletes the Stripe coupon (best-effort) + removes the
 //               admin_coupons row so it can't be handed out again.
 //
-// Hard rule: everything stays subscription-recurring — no one-time sales,
+// Hard rule: everything stays subscription-recurring. No one-time sales,
 // no activation fees (sales-tax constraint).
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import Stripe from 'https://esm.sh/stripe@14.21.0';
@@ -301,7 +301,7 @@ Deno.serve(async (req) => {
       if (rowErr || !couponRow) return json({ error: 'Discount not found' }, 404);
 
       // Best-effort Stripe delete: the coupon may already be gone in the
-      // Stripe dashboard — still remove our row so it can't be handed out
+      // Stripe dashboard. Still remove our row so it can't be handed out
       // for new pay links. Subscriptions created from earlier links keep
       // working regardless.
       try {

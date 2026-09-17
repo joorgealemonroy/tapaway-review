@@ -63,7 +63,7 @@ interface Props {
   onUpdate?: (id: string, updates: Partial<PersonalLink & { displayStyle?: string; coverImageUrl?: string; thumbnailUrl?: string }>) => void;
   existingTypes?: string[];
   existingIconTypes?: string[]; // Platform types that already have an icon
-  saving?: boolean; // true while the parent is persisting an add/update — disables the save button to prevent double-submit
+  saving?: boolean; // true while the parent is persisting an add/update. Disables the save button to prevent double-submit
 }
 
 export const LinkModal = ({ 
@@ -711,7 +711,7 @@ export const LinkModal = ({
           const invalid = !previewUrl || isBareDomainHandle(previewValue);
           return (
             // break-all (not truncate): a 200+ char URL with no spaces must
-            // wrap inside the sheet — it must never push the page wider than
+            // wrap inside the sheet. It must never push the page wider than
             // the viewport on mobile.
             <p className={`text-xs break-all ${invalid ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"}`}>
               {invalid

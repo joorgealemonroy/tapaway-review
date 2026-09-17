@@ -116,10 +116,10 @@ const AdminCustomPlans = () => {
     const ok = await copyText(url);
     if (ok) {
       setCopiedUrl(url);
-      toast.success("Pay link copied — send it or open it for them.");
+      toast.success("Pay link copied. Send it or open it for them.");
       setTimeout(() => setCopiedUrl(null), 2500);
     } else {
-      toast.error("Copy failed — long-press the link to copy it manually.");
+      toast.error("Copy failed. Long-press the link to copy it manually.");
     }
   };
 
@@ -136,7 +136,7 @@ const AdminCustomPlans = () => {
     }
     const amount_cents = Math.round(dollars * 100);
     if (amount_cents > 1_000_000) {
-      toast.error("That price looks too high (max $10,000/mo) — check for a typo.");
+      toast.error("That price looks too high (max $10,000/mo). Check for a typo.");
       return;
     }
     const days = trialOn ? parseInt(trialDays, 10) : 0;
@@ -163,7 +163,7 @@ const AdminCustomPlans = () => {
       if (!plan) throw new Error("Plan was not created.");
 
       if (data?.reused) {
-        toast.info("That plan already exists — showing the existing one.");
+        toast.info("That plan already exists. Showing the existing one.");
       } else {
         toast.success(`"${plan.name}" created at ${fmtMoney(plan.amount_cents)}/mo.`);
       }
@@ -215,7 +215,7 @@ const AdminCustomPlans = () => {
     }
     const amount_cents = Math.round(dollars * 100);
     if (amount_cents > 1_000_000) {
-      toast.error("That price looks too high (max $10,000/mo) — check for a typo.");
+      toast.error("That price looks too high (max $10,000/mo). Check for a typo.");
       return;
     }
     const trial_days = parseInt(editTrialDays.replace(/[^0-9]/g, "") || "0", 10);
@@ -254,7 +254,7 @@ const AdminCustomPlans = () => {
   const handleDeactivate = async (plan: CustomPlan) => {
     if (
       !window.confirm(
-        `Deactivate "${plan.name}" (${fmtMoney(plan.amount_cents)}/mo)?\n\nPay links stop working for this plan. Existing subscribers are NOT affected — only new checkouts.`
+        `Deactivate "${plan.name}" (${fmtMoney(plan.amount_cents)}/mo)?\n\nPay links stop working for this plan. Existing subscribers are NOT affected. Only new checkouts.`
       )
     )
       return;
@@ -297,7 +297,7 @@ const AdminCustomPlans = () => {
 
         <h1 className="text-2xl font-bold mb-1">Custom Plans</h1>
         <p className="text-sm text-muted-foreground mb-6">
-          Build a custom-priced recurring plan on the spot and hand the customer a pay link. Subscription only — no one-time charges.
+          Build a custom-priced recurring plan on the spot and hand the customer a pay link. Subscription only. No one-time charges.
         </p>
 
         {/* ---------- New plan form ---------- */}
@@ -351,7 +351,7 @@ const AdminCustomPlans = () => {
               <div>
                 <div className="text-sm font-medium">Free trial</div>
                 <div className="text-xs text-muted-foreground">
-                  {trialOn ? "Customer is billed after the trial." : "Off — card is charged immediately (best for in-person closes)."}
+                  {trialOn ? "Customer is billed after the trial." : "Off. Card is charged immediately (best for in-person closes)."}
                 </div>
               </div>
               <Switch checked={trialOn} onCheckedChange={setTrialOn} aria-label="Free trial" />
@@ -385,7 +385,7 @@ const AdminCustomPlans = () => {
                   </div>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Hand this link to the customer — it works for a recurring subscription and can be reused.
+                  Hand this link to the customer. It works for a recurring subscription and can be reused.
                 </p>
                 <Input value={newPlanLink.url} readOnly onFocus={(e) => e.target.select()} className="text-sm" />
                 <div className="flex gap-2">
@@ -463,7 +463,7 @@ const AdminCustomPlans = () => {
                           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">/mo</span>
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          Changing the price creates a new Stripe price — existing subscribers keep their old price.
+                          Changing the price creates a new Stripe price. Existing subscribers keep their old price.
                         </p>
                       </div>
                       <div className="space-y-1.5">
@@ -517,14 +517,14 @@ const AdminCustomPlans = () => {
                       )}
                       {inactive && (
                         <Badge variant="outline" className="text-xs text-muted-foreground">
-                          Inactive — pay links disabled
+                          Inactive. Pay links disabled
                         </Badge>
                       )}
                     </div>
 
                     {inactive ? (
                       <p className="text-xs text-muted-foreground">
-                        Deactivated. Existing subscribers are unaffected — only new checkouts are blocked.
+                        Deactivated. Existing subscribers are unaffected. Only new checkouts are blocked.
                       </p>
                     ) : url ? (
                       <div className="space-y-2">

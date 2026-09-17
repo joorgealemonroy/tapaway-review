@@ -126,7 +126,7 @@ const ProfileLink = memo(function ProfileLink({
   // Dynamic button text contrast: dark text on light buttons, white text on dark buttons
   const buttonTextColor = customColor && !isColorDark(customColor) ? '#1A1A1A' : '#FFFFFF';
 
-  // Email link — inline bar with email address + Connect button
+  // Email link. Inline bar with email address + Connect button
   if (link.link_type === "email") {
     const emailAddress = link.url.replace(/^mailto:/i, "");
     return (
@@ -215,7 +215,7 @@ const ProfileLink = memo(function ProfileLink({
     );
   }
    
-   // Featured links — surface adapts to the page background
+   // Featured links. Surface adapts to the page background
   if (isFeatured) {
     return (
       <a
@@ -301,7 +301,7 @@ const VideoThumbnail = memo(function VideoThumbnail({ url }: { url: string }) {
         canvas.getContext("2d")?.drawImage(video, 0, 0);
         setPoster(canvas.toDataURL("image/jpeg", 0.7));
       } catch {
-        // cross-origin or other error — leave as placeholder
+        // cross-origin or other error. Leave as placeholder
       }
     };
     return () => { video.src = ""; };
@@ -849,7 +849,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
   const username = usernameOverride || paramUsername || slug;
   const navigate = useNavigate();
   
-  // Use optimized data fetching with caching — pass initialProfile to skip redundant query
+  // Use optimized data fetching with caching. Pass initialProfile to skip redundant query
   const { data, loading, error, expiredPreview } = useProfileData(username, initialProfile);
 
   // Track visit after data loads (non-blocking)
@@ -950,7 +950,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
           url: shareUrl,
         })
         .catch(() => {
-          /* user dismissed — nothing to do */
+          /* user dismissed. Nothing to do */
         });
       return;
     }
@@ -982,13 +982,13 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
     }
     
     if (isIOS) {
-      toast.success("Tap Create New Contact to save — photo will appear after saving");
+      toast.success("Tap Create New Contact to save. Photo will appear after saving");
     } else {
       toast.success("Contact saved!");
     }
   }, [data?.profile]);
 
-  // Logo band sampling — MUST stay above the early returns below, otherwise the
+  // Logo band sampling. MUST stay above the early returns below, otherwise the
   // hook count changes between the loading render and the loaded render and
   // React throws "Rendered more hooks than during the previous render".
   const preProfile = data?.profile as any;
@@ -1015,7 +1015,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
   }, [preIsLogoHeader, preLogoUrl, preLogoBandColor]);
 
   // Banner hubs with a near-black stored background (the old default) get the
-  // warm brand backdrop back by sampling the banner's own bottom edge — this
+  // warm brand backdrop back by sampling the banner's own bottom edge. This
   // is how legacy banner hubs like /rebornwraps originally looked.
   const preIsBannerHeader = preProfile?.header_type === "banner";
   const preBannerUrl = preIsBannerHeader && preProfile?.profile_photo_url
@@ -1060,7 +1060,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
 
   if (error || !data) {
     // Trial ended without payment: graceful preview instead of a dead end.
-    // The account's status stays honestly lapsed — this banner is a
+    // The account's status stays honestly lapsed. This banner is a
     // conversion surface, not a status change.
     if (expiredPreview) {
       return <ExpiredSoloHubPreview preview={expiredPreview} />;
@@ -1176,8 +1176,8 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
     : storedBgColor;
   const isGradientBg = profileBgStyle ? true : (bgColor.startsWith('linear-gradient') || bgColor.startsWith('radial-gradient'));
 
-  // The page background is exactly the color the owner chose — no slate
-  // override — so warm/brand backgrounds read the way they were designed.
+  // The page background is exactly the color the owner chose. No slate
+  // override. So warm/brand backgrounds read the way they were designed.
   const bgStyle = profileBgStyle
     ? { background: profileBgStyle }
     : { background: bgColor };
@@ -1289,7 +1289,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
             <span className="text-sm font-semibold">Share</span>
           </button>
         </div>
-        {/* Header — logo band, full-image banner, or cover image. Banner and
+        {/* Header. Logo band, full-image banner, or cover image. Banner and
             logo modes show the full picture in frame; the circle avatar below
             is hidden in those modes. */}
         {isLogoHeader ? (
@@ -1316,7 +1316,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
           </div>
         ) : hasBanner ? (
           <div className="relative">
-            {/* Full-bleed banner — the full picture stays in frame. */}
+            {/* Full-bleed banner. The full picture stays in frame. */}
             <div className="w-full h-[48vh] md:h-[44vh] overflow-hidden">
 
               <img
@@ -1506,7 +1506,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
 
           {/* Footer */}
           <footer className="mt-6 pb-4 text-center space-y-3">
-            {/* Glass Pill CTA — hidden on client-branded master location hubs */}
+            {/* Glass Pill CTA. Hidden on client-branded master location hubs */}
             {!isMasterLocationsHub && (
             <motion.div 
               className="flex justify-center"
@@ -1528,7 +1528,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
             </motion.div>
             )}
             
-            {/* Subtle tap-enabled indicator — only for users with active NFC cards */}
+            {/* Subtle tap-enabled indicator. Only for users with active NFC cards */}
             {data?.hasActiveCard && (
               <p className={`text-xs flex items-center justify-center gap-1 ${isDarkBg ? 'text-white/40' : 'text-gray-400'}`}>
                 <Smartphone className="h-3 w-3" />

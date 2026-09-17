@@ -64,7 +64,7 @@ const handler = async (req: Request): Promise<Response> => {
       timeStyle: "short",
     });
 
-    // Send email with card images as attachments — via the shared library so
+    // Send email with card images as attachments. Via the shared library so
     // the send is logged to email_sends (internal ops mail, templateKey "internal").
     const emailResult = await sendEmailAndLog({
       from: "TapAway Cards <cards@tapaway.co>",

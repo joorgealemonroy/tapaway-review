@@ -189,7 +189,7 @@ const EditHubDrawer = ({ target, onClose, onSaved }: Props) => {
             />
             {usernameLocked && (
               <p className="text-[11px] text-amber-300/70">
-                Locked — this hub is approved and its link is already in circulation.
+                Locked. This hub is approved and its link is already in circulation.
               </p>
             )}
           </div>

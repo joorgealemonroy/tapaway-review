@@ -108,7 +108,7 @@ const AdminBusinessLiteTable = () => {
       if (profileError) throw profileError;
 
       // Only delete the auth user for standalone personal accounts.
-      // Rep-created demos share the rep's (or admin's) auth user — deleting that
+      // Rep-created demos share the rep's (or admin's) auth user. Deleting that
       // auth user would cascade the sales_reps row and lock the rep out.
       const isRepDemo = Boolean(deletingAccount.sales_rep_id || deletingAccount.created_by_rep_id);
       if (!isRepDemo) {
@@ -158,7 +158,7 @@ const AdminBusinessLiteTable = () => {
       case "past_due":
         return <Badge className="bg-yellow-500/20 text-yellow-700">Past Due</Badge>;
       default:
-        return <Badge variant="secondary">{status || "—"}</Badge>;
+        return <Badge variant="secondary">{status || "Not available"}</Badge>;
     }
   };
 

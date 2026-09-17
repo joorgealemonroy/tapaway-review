@@ -23,11 +23,11 @@ export async function reportTrybeOrder(
 ): Promise<{ ok: boolean; reason?: string; status?: number }> {
   const apiKey = Deno.env.get("TRYBE_ORDERS_API_KEY");
   if (!apiKey) {
-    console.log("[trybe] TRYBE_ORDERS_API_KEY not set — skipping");
+    console.log("[trybe] TRYBE_ORDERS_API_KEY not set. Skipping");
     return { ok: false, reason: "not_configured" };
   }
   if (!input.vid) {
-    console.log("[trybe] missing visitor id — skipping (vid is required)");
+    console.log("[trybe] missing visitor id. Skipping (vid is required)");
     return { ok: false, reason: "missing_vid" };
   }
 

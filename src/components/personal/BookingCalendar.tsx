@@ -199,7 +199,7 @@ export function BookingCalendar({ creatorId, productId, durationMinutes, priceCe
           if (b.booking_date !== slotCreatorDate) return false;
           if (b.start_time !== slotCreatorTime) return false;
           if (b.status === "paid") return true;
-          // Pending but recent (< 15 min) — also blocked
+          // Pending but recent (< 15 min). Also blocked
           if (b.status === "pending") {
             const createdAt = new Date(b.created_at).getTime();
             return createdAt > fifteenMinAgo;

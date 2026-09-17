@@ -2,7 +2,7 @@
  * Shared display-name resolution for admin surfaces.
  *
  * Falls back through every human-readable field before ever showing
- * "(unnamed)" — a slug or username is humanized instead
+ * "(unnamed)". A slug or username is humanized instead
  * (e.g. "elchilitos-mexican-restaurant" -> "Elchilitos Mexican Restaurant").
  */
 

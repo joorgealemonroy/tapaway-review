@@ -442,7 +442,7 @@ serve(async (req) => {
         .update({ is_used: true, used_by_user_id: clientUserId })
         .eq("id", promoResult.tokenId);
 
-      // Finalize onboarding (only for venue — solo profiles are already active)
+      // Finalize onboarding (only for venue. Solo profiles are already active)
       if (!isSolo && restaurantId) {
         try {
           const fnUrl = `${supabaseUrl}/functions/v1/finalize-onboarding`;

@@ -32,7 +32,7 @@ const BASIC_COLORS = [
 
 const CARD_BENEFITS = [
   { icon: Zap, text: "Instant sharing with a single tap" },
-  { icon: Smartphone, text: "Works with any phone — no app needed" },
+  { icon: Smartphone, text: "Works with any phone. No app needed" },
   { icon: Users, text: "Professional first impression" },
   { icon: InfinityIcon, text: "Never run out of cards again" },
 ];
@@ -70,11 +70,11 @@ export const PreviewStep = ({ formData, updateFormData, onNext, onBack }: Props)
         </div>
         <h2 className="text-xl font-bold text-foreground mt-4">Complete your TapAway</h2>
         <p className="text-sm text-muted-foreground text-center mt-1 max-w-[260px]">
-          Get a physical NFC card — tap any phone to share your profile instantly.
+          Get a physical NFC card. Tap any phone to share your profile instantly.
         </p>
       </div>
 
-      {/* Benefits — always visible */}
+      {/* Benefits. Always visible */}
       <div className="grid grid-cols-2 gap-2">
         {CARD_BENEFITS.map((b, i) => {
           const Icon = b.icon;
@@ -219,7 +219,7 @@ export const PreviewStep = ({ formData, updateFormData, onNext, onBack }: Props)
         }}
         className="w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors py-1"
       >
-        Skip for now — you can order anytime from your dashboard
+        Skip for now. You can order anytime from your dashboard
       </button>
     </div>
   );

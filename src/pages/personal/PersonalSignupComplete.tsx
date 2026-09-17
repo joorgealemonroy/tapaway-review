@@ -117,7 +117,7 @@ const PersonalSignupComplete = () => {
         // Step 3: Try to sign in the user
         let signedIn = false;
         if (savedPassword && data.email) {
-          // Try setting password first (non-fatal if it fails — existing users already have one)
+          // Try setting password first (non-fatal if it fails. Existing users already have one)
           try {
             await supabase.functions.invoke("set-user-password", {
               body: {
@@ -223,7 +223,7 @@ const PersonalSignupComplete = () => {
 
         if (profile) {
           // Update profile with complete data
-          // Free users cannot use banner/image headers — force to "color"
+          // Free users cannot use banner/image headers. Force to "color"
           let effectiveHeaderType = savedData.headerType || "banner";
           if (verifiedPlanType === "free" && (effectiveHeaderType === "banner" || effectiveHeaderType === "image")) {
             effectiveHeaderType = "color";
@@ -245,7 +245,7 @@ const PersonalSignupComplete = () => {
             updateData.header_image_url = headerImageUrl;
           }
 
-          // Card Club was selected during signup — do NOT grant it free.
+          // Card Club was selected during signup. Do NOT grant it free.
           // The $5/mo subscription is completed from the one-time welcome
           // offer in the dashboard (see tapaway_pending_card_club).
           if (savedData.addExtraCard) {
@@ -502,14 +502,14 @@ const PersonalSignupComplete = () => {
     );
   }
 
-  // No saved data — auto-redirect to auth (no dead-end screen)
+  // No saved data. Auto-redirect to auth (no dead-end screen)
   if (step === "no_data") {
     toast.info("Your account is ready! Please sign in.");
     navigate("/auth?redirect=/dashboard");
     return null;
   }
 
-  // Success but not signed in — auto-redirect to auth
+  // Success but not signed in. Auto-redirect to auth
   if (username && step === "success") {
     toast.info("Your profile is set up! Please sign in to continue.");
     navigate("/auth?redirect=/dashboard");

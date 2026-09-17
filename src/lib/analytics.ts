@@ -71,7 +71,7 @@ function safeSet(store: Storage | undefined, key: string, value: string): void {
   try {
     store?.setItem(key, value);
   } catch {
-    /* storage blocked — tracking degrades, app keeps working */
+    /* storage blocked. Tracking degrades, app keeps working */
   }
 }
 

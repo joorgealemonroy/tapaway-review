@@ -5,7 +5,7 @@ import PasswordChecklistSection from "@/components/PasswordChecklistSection";
 import { Loader2, ShieldCheck } from "lucide-react";
 
 /**
- * /auth/set-password — landing page for the "get dashboard access" email.
+ * /auth/set-password. Landing page for the "get dashboard access" email.
  * Exchanges the recovery token for a session, sets the password, and drops
  * the customer straight into their dashboard.
  */

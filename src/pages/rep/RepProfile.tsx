@@ -120,7 +120,7 @@ const RepProfile = () => {
         </RepCard>
       </div>
 
-      {/* Nested sub-cards — kept in existing (lighter) styling but sit on dark bg like inset panels */}
+      {/* Nested sub-cards. Kept in existing (lighter) styling but sit on dark bg like inset panels */}
       <div className="mt-5 space-y-5 [&>*]:rounded-2xl [&_.card]:rounded-2xl">
         {user && <RepPayoutCard userId={user.id} />}
         {user && <RepPayoutHistory userId={user.id} />}

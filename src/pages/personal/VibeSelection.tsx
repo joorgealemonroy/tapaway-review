@@ -123,7 +123,7 @@ const VibeSelection = () => {
         transition={{ duration: 0.4, delay: 0.1 }}
         className="text-white/60 text-sm mb-8 relative z-10"
       >
-        Swipe to preview — you can customize later
+        Swipe to preview. You can customize later
       </motion.p>
 
       {/* Carousel */}

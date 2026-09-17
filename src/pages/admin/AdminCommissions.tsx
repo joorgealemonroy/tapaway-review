@@ -285,7 +285,7 @@ const AdminCommissions = () => {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-sm">
-                        {commission.restaurant_name || '—'}
+                        {commission.restaurant_name || 'Not available'}
                       </TableCell>
                       <TableCell className="font-medium text-green-600">
                         ${commission.amount}

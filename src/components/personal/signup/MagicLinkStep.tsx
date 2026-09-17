@@ -148,7 +148,7 @@ export function MagicLinkStep({ formData, updateFormData, addLink, removeLink, o
       if (totalLinks > 0) {
         setPhase("preview");
       } else {
-        // No links found — go to fallback
+        // No links found. Go to fallback
         setPhase("fallback");
       }
     } catch {
@@ -439,7 +439,7 @@ export function MagicLinkStep({ formData, updateFormData, addLink, removeLink, o
               })}
             </div>
 
-            {/* Design Fork — only show if content has images */}
+            {/* Design Fork. Only show if content has images */}
             {hasContentImages ? (
               <>
                 <p className="text-sm font-medium text-foreground mb-3">

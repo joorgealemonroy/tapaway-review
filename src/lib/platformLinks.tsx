@@ -306,7 +306,7 @@ export const isBareDomainHandle = (value: string): boolean => {
 };
 
 
-/** Build a URL only when the handle is real — otherwise return "" so callers can reject it. */
+/** Build a URL only when the handle is real. Otherwise return "" so callers can reject it. */
 const safeUrl = (handle: string, build: (h: string) => string): string => {
   const h = (handle || "").trim();
   if (!h || isBareDomainHandle(h)) return "";

@@ -10,9 +10,9 @@ import {
 } from "./CommandPanels";
 
 const DAY_LABEL: Record<3 | 10 | 13, string> = {
-  3: "Day 3 — check-in text",
-  10: "Day 10 — 4-days-left text",
-  13: "Day 13 — final call text",
+  3: "Day 3. Check-in text",
+  10: "Day 10. 4-days-left text",
+  13: "Day 13. Final call text",
 };
 
 const TrialPipeline = ({
@@ -67,7 +67,7 @@ const TrialPipeline = ({
               <MessageSquareText className="h-3.5 w-3.5" /> Follow-ups due today
             </div>
             {followupsDue.length === 0 ? (
-              <p className="text-sm text-white/40 py-2">Nothing to send — the daily job has today covered.</p>
+              <p className="text-sm text-white/40 py-2">Nothing to send. The daily job has today covered.</p>
             ) : (
               <div className="divide-y divide-white/5">
                 {followupsDue.map((f) => (
@@ -76,7 +76,7 @@ const TrialPipeline = ({
                       <span className="text-sm text-white/85 truncate">{f.name}</span>
                       {!f.hasPhone && (
                         <span className="shrink-0 flex items-center gap-1 rounded bg-white/[0.05] px-1.5 py-0.5 text-[10px] text-white/50">
-                          <PhoneOff className="h-3 w-3" /> no phone — reach out manually
+                          <PhoneOff className="h-3 w-3" /> no phone. Reach out manually
                         </span>
                       )}
                     </span>

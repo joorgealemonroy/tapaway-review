@@ -1,4 +1,4 @@
-// Mass SMS sender — strictly scoped to the authenticated owner's profile or restaurant.
+// Mass SMS sender. Strictly scoped to the authenticated owner's profile or restaurant.
 // Sends via Twilio through the Lovable connector gateway.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
@@ -18,10 +18,10 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
  * Review-request dedup (Jorge's hard rule: one review-request SMS per phone
  * number per business, ever). A message counts as a review request when the
  * UI flags it (owner used the review-request template) OR its text mentions
- * reviews — /\breviews?\b/i — so hand-written "please leave us a review"
+ * reviews. /\breviews?\b/i. So hand-written "please leave us a review"
  * messages are covered too.
  *
- * Phone normalization (exact scheme — must match the SQL comment in
+ * Phone normalization (exact scheme. Must match the SQL comment in
  * 20260909180000_review_request_sends.sql):
  *   1. Strip every non-digit character.
  *   2. 10 digits -> prepend "1" (assume North American).
@@ -30,7 +30,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
  *   5. Prefix "+".
  * phone_hash = lowercase hex SHA-256 of the normalized string. No salt/pepper:
  * salts would break cross-check consistency, and a rotating pepper would
- * silently break dedup (re-texting people — the exact thing this prevents).
+ * silently break dedup (re-texting people. The exact thing this prevents).
  */
 const REVIEW_REQUEST_RE = /\breviews?\b/i;
 
@@ -343,7 +343,7 @@ Deno.serve(async (req) => {
     // treated as a duplicate. The partial unique index on
     // (business, phone_hash) is the race-safety backstop: two concurrent
     // sends to the same number can both pass the check, and the second
-    // insert is ignored (error 23505) — dedup still holds.
+    // insert is ignored (error 23505). Dedup still holds.
     if (isReviewRequest && campaign) {
       const hashByPhone = new Map(phoneHashes.map((h) => [h.phone, h.hash]));
       const rows = sendResults

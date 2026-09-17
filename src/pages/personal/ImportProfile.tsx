@@ -170,14 +170,14 @@ function scrapedToPreviewProps(data: ScrapedData) {
     const isSocialType = socialTypes.has(l.type);
     const existsInIconBar = socialPlatformsInBar.has(l.type);
 
-    // Rule: Social dedup — if this platform is in icon bar AND is a content link, first one gets "both"
+    // Rule: Social dedup. If this platform is in icon bar AND is a content link, first one gets "both"
     let markBoth = false;
     if (isSocialType && existsInIconBar && !bothPlatforms.has(l.type)) {
       markBoth = true;
       bothPlatforms.add(l.type);
     }
 
-    // Rule A: Grid — image link that's part of a pair
+    // Rule A: Grid. Image link that's part of a pair
     const isGrid = gridIndices.has(i) && hasImage;
 
     let displayStyle: string;
@@ -584,7 +584,7 @@ const ImportProfile = () => {
             )}
           </AnimatePresence>
 
-          {/* Results — Split Screen */}
+          {/* Results. Split Screen */}
           <AnimatePresence mode="wait">
             {result && imagePreference !== null && (
               <motion.div
@@ -652,7 +652,7 @@ const ImportProfile = () => {
                     size="lg"
                     className="w-full max-w-sm text-base bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg"
                   >
-                    This looks better — Claim my Page
+                    This looks better. Claim my Page
                     <ArrowRight className="w-5 h-5 ml-2" />
                   </Button>
                   <button

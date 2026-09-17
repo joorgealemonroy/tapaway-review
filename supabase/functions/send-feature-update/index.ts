@@ -1,4 +1,4 @@
-// send-feature-update — admin broadcast composer backend.
+// send-feature-update. Admin broadcast composer backend.
 //
 // Called by /admin/emails → Compose tab (FeatureUpdateComposer.tsx).
 // Contract (from EMAIL-ADMIN.md):
@@ -7,7 +7,7 @@
 //
 // Rules:
 //   - Admin-gated: caller presents Jorge's JWT; is_admin() must be true.
-//   - Rate limit: 1 broadcast/hour (BROADCASTS_PER_HOUR) — protects against
+//   - Rate limit: 1 broadcast/hour (BROADCASTS_PER_HOUR). Protects against
 //     double-tap accidents. Recipient cap 500 (MAX_RECIPIENTS).
 //   - Validation: headline 1–120 chars, body 1–2000 chars, CTA needs both
 //     text and an https:// link (or neither).
@@ -19,11 +19,11 @@
 //                         AND (stripe_billing_email or email) present
 //     Excluded: trialing, canceled, complimentary.
 //     past_due IS included (locked 2026-09-09 correction): a manual nudge
-//     once got a past-due client paying immediately — staying in touch
+//     once got a past-due client paying immediately. Staying in touch
 //     recovers revenue. Their hubs are still live; they're in dunning,
 //     not churned.
 //     NOTE: personal_profiles.payment_state exists after migration
-//     20260909320000_personal_payment_state.sql — apply it before deploying
+//     20260909320000_personal_payment_state.sql. Apply it before deploying
 //     this function, or the personal query will fail.
 //   - Sends via Resend batch endpoint (100/chunk) using the canonical
 //     feature_update template; subject "TapAway update: {headline}".

@@ -7,7 +7,7 @@ const items = [
   "15 Custom TapAway NFC Cards (To Start)",
   "Printed with Your Logo + QR Code",
   "Pre-Linked to Your Google Review Page",
-  "Ready to Use — No Setup Required",
+  "Ready to Use. No Setup Required",
   "Ships in 3–5 Business Days",
   "Request More Anytime from Dashboard",
 ];
@@ -76,7 +76,7 @@ export const WhatYouGet = () => {
             className="mt-6 pt-5 border-t border-border"
           >
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Everything arrives ready to deploy — no tech headaches, no complicated setup.
+              Everything arrives ready to deploy. No tech headaches, no complicated setup.
             </p>
           </motion.div>
         </motion.div>

@@ -68,7 +68,7 @@ async function fetchImageAsBase64(url: string): Promise<{ base64: string; type: 
 
 /**
  * Canvas-based fallback for fetching images when fetch() is blocked by CORS.
- * Uses <img crossorigin> + <canvas> to extract base64 — works on Safari/iOS.
+ * Uses <img crossorigin> + <canvas> to extract base64. Works on Safari/iOS.
  */
 async function fetchImageViaCanvas(url: string): Promise<{ base64: string; type: string } | null> {
   return new Promise((resolve) => {

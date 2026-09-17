@@ -102,7 +102,7 @@ async function trimUniformBorders(imageSrc: string): Promise<string | null> {
     try {
       data = ctx.getImageData(0, 0, w, h).data;
     } catch {
-      // Tainted canvas (cross-origin without CORS) — skip trimming.
+      // Tainted canvas (cross-origin without CORS). Skip trimming.
       return null;
     }
 
@@ -376,7 +376,7 @@ export const ImageCropper = ({
           <DialogTitle>{title || "Crop your photo"}</DialogTitle>
         </DialogHeader>
 
-        {/* Cropper area — the frame matches the real banner shape */}
+        {/* Cropper area. The frame matches the real banner shape */}
         <div
           className="relative h-72"
           style={{ backgroundColor: activeFill || "#000000" }}

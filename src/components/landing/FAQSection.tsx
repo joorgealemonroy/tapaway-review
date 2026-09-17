@@ -32,12 +32,12 @@ const faqs = [
   {
     question: "What happens after 14 days?",
     answer:
-      "After your 14-day free trial, TapAway is just $20/month for Solo or $39/month for Venue — or go yearly and save: $199/year for Solo (save $41) or $390/year for Venue (2 months free). You can cancel anytime before the trial ends and you won't be charged. If you love it (most do), your card on file will be billed automatically on day 15, no action needed.",
+      "After your 14-day free trial, TapAway is just $20/month for Solo or $39/month for Venue. Or go yearly and save: $199/year for Solo (save $41) or $390/year for Venue (2 months free). You can cancel anytime before the trial ends and you won't be charged. If you love it (most do), your card on file will be billed automatically on day 15, no action needed.",
   },
   {
     question: "Will I be charged $1?",
     answer:
-      "No — never. When you start a trial, we place a temporary $1 hold to verify your card. It's released automatically — never charged.",
+      "No. Never. When you start a trial, we place a temporary $1 hold to verify your card. It's released automatically. Never charged.",
   },
   {
     question: "Can I add more locations later?",

@@ -401,7 +401,7 @@ const AdminReps = () => {
                         <TableRow key={app.id} className={isRevoked ? 'opacity-50' : ''}>
                           <TableCell className="font-medium">{app.name}</TableCell>
                           <TableCell>{app.email}</TableCell>
-                          <TableCell>{app.phone || '—'}</TableCell>
+                          <TableCell>{app.phone || 'Not available'}</TableCell>
                           <TableCell>{format(new Date(app.created_at), 'MMM d, yyyy')}</TableCell>
                           <TableCell>
                             {isRevoked ? (
@@ -450,7 +450,7 @@ const AdminReps = () => {
                                 Provision account
                               </Button>
                             )}
-                            {/* Universal purge — available on every row regardless of status */}
+                            {/* Universal purge. Available on every row regardless of status */}
                             {!(app.status === 'approved' && matchedRep) && (
                               <Button
                                 size="sm"

@@ -60,7 +60,7 @@ interface UseProfileDataResult {
   /**
    * Set when the profile exists but its subscription has lapsed (expired
    * trial, canceled, past_due, ...). Branding-only preview metadata for the
-   * graceful "trial ended" view — NOT the hub content. Status stays whatever
+   * graceful "trial ended" view. NOT the hub content. Status stays whatever
    * it is ('expired', etc.); nothing here flips it back to active.
    */
   expiredPreview: ExpiredProfilePreview | null;
@@ -70,7 +70,7 @@ interface UseProfileDataResult {
 /**
  * Branding-only public preview for a lapsed solo hub, from
  * get_public_personal_profile_status. No links, blocks, contact info, or
- * billing fields — deliberately minimal so the trial-ended banner is a
+ * billing fields. Deliberately minimal so the trial-ended banner is a
  * conversion surface, not a leak.
  */
 export interface ExpiredProfilePreview {
@@ -184,7 +184,7 @@ export function useProfileData(username: string | undefined, initialProfile?: Ca
       setError(null);
       preloadCriticalImages(result.data);
     } else if (result.kind === 'expired') {
-      // Deliberately NOT written to the live profile cache — an expired hub
+      // Deliberately NOT written to the live profile cache. An expired hub
       // must never be served from cache as if it were live, and a reactivated
       // hub must never keep showing the preview from cache.
       setData(null);

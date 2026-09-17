@@ -84,7 +84,7 @@ function extractMeta(html: string, property: string): string | null {
 function cleanTitle(raw: string): string {
   return raw
     .replace(/\s*\([@\w.]+\)\s*/g, '') // strip (@handle)
-    .replace(/\s*[|–—-]\s*(Linktree|Stan Store|Stan|Beacons|lnk\.bio|Bio Link|Campsite|LinkPop).*$/i, '')
+    .replace(/\s*[|–\u{2014}-]\s*(Linktree|Stan Store|Stan|Beacons|lnk\.bio|Bio Link|Campsite|LinkPop).*$/i, '')
     .trim();
 }
 
@@ -172,7 +172,7 @@ function extractStanStore(html: string, pageUrl: string) {
 
   // Extract product/content blocks
   const contentLinks: Array<{label: string; url: string; type: string}> = [];
-  // Match block headings — these are the product titles
+  // Match block headings. These are the product titles
   const headingRegex = /<h4[^>]+class="[^"]*block__heading[^"]*"[^>]*>([\s\S]*?)<\/h4>/gi;
   let m;
   while ((m = headingRegex.exec(html)) !== null) {
@@ -301,10 +301,10 @@ Deno.serve(async (req) => {
         console.error('Microlink error:', mlErr);
       }
 
-      // Clean up name — remove platform suffixes
+      // Clean up name. Remove platform suffixes
       if (name) {
         name = name
-          .replace(/\s*[@•·|–—-]\s*(Instagram|TikTok|YouTube|X|Twitter|Twitch|Spotify).*$/i, '')
+          .replace(/\s*[@•·|–\u{2014}-]\s*(Instagram|TikTok|YouTube|X|Twitter|Twitch|Spotify).*$/i, '')
           .replace(/\s*on\s+(Instagram|TikTok|YouTube|X|Twitter|Twitch|Spotify)$/i, '')
           .replace(/\([@\w.]+\)/g, '')
           .trim();

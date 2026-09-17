@@ -39,8 +39,8 @@ export function ConsentBanner() {
       <div className="pointer-events-auto max-w-md mx-auto rounded-2xl bg-[#101828] text-white shadow-2xl ring-1 ring-white/10 p-5">
         <p className="text-sm font-semibold">We value your privacy</p>
         <p className="text-[13px] text-white/70 mt-1 leading-relaxed">
-          We use cookies and similar tech to run TapAway and — with your
-          permission — to measure ads and reach people on Instagram and
+          We use cookies and similar tech to run TapAway and. With your
+          permission. To measure ads and reach people on Instagram and
           Facebook. Read our{" "}
           <Link to="/privacy" className="underline underline-offset-2">
             Privacy Policy

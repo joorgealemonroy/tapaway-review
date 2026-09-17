@@ -79,7 +79,7 @@ export const AffiliateAbuseFlags = () => {
           ...f,
           affiliate_id: ref?.affiliate_id || "",
           affiliate_name: ref ? (profileByUser[affUserMap[ref.affiliate_id]]?.full_name || "Unknown") : "Unknown",
-          referred_username: ref?.referred_profile_id ? (profileByIdMap[ref.referred_profile_id] || "—") : "—",
+          referred_username: ref?.referred_profile_id ? (profileByIdMap[ref.referred_profile_id] || "Not available") : "Not available",
         };
       }));
     } catch (err) {

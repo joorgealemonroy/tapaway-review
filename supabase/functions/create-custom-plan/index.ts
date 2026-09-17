@@ -114,7 +114,7 @@ function validateCreate(body: any): { ok: true; value: ValidatedCreate } | { ok:
   }
   if (amount_cents <= 0) return { ok: false, error: 'Monthly price must be greater than $0.' };
   if (amount_cents > MAX_AMOUNT_CENTS) {
-    return { ok: false, error: 'Monthly price looks too high (max $10,000/mo) — check for a typo.' };
+    return { ok: false, error: 'Monthly price looks too high (max $10,000/mo). Check for a typo.' };
   }
 
   const description = typeof body.description === 'string' ? body.description.trim() : '';
@@ -122,7 +122,7 @@ function validateCreate(body: any): { ok: true; value: ValidatedCreate } | { ok:
     return { ok: false, error: `Description must be ${MAX_DESC_LEN} characters or fewer.` };
   }
 
-  let trial_days = 0; // default OFF — in-person closes charge immediately
+  let trial_days = 0; // default OFF. In-person closes charge immediately
   if (body.trial_days !== undefined && body.trial_days !== null && body.trial_days !== '') {
     trial_days = Number(body.trial_days);
     if (!Number.isInteger(trial_days) || trial_days < 0 || trial_days > MAX_TRIAL_DAYS) {
@@ -198,10 +198,10 @@ serve(async (req) => {
       if (error) throw error;
       if (!plan) return json({ error: 'Plan not found.' }, 404);
       if (plan.is_active === false) {
-        return json({ error: 'This plan is deactivated — reactivate or create a new plan.' }, 410);
+        return json({ error: 'This plan is deactivated. Reactivate or create a new plan.' }, 410);
       }
 
-      // Payment Links accept recurring prices and are reusable — perfect
+      // Payment Links accept recurring prices and are reusable. Perfect
       // for handing a pay link to a customer on the spot.
       const link = await stripe.paymentLinks.create({
         line_items: [{ price: plan.stripe_price_id, quantity: 1 }],
@@ -268,7 +268,7 @@ serve(async (req) => {
 
     // ---------------- deactivate ----------------
     // Deactivate: sets is_active=false AND archives the Stripe product, so
-    // previously generated reusable payment links stop working — deactivating
+    // previously generated reusable payment links stop working. Deactivating
     // Jorge's side must actually stop sales, not just hide the row.
     // Existing subscriptions keep billing: archiving a product/price does not
     // cancel subscriptions that already reference them.
@@ -363,14 +363,14 @@ serve(async (req) => {
         }
         if (amount_cents <= 0) return json({ error: 'Monthly price must be greater than $0.' }, 400);
         if (amount_cents > MAX_AMOUNT_CENTS) {
-          return json({ error: 'Monthly price looks too high (max $10,000/mo) — check for a typo.' }, 400);
+          return json({ error: 'Monthly price looks too high (max $10,000/mo). Check for a typo.' }, 400);
         }
         if (amount_cents !== plan.amount_cents) {
           const priceId = await findOrCreateCustomPrice(stripe, plan.stripe_product_id, amount_cents);
           patch.amount_cents = amount_cents;
           patch.stripe_price_id = priceId;
           // Deactivate the OLD price so old payment links can't keep selling
-          // at the former rate. Existing subscriptions are unaffected —
+          // at the former rate. Existing subscriptions are unaffected 
           // deactivating a price never cancels subscriptions referencing it.
           if (plan.stripe_price_id && plan.stripe_price_id !== priceId) {
             try {

@@ -70,7 +70,7 @@ const pickCount = (events: { event_name: string; events: number }[], name: strin
   events.find((e) => e.event_name === name)?.events ?? 0;
 
 /**
- * Primary path — the analytics-report edge function over analytics_hits
+ * Primary path. The analytics-report edge function over analytics_hits
  * (human-validated traffic only; bots, previews and staff views excluded,
  * days bucketed in America/Los_Angeles server-side).
  */
@@ -134,7 +134,7 @@ async function loadEdge(profileId: string): Promise<StatsBundle> {
 }
 
 /**
- * Fallback path — the legacy personal_analytics table, for accounts whose
+ * Fallback path. The legacy personal_analytics table, for accounts whose
  * traffic predates the analytics cutover (or when the edge function hasn't
  * been deployed yet). Day bucketing here is UTC, as it always was.
  */
@@ -246,7 +246,7 @@ export const AdvancedAnalyticsTab = ({ profileId, planType, subscriptionStatus, 
       setLoadError(null);
       try {
         const bundle = await loadEdge(profileId).catch(async (edgeErr) => {
-          // Edge function not deployed (or a new action missing) — fall back
+          // Edge function not deployed (or a new action missing). Fall back
           // to the legacy table rather than showing an empty tab.
           console.warn("analytics-report unavailable for stats tab, using legacy fallback", edgeErr);
           return loadLegacy(profileId);
@@ -315,7 +315,7 @@ export const AdvancedAnalyticsTab = ({ profileId, planType, subscriptionStatus, 
           <div className="bg-card rounded-xl border border-border p-4">
             <div className="flex items-center gap-2 mb-4">
               <TrendingUp className="h-4 w-4 text-primary" />
-              <h3 className="font-semibold text-foreground text-sm">Visitors — Last 30 Days</h3>
+              <h3 className="font-semibold text-foreground text-sm">Visitors. Last 30 Days</h3>
             </div>
             <ChartContainer config={chartConfig} className="h-[200px] w-full">
               <LineChart data={dailyVisits}>
@@ -447,7 +447,7 @@ export const AdvancedAnalyticsTab = ({ profileId, planType, subscriptionStatus, 
               <Lock className="h-4 w-4" />
               Unlock Advanced Analytics
             </button>
-            <p className="text-xs text-muted-foreground mt-2">Upgrade to Pro — $20/month</p>
+            <p className="text-xs text-muted-foreground mt-2">Upgrade to Pro. $20/month</p>
           </div>
         </div>
       )}

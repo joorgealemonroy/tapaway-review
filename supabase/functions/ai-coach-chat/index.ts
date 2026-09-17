@@ -103,7 +103,7 @@ serve(async (req) => {
 
     let opportunitiesText = "";
     if (stats.opportunities && stats.opportunities.length > 0) {
-      const oppsList = stats.opportunities.map((o: { title: string; summary: string }) => `• ${o.title} — ${o.summary}`).join('\n');
+      const oppsList = stats.opportunities.map((o: { title: string; summary: string }) => `• ${o.title}. ${o.summary}`).join('\n');
       opportunitiesText = `\n\nTOP OPPORTUNITIES:\n${oppsList}`;
     }
 
@@ -113,7 +113,7 @@ CRITICAL RULES:
 1. MAX 2 sentences OR 220 characters total. If you need more, add 1-3 bullets (each under 60 chars).
 2. If there are 1★ or 2★ reviews in the data, mention the main issue FIRST, then briefly praise what works.
 3. If all reviews are 4★/5★, focus on wins and keeping standards high.
-4. Only discuss: taps, Google reviews, reply rate, timing, menu feedback, service — things TapAway affects.
+4. Only discuss: taps, Google reviews, reply rate, timing, menu feedback, service. Things TapAway affects.
 5. ZERO DOOM. Frame issues as "easy wins" or "next moves," never failures.
 6. Use emojis sparingly 🌮😊.
 

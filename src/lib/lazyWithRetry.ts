@@ -24,7 +24,7 @@ export function lazyWithRetry<T extends ComponentType<unknown>>(
       if (!isChunkLoadError(message)) throw error;
 
       try {
-        // One immediate retry — covers a transient network blip.
+        // One immediate retry. Covers a transient network blip.
         return await factory();
       } catch {
         /* fall through to the reload path */
@@ -35,7 +35,7 @@ export function lazyWithRetry<T extends ComponentType<unknown>>(
         alreadyReloaded = sessionStorage.getItem(RELOAD_FLAG) === "1";
         if (!alreadyReloaded) sessionStorage.setItem(RELOAD_FLAG, "1");
       } catch {
-        /* storage unavailable — fall back to throwing */
+        /* storage unavailable. Fall back to throwing */
       }
 
       if (!alreadyReloaded) {

@@ -264,7 +264,7 @@ export default function AdminAnalytics() {
                     {filtered.map((h) => (
                       <TableRow key={h.hub_id} className="border-white/10">
                         <TableCell>
-                          <div className="font-medium">{h.name ?? "—"}</div>
+                          <div className="font-medium">{h.name ?? "Not available"}</div>
                           <div className="text-xs text-white/50">/{h.slug ?? h.hub_id.slice(0, 8)}</div>
                         </TableCell>
                         <TableCell>{h.raw_events}</TableCell>
@@ -278,7 +278,7 @@ export default function AdminAnalytics() {
                         <TableCell>
                           {h.verified_sessions
                             ? `${Math.round((h.conversion_events / h.verified_sessions) * 100)}%`
-                            : "—"}
+                            : "Not available"}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -318,8 +318,8 @@ export default function AdminAnalytics() {
                 <CardHeader>
                   <CardTitle className="text-base">Traffic sources</CardTitle>
                   <CardDescription className="text-white/60">
-                    This page tracks no UTM campaign channels. Per-hub sources — referrer hosts, with visits
-                    that carry no referrer grouped as "Direct / NFC tap" — are shown in that hub's drill-down,
+                    This page tracks no UTM campaign channels. Per-hub sources. Referrer hosts, with visits
+                    that carry no referrer grouped as "Direct / NFC tap". Are shown in that hub's drill-down,
                     which lives on Accounts &amp; Hubs.
                   </CardDescription>
                 </CardHeader>
@@ -345,7 +345,7 @@ export default function AdminAnalytics() {
                   value={
                     overview?.verified_sessions
                       ? (overview.validated_events / overview.verified_sessions).toFixed(1)
-                      : "—"
+                      : "Not available"
                   }
                 />
               </div>
@@ -359,7 +359,7 @@ export default function AdminAnalytics() {
                   value={
                     overview?.verified_sessions
                       ? `${Math.round((overview.conversion_events / overview.verified_sessions) * 100)}%`
-                      : "—"
+                      : "Not available"
                   }
                   hint="Conversion events divided by sessions"
                 />
@@ -369,7 +369,7 @@ export default function AdminAnalytics() {
             <TabsContent value="reborn" className="mt-4 space-y-4">
               <Card className="bg-amber-500/10 border-amber-500/30 text-white">
                 <CardHeader>
-                  <CardTitle className="text-base">Frozen legacy estimate — /rebornwraps</CardTitle>
+                  <CardTitle className="text-base">Frozen legacy estimate. /rebornwraps</CardTitle>
                   <CardDescription className="text-white/70">
                     {REBORNWRAPS_LEGACY.rangeLabel}. The legacy system recorded no session or event identifiers and
                     applied no bot filtering, so these are estimates from a one-off audit. They are frozen, are not
@@ -446,7 +446,7 @@ export default function AdminAnalytics() {
                   <CardDescription className="text-white/60">
                     Consent categories, GPC handling and the privacy-choices centre ship in the next phase. Current
                     retention: raw events 400 days, IP-derived hashes 7 days, Meta logs 90 days, consent records 730
-                    days — enforced nightly by an automated job.
+                    days. Enforced nightly by an automated job.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>

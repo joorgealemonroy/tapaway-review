@@ -45,7 +45,7 @@ export const SettingsTab = ({ restaurantId }: SettingsTabProps) => {
 
   // Unsaved-changes tracking: snapshot of the last-saved settings. The
   // dashboard shell warns before switching tabs or closing while dirty.
-  // Note: the logo upload and the greeting editor save immediately —
+  // Note: the logo upload and the greeting editor save immediately 
   // their handlers re-sync the snapshot so they don't false-positive.
   const restaurantRef = useRef<Restaurant | null>(null);
   const snapshotRef = useRef<string | null>(null);
@@ -128,7 +128,7 @@ export const SettingsTab = ({ restaurantId }: SettingsTabProps) => {
 
   const saveSettings = async () => {
     if (!restaurant) return;
-    // Double-click guard — without it, two rapid saves fire duplicate updates.
+    // Double-click guard. Without it, two rapid saves fire duplicate updates.
     if (saving) return;
 
     // Validate URLs before saving
@@ -273,7 +273,7 @@ export const SettingsTab = ({ restaurantId }: SettingsTabProps) => {
       <SettingsGreeting
         restaurant={restaurant}
         onUpdated={(updated) => {
-          // Greeting saves itself immediately — keep the unsaved-changes
+          // Greeting saves itself immediately. Keep the unsaved-changes
           // snapshot in sync so it doesn't false-positive as dirty.
           const next = { ...restaurant, ...updated };
           setRestaurant(next);
@@ -510,7 +510,7 @@ export const SettingsTab = ({ restaurantId }: SettingsTabProps) => {
         </div>
       </Card>
 
-      {/* Developer Reset — admin only */}
+      {/* Developer Reset. Admin only */}
       {isAdmin && (
         <div className="flex justify-center pt-4 pb-2">
           <DeveloperResetButton />

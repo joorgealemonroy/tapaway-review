@@ -101,7 +101,7 @@ function ShopLockedPreview() {
       <div className="space-y-2">
         <h3 className="text-xl font-bold text-foreground">Sell Digital Products</h3>
         <p className="text-sm text-muted-foreground">
-          Turn your profile into a storefront. Sell courses, PDFs, templates, presets, and more — directly to your audience.
+          Turn your profile into a storefront. Sell courses, PDFs, templates, presets, and more. Directly to your audience.
         </p>
       </div>
       <ul className="text-left space-y-3 text-sm text-muted-foreground">
@@ -648,14 +648,14 @@ export function PersonalShopTab({
             <CardTitle className="text-xl">Sell Digital Products</CardTitle>
             <p className="text-sm text-muted-foreground mt-2">
               Sell PDFs, courses, videos, and coaching sessions directly from your profile.
-              Payments go to your own Stripe account — you keep full control of payouts, refunds, and disputes.
+              Payments go to your own Stripe account. You keep full control of payouts, refunds, and disputes.
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-3 text-sm text-muted-foreground">
               <div className="flex items-start gap-3">
                 <DollarSign className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                <span>Direct Stripe payouts to your bank — no middleman.</span>
+                <span>Direct Stripe payouts to your bank. No middleman.</span>
               </div>
               <div className="flex items-start gap-3">
                 <Upload className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
@@ -668,7 +668,7 @@ export function PersonalShopTab({
             </div>
 
             <Button disabled className="w-full" size="lg">
-              Connect Stripe — available after activation
+              Connect Stripe. Available after activation
             </Button>
             <p className="text-xs text-center text-muted-foreground">
               You'll connect your payout account once you activate a paid plan.
@@ -679,7 +679,7 @@ export function PersonalShopTab({
     );
   }
 
-  // Not onboarded yet — show Connect Stripe
+  // Not onboarded yet. Show Connect Stripe
   if (!isStripeOnboarded) {
     return (
       <div className="space-y-6">
@@ -691,14 +691,14 @@ export function PersonalShopTab({
             <CardTitle className="text-xl">Sell Digital Products</CardTitle>
             <p className="text-sm text-muted-foreground mt-2">
               Sell PDFs, courses, and videos directly from your TapAway profile.
-              Connect your Stripe account to get started — you'll collect payments directly.
+              Connect your Stripe account to get started. You'll collect payments directly.
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-3 text-sm text-muted-foreground">
               <div className="flex items-start gap-3">
                 <DollarSign className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                <span>Payments go directly to your Stripe account — you're in full control of refunds and disputes.</span>
+                <span>Payments go directly to your Stripe account. You're in full control of refunds and disputes.</span>
               </div>
               <div className="flex items-start gap-3">
                 <Upload className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
@@ -706,7 +706,7 @@ export function PersonalShopTab({
               </div>
               <div className="flex items-start gap-3">
                 <ExternalLink className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                <span>Products appear as a "Shop" section on your public profile — no extra setup needed.</span>
+                <span>Products appear as a "Shop" section on your public profile. No extra setup needed.</span>
               </div>
             </div>
 
@@ -757,7 +757,7 @@ export function PersonalShopTab({
     );
   }
 
-  // Onboarded — show product management
+  // Onboarded. Show product management
   return (
     <div className="space-y-6">
       {/* Shop toggle */}
@@ -792,7 +792,7 @@ export function PersonalShopTab({
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-foreground">TapAway Commission</span>
                   <span className="text-sm font-bold text-emerald-600 flex items-center gap-1">
-                    <CheckCircle2 className="h-3.5 w-3.5" /> 0% — Always free
+                    <CheckCircle2 className="h-3.5 w-3.5" /> 0%. Always free
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
@@ -856,7 +856,7 @@ export function PersonalShopTab({
                   How do payouts work?
                 </AccordionTrigger>
                 <AccordionContent className="text-sm text-muted-foreground leading-relaxed">
-                  At TapAway, we believe you should keep what you earn. That's why we take <strong className="text-foreground">0% commission</strong> on your sales. Payments go directly to your Stripe account — we never touch your money. All credit card transactions include a standard processing fee handled by Stripe, the industry leader in payment security.
+                  At TapAway, we believe you should keep what you earn. That's why we take <strong className="text-foreground">0% commission</strong> on your sales. Payments go directly to your Stripe account. We never touch your money. All credit card transactions include a standard processing fee handled by Stripe, the industry leader in payment security.
                 </AccordionContent>
               </AccordionItem>
               <AccordionItem value="minimum" className="border rounded-lg px-4">
@@ -864,7 +864,7 @@ export function PersonalShopTab({
                   Why is there a $5 minimum?
                 </AccordionTrigger>
                 <AccordionContent className="text-sm text-muted-foreground leading-relaxed">
-                  Stripe charges a flat <strong className="text-foreground">$0.30 per transaction</strong>. On a $1.00 item, that fee eats 30% of your sale before anything else. On a $10.00 item, that same fee is only 3%. The $5.00 minimum exists to protect your profits — the higher your price, the smaller the impact of processing fees!
+                  Stripe charges a flat <strong className="text-foreground">$0.30 per transaction</strong>. On a $1.00 item, that fee eats 30% of your sale before anything else. On a $10.00 item, that same fee is only 3%. The $5.00 minimum exists to protect your profits. The higher your price, the smaller the impact of processing fees!
                 </AccordionContent>
               </AccordionItem>
               <AccordionItem value="tap-to-pay" className="border rounded-lg px-4">
@@ -1055,7 +1055,7 @@ export function PersonalShopTab({
               <Textarea 
                 value={longDescription} 
                 onChange={e => setLongDescription(e.target.value)} 
-                placeholder="Sell your product — tell buyers everything they need to know. Supports line breaks." 
+                placeholder="Sell your product. Tell buyers everything they need to know. Supports line breaks." 
                 rows={5} 
               />
               <p className="text-xs text-muted-foreground">Shown in the product preview modal. Supports line breaks.</p>
@@ -1316,7 +1316,7 @@ export function PersonalShopTab({
               className="w-full border-amber-500/50 text-amber-600 hover:bg-amber-500/10"
             >
               <Terminal className="h-4 w-4 mr-2" />
-              Test Console — Webhook Monitor
+              Test Console. Webhook Monitor
               <ChevronDown className={`h-4 w-4 ml-auto transition-transform ${testConsoleOpen ? "rotate-180" : ""}`} />
             </Button>
           </CollapsibleTrigger>

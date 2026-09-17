@@ -14,7 +14,7 @@ const CANVA_TEMPLATE_URL = 'https://canva.link/tapaway-temp';
 const ENCOURAGEMENTS = [
   'Every demo is a door opened.',
   'One great hub can change a business owner\'s week.',
-  'Hard work beats talent when talent fails to work hard — ship the next demo.',
+  'Hard work beats talent when talent fails to work hard. Ship the next demo.',
   'You\'re building someone\'s digital storefront. That matters.',
   'Consistency is the whole game. Keep going.',
 ];
@@ -90,7 +90,7 @@ const RepHome = () => {
   return (
     <RepShell
       title={`Welcome back, ${firstName}`}
-      subtitle="Your daily cockpit — stay focused on building great hubs."
+      subtitle="Your daily cockpit. Stay focused on building great hubs."
     >
       <RepTaxBanner status={taxStatus} repId={salesRep?.id} />
 
@@ -115,7 +115,7 @@ const RepHome = () => {
             </p>
             <p className="text-sm text-white/50 mt-2">
               {demosThisWeek === 0
-                ? 'Fresh week — your first demo is one click away.'
+                ? 'Fresh week. Your first demo is one click away.'
                 : `You've started ${demosThisWeek} ${demosThisWeek === 1 ? 'hub' : 'hubs'} in the last 7 days. Keep the streak alive.`}
             </p>
           </div>

@@ -124,7 +124,7 @@ CREATE POLICY "Admins can manage rep payments" ON public.rep_payments
 
 -- Seed: the $500 payment Jorge made to Diego on 2026-09-09.
 -- Matches the sales_reps row by name (case-insensitive); does nothing if no
--- Diego row exists or if this exact seed row already exists — in that case
+-- Diego row exists or if this exact seed row already exists. In that case
 -- use the manual snippet in FULFILLMENT-PIPELINE.md to insert it.
 INSERT INTO public.rep_payments (sales_rep_id, amount, paid_at, note)
 SELECT r.id, 500, '2026-09-09'::date, 'paid 2026-09-09'

@@ -35,7 +35,7 @@ serve(async (req) => {
       );
     }
 
-    // Verify ownership (or admin) — email/currentUsername are derived server-side.
+    // Verify ownership (or admin). Email/currentUsername are derived server-side.
     const admin = adminClient();
     const { data: profile, error: profileError } = await admin
       .from("personal_profiles")

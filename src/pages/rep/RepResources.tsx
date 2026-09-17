@@ -10,13 +10,13 @@ import { toast } from 'sonner';
 
 const CANVA_URL = 'https://canva.link/tapaway-temp';
 
-const GIFT_DROP_SCRIPT = `Hey [Owner Name] — I've got a little gift for you.
+const GIFT_DROP_SCRIPT = `Hey [Owner Name]. I've got a little gift for you.
 
-I noticed [Restaurant Name] has some incredible reviews already, and I built you a free custom review hub to help you get even more. It's live right now — I'll leave the demo card on the counter so you can see exactly how it works.
+I noticed [Restaurant Name] has some incredible reviews already, and I built you a free custom review hub to help you get even more. It's live right now. I'll leave the demo card on the counter so you can see exactly how it works.
 
 Here's how it works in 3 taps:
 1. Customer taps the card on their phone (no app needed)
-2. Your custom hub opens instantly — logo, photos, menu
+2. Your custom hub opens instantly. Logo, photos, menu
 3. One tap sends them straight to your Google review page
 
 I'm not here to pitch you anything today. Just wanted to drop this off, let you play with it, and if you love it we can talk later this week about keeping it live permanently for less than the price of one lost customer.
@@ -25,24 +25,24 @@ Cool? Enjoy the free week. I'll swing back Friday.`;
 
 const DEMO_HUB_GUIDE = [
   {
-    step: 'Step 1 — Scout the venue (30 seconds)',
+    step: 'Step 1. Scout the venue (30 seconds)',
     body: 'Walk in. Check for review cards on tables. Look up their Google rating. If they have < 100 reviews, they are a perfect target.',
   },
   {
-    step: 'Step 2 — Build the demo hub (2 minutes)',
+    step: 'Step 2. Build the demo hub (2 minutes)',
     body: 'Tap "New Demo Hub". Enter the business name + owner phone. Grab their logo + 2 photos from their Instagram. Paste their Google Review URL. Save.',
   },
   {
-    step: 'Step 3 — Print the card (1 minute)',
+    step: 'Step 3. Print the card (1 minute)',
     body: 'Upload the print-ready PDF (from the Canva template). It attaches to the hub. Print at any office supply store.',
   },
   {
-    step: 'Step 4 — Drop the gift (1 minute)',
+    step: 'Step 4. Drop the gift (1 minute)',
     body: 'Walk in with the card + the Gift Drop script. Leave the card. Do not pitch. Let the product speak for itself for 5 days.',
   },
   {
-    step: 'Step 5 — Follow up (1 minute)',
-    body: 'The system SMS-reminds you at 48h. Swing back Friday. Ask "did you love it?" — if yes, walk them through the paywall. That is your commission.',
+    step: 'Step 5. Follow up (1 minute)',
+    body: 'The system SMS-reminds you at 48h. Swing back Friday. Ask "did you love it?". If yes, walk them through the paywall. That is your commission.',
   },
 ];
 

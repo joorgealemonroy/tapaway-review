@@ -79,7 +79,7 @@ export function isSafeExternalUrl(raw: string, opts?: { allowHttp?: boolean; all
       a >= 224 // multicast / reserved
     ) return false;
   }
-  // IPv6 literal check — reject anything with a colon (link-local, ULA, loopback)
+  // IPv6 literal check. Reject anything with a colon (link-local, ULA, loopback)
   if (host.includes(":")) return false;
 
   if (opts?.allowHosts && opts.allowHosts.length > 0) {

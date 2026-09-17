@@ -58,7 +58,7 @@ export interface SignupData {
 }
 
 function getFriendlyValue(_type: string): string {
-  // Return empty — placeholder text is shown via HTML placeholder attribute
+  // Return empty. Placeholder text is shown via HTML placeholder attribute
   return "";
 }
 
@@ -303,7 +303,7 @@ const PersonalSignup = () => {
       });
     });
 
-    // Apply style — force free users to "color" header (banner/image are Pro-only)
+    // Apply style. Force free users to "color" header (banner/image are Pro-only)
     const isVipCard = onboardingData.cardChoice === "custom" || onboardingData.cardChoice === "basic";
     const isPaid = onboardingData.planType === "monthly" || onboardingData.planType === "yearly" || onboardingData.planType === "vip";
     const effectiveHeaderType = (!isPaid && !isVipCard && (template.headerType === "banner" || template.headerType === "image"))

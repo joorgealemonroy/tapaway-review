@@ -44,7 +44,7 @@ const COACH_STEPS: CoachMarkStep[] = [
     id: "share",
     targetId: "profile-url",
     title: "You're All Set!",
-    message: "Share your profile link anywhere — on social media, email, or in person.",
+    message: "Share your profile link anywhere. On social media, email, or in person.",
     position: "bottom",
   },
 ];

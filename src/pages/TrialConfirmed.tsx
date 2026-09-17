@@ -109,7 +109,7 @@ const TrialConfirmed = () => {
             transition={{ duration: 0.5, delay: 1 }}
             className="text-center text-sm text-muted-foreground"
           >
-            You don't need to do anything right now — we'll take care of the setup.
+            You don't need to do anything right now. We'll take care of the setup.
           </motion.p>
 
           {/* CTA */}

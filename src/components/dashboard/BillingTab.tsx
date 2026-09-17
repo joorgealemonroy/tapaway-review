@@ -118,7 +118,7 @@ export const BillingTab = ({ restaurant, isTestAccount, isGrandfathered }: Billi
             <div className="flex items-center gap-3 p-4 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
               <Clock className="w-5 h-5 text-blue-500 shrink-0" />
               <p className="text-sm text-blue-700 dark:text-blue-300 font-medium">
-                Your trial is active — you'll be moved to a paid plan soon.
+                Your trial is active. You'll be moved to a paid plan soon.
               </p>
             </div>
           )}

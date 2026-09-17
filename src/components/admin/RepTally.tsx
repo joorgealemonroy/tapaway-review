@@ -1,11 +1,11 @@
-// RepTally — human-readable "$5/demo what do I owe" readout for Jorge.
+// RepTally. Human-readable "$5/demo what do I owe" readout for Jorge.
 // Earned = demos created that month (created_by_rep_id) × $5.
 // Paid = sum of rep_payments rows for the rep. Owed = earned − paid.
 //
 // IMPORTANT: this is not the commission system. The actual $5 payout rows
 // in the `commissions` table are written by the `award-demo-commission`
 // edge function at approval time. This tally deliberately counts DEMOS
-// CREATED (pre-approval), so it can differ from awarded commissions —
+// CREATED (pre-approval), so it can differ from awarded commissions 
 // see the "Why might earned and awarded differ?" note in the doc block
 // and in FULFILLMENT-PIPELINE.md.
 

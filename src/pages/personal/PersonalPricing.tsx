@@ -6,7 +6,7 @@ import { PERSONAL_PRICING } from "@/lib/personalConfig";
 
 const STEPS = [
   { icon: User, title: "Pick a username", desc: "Choose your unique tapaway.co/username" },
-  { icon: Link2, title: "Add your links and info", desc: "Instagram, TikTok, payments, contact card — all in one place" },
+  { icon: Link2, title: "Add your links and info", desc: "Instagram, TikTok, payments, contact card. All in one place" },
   { icon: QrCode, title: "Share it everywhere", desc: "Text your link, post it in your bio, or use a TapAway card" },
 ];
 
@@ -53,7 +53,7 @@ const PersonalPricing = () => {
             <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
               All Your Links,<br />One TapAway
             </h1>
-            <p className="text-muted-foreground mt-2">Starting at ${PERSONAL_PRICING.monthly}/month — or ${PERSONAL_PRICING.yearly}/year and save ${PERSONAL_PRICING.monthly * 12 - PERSONAL_PRICING.yearly}</p>
+            <p className="text-muted-foreground mt-2">Starting at ${PERSONAL_PRICING.monthly}/month. Or ${PERSONAL_PRICING.yearly}/year and save ${PERSONAL_PRICING.monthly * 12 - PERSONAL_PRICING.yearly}</p>
           </div>
 
           <Button

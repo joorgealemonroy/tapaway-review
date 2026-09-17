@@ -1,6 +1,6 @@
 /**
  * Canonical public site URL.
- * Always tapaway.co — never window.location.origin, which can be a
+ * Always tapaway.co. Never window.location.origin, which can be a
  * lovable.app preview host. Client-facing links (SMS, emails, claim links,
  * hub links) must never expose Lovable.
  */

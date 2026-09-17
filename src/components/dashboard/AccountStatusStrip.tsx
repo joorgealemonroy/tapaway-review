@@ -6,12 +6,12 @@ import { isSubscriptionAllowed } from "@/lib/subscriptionStatus";
 import { cn } from "@/lib/utils";
 
 /**
- * AccountStatusStrip — the "here's where things stand" header for client
+ * AccountStatusStrip. The "here's where things stand" header for client
  * dashboards. Shows the plan name, hub Live/Paused state, and trial countdown
  * (or "Complimentary" for comped accounts, which are never gated or nagged).
  *
  * When the hub is paused (lapsed trial), it explains it in plain language
- * and renders `pausedAction` — e.g. a Reactivate button linking to
+ * and renders `pausedAction`. E.g. a Reactivate button linking to
  * `/paywall?restaurant=<id>`. Complimentary accounts never see the paused
  * state.
  */
@@ -120,7 +120,7 @@ export const AccountStatusStrip = ({
             </div>
             <p className="text-sm text-muted-foreground mt-0.5">
               {complimentary ? (
-                "Free forever — on the house."
+                "Free forever. On the house."
               ) : daysLeft !== null ? (
                 <>
                   {daysLeft === 0 ? (
@@ -143,7 +143,7 @@ export const AccountStatusStrip = ({
         </div>
       </div>
 
-      {/* Paused banner — plain language, always with a way forward. */}
+      {/* Paused banner. Plain language, always with a way forward. */}
       {!live && (
         <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
@@ -154,7 +154,7 @@ export const AccountStatusStrip = ({
                   Your hub is paused.
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Taps and scans aren&rsquo;t reaching your page right now — but
+                  Taps and scans aren&rsquo;t reaching your page right now. But
                   your setup is saved, nothing is lost. Reactivate and you&rsquo;re
                   back live in a minute.
                 </p>

@@ -1,11 +1,11 @@
-// EmailHistory — the /admin/emails send-history tab.
+// EmailHistory. The /admin/emails send-history tab.
 //
 // Reads public.email_sends (built by the backend sibling):
 //   email_sends(id, to_email, template_key, subject, status, resend_id,
 //               error, sent_at, opened_at)
 // Searchable by recipient, filterable by template + status, newest first.
 // Row tap → detail dialog (resend_id, error, timestamps). Email BODIES are
-// never shown here (PII rule) — only metadata.
+// never shown here (PII rule). Only metadata.
 // Honest empty state: "No emails sent yet." If the table isn't there yet
 // (backend sibling still building), says so plainly instead of crashing.
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -164,7 +164,7 @@ export default function EmailHistory() {
                       hour: "numeric",
                       minute: "2-digit",
                     })
-                  : "—"}
+                  : "Not available"}
               </span>
             </div>
             <p className="text-sm text-white/90 truncate">{r.to_email}</p>
@@ -271,7 +271,7 @@ export default function EmailHistory() {
                 <div>
                   <dt className="text-[11px] uppercase tracking-wide text-white/40">Sent</dt>
                   <dd className="text-white/90 text-xs">
-                    {selected.sent_at ? new Date(selected.sent_at).toLocaleString() : "—"}
+                    {selected.sent_at ? new Date(selected.sent_at).toLocaleString() : "Not available"}
                   </dd>
                 </div>
                 <div>

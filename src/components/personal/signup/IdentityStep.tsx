@@ -262,7 +262,7 @@ export const IdentityStep = ({ formData, updateFormData, onNext, isLoading, setI
       {isOAuthUser && (
         <div className="flex items-center gap-2 rounded-lg bg-muted/50 border border-border px-4 py-3 text-sm text-muted-foreground">
           <Check className="h-4 w-4 text-green-500 shrink-0" />
-          Signed in — confirm your name and pick a username
+          Signed in. Confirm your name and pick a username
         </div>
       )}
 
@@ -373,7 +373,7 @@ export const IdentityStep = ({ formData, updateFormData, onNext, isLoading, setI
                 type="button"
                 onClick={() => {
                   updateFormData({ planType: "yearly" });
-                  toast("Upgraded to Pro — you'll get unlimited links and the 'tap' prefix removed.");
+                  toast("Upgraded to Pro. You'll get unlimited links and the 'tap' prefix removed.");
                 }}
                 className="text-xs text-muted-foreground underline cursor-pointer flex items-center gap-1"
               >
@@ -385,7 +385,7 @@ export const IdentityStep = ({ formData, updateFormData, onNext, isLoading, setI
         )}
       </div>
 
-      {/* Password — hidden for OAuth and card pre-authed users */}
+      {/* Password. Hidden for OAuth and card pre-authed users */}
       {!isOAuthUser && !isCardPreAuthed && (
         <div className="space-y-2">
           <Label htmlFor="password" className="text-sm font-medium text-foreground">

@@ -40,7 +40,7 @@ type ErrorGroup = {
  */
 const normalizeMessage = (msg: string) =>
   msg
-    // Reporter-generated occurrence id, e.g. "[err_1788092134640_qqy00k] " —
+    // Reporter-generated occurrence id, e.g. "[err_1788092134640_qqy00k] " 
     // unique per occurrence, so it must never reach the fingerprint.
     .replace(/^\s*\[err_[a-z0-9_]+\]\s*/i, "")
     .replace(/https?:\/\/\S+/g, "<url>")
@@ -244,8 +244,8 @@ const AdminErrors = () => {
                       {[
                         `Fingerprint: ${g.fingerprint}`,
                         `Occurrences: ${g.occurrences.length}`,
-                        `Route: ${latest.route ?? "—"}`,
-                        `User agent: ${latest.user_agent ?? "—"}`,
+                        `Route: ${latest.route ?? "Not available"}`,
+                        `User agent: ${latest.user_agent ?? "Not available"}`,
                         "",
                         "Stack:",
                         latest.stack_trace ?? "(none)",

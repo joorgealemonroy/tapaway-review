@@ -114,13 +114,13 @@ function ProfilePreviewRendererComponent({
   onLinkClick,
 }: ProfilePreviewRendererProps) {
   // Cover image (set in the Design tab). This is the ONLY header decoration
-  // rendered now — legacy header_type values are stored but not honored.
+  // rendered now. Legacy header_type values are stored but not honored.
   const coverImageUrl = profile.header_image_url
     ? getOptimizedImageUrl(profile.header_image_url, 400, 80)
     : null;
   const hasCover = !!coverImageUrl;
   // Full-bleed photo banner (header_type === "banner"): the profile photo is
-  // the header, shown big up top — mirrors the live hub page.
+  // the header, shown big up top. Mirrors the live hub page.
   const isBannerHeader =
     profile.header_type === "banner" && !!profile.profile_photo_url;
   // Legacy header color kept only as a small block accent; it no longer
@@ -372,7 +372,7 @@ function ProfilePreviewRendererComponent({
     const platform = getPlatformConfig(link.link_type);
     const Icon = platform?.icon;
 
-    // Email link — inline bar with email + Connect button
+    // Email link. Inline bar with email + Connect button
     if (link.link_type === "email") {
       const emailAddress = link.url.replace(/^mailto:/i, "");
       return (
@@ -824,7 +824,7 @@ function ProfilePreviewRendererComponent({
       )}
       {/* Header or Banner */}
       <div className="relative w-full">
-        {/* Full-bleed photo banner — the profile photo IS the header */}
+        {/* Full-bleed photo banner. The profile photo IS the header */}
         {isBannerHeader ? (
           <div className="h-56 overflow-hidden relative">
             <img

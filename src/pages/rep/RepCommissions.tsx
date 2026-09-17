@@ -59,7 +59,7 @@ const typeLabel = (c: Commission) => {
   const ct = c.commission_type || c.type;
   switch (ct) {
     case 'demo_bonus': return 'Demo Bonus ($5)';
-    default: return ct || '—';
+    default: return ct || 'Not available';
   }
 };
 
@@ -127,7 +127,7 @@ const RepCommissions = () => {
         const { data: allComm } = await supabase
           .from('commissions').select('amount, status').eq('rep_id', salesRep.id);
 
-        // Count demos submitted for admin review but not yet approved — these
+        // Count demos submitted for admin review but not yet approved. These
         // will each earn a $5 demo bonus on approval but have no payout row yet.
         const { count: pendingDemoCount } = await supabase
           .from('personal_profiles')
@@ -168,7 +168,7 @@ const RepCommissions = () => {
   const w9Label =
     taxStatus === 'approved' ? 'On file' :
     taxStatus === 'submitted' ? 'Pending review' :
-    taxStatus === 'rejected' ? 'Rejected — re-upload' : 'Missing';
+    taxStatus === 'rejected' ? 'Rejected. Re-upload' : 'Missing';
   const w9Ok = taxStatus === 'approved';
   const w9Warn = taxStatus === 'submitted';
 
@@ -235,7 +235,7 @@ const RepCommissions = () => {
         <p className="font-semibold text-white/80">How you get paid</p>
         <p className="mt-1">
           You earn <strong className="text-emerald-300">$5 for every demo hub you build that an admin approves</strong>.
-          That's the whole deal — there are no commissions, no closing pay, no bonuses, no tiers, and no recurring
+          That's the whole deal. There are no commissions, no closing pay, no bonuses, no tiers, and no recurring
           payments of any kind. The rows below are your record of those $5 demo payouts.
         </p>
       </div>
@@ -330,7 +330,7 @@ const RepCommissions = () => {
               className="grid grid-cols-2 md:grid-cols-[1fr_2fr_1.2fr_1fr_1fr] gap-2 md:gap-4 px-5 py-3.5 border-b border-white/5 last:border-b-0 items-center text-sm"
             >
               <div className="text-white/60">{format(new Date(`${earnedDay(c)}T12:00:00`), 'MMM d, yyyy')}</div>
-              <div className="text-white/90">{c.restaurant_name || '—'}</div>
+              <div className="text-white/90">{c.restaurant_name || 'Not available'}</div>
               <div>
                 <span className="inline-flex items-center px-2 py-0.5 rounded-md border border-white/10 bg-white/[0.03] text-white/70 text-[11px] font-medium">
                   {typeLabel(c)}
@@ -347,7 +347,7 @@ const RepCommissions = () => {
         )}
       </RepCard>
 
-      {/* 1099 / payout terms — must stay visible on the earnings surface. */}
+      {/* 1099 / payout terms. Must stay visible on the earnings surface. */}
       <div className="mt-6 rounded-2xl border border-white/5 bg-white/[0.02] p-4 text-[11px] leading-relaxed text-white/45">
         <p className="mb-2 font-semibold uppercase tracking-widest text-white/40">Independent contractor terms</p>
         <p className="mb-2">

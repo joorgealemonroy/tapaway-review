@@ -13,18 +13,18 @@ const CANVA_URL = 'https://canva.link/tapaway-temp';
 
 const SETUP_STEPS = [
   { title: 'Scout & drop the card', body: 'Walk in casually with the branded envelope containing 5 sample cards and the printed demo hub QR. Ask for the owner, hand them the gift, drop the pitch script.' },
-  { title: 'Send the demo hub link', body: 'While there, pull up their pre-built demo hub on your phone. Show the review flow — Google, Yelp, Instagram, menu — all in one tap. Text them the link before leaving.' },
-  { title: 'Follow up in 24h', body: 'Text: "Any thoughts on the hub? Happy to activate — Solo is $20/mo or Venue is $39/mo, with a 7-day free trial included."' },
-  { title: 'Activate & mark converted', body: 'Send them the Stripe checkout link. When they subscribe, mark the pipeline row as Paying Customer — every conversion counts toward your monthly Closer\'s Pool ($250 at 10, $600 at 20, $1,200 at 35).' },
+  { title: 'Send the demo hub link', body: 'While there, pull up their pre-built demo hub on your phone. Show the review flow. Google, Yelp, Instagram, menu. All in one tap. Text them the link before leaving.' },
+  { title: 'Follow up in 24h', body: 'Text: "Any thoughts on the hub? Happy to activate. Solo is $20/mo or Venue is $39/mo, with a 7-day free trial included."' },
+  { title: 'Activate & mark converted', body: 'Send them the Stripe checkout link. When they subscribe, mark the pipeline row as Paying Customer. Every conversion counts toward your monthly Closer\'s Pool ($250 at 10, $600 at 20, $1,200 at 35).' },
   { title: 'Upload the print PDF', body: 'Design their permanent card in Canva using the template, export as PDF, and attach it to the business row so ops can ship the physical cards.' },
 ];
 
 const OBJECTIONS = [
-  { q: 'We already ask for reviews.', a: 'TapAway removes the awkward ask entirely. Your staff just place the card down when a customer says something positive — guests tap it out of curiosity and leave reviews on their own. No scripts, no pressure.' },
-  { q: 'My staff won\'t remember to use it.', a: 'They don\'t need to remember every table. Only after a positive moment. That single behavior converts 10x better than any script — and it\'s the only rule.' },
-  { q: 'We already use QR codes.', a: 'Great — you\'re already thinking digitally. TapAway isn\'t competing with QR. NFC taps are instant, feel premium, and only activate after positive moments — which naturally protects your rating instead of exposing it to bad reviews from angry customers scanning a QR at the door.' },
-  { q: 'Will this really move ranking?', a: 'Yes. Even 1 extra 5-star review per day compounds. Google surfaces businesses with fresh, consistent reviews above stale competitors — that\'s directly measurable in Maps ranking.' },
-  { q: 'What if customers leave a bad review?', a: 'TapAway never filters, gates or screens reviews — that would violate Google\'s policies and FTC rules, and you must never coach a business to hide the card from unhappy guests or offer anything in exchange for a review. The card stays out for every customer equally. Honest feedback is the product: businesses that respond well to it rank better over time.' },
+  { q: 'We already ask for reviews.', a: 'TapAway removes the awkward ask entirely. Your staff just place the card down when a customer says something positive. Guests tap it out of curiosity and leave reviews on their own. No scripts, no pressure.' },
+  { q: 'My staff won\'t remember to use it.', a: 'They don\'t need to remember every table. Only after a positive moment. That single behavior converts 10x better than any script. And it\'s the only rule.' },
+  { q: 'We already use QR codes.', a: 'Great. You\'re already thinking digitally. TapAway isn\'t competing with QR. NFC taps are instant, feel premium, and only activate after positive moments. Which naturally protects your rating instead of exposing it to bad reviews from angry customers scanning a QR at the door.' },
+  { q: 'Will this really move ranking?', a: 'Yes. Even 1 extra 5-star review per day compounds. Google surfaces businesses with fresh, consistent reviews above stale competitors. That\'s directly measurable in Maps ranking.' },
+  { q: 'What if customers leave a bad review?', a: 'TapAway never filters, gates or screens reviews. That would violate Google\'s policies and FTC rules, and you must never coach a business to hide the card from unhappy guests or offer anything in exchange for a review. The card stays out for every customer equally. Honest feedback is the product: businesses that respond well to it rank better over time.' },
   { q: 'How much does it cost the restaurant?', a: 'Solo is $20/mo, or $39/mo for Venue. 7-day free trial. Cancel anytime. Physical cards, hub, AI review-reply coach, and analytics are all included.' },
 ];
 
@@ -87,7 +87,7 @@ const RepDocs = () => {
               <Palette className="h-5 w-5 text-purple-300" />
             </div>
             <p className="text-sm font-semibold text-white">Canva Template</p>
-            <p className="text-xs text-white/50 mt-1">Design your business card PDFs — open the shared template.</p>
+            <p className="text-xs text-white/50 mt-1">Design your business card PDFs. Open the shared template.</p>
             <p className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-purple-300">
               Open in Canva <ExternalLink className="h-3 w-3" />
             </p>

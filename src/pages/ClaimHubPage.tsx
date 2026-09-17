@@ -72,7 +72,7 @@ const PLAN_OPTIONS: {
     price: PRICING.annual.display,
     interval: PRICING.annual.interval,
     blurb: PRICING.annual.blurb,
-    badge: "Best value — save $41/yr",
+    badge: "Best value. Save $41/yr",
     cards: "Your printed cards included",
   },
 ];
@@ -91,7 +91,7 @@ const BENEFITS: { icon: React.ReactNode; title: string; body: string }[] = [
   {
     icon: <QrCode className="h-4 w-4" />,
     title: "Tap and scan cards",
-    body: "Physical NFC and QR cards on your counter — no app for customers to download.",
+    body: "Physical NFC and QR cards on your counter. No app for customers to download.",
   },
   {
     icon: <BarChart3 className="h-4 w-4" />,
@@ -303,7 +303,7 @@ export default function ClaimHubPage() {
             </Button>
           </div>
           <p className="text-[11px] text-white/40">
-            No need to open your dashboard now — the access email works whenever you're ready.
+            No need to open your dashboard now. The access email works whenever you're ready.
           </p>
         </div>
       </div>
@@ -322,7 +322,7 @@ export default function ClaimHubPage() {
       </Helmet>
 
       <div className="max-w-lg mx-auto space-y-10">
-        {/* 1 — personalized intro */}
+        {/* 1. Personalized intro */}
         <section className="text-center space-y-4">
           {summary.profile_photo_url && (
             <img
@@ -350,7 +350,7 @@ export default function ClaimHubPage() {
           )}
         </section>
 
-        {/* 2 — what TapAway does */}
+        {/* 2. What TapAway does */}
         <section className="space-y-3">
           <h2 className="text-sm font-semibold text-white/80">What TapAway does for you</h2>
           <div className="grid gap-3">
@@ -371,7 +371,7 @@ export default function ClaimHubPage() {
           </div>
         </section>
 
-        {/* 3 — already prepared */}
+        {/* 3. Already prepared */}
         <section className="space-y-3">
           <h2 className="text-sm font-semibold text-white/80">
             Already prepared for {summary.display_name}
@@ -388,13 +388,13 @@ export default function ClaimHubPage() {
             <div className="flex items-start gap-2.5 pt-1">
               <MapPin className="h-4 w-4 text-primary mt-0.5 shrink-0" />
               <span className="text-sm text-white/50">
-                Done-for-you setup — nothing for you to build.
+                Done-for-you setup. Nothing for you to build.
               </span>
             </div>
           </Card>
         </section>
 
-        {/* 4 — choose a plan */}
+        {/* 4. Choose a plan */}
         <section className="space-y-3">
           <h2 className="text-sm font-semibold text-white/80">Choose your plan</h2>
           {PLAN_OPTIONS.map((opt) => {
@@ -433,7 +433,7 @@ export default function ClaimHubPage() {
           })}
         </section>
 
-        {/* 5 — checkout */}
+        {/* 5. Checkout */}
         <section>
           <Card className="border-white/10 bg-white/[0.03] p-4 space-y-3">
             <p className="text-xs text-white/50">
@@ -450,7 +450,7 @@ export default function ClaimHubPage() {
               ) : (
                 <ShieldCheck className="h-5 w-5 mr-2" />
               )}
-              Activate — {selected?.price}
+              Activate. {selected?.price}
               {selected?.interval}
               <ArrowRight className="h-4 w-4 ml-2" />
             </Button>

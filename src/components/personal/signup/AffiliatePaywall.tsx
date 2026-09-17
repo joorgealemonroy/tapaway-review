@@ -105,7 +105,7 @@ export const AffiliatePaywall = ({ referralCode }: Props) => {
   };
 
   const valueProps = [
-    { icon: Link2, text: "Unlimited links — Instagram, TikTok, YouTube, payments" },
+    { icon: Link2, text: "Unlimited links. Instagram, TikTok, YouTube, payments" },
     { icon: Eye, text: "Custom profile page at tapaway.co/yourname" },
     { icon: BarChart3, text: "Track every profile visit with analytics" },
     { icon: Sparkles, text: "Custom headers, contact card, email capture" },
@@ -126,7 +126,7 @@ export const AffiliatePaywall = ({ referralCode }: Props) => {
         {/* Trial Badge */}
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
           <Sparkles className="w-4 h-4" />
-          <span>2 weeks free — no charge today</span>
+          <span>2 weeks free. No charge today</span>
         </div>
 
         <h1 className="text-2xl font-bold text-foreground mb-2">
@@ -250,7 +250,7 @@ export const AffiliatePaywall = ({ referralCode }: Props) => {
             After your 14-day free trial, you'll be charged. Cancel before trial ends and you won't be charged.
           </p>
           <p className="text-xs text-muted-foreground">
-            We'll place a temporary $1 hold to verify your card. It's released automatically — never charged.
+            We'll place a temporary $1 hold to verify your card. It's released automatically. Never charged.
           </p>
         </div>
 

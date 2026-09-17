@@ -105,7 +105,7 @@ async function fetchGooglePlaceData(businessName: string, address: string, exist
 
   if (!placeId) return { placeId: null, websiteUrl: null, photoRefs: [], googleMapsUri: null };
 
-  // Get place details — request photos, website, and Maps URI
+  // Get place details. Request photos, website, and Maps URI
   let websiteUrl: string | null = null;
   let googleMapsUri: string | null = null;
   const photoRefs: { name: string; url: string }[] = [];
@@ -208,7 +208,7 @@ async function discoverSocials(placeId: string | null): Promise<SocialResult> {
   }
 
   try {
-    // Outscraper Google Maps enrichment — query by place_id, explicitly request social fields
+    // Outscraper Google Maps enrichment. Query by place_id, explicitly request social fields
     const url = `https://api.app.outscraper.com/maps/search-v3?query=${encodeURIComponent(`place_id:${placeId}`)}&limit=1&async=false&fields=name,instagram,tiktok,facebook,site`;
     console.log('[magic-onboarding] Outscraper request:', url.slice(0, 150));
 
@@ -265,7 +265,7 @@ async function scrapeWebsiteForSocials(websiteUrl: string | null): Promise<Socia
 
     const html = await res.text();
 
-    // Extract social links from HTML — match href="..." or plain text URLs
+    // Extract social links from HTML. Match href="..." or plain text URLs
     const igMatch = html.match(/instagram\.com\/([a-zA-Z0-9_.]+)/);
     const tkMatch = html.match(/tiktok\.com\/@?([a-zA-Z0-9_.]+)/);
     const fbMatch = html.match(/facebook\.com\/([a-zA-Z0-9_.]+)/);
@@ -296,7 +296,7 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Heavy multi-API pipeline — cap at 10/min per IP.
+  // Heavy multi-API pipeline. Cap at 10/min per IP.
   if (!checkRateLimit(getRateLimitKey(req, "magic-onboarding"), 10, 60 * 1000)) {
     return rateLimitResponse(corsHeaders);
   }
@@ -353,7 +353,7 @@ serve(async (req) => {
       photos: googleData.photoRefs.length,
     });
 
-    // ── Step 2: Brandfetch — use client websiteUrl as fallback ──
+    // ── Step 2: Brandfetch. Use client websiteUrl as fallback ──
     const effectiveWebsiteUrl = googleData.websiteUrl || clientWebsiteUrl || null;
     const brandData = await fetchBrandData(effectiveWebsiteUrl);
     console.log('[magic-onboarding] Brand:', { hasLogo: !!brandData.logoUrl, primaryColor: brandData.primaryColor });
@@ -364,7 +364,7 @@ serve(async (req) => {
     // ── Step 3: Social Discovery via Outscraper ──
     let socialData = await discoverSocials(googleData.placeId);
 
-    // ── Step 3b: Fallback — scrape website HTML for social links ──
+    // ── Step 3b: Fallback. Scrape website HTML for social links ──
     if (!socialData.instagramUrl && !socialData.tiktokUrl && !socialData.facebookUrl) {
       console.log('[magic-onboarding] Outscraper returned no socials, trying website scrape fallback');
       socialData = await scrapeWebsiteForSocials(effectiveWebsiteUrl);
@@ -480,7 +480,7 @@ serve(async (req) => {
       cover_image_url: uploadedPhotoUrls[1] || uploadedPhotoUrls[0] || null,
     });
 
-    // Facebook pill (proper link_type) — only if found
+    // Facebook pill (proper link_type). Only if found
     if (socialData.facebookUrl) {
       addLink({
         profile_id: profileId,
@@ -494,7 +494,7 @@ serve(async (req) => {
       });
     }
 
-    // Google Review — full-width pill row (explicit grid_size null to override DB default)
+    // Google Review. Full-width pill row (explicit grid_size null to override DB default)
     if (googleData.placeId) {
       const reviewUrl = `https://search.google.com/local/writereview?placeid=${googleData.placeId}`;
       addLink({
@@ -511,7 +511,7 @@ serve(async (req) => {
       });
     }
 
-    // Website — full-width pill row
+    // Website. Full-width pill row
     if (googleData.websiteUrl) {
       addLink({
         profile_id: profileId,

@@ -31,7 +31,7 @@ const PRESETS = [3, 5, 7, 14];
 const MS_DAY = 1000 * 60 * 60 * 24;
 
 const fmt = (iso: string | null) =>
-  iso ? new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "—";
+  iso ? new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "Not available";
 
 const fmtDate = (d: Date) =>
   d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
@@ -215,7 +215,7 @@ const ExtendTrialDialog = ({ target, onClose, onSaved }: Props) => {
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Change</span>
                 <span className="font-medium">
-                  {effectiveDays > 0 ? `+${effectiveDays} day${effectiveDays === 1 ? "" : "s"}` : "—"}
+                  {effectiveDays > 0 ? `+${effectiveDays} day${effectiveDays === 1 ? "" : "s"}` : "Not available"}
                 </span>
               </div>
             </div>

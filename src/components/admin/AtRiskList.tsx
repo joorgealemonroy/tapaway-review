@@ -30,13 +30,13 @@ const AtRiskList = ({
   <Panel>
     <SectionHeader
       title="At risk"
-      sub="Past-due and recently canceled accounts — worth a save attempt."
+      sub="Past-due and recently canceled accounts. Worth a save attempt."
       chip={atRisk.length ? `${atRisk.length}` : undefined}
     />
     {loading ? (
       <LoadingSkeleton />
     ) : atRisk.length === 0 ? (
-      <EmptyState text="Nothing at risk — no past-due or canceled accounts in the last 14 days." />
+      <EmptyState text="Nothing at risk. No past-due or canceled accounts in the last 14 days." />
     ) : (
       <div className="divide-y divide-white/5">
         {atRisk.map((r) => (
@@ -63,7 +63,7 @@ const AtRiskList = ({
     )}
     <p className="mt-3 text-[11px] text-white/30 leading-relaxed">
       “Canceled” uses the last-update timestamp (no cancel date is stored), so it’s
-      approximate. Failed payments aren’t synced to the DB yet — Stripe invoice events
+      approximate. Failed payments aren’t synced to the DB yet. Stripe invoice events
       would need a webhook handler to list them here.
     </p>
   </Panel>

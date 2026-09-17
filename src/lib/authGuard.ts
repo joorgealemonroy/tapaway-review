@@ -34,7 +34,7 @@ export function installAuthGuard(): void {
 
     authAny[method] = (...args: unknown[]) => {
       console.error(
-        `[AUTH_GUARD] Blocked supabase.auth.${method}() — these methods trigger default Lovable/Supabase emails.`,
+        `[AUTH_GUARD] Blocked supabase.auth.${method}(). These methods trigger default Lovable/Supabase emails.`,
         { ts: new Date().toISOString(), args }
       );
       // Return a resolved error so callers don't explode unexpectedly
@@ -47,7 +47,7 @@ export function installAuthGuard(): void {
     };
   });
 
-  console.info("[AUTH_GUARD] Installed — blocked methods:", BLOCKED_AUTH_METHODS);
+  console.info("[AUTH_GUARD] Installed. Blocked methods:", BLOCKED_AUTH_METHODS);
 }
 
 /**
@@ -66,5 +66,5 @@ export function uninstallAuthGuard(): void {
     }
   });
 
-  console.info("[AUTH_GUARD] Uninstalled — original methods restored.");
+  console.info("[AUTH_GUARD] Uninstalled. Original methods restored.");
 }

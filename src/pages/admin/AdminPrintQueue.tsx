@@ -113,7 +113,7 @@ const TABS: { id: TabId; label: string; match: (s: PrintStatus) => boolean }[] =
 ];
 
 const fmtDate = (iso: string | null) =>
-  iso ? new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "—";
+  iso ? new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "Not available";
 
 const daysBetween = (iso: string | null) => {
   if (!iso) return null;
@@ -434,7 +434,7 @@ const AdminPrintQueue = () => {
       .join("\n\n");
     try {
       await navigator.clipboard.writeText(text);
-      toast.success("Addresses copied — paste into Circuit or Roadwarrior");
+      toast.success("Addresses copied. Paste into Circuit or Roadwarrior");
     } catch {
       toast.error("Clipboard blocked by the browser");
     }
@@ -666,7 +666,7 @@ const AdminPrintQueue = () => {
                               {resolveDisplayName({ full_name: r.full_name, username: r.username })}
                             </div>
                             <div className="text-[11px] font-mono text-white/40 truncate">
-                              @{r.username || "—"}
+                              @{r.username || "Not available"}
                             </div>
                             {(() => {
                               const loc = resolveLocation(r);
@@ -686,7 +686,7 @@ const AdminPrintQueue = () => {
                           </div>
                         </div>
                       </td>
-                      <td className="p-2.5 text-xs text-white/70">{r.rep_name || "—"}</td>
+                      <td className="p-2.5 text-xs text-white/70">{r.rep_name || "Not available"}</td>
                       <td className="p-2.5 text-xs text-white/60">
                         <div>{fmtDate(r.submitted_for_review_at || r.created_at)}</div>
                         {submittedAgo !== null && (
@@ -729,7 +729,7 @@ const AdminPrintQueue = () => {
                         </span>
                       </td>
                       <td className="p-2.5 text-[11px] text-white/60 max-w-[180px] truncate">
-                        {r.print_notes || <span className="text-white/25">—</span>}
+                        {r.print_notes || <span className="text-white/25"></span>}
                       </td>
                       <td className="p-2.5">
                         <div className="flex items-center justify-end gap-1">

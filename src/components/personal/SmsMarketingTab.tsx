@@ -20,7 +20,7 @@ import { format } from "date-fns";
 import { tapawayUrl } from "@/lib/siteUrl";
 
 const MAX_LEN = 160;
-/** Same review-request signal the server uses — any mention of reviews. */
+/** Same review-request signal the server uses. Any mention of reviews. */
 const REVIEW_RE = /\breviews?\b/i;
 
 interface Campaign {
@@ -34,9 +34,9 @@ interface Campaign {
 
 interface Props {
   profileId: string;
-  /** Optional — fetched from personal_profiles when not provided. */
+  /** Optional. Fetched from personal_profiles when not provided. */
   businessName?: string;
-  /** Optional — built from the profile username when not provided. */
+  /** Optional. Built from the profile username when not provided. */
   hubLink?: string;
 }
 
@@ -159,7 +159,7 @@ const SmsMarketingTab = ({ profileId, businessName, hubLink }: Props) => {
           result.failure_count > 0 ? ` (${result.failure_count} failed)` : ""
         }${
           (result.skipped_duplicates ?? 0) > 0
-            ? ` — ${result.skipped_duplicates} skipped (already got a review request)`
+            ? `. ${result.skipped_duplicates} skipped (already got a review request)`
             : ""
         }`,
       );
@@ -174,7 +174,7 @@ const SmsMarketingTab = ({ profileId, businessName, hubLink }: Props) => {
     }
   };
 
-  // Loads a template into the composer — the owner edits it before the
+  // Loads a template into the composer. The owner edits it before the
   // existing confirm flow; nothing about send is automatic.
   const handleUseTemplate = useCallback((filled: string, templateId: string) => {
     setMessage(filled.slice(0, MAX_LEN));
@@ -221,7 +221,7 @@ const SmsMarketingTab = ({ profileId, businessName, hubLink }: Props) => {
         </div>
       </Card>
 
-      {/* Template gallery — loads a pre-written message into the composer */}
+      {/* Template gallery. Loads a pre-written message into the composer */}
       <SmsTemplateGallery
         businessName={resolvedName || "us"}
         hubLink={resolvedLink}
@@ -250,13 +250,13 @@ const SmsMarketingTab = ({ profileId, businessName, hubLink }: Props) => {
         </div>
         {reviewIntent && (
           <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 px-3 py-2 text-xs">
-            <span className="font-medium">Review request — sent once per customer, ever.</span>{" "}
+            <span className="font-medium">Review request. Sent once per customer, ever.</span>{" "}
             {alreadySentCount === null ? (
               <span className="text-muted-foreground">Checking who&apos;s already gotten one…</span>
             ) : alreadySentCount > 0 ? (
               <span className="text-muted-foreground">
                 {alreadySentCount} of your {subscriberCount ?? 0} subscribers already got one and
-                will be skipped — no repeat texts.
+                will be skipped. No repeat texts.
               </span>
             ) : (
               <span className="text-muted-foreground">
@@ -294,7 +294,7 @@ const SmsMarketingTab = ({ profileId, businessName, hubLink }: Props) => {
         <Card className="p-6">
           <h3 className="font-semibold">Recent campaigns</h3>
           <p className="text-[11px] text-muted-foreground mt-1 mb-4">
-            &ldquo;Sent&rdquo; means accepted by the carrier — delivery isn&rsquo;t tracked.
+            &ldquo;Sent&rdquo; means accepted by the carrier. Delivery isn&rsquo;t tracked.
           </p>
           <div className="space-y-3">
             {campaigns.map((c) => (
@@ -308,7 +308,7 @@ const SmsMarketingTab = ({ profileId, businessName, hubLink }: Props) => {
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs shrink-0">
                   <span
                     className="flex items-center gap-1 text-muted-foreground"
-                    title="Accepted by carrier — delivery not tracked"
+                    title="Accepted by carrier. Delivery not tracked"
                   >
                     <Check className="h-3.5 w-3.5" /> {c.success_count} sent
                   </span>
@@ -338,7 +338,7 @@ const SmsMarketingTab = ({ profileId, businessName, hubLink }: Props) => {
               {reviewIntent && (alreadySentCount ?? 0) > 0 && (
                 <>
                   {" "}
-                  {alreadySentCount} of them already got a review request and will be skipped — each
+                  {alreadySentCount} of them already got a review request and will be skipped. Each
                   customer only gets one, ever.
                 </>
               )}

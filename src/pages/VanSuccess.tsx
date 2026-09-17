@@ -1,4 +1,4 @@
-// VanSuccess — public thank-you page the business owner lands on after
+// VanSuccess. Public thank-you page the business owner lands on after
 // paying through a van-visit checkout link (successPath from
 // create-checkout-session noTrial mode).
 //
@@ -22,7 +22,7 @@ export default function VanSuccess() {
         <h1 className="text-2xl font-bold">You’re all set!</h1>
         <p className="text-muted-foreground">
           Payment received for <span className="font-semibold text-foreground">{name}</span>.
-          Your TapAway subscription is active — Jorge will finish setting up your hub with you right now.
+          Your TapAway subscription is active. Jorge will finish setting up your hub with you right now.
         </p>
         <p className="text-sm text-muted-foreground">
           We’ll text you a link to create your password (by email if we don’t have your mobile),

@@ -106,10 +106,10 @@ const DPA = () => {
               TapAway currently engages the following sub-processors:
             </p>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li><strong>Stripe, Inc.</strong> — Payment processing, subscription management, billing (San Francisco, CA, USA)</li>
-              <li><strong>Cloud hosting provider</strong> — Database hosting, authentication, file storage (United States)</li>
-              <li><strong>Resend</strong> — Transactional email delivery (United States)</li>
-              <li><strong>AI model providers</strong> — AI-powered feature processing (United States)</li>
+              <li><strong>Stripe, Inc.</strong>. Payment processing, subscription management, billing (San Francisco, CA, USA)</li>
+              <li><strong>Cloud hosting provider</strong>. Database hosting, authentication, file storage (United States)</li>
+              <li><strong>Resend</strong>. Transactional email delivery (United States)</li>
+              <li><strong>AI model providers</strong>. AI-powered feature processing (United States)</li>
             </ul>
             <p className="text-muted-foreground mt-4">
               TapAway will notify the Controller of any intended changes to the list of sub-processors, giving the

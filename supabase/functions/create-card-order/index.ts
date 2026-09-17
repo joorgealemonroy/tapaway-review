@@ -136,7 +136,7 @@ Deno.serve(async (req) => {
             body: JSON.stringify({
               from: emailFrom.includes('<') ? emailFrom : `TapAway <${emailFrom}>`,
               to: [emailInternal],
-              subject: `📦 Card Club Request — ${qty} cards`,
+              subject: `📦 Card Club Request. ${qty} cards`,
               html: `<p><strong>${shipping.name}</strong> requested ${qty} card(s).</p>
                      <p>${shipping.line1}${shipping.line2 ? ', ' + shipping.line2 : ''}<br/>${shipping.city}, ${shipping.state} ${shipping.postal_code}</p>
                      <p>Profile: ${profile_id}</p>`,

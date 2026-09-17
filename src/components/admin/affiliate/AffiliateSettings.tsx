@@ -77,11 +77,11 @@ export const AffiliateSettings = () => {
       <h3 className="font-semibold text-foreground">Free Signup Commissions</h3>
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>Base Rate ($) — first {bonusThreshold}</Label>
+          <Label>Base Rate ($). First {bonusThreshold}</Label>
           <Input type="number" min={0} step={0.5} value={freeBase} onChange={e => setFreeBase(e.target.value)} />
         </div>
         <div className="space-y-2">
-          <Label>Bonus Rate ($) — after {bonusThreshold}</Label>
+          <Label>Bonus Rate ($). After {bonusThreshold}</Label>
           <Input type="number" min={0} step={0.5} value={freeBonus} onChange={e => setFreeBonus(e.target.value)} />
         </div>
       </div>
@@ -89,11 +89,11 @@ export const AffiliateSettings = () => {
       <h3 className="font-semibold text-foreground">Paid Signup Commissions</h3>
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>Base Rate ($) — first {bonusThreshold}</Label>
+          <Label>Base Rate ($). First {bonusThreshold}</Label>
           <Input type="number" min={0} step={0.5} value={paidBase} onChange={e => setPaidBase(e.target.value)} />
         </div>
         <div className="space-y-2">
-          <Label>Bonus Rate ($) — after {bonusThreshold}</Label>
+          <Label>Bonus Rate ($). After {bonusThreshold}</Label>
           <Input type="number" min={0} step={0.5} value={paidBonus} onChange={e => setPaidBonus(e.target.value)} />
         </div>
       </div>

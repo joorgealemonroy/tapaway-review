@@ -1,16 +1,16 @@
-// FeatureUpdateComposer — the /admin/emails Compose tab.
+// FeatureUpdateComposer. The /admin/emails Compose tab.
 //
 // Minimal broadcast tool (NOT a newsletter editor): Jorge fills headline +
 // body + optional CTA (text + link), previews the actual email render, sees
 // the recipient count, confirms, and sends.
 //
-// Recipients (decided, corrected 2026-09-09): ACTIVE + PAST-DUE subscribers —
+// Recipients (decided, corrected 2026-09-09): ACTIVE + PAST-DUE subscribers 
 //   restaurants:  subscription_status IN (active, past_due)
 //                 AND payment_state != 'complimentary' AND email IS NOT NULL
 //   personal_profiles: subscription_status IN (active, past_due)
 //                 AND payment_state != 'complimentary' AND email IS NOT NULL
 // Excluded: trialing, comped/family (complimentary), canceled.
-// past_due is INCLUDED — a manual nudge once got a past-due client paying
+// past_due is INCLUDED. A manual nudge once got a past-due client paying
 // immediately; staying in touch recovers revenue. (Matches the MRR logic.)
 // NOTE: personal_profiles.payment_state exists after migration
 // 20260909320000_personal_payment_state.sql.
@@ -99,11 +99,11 @@ export default function FeatureUpdateComposer() {
     if (headline.trim().length > 120) e.push("Headline is too long (120 max).");
     if (!body.trim()) e.push("Write the update body.");
     if (body.trim().length > 2000) e.push("Body is too long (2,000 max).");
-    if (!ctaValid) e.push("CTA needs text AND a link starting with https:// — or leave both empty.");
+    if (!ctaValid) e.push("CTA needs text AND a link starting with https://. Or leave both empty.");
     return e;
   }, [headline, body, ctaValid]);
 
-  // Live preview — rendered by the canonical email-template-preview edge
+  // Live preview. Rendered by the canonical email-template-preview edge
   // function (same registry the sends use), so the preview is exactly what
   // clients get. Debounced: refires 800ms after Jorge stops typing.
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
@@ -199,7 +199,7 @@ export default function FeatureUpdateComposer() {
             <p className="font-medium text-amber-200">Send backend isn't live yet</p>
             <p className="text-white/60 text-xs mt-1">
               The send-feature-update edge function hasn't been deployed. Your
-              draft is saved below — sending activates once the backend lands.
+              draft is saved below. Sending activates once the backend lands.
             </p>
           </div>
         </div>
@@ -213,13 +213,13 @@ export default function FeatureUpdateComposer() {
               <Loader2 className="h-3.5 w-3.5 animate-spin" /> Counting active clients…
             </span>
           ) : recipientCount === null ? (
-            "Couldn't count recipients — check filters, then try again."
+            "Couldn't count recipients. Check filters, then try again."
           ) : (
             <>
               Will reach <span className="font-semibold text-white">{recipientCount}</span>{" "}
               active client{recipientCount === 1 ? "" : "s"}
               <span className="text-white/40 text-xs block">
-                Paying subscribers only — no trials, no comped accounts.
+                Paying subscribers only. No trials, no comped accounts.
               </span>
             </>
           )}
@@ -244,7 +244,7 @@ export default function FeatureUpdateComposer() {
             id="fu-body"
             value={body}
             onChange={(e) => setBody(e.target.value)}
-            placeholder="What's new and why they should care. Plain text — blank lines make paragraphs."
+            placeholder="What's new and why they should care. Plain text. Blank lines make paragraphs."
             rows={6}
             maxLength={2000}
             className="mt-1 text-base"
@@ -280,7 +280,7 @@ export default function FeatureUpdateComposer() {
       </div>
 
       <div>
-        <p className="text-xs font-medium text-white/60 mb-2">Live preview — exactly what clients get</p>
+        <p className="text-xs font-medium text-white/60 mb-2">Live preview. Exactly what clients get</p>
         <Card className="overflow-hidden">
           <CardContent className="p-0">
             {previewHtml ? (
@@ -293,7 +293,7 @@ export default function FeatureUpdateComposer() {
               <div className="flex flex-col items-center justify-center gap-2 py-10 px-6 text-center">
                 <AlertTriangle className="h-6 w-6 text-amber-400" />
                 <p className="text-xs text-white/60">
-                  Preview backend isn't live yet — deploy the
+                  Preview backend isn't live yet. Deploy the
                   email-template-preview edge function. Your draft is safe
                   below; sending still works once the send backend is live.
                 </p>
@@ -325,9 +325,8 @@ export default function FeatureUpdateComposer() {
                 <p className="text-white/60">
                   This goes to{" "}
                   <span className="font-semibold text-white">
-                    {recipientCount ?? "—"} active client{recipientCount === 1 ? "" : "s"}
-                  </span>{" "}
-                  — paying subscribers only. No trials, no comped accounts.
+                    {recipientCount ?? "Not available"} active client{recipientCount === 1 ? "" : "s"}
+                  </span>{" "}. Paying subscribers only. No trials, no comped accounts.
                 </p>
                 <p className="text-white/40 text-xs">
                   The backend dedupes by email and logs every send. This can't be
@@ -355,7 +354,7 @@ export default function FeatureUpdateComposer() {
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Sending…
                 </>
               ) : (
-                `Send to ${recipientCount ?? "—"}`
+                `Send to ${recipientCount ?? "Not available"}`
               )}
             </Button>
           </div>

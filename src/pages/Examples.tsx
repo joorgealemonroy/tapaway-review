@@ -136,7 +136,7 @@ const Examples = () => {
   return (
     <>
       <Helmet>
-        <title>TapAway Examples — See It in Action</title>
+        <title>TapAway Examples. See It in Action</title>
         <meta name="description" content="See how TapAway works for restaurants and small businesses. Interactive demos, real features, no app needed." />
       </Helmet>
 
@@ -168,9 +168,9 @@ const Examples = () => {
               <div className="space-y-5 pt-4">
                 <h3 className="text-xl font-bold text-foreground">Las Islas – Salem</h3>
                 <p className="text-sm text-muted-foreground">This is a live TapAway page. Scroll, tap buttons, and see exactly what customers experience.</p>
-                <Callout title="Google & Yelp Reviews" desc="One tap sends customers straight to the review page — no searching required." />
+                <Callout title="Google & Yelp Reviews" desc="One tap sends customers straight to the review page. No searching required." />
                 <Callout title="Digital Menu" desc="Customers browse the full menu right from their phone, no PDF or app needed." />
-                <Callout title="Directions" desc="Opens Apple Maps with the exact location — great for new customers." />
+                <Callout title="Directions" desc="Opens Apple Maps with the exact location. Great for new customers." />
                 <Callout title="Social Media" desc="Grow your Instagram following effortlessly." />
                 <Callout title="NFC & Link" desc="Works with our NFC cards or custom link in bio." />
               </div>
@@ -186,10 +186,10 @@ const Examples = () => {
                 <h3 className="text-xl font-bold text-foreground">Reborn Wraps</h3>
                 <p className="text-sm text-muted-foreground">This is a live TapAway page. Scroll, tap buttons, and see exactly what Reborn Wraps' customers see.</p>
                 <Callout title="Collect Reviews Automatically" desc="Hand a customer your card, they tap, and your Google rating grows." />
-                <Callout title="Direct Calls & Booking" desc="Let customers call or book with one tap — no hunting for your number." />
+                <Callout title="Direct Calls & Booking" desc="Let customers call or book with one tap. No hunting for your number." />
                 <Callout title="Your Website Front & Center" desc="Drive traffic straight to your site or portfolio." />
                 <Callout title="No App Required" desc="Customers don't download anything. Tap → done." />
-                <Callout title="Works Everywhere" desc="Auto shops, salons, barbers, gyms, cleaning services — if you want reviews, it works." />
+                <Callout title="Works Everywhere" desc="Auto shops, salons, barbers, gyms, cleaning services. If you want reviews, it works." />
               </div>
             </div>
           </TabsContent>
@@ -202,26 +202,26 @@ const Examples = () => {
         <Accordion type="single" collapsible className="w-full">
           <AccordionItem value="reviews">
             <AccordionTrigger>Collect More Reviews</AccordionTrigger>
-            <AccordionContent>NFC tap or QR scan sends customers straight to your Google or Yelp review page — no searching, no friction. Businesses see 3–5× more reviews in the first month.</AccordionContent>
+            <AccordionContent>NFC tap or QR scan sends customers straight to your Google or Yelp review page. No searching, no friction. Businesses see 3–5× more reviews in the first month.</AccordionContent>
           </AccordionItem>
           <AccordionItem value="one-link">
             <AccordionTrigger>One Link, Everything</AccordionTrigger>
-            <AccordionContent>Menu, socials, directions, phone number, booking — all in one mobile-friendly page. No app for your customers to download.</AccordionContent>
+            <AccordionContent>Menu, socials, directions, phone number, booking. All in one mobile-friendly page. No app for your customers to download.</AccordionContent>
           </AccordionItem>
           <AccordionItem value="any-biz">
             <AccordionTrigger>Works for Any Business</AccordionTrigger>
-            <AccordionContent>Restaurants, salons, auto shops, gyms, cleaning services, barbers — if you serve customers in person, TapAway helps you grow.</AccordionContent>
+            <AccordionContent>Restaurants, salons, auto shops, gyms, cleaning services, barbers. If you serve customers in person, TapAway helps you grow.</AccordionContent>
           </AccordionItem>
           <AccordionItem value="no-app">
             <AccordionTrigger>No App Needed</AccordionTrigger>
-            <AccordionContent>Your customers just tap the card or scan the QR code. It opens instantly in their browser — nothing to install.</AccordionContent>
+            <AccordionContent>Your customers just tap the card or scan the QR code. It opens instantly in their browser. Nothing to install.</AccordionContent>
           </AccordionItem>
           <AccordionItem value="setup">
             <AccordionTrigger>We Set It Up For You</AccordionTrigger>
             <AccordionContent>
               Not tech-savvy? No problem. Call us at{" "}
               <a href={PHONE_TEL} className="font-semibold text-primary underline">{PHONE_NUMBER}</a>{" "}
-              and we'll set up everything for you — free of charge.
+              and we'll set up everything for you. Free of charge.
             </AccordionContent>
           </AccordionItem>
         </Accordion>
@@ -231,7 +231,7 @@ const Examples = () => {
       <section className="bg-primary/5 py-16 px-4 text-center">
         <h2 className="text-2xl sm:text-3xl font-bold text-foreground">Ready to get started?</h2>
         <p className="mt-2 text-muted-foreground max-w-md mx-auto">
-          Set up takes under 5 minutes — or call us and we'll do it for you.
+          Set up takes under 5 minutes. Or call us and we'll do it for you.
         </p>
         <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
           <Button size="lg" asChild>

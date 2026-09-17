@@ -13,8 +13,8 @@ interface CardClubWelcomeOfferProps {
 
 /**
  * One-time Card Club offer shown on first dashboard login when the user
- * selected Card Club during signup. This is the ONLY way to join Card Club —
- * there is no self-serve subscribe in the dashboard — so the scarcity is real.
+ * selected Card Club during signup. This is the ONLY way to join Card Club 
+ * there is no self-serve subscribe in the dashboard. So the scarcity is real.
  */
 export const CardClubWelcomeOffer = ({ profileId, onDone }: CardClubWelcomeOfferProps) => {
   const [submitting, setSubmitting] = useState(false);
@@ -52,12 +52,12 @@ export const CardClubWelcomeOffer = ({ profileId, onDone }: CardClubWelcomeOffer
           <h2 className="text-lg font-bold text-foreground">Your Card Club invite</h2>
         </div>
         <p className="text-sm text-muted-foreground">
-          You picked <span className="font-semibold text-foreground">Card Club</span> during signup —
+          You picked <span className="font-semibold text-foreground">Card Club</span> during signup 
           3 fresh NFC cards every month for <span className="font-semibold text-foreground">$5/mo</span>,
           free shipping included.
         </p>
         <p className="text-xs font-medium text-amber-600 dark:text-amber-500">
-          This was your only chance to add it — you won't be able to join Card Club later.
+          This was your only chance to add it. You won't be able to join Card Club later.
         </p>
         <Button onClick={handleSubscribe} disabled={submitting} className="w-full min-h-[48px]">
           {submitting ? (
@@ -65,7 +65,7 @@ export const CardClubWelcomeOffer = ({ profileId, onDone }: CardClubWelcomeOffer
           ) : (
             <Crown className="h-4 w-4 mr-2" />
           )}
-          Add Card Club — $5/mo
+          Add Card Club. $5/mo
         </Button>
         <button
           onClick={finish}

@@ -13,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    // Require an authenticated caller — either the restaurant owner or an admin.
+    // Require an authenticated caller. Either the restaurant owner or an admin.
     const auth = await requireUser(req);
     if (!auth) return jsonResponse({ error: 'Unauthorized' }, 401, corsHeaders);
 

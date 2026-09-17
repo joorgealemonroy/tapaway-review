@@ -1,9 +1,9 @@
-// EmailPreviewFrame — renders an HTML email inside a sandboxed iframe,
+// EmailPreviewFrame. Renders an HTML email inside a sandboxed iframe,
 // scaled down to fit the card/container width. The 600px-wide email is the
 // single source for measurement; the container height is set from an
 // estimated pixel height (from the template registry).
 //
-// sandbox="allow-same-origin": no scripts, no forms, no popups — pure render.
+// sandbox="allow-same-origin": no scripts, no forms, no popups. Pure render.
 import { useLayoutEffect, useRef, useState } from "react";
 
 interface Props {

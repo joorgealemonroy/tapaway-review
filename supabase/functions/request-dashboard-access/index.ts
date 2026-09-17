@@ -1,8 +1,8 @@
-// request-dashboard-access — self-serve "I can't get into my dashboard".
+// request-dashboard-access. Self-serve "I can't get into my dashboard".
 //
 // A customer enters the email they signed up with. If an auth user exists we
 // generate a single-use recovery link and email it with the password_setup
-// styling. If no user exists we do nothing — but the response is identical
+// styling. If no user exists we do nothing. But the response is identical
 // either way, so the endpoint can never be used to enumerate accounts.
 //
 // Rate limited to 3 requests per hour per IP.
@@ -24,7 +24,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // Same message no matter what happened.
 const OK_BODY = {
   success: true,
-  message: "Check your inbox — we sent you a secure link.",
+  message: "Check your inbox. We sent you a secure link.",
 };
 
 function ok(): Response {
@@ -73,7 +73,7 @@ serve(async (req) => {
 
     const userRow = Array.isArray(lookup) ? lookup[0] : lookup;
     if (!userRow?.id) {
-      console.log("[request-dashboard-access] no account for requested email — no send");
+      console.log("[request-dashboard-access] no account for requested email. No send");
       return ok();
     }
 
@@ -109,7 +109,7 @@ serve(async (req) => {
         if (restaurant?.restaurant_name) business = String(restaurant.restaurant_name);
       }
     } catch (_e) {
-      // Names are cosmetic — never block the send.
+      // Names are cosmetic. Never block the send.
     }
 
     // Reuse the password_setup look, with a dashboard-access subject line.
@@ -121,7 +121,7 @@ serve(async (req) => {
 
     const sent = await sendEmailAndLog({
       to: normalized,
-      subject: "Access your TapAway dashboard — set your password",
+      subject: "Access your TapAway dashboard. Set your password",
       html: rendered.html,
       // renderTemplate HTML-escapes vars; undo it for the plain-text link.
       text: rendered.text.replace(/&amp;/g, "&"),
@@ -135,7 +135,7 @@ serve(async (req) => {
     return ok();
   } catch (error) {
     console.error("[request-dashboard-access] Error:", error);
-    // Still neutral — never leak internal state to the caller.
+    // Still neutral. Never leak internal state to the caller.
     return ok();
   }
 });

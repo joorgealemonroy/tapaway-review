@@ -83,7 +83,7 @@ const Dashboard = () => {
       ]);
 
       // Legacy Business dashboard only for users with an active restaurant on
-      // a legacy paid plan. Everyone else — including all new signups —
+      // a legacy paid plan. Everyone else. Including all new signups 
       // routes to Business Lite (PersonalDashboard).
       const hasLegacyBusiness = restaurantResult.data?.some(
         (r) =>
@@ -188,7 +188,7 @@ const DashboardBusiness = () => {
   /**
    * Unsaved-changes protection: Menu and Settings register dirty-checkers
    * (src/lib/unsavedChanges.ts). Switching tabs with pending edits unmounts
-   * the tab content and would discard them silently — ask first.
+   * the tab content and would discard them silently. Ask first.
    */
   const handleTabChange = (value: string) => {
     if (value === activeTab) return;
@@ -206,7 +206,7 @@ const DashboardBusiness = () => {
 
   const cancelTabSwitch = () => setPendingTab(null);
 
-  // Closing the tab/window with unsaved edits — the browser's native prompt.
+  // Closing the tab/window with unsaved edits. The browser's native prompt.
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
       if (anyTabDirty()) {
@@ -508,7 +508,7 @@ const DashboardBusiness = () => {
       // Super admin without restaurant - that's fine, they can still access admin dashboard
       console.log('[Dashboard] Super admin accessing dashboard without restaurant');
     } else {
-      // No restaurant found — redirect to onboarding
+      // No restaurant found. Redirect to onboarding
       console.log('[Dashboard] User has no restaurant, redirecting to onboarding');
       navigate("/onboarding");
     }
@@ -586,7 +586,7 @@ const DashboardBusiness = () => {
               <span className="text-xs font-semibold text-amber-800 uppercase tracking-wide">Demo Mode (Read-Only)</span>
             </div>
             <p className="text-sm text-amber-700">
-              You're viewing a demo restaurant. All data is read-only — no changes can be made.
+              You're viewing a demo restaurant. All data is read-only. No changes can be made.
             </p>
           </Card>
         )}
@@ -707,7 +707,7 @@ const DashboardBusiness = () => {
                 {/* Account status: plan, Hub Live/Paused, trial countdown, reactivation */}
                 <AccountStatusStrip
                   planType={restaurant.plan_type}
-                  // In demo preview mode the viewer isn't the account owner —
+                  // In demo preview mode the viewer isn't the account owner 
                   // don't show a paused banner for someone else's demo.
                   subscriptionStatus={isDemoView ? "active" : restaurant.subscription_status}
                   trialEndsAt={restaurant.trial_ends_at ?? null}
@@ -731,7 +731,7 @@ const DashboardBusiness = () => {
                   />
                 )}
                 {restaurant.custom_slug === 'avmealpreps' || restaurant.type === 'meal_prep' ? <AvMealPrepDashboard restaurantId={restaurant.id} restaurantName={restaurant.restaurant_name} restaurant={restaurant} user={user} /> : <>
-                  {/* One-time first-run intro — new owners only, never in demo/admin views */}
+                  {/* One-time first-run intro. New owners only, never in demo/admin views */}
                   {!isAdmin && !isDemoView && (
                     <WelcomeIntro
                       accountId={restaurant.id}
@@ -802,7 +802,7 @@ const DashboardBusiness = () => {
               <BusinessMobileNav activeTab={activeTab} onTabChange={handleTabChange} isDemoView={isDemoView} />
             )}
 
-            {/* Unsaved-changes prompt — Menu/Settings hold edits in local state */}
+            {/* Unsaved-changes prompt. Menu/Settings hold edits in local state */}
             <AlertDialog open={pendingTab !== null} onOpenChange={(open) => { if (!open) cancelTabSwitch(); }}>
               <AlertDialogContent>
                 <AlertDialogHeader>

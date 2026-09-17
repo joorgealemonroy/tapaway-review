@@ -130,7 +130,7 @@ const ClassifyDialog = ({
         <DialogHeader>
           <DialogTitle>Classify billing</DialogTitle>
           <DialogDescription>
-            {location?.display_name ?? "Location"} — this records the change with your name, the
+            {location?.display_name ?? "Location"}. This records the change with your name, the
             time and a reason. It does not change the live hub or any billing record.
           </DialogDescription>
         </DialogHeader>
@@ -206,7 +206,7 @@ const VISIT_OUTCOMES = [
   "closed",
 ];
 
-/** Field visit log. Operational only — it never touches access or billing. */
+/** Field visit log. Operational only. It never touches access or billing. */
 const VisitDialog = ({
   location,
   onClose,
@@ -388,7 +388,7 @@ export default function AdminLocations() {
   };
 
   const attention = useMemo(() => ([
-    { label: "Unknown payment — needs classification", count: counts.active_unknown, key: "active_unknown" as StatusKey },
+    { label: "Unknown payment. Needs classification", count: counts.active_unknown, key: "active_unknown" as StatusKey },
     { label: "Expired but still marked trialing", count: counts.failed_trial, key: "failed_trial" as StatusKey },
     { label: "Missing Place ID or address", count: counts.unmappable, key: "unmappable" as StatusKey },
     { label: "Legacy / duplicate hubs to review", count: locations.filter((l) => l.needs_review).length, key: null },
@@ -465,7 +465,7 @@ export default function AdminLocations() {
         {/* Coverage breakdown: every hub has exactly one explicit location state. */}
         <Panel className="p-3">
           <div className="text-[10px] uppercase tracking-widest text-white/35 mb-2">
-            Location coverage — {locations.length} hub{locations.length === 1 ? "" : "s"}, all classified
+            Location coverage. {locations.length} hub{locations.length === 1 ? "" : "s"}, all classified
           </div>
           <div className="flex flex-wrap gap-2">
             <button
@@ -595,8 +595,8 @@ export default function AdminLocations() {
                     return (
                       <tr key={l.id} className="border-t border-white/5">
                         <td className="py-2.5 pr-3">
-                          <div className="font-medium">{l.display_name ?? "—"}</div>
-                          <div className="text-xs text-white/35">/{l.hub_slug ?? "—"} · {l.hub_kind}</div>
+                          <div className="font-medium">{l.display_name ?? "Not available"}</div>
+                          <div className="text-xs text-white/35">/{l.hub_slug ?? "Not available"} · {l.hub_kind}</div>
                         </td>
                         <td className="py-2.5 pr-3">
                           <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] ${b.tone}`}>
@@ -613,7 +613,7 @@ export default function AdminLocations() {
                           {l.classification_is_manual && <span className="text-emerald-400"> · manual</span>}
                         </td>
                         <td className="py-2.5 pr-3 text-xs text-white/50 max-w-[240px] truncate">
-                          {l.formatted_address ?? "—"}
+                          {l.formatted_address ?? "Not available"}
                         </td>
                         <td className="py-2.5 pr-3 text-xs text-white/50">
                           {l.google_place_id ? "Place ID" : "no place id"}

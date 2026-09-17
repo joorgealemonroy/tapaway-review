@@ -16,7 +16,7 @@ export const AvHeroSettings = ({ restaurantId, restaurant, onUpdate }: AvHeroSet
   const [headerTitle, setHeaderTitle] = useState(restaurant.header_title || "");
   const [headerSubtitle, setHeaderSubtitle] = useState(restaurant.header_subtitle || "");
   const [questionTitle, setQuestionTitle] = useState(restaurant.avm_question_title || "How was your meal?");
-  const [questionSubtitle, setQuestionSubtitle] = useState(restaurant.avm_question_subtitle || "Share feedback in seconds — no login.");
+  const [questionSubtitle, setQuestionSubtitle] = useState(restaurant.avm_question_subtitle || "Share feedback in seconds. No login.");
   const [positiveLabel, setPositiveLabel] = useState(restaurant.avm_positive_label || "Loved it! 💚");
   const [negativeLabel, setNegativeLabel] = useState(restaurant.avm_negative_label || "Could be better");
   const [menuTitle, setMenuTitle] = useState(restaurant.menu_title || "Menu");
@@ -28,7 +28,7 @@ export const AvHeroSettings = ({ restaurantId, restaurant, onUpdate }: AvHeroSet
     setHeaderTitle(restaurant.header_title || "");
     setHeaderSubtitle(restaurant.header_subtitle || "");
     setQuestionTitle(restaurant.avm_question_title || "How was your meal?");
-    setQuestionSubtitle(restaurant.avm_question_subtitle || "Share feedback in seconds — no login.");
+    setQuestionSubtitle(restaurant.avm_question_subtitle || "Share feedback in seconds. No login.");
     setPositiveLabel(restaurant.avm_positive_label || "Loved it! 💚");
     setNegativeLabel(restaurant.avm_negative_label || "Could be better");
     setMenuTitle(restaurant.menu_title || "Menu");

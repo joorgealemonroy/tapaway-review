@@ -126,7 +126,7 @@ const RepDemoCreate = () => {
       // 2. Unique username slug (so re-hosted photo path uses the final slug)
       const username = await resolveUniqueUsername(place.name);
 
-      // 3. Resolve photo — re-host on our storage so we can canvas-sample it
+      // 3. Resolve photo. Re-host on our storage so we can canvas-sample it
       setStatus('Grabbing business details…');
       let profilePhotoUrl: string | null = null;
       let sampledBg: string | null = null;
@@ -221,7 +221,7 @@ const RepDemoCreate = () => {
       }
 
 
-      toast.success('Demo created — customize away 🎉');
+      toast.success('Demo created. Customize away 🎉');
 
       const adminViewRep = searchParams.get('admin_view_rep');
       const qs = adminViewRep
@@ -256,7 +256,7 @@ const RepDemoCreate = () => {
           <h1 className="text-2xl font-semibold text-white mb-2">Create a new demo hub</h1>
           <p className="text-sm text-white/60 mb-6">
             Search for the business on Google. We'll auto-fill their name, phone, photo, website,
-            and review link — then drop you into the dashboard to customize the rest.
+            and review link. Then drop you into the dashboard to customize the rest.
           </p>
 
           {creating ? (
@@ -272,7 +272,7 @@ const RepDemoCreate = () => {
                 placeholder="Business name, city…"
               />
               <p className="mt-4 text-xs text-white/40">
-                Up to {DEMO_CAP} demos per day. Missing details are fine — you can fill them in
+                Up to {DEMO_CAP} demos per day. Missing details are fine. You can fill them in
                 from the dashboard.
               </p>
               <ReviewComplianceNotice tone="light" className="mt-4" />

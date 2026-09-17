@@ -162,7 +162,7 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
   const touchHoldTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const initialTouchYRef = useRef<number | null>(null);
   const draggedElRef = useRef<HTMLElement | null>(null);
-  // Set when a touch-drag actually moved an item — used to suppress the
+  // Set when a touch-drag actually moved an item. Used to suppress the
   // tap-to-toggle menu on grid tiles right after a drag ends.
   const justDraggedRef = useRef(false);
   // Grid-tile action menu (tap-to-toggle on touch devices; hover on desktop).
@@ -257,7 +257,7 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
     thumbnailUrl: dbLink.thumbnail_url,
   });
 
-  // Core save logic — reads a snapshot of pending changes plus current items via refs.
+  // Core save logic. Reads a snapshot of pending changes plus current items via refs.
   // Returns array of error strings (empty = success) plus the exact order that was persisted
   // (null when no reorder was written this pass) so the reconciler can detect if a newer
   // drag happened mid-save.
@@ -276,7 +276,7 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
       if (error) errors.push(`Delete block: ${error.message}`);
     }
 
-    // Abort early if deletes failed — stale data would cause conflicts
+    // Abort early if deletes failed. Stale data would cause conflicts
     if (errors.length > 0) return { errors, savedOrder: null };
 
     // Save added items
@@ -320,7 +320,7 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
       if (error) errors.push(`Update block: ${error.message}`);
     }
 
-    // Save order changes if any — re-read refs here (not at function entry) so any drag
+    // Save order changes if any. Re-read refs here (not at function entry) so any drag
     // that happened between save-scheduling and this point is included in the write.
     let savedOrder: SavedOrder = null;
     if (pending.orderChanged) {
@@ -465,7 +465,7 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
   }), [links, blocks]);
 
   // Restore to a target snapshot by rebuilding pendingChanges as a diff
-  // between the current (just-saved) state and the target. No DELETE queries here —
+  // between the current (just-saved) state and the target. No DELETE queries here 
   // the existing diffing save path handles the correction on the next debounce tick.
   const restoreSnapshot = useCallback((snap: UnifiedContentSnapshot) => {
     const currentLinksById = new Map(links.map(l => [l.id, l] as const));
@@ -546,7 +546,7 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
     }, 0);
   }, [links, blocks, onLinksChange, onBlocksChange, onPendingChangesChange, onEdit]);
 
-  // Expose methods to parent via ref. No deps — recreate the handle every render
+  // Expose methods to parent via ref. No deps. Recreate the handle every render
   // so parent always calls the freshest closures (avoids stale pendingChanges).
   useImperativeHandle(ref, () => ({
     saveAllChanges,
@@ -696,7 +696,7 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
     if (isDragEnabled && draggedItem) {
       setDraggedItem(null);
       markPendingChange({ orderChanged: true });
-      // A real drag happened — the synthetic click that follows this
+      // A real drag happened. The synthetic click that follows this
       // touchend must not toggle the grid-tile menu.
       justDraggedRef.current = true;
       setTimeout(() => { justDraggedRef.current = false; }, 350);
@@ -868,7 +868,7 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
                   return { deletedLinkIds: newDeletedIds };
                 });
               } else {
-                // Already written to the database (or was never saved) — re-insert it
+                // Already written to the database (or was never saved). Re-insert it
                 markPendingChange(prev => ({
                   addedLinks: [...prev.addedLinks, removed],
                 }));
@@ -915,7 +915,7 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
                   return { deletedBlockIds: newDeletedIds };
                 });
               } else {
-                // Already written to the database (or was never saved) — re-insert it
+                // Already written to the database (or was never saved). Re-insert it
                 markPendingChange(prev => ({
                   addedBlocks: [...prev.addedBlocks, removed],
                 }));
@@ -1051,7 +1051,7 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
                         onDragEnd={handleDragEnd}
                         role="button"
                         tabIndex={0}
-                        aria-label={`${link.label} — open actions`}
+                        aria-label={`${link.label}. Open actions`}
                         aria-expanded={tileMenuOpen === link.id}
                         onKeyDown={(e) => {
                           if (e.key === "Enter" || e.key === " ") {
@@ -1060,7 +1060,7 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
                           }
                         }}
                         onClick={() => {
-                          // A drag just ended — don't toggle the menu from the
+                          // A drag just ended. Don't toggle the menu from the
                           // synthetic click that follows touchend.
                           if (justDraggedRef.current) {
                             justDraggedRef.current = false;
@@ -1109,7 +1109,7 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
                           </div>
                         )}
 
-                        {/* Drag handle — hold to reorder. Scoped here so touching
+                        {/* Drag handle. Hold to reorder. Scoped here so touching
                             the tile scrolls the page normally; tapping the
                             tile toggles the actions menu instead. */}
                         <div
@@ -1137,7 +1137,7 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
                         </div>
 
 
-                        {/* Actions overlay — hover on desktop, tap the tile on touch */}
+                        {/* Actions overlay. Hover on desktop, tap the tile on touch */}
                         <div
                           onClick={(e) => e.stopPropagation()}
                           className={`absolute inset-0 bg-black/40 transition-opacity flex flex-wrap items-center justify-center gap-1.5 p-2 ${
@@ -1229,7 +1229,7 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
                     isDragging ? "opacity-50 scale-[1.03] shadow-xl ring-2 ring-primary/50" : ""
                   } ${isDragEnabled && isDragging ? "scale-[1.03] shadow-xl" : ""} ${isFeatured ? "border-amber-400/60 bg-amber-50/30 dark:bg-amber-950/20" : "border-border/50 bg-card/80"} ${!isActive && !link.url?.startsWith('#placeholder-') ? "opacity-40" : ""} ${link.url?.startsWith('#placeholder-') ? "ring-2 ring-red-500 animate-[red-glow_2s_ease-in-out_infinite]" : ""}`}
                 >
-                  {/* Drag handle — hold to reorder. Scoped here (not the whole
+                  {/* Drag handle. Hold to reorder. Scoped here (not the whole
                       row) so a touch anywhere else scrolls the page normally. */}
                   <div
                     onTouchStart={(e) => handleTouchStart(e, index, item)}
@@ -1345,7 +1345,7 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
                     isDragging ? "opacity-50 scale-[1.03] shadow-xl ring-2 ring-primary/50" : ""
                   } ${isDragEnabled && isDragging ? "scale-[1.03] shadow-xl" : ""} ${!isActive ? "opacity-40" : ""}`}
                 >
-                  {/* Drag handle — hold to reorder. Scoped here (not the whole
+                  {/* Drag handle. Hold to reorder. Scoped here (not the whole
                       row) so a touch anywhere else scrolls the page normally. */}
                   <div
                     onTouchStart={(e) => handleTouchStart(e, index, item)}

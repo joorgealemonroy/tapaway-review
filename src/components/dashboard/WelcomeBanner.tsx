@@ -152,7 +152,7 @@ export const WelcomeBanner = ({
                   Welcome to TapAway, {restaurantName}! 🎉
                 </h3>
                 <p className="text-sm text-muted-foreground mt-0.5">
-                  Your cards are on the way — here's what to do while you wait
+                  Your cards are on the way. Here's what to do while you wait
                 </p>
               </div>
             </div>

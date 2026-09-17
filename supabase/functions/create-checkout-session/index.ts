@@ -9,7 +9,7 @@ const corsHeaders = {
 };
 
 // Pricing matrix.
-// Yearly prices are FIRST-CLASS Stripe prices on the same product family —
+// Yearly prices are FIRST-CLASS Stripe prices on the same product family 
 // never one-time charges (subscription-only invariant).
 // Solo yearly reuses the canonical annual Solo product
 // (metadata tapaway_plan=annual_value_pass) so the /claim annual option and
@@ -120,7 +120,7 @@ serve(async (req) => {
 
     // Validate the plan FIRST: validPlanType and config are referenced by the
     // subscription data and success URL built below. (Declaring them after
-    // use would throw at runtime — const bindings in the temporal dead zone.)
+    // use would throw at runtime. Const bindings in the temporal dead zone.)
     const rawPlanType = typeof planType === 'string' ? planType : 'venue';
     const validPlanType = rawPlanType === 'solo' || rawPlanType === 'venue' ? rawPlanType : 'venue';
     const config = PLAN_CONFIG[validPlanType];
@@ -131,8 +131,8 @@ serve(async (req) => {
     }
 
     // Validate the billing interval BEFORE first use (same TDZ-safe pattern).
-    // Only the exact string 'year' selects yearly billing; anything else —
-    // missing, wrong type, unknown value — falls back to monthly. The client
+    // Only the exact string 'year' selects yearly billing; anything else 
+    // missing, wrong type, unknown value. Falls back to monthly. The client
     // can never pick a price the server doesn't know.
     // Yearly behavior: the 14-day free trial still applies (standard SaaS);
     // the trial's first charge is the FULL yearly amount ($199 / $390). The
@@ -233,7 +233,7 @@ serve(async (req) => {
     let protectionPriceId: string | null = null;
     if (hasProtectionFlag) {
       const protProdId = await findOrCreateProduct(stripe, 'tapaway_addon', 'loss_protection', 'TapAway Loss Protection');
-      // Protection stays monthly even on yearly plans — a $5/mo add-on on a
+      // Protection stays monthly even on yearly plans. A $5/mo add-on on a
       // yearly subscription is valid in Stripe and keeps the add-on simple.
       protectionPriceId = await findOrCreatePrice(stripe, protProdId, PROTECTION_AMOUNT, 'month');
       lineItems.push({ price: protectionPriceId, quantity: 1 });

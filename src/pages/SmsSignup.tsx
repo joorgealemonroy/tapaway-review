@@ -53,7 +53,7 @@ const SmsSignup = () => {
       const { error } = await supabase.from("sms_signup_submissions" as any).insert({
         name: parsed.data.name,
         phone: parsed.data.phone,
-        // Legacy — mirror whichever campaign was chosen (marketing wins).
+        // Legacy. Mirror whichever campaign was chosen (marketing wins).
         consent_text: marketingConsent
           ? SMS_MARKETING_CONSENT_TEXT
           : SMS_TRANSACTIONAL_CONSENT_TEXT,
@@ -122,11 +122,11 @@ const SmsSignup = () => {
           <p className="text-muted-foreground leading-relaxed">
             TapAway runs TWO independent SMS programs on behalf of participating local small
             businesses (restaurants, bakeries, salons, barbers). Each program has its own opt-in
-            below — checking one does <strong>not</strong> enroll you in the other.
+            below. Checking one does <strong>not</strong> enroll you in the other.
           </p>
           <div className="mt-6 grid gap-3 text-left sm:grid-cols-2">
             <div className="rounded-lg border border-border bg-muted/20 p-4">
-              <h3 className="text-sm font-semibold mb-1">Program 1 — Marketing Texts</h3>
+              <h3 className="text-sm font-semibold mb-1">Program 1. Marketing Texts</h3>
               <p className="text-xs text-muted-foreground">
                 Promotions, discount alerts, and loyalty rewards. Msg frequency varies. Msg & data
                 rates may apply. Reply STOP to cancel, HELP for help.
@@ -134,7 +134,7 @@ const SmsSignup = () => {
             </div>
             <div className="rounded-lg border border-border bg-muted/20 p-4">
               <h3 className="text-sm font-semibold mb-1">
-                Program 2 — Review Reminders & Service Notifications
+                Program 2. Review Reminders & Service Notifications
               </h3>
               <p className="text-xs text-muted-foreground">
                 Reminders to leave a review after a visit and service-related notices. Msg frequency

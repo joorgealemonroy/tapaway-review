@@ -2,7 +2,7 @@
  * Detects legacy "recursive" social links produced by the old scheme-less URL
  * parsing bug, e.g. `https://facebook.com/facebook.com`.
  *
- * Detection only — nothing here mutates or deletes data. Affected links are
+ * Detection only. Nothing here mutates or deletes data. Affected links are
  * surfaced in the rep, personal and admin dashboards so a human can re-enter
  * the correct page name.
  */
@@ -93,4 +93,4 @@ export const getBrokenLinks = <T extends BrokenLinkCandidate>(links: T[] | null 
 export const hasBrokenLinks = (links: BrokenLinkCandidate[] | null | undefined): boolean =>
   (links || []).some((l) => isBrokenPlatformUrl(l));
 
-export const BROKEN_LINK_TOOLTIP = "This link is broken — re-enter your page name";
+export const BROKEN_LINK_TOOLTIP = "This link is broken. Re-enter your page name";

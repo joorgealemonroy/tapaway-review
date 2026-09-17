@@ -97,12 +97,12 @@ export default function AdminHubHealth() {
     const { data, error } = await supabase.functions.invoke("check-hub-links", { body: {} });
     if (error) toast.error(error.message);
     else if (data?.is_complete) toast.success(`Checked ${data.checked} of ${data.total} links`);
-    else toast.warning("Link check finished incomplete — totals may be stale");
+    else toast.warning("Link check finished incomplete. Totals may be stale");
     await loadLinkChecks();
     setLinksRunning(false);
   };
 
-  /** Persistent admin override — never overwritten by later automated checks. */
+  /** Persistent admin override. Never overwritten by later automated checks. */
   const setReview = async (c: LinkCheck, state: "false_positive" | "none") => {
     if (!c.id) return;
     const { data: auth } = await supabase.auth.getUser();
@@ -217,7 +217,7 @@ export default function AdminHubHealth() {
             <CardTitle className="text-white text-base">Outbound links</CardTitle>
             <CardDescription className="text-white/60">
               Every link on a live hub is opened server-side. A 401/403/429 means the host blocks
-              automated checks — it is never counted as broken.
+              automated checks. It is never counted as broken.
             </CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -312,7 +312,7 @@ export default function AdminHubHealth() {
 
                           <TableCell className="font-mono text-sm">/{r.slug}</TableCell>
                           <TableCell className="text-sm capitalize">{r.kind}</TableCell>
-                          <TableCell className="text-sm text-white/70">{r.owner_label ?? "—"}</TableCell>
+                          <TableCell className="text-sm text-white/70">{r.owner_label ?? "Not available"}</TableCell>
                           <TableCell>
                             <Badge variant={r.expected_status === "live" ? "default" : "secondary"} className="text-xs">
                               {r.expected_status}
@@ -320,7 +320,7 @@ export default function AdminHubHealth() {
                           </TableCell>
                           <TableCell>
                             {r.expected_status !== "live" ? (
-                              <span className="text-xs text-white/40">—</span>
+                              <span className="text-xs text-white/40"></span>
                             ) : !p || p.status === "pending" ? (
                               <span className="text-xs text-white/60">testing…</span>
                             ) : p.status === "ok" ? (

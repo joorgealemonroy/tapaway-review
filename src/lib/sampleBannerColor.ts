@@ -5,7 +5,7 @@
  *
  * Returns a `#rrggbb` hex string, or `null` on any failure (CORS taint,
  * load error, decode error). Callers should treat `null` as "leave the
- * current background as-is" — this function never throws.
+ * current background as-is". This function never throws.
  */
 export const DEFAULT_HUB_BACKGROUND_COLOR = "#ffffff";
 

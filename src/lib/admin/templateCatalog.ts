@@ -1,4 +1,4 @@
-// Template catalog — metadata-only index for /admin/emails.
+// Template catalog. Metadata-only index for /admin/emails.
 //
 // This file contains NO email markup. Rendered previews always come from the
 // canonical email-template-preview edge function (which renders
@@ -37,7 +37,7 @@ export const TEMPLATE_CATALOG: TemplateCatalogEntry[] = [
     key: "welcome_paid",
     label: "Welcome (Paid Today)",
     trigger:
-      "Fires when a new subscription activates with NO trial (discount pay links, any immediate-charge checkout) — honest 'charged today' copy.",
+      "Fires when a new subscription activates with NO trial (discount pay links, any immediate-charge checkout). Honest 'charged today' copy.",
   },
   {
     key: "card_printed",
@@ -63,13 +63,13 @@ export const TEMPLATE_CATALOG: TemplateCatalogEntry[] = [
     key: "password_setup",
     label: "Password Setup",
     trigger:
-      "Sent after van-mode/in-person payment — client sets their own password via link (Jorge never handles passwords in person).",
+      "Sent after van-mode/in-person payment. Client sets their own password via link (Jorge never handles passwords in person).",
   },
   {
     key: "feature_update",
     label: "Feature Update",
     trigger:
-      "Manual broadcast — Jorge composes these in /admin/emails → Compose. Sent to active (paying, non-comped, non-trialing) subscribers only.",
+      "Manual broadcast. Jorge composes these in /admin/emails → Compose. Sent to active (paying, non-comped, non-trialing) subscribers only.",
   },
 ];
 

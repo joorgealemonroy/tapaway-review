@@ -24,7 +24,7 @@ const PROFILE_COLUMNS = HUB_PROFILE_COLUMNS;
 
 const AdminPreviewRibbon = () => (
   <div className="fixed top-0 inset-x-0 z-[9999] bg-amber-500 text-black text-center py-1.5 text-xs font-semibold shadow-md">
-    Preview — this hub is not yet approved and not publicly visible.
+    Preview. This hub is not yet approved and not publicly visible.
   </div>
 );
 
@@ -65,7 +65,7 @@ const UsernameResolverInner = memo(({ slug, isAdminPreview }: { slug?: string; i
 
       // Resolve a restaurant slug to the ReviewHub page. The hub data RPC is
       // subscription-gated, so a lapsed (canceled/past_due/...) hub returns no
-      // rows — use the status RPC to still route it to ReviewHub so the visitor
+      // rows. Use the status RPC to still route it to ReviewHub so the visitor
       // sees the "Review Page Paused" gate instead of a 404.
       const resolveRestaurantType = async (): Promise<"restaurant" | "notfound"> => {
         const { data: restaurant } = await supabase
@@ -118,7 +118,7 @@ const UsernameResolverInner = memo(({ slug, isAdminPreview }: { slug?: string; i
         return;
       }
 
-      // Not publicly visible — if the viewer is a verified admin OR the
+      // Not publicly visible. If the viewer is a verified admin OR the
       // rep who owns this demo, auto-enter preview mode against the plain
       // slug. RLS on personal_profiles restricts this select to owner /
       // admin / linked sales_rep_id, so a row only comes back for someone
@@ -138,7 +138,7 @@ const UsernameResolverInner = memo(({ slug, isAdminPreview }: { slug?: string; i
 
       // Lapsed solo subscription (e.g. trial ended without payment): the
       // public RPC won't resolve it, but the status RPC tells us an approved
-      // profile exists — route to PersonalProfilePage with NO pre-resolved
+      // profile exists. Route to PersonalProfilePage with NO pre-resolved
       // profile so its own fetch renders the graceful trial-ended preview
       // (real branding + kind banner + reactivate CTA).
       const { data: statusRows } = await supabase

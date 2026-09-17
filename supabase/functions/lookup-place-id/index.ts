@@ -25,7 +25,7 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Google Places calls cost money — throttle unauthenticated callers to 20/min.
+  // Google Places calls cost money. Throttle unauthenticated callers to 20/min.
   if (!checkRateLimit(getRateLimitKey(req, "lookup-place-id"), 20, 60 * 1000)) {
     return rateLimitResponse(corsHeaders);
   }

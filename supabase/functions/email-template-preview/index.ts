@@ -1,4 +1,4 @@
-// email-template-preview — canonical template previews for the admin UI.
+// email-template-preview. Canonical template previews for the admin UI.
 //
 // The /admin/emails Templates tab currently previews from a UI-side mirror
 // (src/lib/admin/emailTemplates.ts). That mirror can drift from what clients
@@ -7,7 +7,7 @@
 // single source of truth instead.
 //
 // Admin-gated (Jorge's JWT + is_admin()). Rate-limited (600/hour per
-// caller — high enough for the /admin/emails gallery plus the Compose tab's
+// caller. High enough for the /admin/emails gallery plus the Compose tab's
 // debounced live preview while typing; still throttled against abuse).
 //
 // Request (POST):  { template_key: "welcome", vars?: { ... } }
@@ -32,7 +32,7 @@ function json(status: number, body: unknown) {
   });
 }
 
-// Sample data for previews — plausible but obviously fake.
+// Sample data for previews. Plausible but obviously fake.
 const SAMPLE_VARS: Record<string, Record<string, string>> = {
   welcome: {
     name: "Alex",
@@ -40,7 +40,7 @@ const SAMPLE_VARS: Record<string, Record<string, string>> = {
     hubUrl: "https://tapaway.co/sunrisecafe",
     dashboardUrl: "https://tapaway.co/dashboard",
   },
-  // welcome_paid takes the same vars as welcome — paid-today copy.
+  // welcome_paid takes the same vars as welcome. Paid-today copy.
   welcome_paid: {
     name: "Alex",
     businessName: "Sunrise Café",
@@ -57,7 +57,7 @@ const SAMPLE_VARS: Record<string, Record<string, string>> = {
     businessName: "Sunrise Café",
     dashboardUrl: "https://tapaway.co/dashboard",
     deliveryNote:
-      "Your TapAway cards for Sunrise Café are delivered — in your hands and ready to work.",
+      "Your TapAway cards for Sunrise Café are delivered. In your hands and ready to work.",
   },
   trial_ending: {
     name: "Alex",

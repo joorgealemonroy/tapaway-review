@@ -165,7 +165,7 @@ export const SuccessScreen = ({ username, email, planType = "yearly", vibeName, 
           transition={{ delay: 0.75, duration: 0.5 }}
           className="mt-2 text-muted-foreground text-center text-base"
         >
-          You're in! Sit tight — we're putting the finishing touches on your hub right now.
+          You're in! Sit tight. We're putting the finishing touches on your hub right now.
         </motion.p>
 
         <motion.p

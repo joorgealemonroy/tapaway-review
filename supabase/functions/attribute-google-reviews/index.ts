@@ -83,7 +83,7 @@ serve(async (_req) => {
     );
   }
 
-  // Only restaurants with review-button taps in the last 7 days — attribution
+  // Only restaurants with review-button taps in the last 7 days. Attribution
   // only matters where there is tap activity to match against.
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
   const { data: activeEvents, error: eventsError } = await supabaseAdmin

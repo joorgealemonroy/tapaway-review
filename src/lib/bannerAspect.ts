@@ -5,9 +5,9 @@
 export type BannerAspect = "short" | "standard" | "tall";
 
 export const BANNER_ASPECTS: Record<BannerAspect, number> = {
-  short: 16 / 5,      // 3.20 — wide strip, good for wordmark logos
-  standard: 16 / 9,   // 1.78 — default
-  tall: 4 / 3,        // 1.33 — big, photo-style header
+  short: 16 / 5,      // 3.20. Wide strip, good for wordmark logos
+  standard: 16 / 9,   // 1.78. Default
+  tall: 4 / 3,        // 1.33. Big, photo-style header
 };
 
 export const BANNER_ASPECT_LABELS: { value: BannerAspect; label: string }[] = [

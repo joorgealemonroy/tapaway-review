@@ -1,16 +1,16 @@
-// fulfillment-email — sends pipeline stage emails (card_printed, card_delivered).
+// fulfillment-email. Sends pipeline stage emails (card_printed, card_delivered).
 //
 // Called ONLY by the DB trigger on personal_profiles (see migration
 // 20260909251000_email_triggers.sql): when printed_at flips NULL -> set, the
 // trigger pg_net-POSTs { profile_id, stage: "printed" }; when delivered_at
 // flips, { profile_id, stage: "delivered" }.
 //
-// HONESTY RULE: the send is gated on the actual stamp column being set —
+// HONESTY RULE: the send is gated on the actual stamp column being set 
 // if printed_at/delivered_at isn't set, we refuse to claim it happened.
 // Dedup: email_sends (profile_id + template_key) guarantees exactly-once per
 // profile even if the trigger fires twice.
 //
-// Auth: internal only — Authorization: Bearer <service-role key>, same as
+// Auth: internal only. Authorization: Bearer <service-role key>, same as
 // trial-followup (the pg_net trigger pulls the key from Vault).
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -113,10 +113,10 @@ serve(async (req) => {
         hubUrl: username ? `${SITE_URL}/${username}` : SITE_URL,
         dashboardUrl: `${SITE_URL}/dashboard`,
         // Delivered from the admin board can mean handed over in person OR
-        // shipped — keep the copy honest for the in-person case.
+        // shipped. Keep the copy honest for the in-person case.
         deliveryNote:
           stage === "delivered"
-            ? `Your TapAway cards for ${fullName || "your business"} are delivered — in your hands and ready to work.`
+            ? `Your TapAway cards for ${fullName || "your business"} are delivered. In your hands and ready to work.`
             : undefined,
       },
     });

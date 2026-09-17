@@ -17,7 +17,7 @@ const Compliance = () => {
             <Smartphone className="w-6 h-6 text-primary-foreground" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">TapAway — SMS Compliance & Opt-In Flow</h1>
+            <h1 className="text-2xl font-bold">TapAway. SMS Compliance & Opt-In Flow</h1>
             <p className="text-sm text-muted-foreground">For carrier / Twilio reviewer use. Last updated: May 7, 2026</p>
           </div>
         </div>
@@ -28,7 +28,7 @@ const Compliance = () => {
         <section className="space-y-3">
           <h2 className="text-xl font-bold">Brand & Use Case</h2>
           <p className="text-muted-foreground leading-relaxed">
-            <strong>Brand:</strong> TapAway (tapaway.co) — a platform that gives businesses NFC-enabled
+            <strong>Brand:</strong> TapAway (tapaway.co). A platform that gives businesses NFC-enabled
             "tap" cards. Customers tap a card with their phone, land on the business's profile page, and may
             voluntarily join that business's VIP text list to receive promotions, updates, and offers from
             that specific business.
@@ -51,7 +51,7 @@ const Compliance = () => {
           <div className="grid gap-3">
             {[
               { label: "Welcome (sent on opt-in)", body: "[Business Name]: You're in! Thanks for joining our VIP list. Expect ~2-4 msgs/mo with offers. Msg&data rates may apply. Reply HELP for help, STOP to cancel." },
-              { label: "Marketing", body: "[Business Name]: Flash deal — 20% off today only. Show this text in store. Reply STOP to cancel." },
+              { label: "Marketing", body: "[Business Name]: Flash deal. 20% off today only. Show this text in store. Reply STOP to cancel." },
               { label: "HELP reply", body: "[Business Name]: For help, email tap@tapaway.co. Msg&data rates may apply. Msg frequency varies. Reply STOP to cancel." },
               { label: "STOP reply", body: "You have been unsubscribed from [Business Name] and will not receive any more messages. Reply START to resubscribe." },
             ].map((m) => (
@@ -75,7 +75,7 @@ const Compliance = () => {
 
         {/* Privacy clause */}
         <section className="space-y-3">
-          <h2 className="text-xl font-bold">Privacy Policy — Mobile Data Clause</h2>
+          <h2 className="text-xl font-bold">Privacy Policy. Mobile Data Clause</h2>
           <div className="border border-border rounded-lg p-4 bg-card text-sm">
             <p>
               "Mobile information will not be shared with third parties/affiliates for marketing/promotional

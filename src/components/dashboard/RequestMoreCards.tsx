@@ -235,7 +235,7 @@ export const RequestMoreCards = ({
             {info.loading
               ? "Checking your plan…"
               : subscriptionOk
-                ? `${cardPlanLabel(info.planType)} plan — ${info.allowance} cards per month. You've used ${info.used} this month.`
+                ? `${cardPlanLabel(info.planType)} plan. ${info.allowance} cards per month. You've used ${info.used} this month.`
                 : "Card requests need an active plan."}
           </DialogDescription>
         </DialogHeader>

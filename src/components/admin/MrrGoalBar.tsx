@@ -43,7 +43,7 @@ const MrrGoalBar = ({
         </div>
         <div className="text-right shrink-0">
           <div className="text-2xl font-semibold text-primary tabular-nums">
-            {loading ? "—" : `${pct.toFixed(pct < 10 ? 1 : 0)}%`}
+            {loading ? "Not available" : `${pct.toFixed(pct < 10 ? 1 : 0)}%`}
           </div>
           <div className="text-xs text-white/40">of {fmtMoney(MRR_GOAL)} goal</div>
         </div>
@@ -62,7 +62,7 @@ const MrrGoalBar = ({
       <p className="mt-3 text-[11px] text-white/30 leading-relaxed">
         Derived from plan prices stored in the DB (no Stripe sync table exists).
         Counts active + past-due accounts, excludes comped and trials. Grandfathered
-        $15 Solo plans read as $20 — slight overstatement until plans are reconciled.
+        $15 Solo plans read as $20. Slight overstatement until plans are reconciled.
       </p>
     </Panel>
   );

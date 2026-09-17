@@ -264,13 +264,13 @@ const RepBusinesses = () => {
         if (row.contact_name) owner = row.contact_name.split(' ')[0];
       }
     } catch {
-      /* stats are best-effort — the link still works */
+      /* stats are best-effort. The link still works */
     }
 
-    const message = `Hey ${owner}! Your TapAway card captured ${vip} VIP numbers during your trial. Claim your card & keep full access here: ${claimUrl} — Solo $20/mo or Venue $39/mo, 7-day free trial.`;
+    const message = `Hey ${owner}! Your TapAway card captured ${vip} VIP numbers during your trial. Claim your card & keep full access here: ${claimUrl}. Solo $20/mo or Venue $39/mo, 7-day free trial.`;
     try {
       await navigator.clipboard.writeText(message);
-      toast.success('Claim message copied — paste it into a text');
+      toast.success('Claim message copied. Paste it into a text');
     } catch {
       toast.message(message);
     }

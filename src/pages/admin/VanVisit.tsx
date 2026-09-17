@@ -1,14 +1,14 @@
-// VanVisit — Jorge's on-the-spot van sales page (/admin/van).
+// VanVisit. Jorge's on-the-spot van sales page (/admin/van).
 //
 // Mobile-first, one-thumb flow for closing a business in person:
 //   1. Find-or-create the business (personal_profiles demo row)
-//   2. Print   — records print_status='printed' via admin_set_print_status
+//   2. Print. Records print_status='printed' via admin_set_print_status
 //               (the physical print happens on the van printer)
-//   3. Activate — claims a physical NFC card to the hub via admin_activate_card
-//   4. Payment  — NO-TRIAL checkout session (immediate charge, sub starts
+//   3. Activate. Claims a physical NFC card to the hub via admin_activate_card
+//   4. Payment . NO-TRIAL checkout session (immediate charge, sub starts
 //               'active'); owner pays on THEIR phone via QR/link; this page
 //               polls verify-personal-checkout until it succeeds.
-//   5. Close   — pipeline -> 'converted'; optional rep commission.
+//   5. Close. Pipeline -> 'converted'; optional rep commission.
 //
 // Admin-only (useAdminGuard). All privileged writes go through
 // SECURITY DEFINER RPCs or existing admin RLS policies.
@@ -91,7 +91,7 @@ export default function VanVisit() {
   const [step, setStep] = useState<Step>("find");
   const [business, setBusiness] = useState<Business | null>(null);
 
-  // Step 1 — find / create
+  // Step 1. Find / create
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
   const [results, setResults] = useState<Business[]>([]);
@@ -101,19 +101,19 @@ export default function VanVisit() {
   const [newAddress, setNewAddress] = useState("");
   const [creating, setCreating] = useState(false);
 
-  // Rep attribution (optional — Diego only earns $5/demo if selected here
+  // Rep attribution (optional. Diego only earns $5/demo if selected here
   // AND the sale closes; Jorge closing alone = no rep payout).
   const [reps, setReps] = useState<SalesRep[]>([]);
   const [repId, setRepId] = useState<string>("");
 
-  // Step 2 — print
+  // Step 2. Print
   const [printing, setPrinting] = useState(false);
 
-  // Step 3 — activate
+  // Step 3. Activate
   const [cardCode, setCardCode] = useState("");
   const [activating, setActivating] = useState(false);
 
-  // Step 4 — payment
+  // Step 4. Payment
   const [plan, setPlan] = useState("solo");
   const [ownerEmail, setOwnerEmail] = useState("");
   const [sessionUrl, setSessionUrl] = useState<string | null>(null);
@@ -122,11 +122,11 @@ export default function VanVisit() {
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
   const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Step 5 — close
+  // Step 5. Close
   const [closing, setClosing] = useState(false);
   const [savingLead, setSavingLead] = useState(false);
 
-  // Van handoff — password-setup link sent after payment (SMS to the owner
+  // Van handoff. Password-setup link sent after payment (SMS to the owner
   // mobile on file, else email to the receipt address). Queried here so
   // Jorge's screen only ever shows "sent" + channel, never the link itself.
   const [handoff, setHandoff] = useState<{ sent_at: string | null; channel: string | null } | null>(null);
@@ -151,7 +151,7 @@ export default function VanVisit() {
   }, [step, business]);
 
   // Manual resend (admin-gated, exactly the same function verify-personal-checkout
-  // calls automatically — useful if the owner lost the text or the link expired).
+  // calls automatically. Useful if the owner lost the text or the link expired).
   const resendHandoff = async () => {
     if (!business) return;
     setResendingHandoff(true);
@@ -268,13 +268,13 @@ export default function VanVisit() {
 
       const b = data as Business;
       if (asLead) {
-        toast.success(`${name} saved as a lead — find it in the fulfillment queue`);
+        toast.success(`${name} saved as a lead. Find it in the fulfillment queue`);
         resetFlow();
       } else {
         setBusiness(b);
         setShowCreate(false);
         setStep("print");
-        toast.success(`${name} created — print the card`);
+        toast.success(`${name} created. Print the card`);
       }
     } catch (e) {
       toast.error("Create failed: " + (e instanceof Error ? e.message : String(e)));
@@ -290,7 +290,7 @@ export default function VanVisit() {
     const { error } = await supabase.rpc("admin_set_print_status", {
       _profile_id: business.id,
       _status: "printed",
-      _notes: "Van visit — printed on van printer",
+      _notes: "Van visit. Printed on van printer",
     });
     setPrinting(false);
     if (error) {
@@ -299,7 +299,7 @@ export default function VanVisit() {
     }
     setBusiness({ ...business, print_status: "printed" });
     setStep("activate");
-    toast.success("Marked printed — now activate the card");
+    toast.success("Marked printed. Now activate the card");
   };
 
   // ── Step 3: activate card ───────────────────────────────────────
@@ -352,7 +352,7 @@ export default function VanVisit() {
       if (!data?.url || !data?.sessionId) throw new Error("No checkout URL returned");
       setSessionUrl(data.url as string);
       setSessionId(data.sessionId as string);
-      toast.success("Payment link ready — have the owner scan it");
+      toast.success("Payment link ready. Have the owner scan it");
     } catch (e) {
       toast.error("Checkout failed: " + (e instanceof Error ? e.message : String(e)));
     } finally {
@@ -368,20 +368,20 @@ export default function VanVisit() {
         body: { sessionId },
       });
       if (!error && data) {
-        // Payment complete — verify-personal-checkout has provisioned the
+        // Payment complete. Verify-personal-checkout has provisioned the
         // profile (subscription_status='active', stripe ids set, no trial).
         if (pollTimer.current) clearInterval(pollTimer.current);
         setPaymentConfirmed(true);
-        toast.success("Payment confirmed — close the sale");
+        toast.success("Payment confirmed. Close the sale");
       }
-      // else: still unpaid (400 "Payment not completed") — keep polling.
+      // else: still unpaid (400 "Payment not completed"). Keep polling.
     };
     poll();
     pollTimer.current = setInterval(poll, 4000);
     const stopAfter = setTimeout(() => {
       if (pollTimer.current) {
         clearInterval(pollTimer.current);
-        toast.info("Stopped checking — tap “Check again” if they just paid");
+        toast.info("Stopped checking. Tap “Check again” if they just paid");
       }
     }, 10 * 60 * 1000);
     return () => {
@@ -398,7 +398,7 @@ export default function VanVisit() {
     });
     if (!error && data) {
       setPaymentConfirmed(true);
-      toast.success("Payment confirmed — close the sale");
+      toast.success("Payment confirmed. Close the sale");
     } else {
       toast.info("Not paid yet");
     }
@@ -448,7 +448,7 @@ export default function VanVisit() {
         toast.error("Save failed: " + error.message);
         return;
       }
-      toast.success("Saved as lead — it’s in the fulfillment “needs review” queue");
+      toast.success("Saved as lead. It’s in the fulfillment “needs review” queue");
       resetFlow();
     } else {
       // No row yet: quick-create as a draft lead.
@@ -477,9 +477,9 @@ export default function VanVisit() {
     if (!sessionUrl) return;
     try {
       await navigator.clipboard.writeText(sessionUrl);
-      toast.success("Link copied — text it to the owner");
+      toast.success("Link copied. Text it to the owner");
     } catch {
-      toast.error("Copy failed — long-press the link instead");
+      toast.error("Copy failed. Long-press the link instead");
     }
   };
 
@@ -596,7 +596,7 @@ export default function VanVisit() {
               )}
             </div>
 
-            {/* Rep attribution — optional */}
+            {/* Rep attribution. Optional */}
             <div className="space-y-2 pt-2">
               <label className="text-sm font-semibold">Who’s selling? <span className="font-normal text-muted-foreground">(optional)</span></label>
               <select
@@ -604,10 +604,10 @@ export default function VanVisit() {
                 onChange={(e) => setRepId(e.target.value)}
                 className="w-full h-14 rounded-xl border bg-background px-3 text-base"
               >
-                <option value="">Just me (Jorge) — no rep payout</option>
+                <option value="">Just me (Jorge). No rep payout</option>
                 {reps.map((r) => (
                   <option key={r.id} value={r.id}>
-                    {r.name} — earns $5 on close
+                    {r.name}. Earns $5 on close
                   </option>
                 ))}
               </select>
@@ -631,7 +631,7 @@ export default function VanVisit() {
             <Input
               value={newPhone}
               onChange={(e) => setNewPhone(e.target.value)}
-              placeholder="Owner mobile — gets the setup text"
+              placeholder="Owner mobile. Gets the setup text"
               inputMode="tel"
               className="h-14 text-base"
             />
@@ -666,7 +666,7 @@ export default function VanVisit() {
             </div>
             <Button onClick={markPrinted} className="w-full h-16 text-lg" disabled={printing}>
               {printing ? <Loader2 className="h-6 w-6 animate-spin mr-2" /> : <Printer className="h-6 w-6 mr-2" />}
-              Card printed — record it
+              Card printed. Record it
             </Button>
             <p className="text-xs text-muted-foreground">
               This just records print_status = printed. The physical print happens on your printer.
@@ -684,7 +684,7 @@ export default function VanVisit() {
               </div>
               <h2 className="text-xl font-bold mt-3">Activate the card</h2>
               <p className="text-muted-foreground mt-1">
-                Enter the printed card’s public code — this links the chip to{" "}
+                Enter the printed card’s public code. This links the chip to{" "}
                 <span className="font-semibold">/{business.username}</span> and makes taps work.
               </p>
             </div>
@@ -714,7 +714,7 @@ export default function VanVisit() {
                   </div>
                   <h2 className="text-xl font-bold mt-3">Collect payment</h2>
                   <p className="text-muted-foreground mt-1">
-                    No trial — the owner pays <span className="font-semibold">right now</span> and the
+                    No trial. The owner pays <span className="font-semibold">right now</span> and the
                     subscription starts active immediately.
                   </p>
                 </div>
@@ -761,7 +761,7 @@ export default function VanVisit() {
                   <>
                     <h2 className="text-xl font-bold">Owner scans to pay</h2>
                     <p className="text-muted-foreground">
-                      {plan === "solo" ? "Solo · $20/mo" : "Venue · $39/mo"} — charged today, no trial.
+                      {plan === "solo" ? "Solo · $20/mo" : "Venue · $39/mo"}. Charged today, no trial.
                     </p>
                     <div className="bg-white rounded-2xl p-6 inline-block">
                       <QRCode value={sessionUrl} size={220} />
@@ -825,12 +825,12 @@ export default function VanVisit() {
               <h2 className="text-xl font-bold">Close the sale</h2>
               <p className="text-muted-foreground mt-1">
                 {business.full_name} paid. Mark them converted
-                {repId ? " and award the $5 rep bonus" : " (no rep payout — your close)"}.
+                {repId ? " and award the $5 rep bonus" : " (no rep payout. Your close)"}.
               </p>
             </div>
             <Button onClick={closeSale} className="w-full h-16 text-lg" disabled={closing}>
               {closing ? <Loader2 className="h-6 w-6 animate-spin mr-2" /> : <CheckCircle2 className="h-6 w-6 mr-2" />}
-              Mark closed — payment received
+              Mark closed. Payment received
             </Button>
             <BackButton />
           </div>
@@ -846,13 +846,13 @@ export default function VanVisit() {
             <p className="text-muted-foreground">
               {business.full_name} is a paying customer. Card live at /{business.username}.
             </p>
-            {/* Password-setup handoff status — only "sent" + channel, never the link */}
+            {/* Password-setup handoff status. Only "sent" + channel, never the link */}
             {handoff?.sent_at ? (
               <div className="rounded-xl border bg-muted/50 p-4 text-left">
                 <p className="text-sm font-semibold">Setup link sent ✓</p>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   Went out via {handoff.channel === "email" ? "email" : "SMS"}.
-                  The owner sets their own password later — you never touch it.
+                  The owner sets their own password later. You never touch it.
                 </p>
               </div>
             ) : (
@@ -900,7 +900,7 @@ export default function VanVisit() {
               ) : (
                 <UserPlus className="h-5 w-5 mr-2" />
               )}
-              Owner not here / didn’t close — save as lead
+              Owner not here / didn’t close. Save as lead
             </Button>
           </div>
         </div>

@@ -8,7 +8,7 @@ export default function SalesPartnerAgreement() {
           TapAway Sales Partner Agreement
         </h2>
         <p className="text-xs text-muted-foreground text-center mb-6">
-          Version 3.0 — Effective Immediately (supersedes v2.0)
+          Version 3.0. Effective Immediately (supersedes v2.0)
         </p>
 
 
@@ -90,7 +90,7 @@ export default function SalesPartnerAgreement() {
 
         <h3 className="text-base font-semibold mt-6 mb-2">6. Confidentiality</h3>
         <p className="text-sm mb-4">
-          All TapAway materials—including training, pricing, assets, processes, scripts, and internal documents—are
+          All TapAway materials. Including training, pricing, assets, processes, scripts, and internal documents. Are
           confidential and cannot be shared, copied, or distributed without authorization.
         </p>
 

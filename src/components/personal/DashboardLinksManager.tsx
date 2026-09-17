@@ -73,7 +73,7 @@ export const DashboardLinksManager = ({ profileId, links, onLinksChange }: Props
   // Simple, reliable reorder via up/down buttons. The previous touch-hold-drag
   // reorder never worked on touch (rows had no data-drag-index target, so drops
   // were silently ignored) and its `touch-none` class blocked page scrolling on
-  // rows — so it was replaced with explicit buttons that work on any device.
+  // rows. So it was replaced with explicit buttons that work on any device.
   const moveLink = async (index: number, direction: -1 | 1) => {
     const newIndex = index + direction;
     if (newIndex < 0 || newIndex >= links.length || moving) return;
@@ -94,12 +94,12 @@ export const DashboardLinksManager = ({ profileId, links, onLinksChange }: Props
       if (failed) {
         console.error("Reorder failed:", results.map((r) => r.error).filter(Boolean));
         onLinksChange(prev); // revert so the list matches the database
-        toast.error("Couldn't save the new order — try again.");
+        toast.error("Couldn't save the new order. Try again.");
       }
     } catch (err) {
       console.error("Reorder error:", err);
       onLinksChange(prev); // revert so the list matches the database
-      toast.error("Couldn't save the new order — try again.");
+      toast.error("Couldn't save the new order. Try again.");
     } finally {
       setMoving(false);
     }

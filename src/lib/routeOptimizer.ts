@@ -7,7 +7,7 @@ import { resolveDisplayName } from "@/lib/displayName";
  * Apple Maps accepts a chain of stops via `daddr=A+to:B+to:C`. We cap each leg
  * at 15 stops, order the whole selection by shortest driving path (greedy
  * nearest-neighbor + 2-opt cleanup over coordinates), and chain the legs so
- * leg N+1 starts where leg N ended — one continuous day of drop-offs.
+ * leg N+1 starts where leg N ended. One continuous day of drop-offs.
  */
 
 export const MAX_STOPS_PER_LEG = 15;
@@ -31,7 +31,7 @@ export interface RoutePlan<T extends LocationSource = LocationSource> {
   legs: RouteLeg<T>[];
   chunked: boolean;
   totalStops: number;
-  /** Stops with no coordinates — appended at the end, not distance-optimized. */
+  /** Stops with no coordinates. Appended at the end, not distance-optimized. */
   unoptimizedCount: number;
   /** Optimized stop order (flat), matching the leg sequence. */
   ordered: T[];

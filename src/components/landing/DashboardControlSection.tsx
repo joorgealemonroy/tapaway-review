@@ -164,7 +164,7 @@ export const DashboardControlSection = () => {
                         <FeatureTag>Instant sync</FeatureTag>
                       </div>
                       <p className="mt-0.5 text-[9px] leading-snug text-muted-foreground">
-                        Update once — every card updates instantly.
+                        Update once. Every card updates instantly.
                       </p>
                     </div>
 

@@ -1,11 +1,11 @@
 /**
- * ClientEngagement — shared engagement widgets for the client dashboards
+ * ClientEngagement. Shared engagement widgets for the client dashboards
  * (business + Solo). Drives real card/hub usage with gentle, never-shaming
  * encouragement:
  *
  * - MilestoneBadges: small celebratory moments (first tap, 10, 100, first
  *   review click). Each shows exactly once per account, tracked in
- *   localStorage. Never fabricated — only real counts.
+ *   localStorage. Never fabricated. Only real counts.
  * - UsageNudge: "your cards haven't been tapped in X days", shown only when
  *   meaningful (see ENGAGEMENT-NUDGES.md for the exact rules), paired with
  *   one actionable playbook tip that deep-links to the right tab.
@@ -63,7 +63,7 @@ const MILESTONES: MilestoneDef[] = [
     iconClass: "bg-primary/10 text-primary",
     title: (noun) => (noun === "taps" ? "First tap! 🎉" : "First visit! 🎉"),
     message: () =>
-      "Someone tapped through — it's working. Keep your cards where people can see them.",
+      "Someone tapped through. It's working. Keep your cards where people can see them.",
   },
   {
     id: "activity-10",
@@ -71,7 +71,7 @@ const MILESTONES: MilestoneDef[] = [
     icon: Zap,
     iconClass: "bg-amber-500/10 text-amber-600",
     title: (noun) => (noun === "taps" ? "10 taps" : "10 visits"),
-    message: () => "Double digits! Momentum is building — nice work getting the word out.",
+    message: () => "Double digits! Momentum is building. Nice work getting the word out.",
   },
   {
     id: "activity-100",
@@ -79,7 +79,7 @@ const MILESTONES: MilestoneDef[] = [
     icon: Trophy,
     iconClass: "bg-emerald-500/10 text-emerald-600",
     title: (noun) => (noun === "taps" ? "100 taps" : "100 visits"),
-    message: () => "Triple digits — your cards are doing real work for your business.",
+    message: () => "Triple digits. Your cards are doing real work for your business.",
   },
   {
     id: "first-review-click",
@@ -88,7 +88,7 @@ const MILESTONES: MilestoneDef[] = [
     iconClass: "bg-yellow-500/10 text-yellow-600",
     title: () => "First review click ⭐",
     message: () =>
-      "Someone tapped through to leave you a review. That's the whole point — keep it coming.",
+      "Someone tapped through to leave you a review. That's the whole point. Keep it coming.",
   },
 ];
 
@@ -110,15 +110,15 @@ function markMilestonesSeen(accountId: string, ids: string[]) {
     ids.forEach((id) => seen.add(id));
     localStorage.setItem(milestoneKey(accountId), JSON.stringify([...seen]));
   } catch {
-    // localStorage unavailable (private mode etc.) — milestones simply show
+    // localStorage unavailable (private mode etc.). Milestones simply show
     // again next visit rather than crashing.
   }
 }
 
 export interface MilestoneBadgesProps {
-  /** Account id (restaurant id or profile id) — seen state is keyed per account. */
+  /** Account id (restaurant id or profile id). Seen state is keyed per account. */
   accountId: string;
-  /** All-time tap/visit count — milestones come from real counts only. */
+  /** All-time tap/visit count. Milestones come from real counts only. */
   totalActivity: number;
   /** All-time review-link clicks. */
   reviewClicks: number;
@@ -195,13 +195,13 @@ export interface UsageNudgeProps {
 /**
  * Gentle "your cards haven't been tapped in X days" nudge, paired with ONE
  * concrete playbook tip that deep-links to the relevant tab. The caller owns
- * the suppression rules (see ENGAGEMENT-NUDGES.md) — this component just
+ * the suppression rules (see ENGAGEMENT-NUDGES.md). This component just
  * renders.
  */
 export function UsageNudge({ daysIdle, noun, kind, onNavigateTab }: UsageNudgeProps) {
   const options = actionableTips(kind);
   if (options.length === 0) return null;
-  // Rotate the paired tip by how long it's been idle — deterministic, so the
+  // Rotate the paired tip by how long it's been idle. Deterministic, so the
   // suggestion doesn't flip-flop between renders.
   const tip: PlaybookTip = options[daysIdle % options.length];
   const tab = kind === "business" ? tip.businessTab : tip.personalTab;
@@ -224,7 +224,7 @@ export function UsageNudge({ daysIdle, noun, kind, onNavigateTab }: UsageNudgePr
               : `No visits to your hub in ${idleLabel}`}
           </p>
           <p className="text-sm text-muted-foreground mt-1">
-            No stress — here's one easy win to get things moving again:
+            No stress. Here's one easy win to get things moving again:
           </p>
           <div className="mt-3 rounded-lg bg-background border border-border p-3">
             <p className="text-sm font-semibold flex items-center gap-1.5">
@@ -257,7 +257,7 @@ export interface PlaybookSectionProps {
 }
 
 /**
- * "Get more taps" — 2 rotating tips on the overview, expandable to the full
+ * "Get more taps". 2 rotating tips on the overview, expandable to the full
  * list. Tips rotate daily (stable within a day) so repeat visits feel fresh.
  */
 export function PlaybookSection({ kind, onNavigateTab }: PlaybookSectionProps) {
@@ -334,22 +334,22 @@ const DISCOVERY_COPY: Record<
 > = {
   sms: {
     title: "Text your customers",
-    body: "Send deals and updates straight to their phones. Texts get opened — emails don't.",
+    body: "Send deals and updates straight to their phones. Texts get opened. Emails don't.",
     icon: MessageSquare,
   },
   customerInfo: {
     title: "Collect customer info",
-    body: "Let visitors request a quote or leave their details right from your hub — their answers land in your inbox.",
+    body: "Let visitors request a quote or leave their details right from your hub. Their answers land in your inbox.",
     icon: Users,
   },
   promotions: {
     title: "Run a promotion",
-    body: "Give tappers a reason to come back — a deal or offer, live on your hub in a minute.",
+    body: "Give tappers a reason to come back. A deal or offer, live on your hub in a minute.",
     icon: Megaphone,
   },
   polls: {
     title: "Ask a poll",
-    body: "Ask customers what they want — new special, new hours? They'll tell you, and they'll tap to do it.",
+    body: "Ask customers what they want. New special, new hours? They'll tell you, and they'll tap to do it.",
     icon: BarChart3,
   },
 };
@@ -360,7 +360,7 @@ export interface FeatureDiscoveryProps {
 }
 
 /**
- * "Try this" cards — one per paid feature the owner genuinely isn't using
+ * "Try this" cards. One per paid feature the owner genuinely isn't using
  * yet (`used` is checked against real data by the caller). One plain-language
  * line on what it does, one tap to open the right tab. Renders nothing when
  * everything is already in use.

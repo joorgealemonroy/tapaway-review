@@ -166,7 +166,7 @@ function ShareContent({ profile, shareUrl, onClose, variant = 'dialog' }: Omit<S
 
   return (
     <div className="flex flex-col">
-      {/* Profile Preview Card — shows the cover image when one is set, matching the hub */}
+      {/* Profile Preview Card. Shows the cover image when one is set, matching the hub */}
       <div className={isDrawer ? "pb-4" : "px-5 pt-2 pb-4"}>
         <div 
           className={`relative overflow-hidden h-40 ${isDrawer ? 'rounded-b-2xl' : 'rounded-2xl'}`}

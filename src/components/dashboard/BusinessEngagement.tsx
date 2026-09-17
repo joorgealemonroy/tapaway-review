@@ -1,5 +1,5 @@
 /**
- * BusinessEngagement — engagement widgets on the business dashboard overview.
+ * BusinessEngagement. Engagement widgets on the business dashboard overview.
  *
  * Order: hub identity (delight) → milestone badges → usage nudge →
  * playbook ("Get more taps") → feature discovery ("Try this").
@@ -103,7 +103,7 @@ export const BusinessEngagement = ({
           pollsUsed: engRows.some((r) => r.type === "poll"),
         });
       } catch (err) {
-        // Engagement is decorative — a stats failure must never break the
+        // Engagement is decorative. A stats failure must never break the
         // overview. Log and leave everything hidden.
         console.warn("BusinessEngagement failed to load", err);
       } finally {
@@ -129,7 +129,7 @@ export const BusinessEngagement = ({
 
   // Nudge rules: active + not complimentary + not a demo preview + account at
   // least a week old + hub set up + has been tapped before + quiet for 7+ days.
-  // Complimentary accounts are free on purpose — never nagged.
+  // Complimentary accounts are free on purpose. Never nagged.
   const showNudge =
     loaded &&
     !isDemoView &&
@@ -158,7 +158,7 @@ export const BusinessEngagement = ({
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      {/* Delight: their place — logo, name, one tap to the live hub */}
+      {/* Delight: their place. Logo, name, one tap to the live hub */}
       <Card className="p-4 sm:p-5 card-elevated">
         <div className="flex items-center gap-4">
           {logoUrl ? (

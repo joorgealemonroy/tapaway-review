@@ -79,7 +79,7 @@ export const RestaurantSmsOptInDrawer = ({
 
       if (error) throw error;
 
-      // A2P 10DLC audit trail — persist the exact consent copy per campaign.
+      // A2P 10DLC audit trail. Persist the exact consent copy per campaign.
       await supabase.from("sms_signup_submissions" as any).insert({
         name: parsed.data.name,
         phone: parsed.data.phone,

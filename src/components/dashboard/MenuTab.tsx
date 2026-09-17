@@ -150,7 +150,7 @@ export const MenuTab = ({ restaurantId, isDemoView = false }: MenuTabProps) => {
     if (unnamedCount > 0) {
       toast({
         title: "Name your sections first",
-        description: `${unnamedCount} ${unnamedCount === 1 ? "section has" : "sections have"} no name — name ${unnamedCount === 1 ? "it" : "them"} or remove ${unnamedCount === 1 ? "it" : "them"} to save. Unnamed sections are not saved.`,
+        description: `${unnamedCount} ${unnamedCount === 1 ? "section has" : "sections have"} no name. Name ${unnamedCount === 1 ? "it" : "them"} or remove ${unnamedCount === 1 ? "it" : "them"} to save. Unnamed sections are not saved.`,
         variant: "destructive",
       });
       return;
@@ -218,7 +218,7 @@ export const MenuTab = ({ restaurantId, isDemoView = false }: MenuTabProps) => {
       console.error("❌ MENU SAVE FAILED:", error);
 
       // Roll back anything we just wrote so the menu isn't duplicated.
-      // If the rollback itself fails, say so — silently swallowing it is
+      // If the rollback itself fails, say so. Silently swallowing it is
       // what left duplicates in the DB in the first place.
       if (insertedSectionIds.length > 0) {
         try {
@@ -231,7 +231,7 @@ export const MenuTab = ({ restaurantId, isDemoView = false }: MenuTabProps) => {
           console.error("❌ MENU ROLLBACK FAILED:", rollbackError);
           toast({
             title: "Save failed and cleanup didn't finish",
-            description: "Your previous menu may now appear twice. Please reload the page and save again — or message support and we'll sort it out.",
+            description: "Your previous menu may now appear twice. Please reload the page and save again. Or message support and we'll sort it out.",
             variant: "destructive",
           });
         }
@@ -241,7 +241,7 @@ export const MenuTab = ({ restaurantId, isDemoView = false }: MenuTabProps) => {
         title: "Menu not saved",
         description:
           error?.message ||
-          "We couldn't save your menu. Your previous menu is unchanged — please try again.",
+          "We couldn't save your menu. Your previous menu is unchanged. Please try again.",
         variant: "destructive",
       });
     } finally {

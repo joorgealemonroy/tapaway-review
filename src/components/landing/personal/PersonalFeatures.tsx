@@ -15,9 +15,9 @@ import {
 const features = [
   {
     icon: UserPlus,
-    title: "Save Contact — one tap",
+    title: "Save Contact. One tap",
     description:
-      "Visitors tap a button and your full contact card is saved to their phone. Name, number, email, company — instantly.",
+      "Visitors tap a button and your full contact card is saved to their phone. Name, number, email, company. Instantly.",
     visual: (
       <div className="bg-background rounded-2xl border border-border p-5 shadow-sm w-full max-w-[260px]">
         <div className="flex items-center gap-3 mb-4">
@@ -40,7 +40,7 @@ const features = [
     icon: Mail,
     title: "Collect leads from your profile",
     description:
-      "Turn every profile visit into a lead. Visitors enter their name, email, or phone — you get notified and can follow up.",
+      "Turn every profile visit into a lead. Visitors enter their name, email, or phone. You get notified and can follow up.",
     visual: (
       <div className="bg-background rounded-2xl border border-border p-5 shadow-sm w-full max-w-[260px]">
         <p className="text-xs font-semibold text-foreground mb-3">Get in touch</p>
@@ -68,7 +68,7 @@ const features = [
     icon: BarChart3,
     title: "Analytics that show what's working",
     description:
-      "Pro users see exactly who visits their profile, which links get clicked, and where traffic comes from — all in real time.",
+      "Pro users see exactly who visits their profile, which links get clicked, and where traffic comes from. All in real time.",
     visual: (
       <div className="bg-background rounded-2xl border border-border p-5 shadow-sm w-full max-w-[280px]">
         <p className="text-xs font-semibold text-foreground mb-3">Profile Analytics</p>
@@ -119,7 +119,7 @@ const features = [
   },
   {
     icon: CreditCard,
-    title: "Add an NFC card — optional",
+    title: "Add an NFC card. Optional",
     description:
       "Want to go physical? Order a custom NFC card and share your hub with a single tap. Ships in 1–2 days, free shipping.",
     visual: (
@@ -159,7 +159,7 @@ export const PersonalFeatures = () => {
             Everything your profile can do
           </h2>
           <p className="text-muted-foreground text-base md:text-lg max-w-2xl mx-auto">
-            More than a link-in-bio — it's a hub that works for you.
+            More than a link-in-bio. It's a hub that works for you.
           </p>
         </motion.div>
 
@@ -191,7 +191,7 @@ export const PersonalFeatures = () => {
                   </p>
                 </div>
 
-                {/* Visual side — appears first on mobile via flex-col-reverse */}
+                {/* Visual side. Appears first on mobile via flex-col-reverse */}
                 <div className="flex-shrink-0 flex justify-center">
                   {feature.visual}
                 </div>

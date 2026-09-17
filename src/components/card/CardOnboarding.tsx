@@ -13,7 +13,7 @@ const BENEFITS = [
   {
     icon: Share2,
     title: "Share everything with one tap",
-    desc: "All your links, socials, and payment apps — one page, always up to date.",
+    desc: "All your links, socials, and payment apps. One page, always up to date.",
   },
   {
     icon: UserPlus,
@@ -23,7 +23,7 @@ const BENEFITS = [
   {
     icon: BarChart3,
     title: "See who's checking you out",
-    desc: "Track views, taps, and which links get clicked — upgrade to Pro for full analytics.",
+    desc: "Track views, taps, and which links get clicked. Upgrade to Pro for full analytics.",
   },
 ];
 

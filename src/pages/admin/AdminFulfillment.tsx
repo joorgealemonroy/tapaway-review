@@ -1,4 +1,4 @@
-// Route page: /admin/fulfillment — admin-guarded wrapper.
+// Route page: /admin/fulfillment. Admin-guarded wrapper.
 
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { useAdminGuard } from "@/hooks/useAdminGuard";

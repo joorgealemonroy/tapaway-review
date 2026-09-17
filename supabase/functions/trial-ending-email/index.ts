@@ -1,8 +1,8 @@
-// trial-ending-email — sends the day-11 trial-ending email (3 days left).
+// trial-ending-email. Sends the day-11 trial-ending email (3 days left).
 //
 // Fired by pg_cron daily (see migration 20260909251000_email_triggers.sql).
 // Staggered deliberately against the trial-followup SMS sequence (days 3, 10,
-// 13): the SMS angles are usage/urgency; THIS email is billing-focused —
+// 13): the SMS angles are usage/urgency; THIS email is billing-focused 
 // "here's exactly what happens on day 14" (charge date + amount, how to
 // cancel). Email goes out on day 11 so SMS day 10 and day 13 don't collide
 // with it.
@@ -16,7 +16,7 @@
 // (honest number); falls back to the plan's advertised rate when Stripe can't
 // be reached.
 //
-// Auth: internal only — Authorization: Bearer <service-role key> from the
+// Auth: internal only. Authorization: Bearer <service-role key> from the
 // pg_cron job (Vault), same pattern as trial-followup.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";

@@ -125,7 +125,7 @@ const queryClient = new QueryClient({
   },
 });
 
-// /start is the NFC tap-to-claim entry point — forward the query string
+// /start is the NFC tap-to-claim entry point. Forward the query string
 // (e.g. ?card=CODE) to /onboarding so the card claim flow survives the redirect.
 function StartRedirect() {
   const { search } = useLocation();
@@ -133,7 +133,7 @@ function StartRedirect() {
 }
 
 const App = () => {
-  // A successful boot means the current bundle loaded — release the one-shot
+  // A successful boot means the current bundle loaded. Release the one-shot
   // reload guard so a future deploy can reload again if needed.
   useEffect(() => {
     clearChunkReloadGuard();
@@ -163,7 +163,7 @@ const App = () => {
 
               <Route path="/" element={<Index />} />
                 <Route path="/business" element={<Navigate to="/" replace />} />
-                {/* /personal/* routes redirect — namespace deprecated */}
+                {/* /personal/* routes redirect. Namespace deprecated */}
                 <Route path="/personal" element={<Navigate to="/" replace />} />
                 <Route path="/personal/vibe" element={<Navigate to="/" replace />} />
                 <Route path="/personal/signup" element={<Navigate to="/" replace />} />

@@ -5,19 +5,19 @@ import type { ExpiredProfilePreview } from "@/hooks/useProfileData";
 import { getOptimizedImageUrl } from "@/components/personal/OptimizedImage";
 
 /**
- * ExpiredSoloHubPreview — the graceful expired-trial experience for
+ * ExpiredSoloHubPreview. The graceful expired-trial experience for
  * solo/personal hubs.
  *
  * When a trial lapses without payment, the hub's content (links, blocks)
- * stays gated and the account's status stays honestly 'expired' — but the
+ * stays gated and the account's status stays honestly 'expired'. But the
  * visitor gets a warm, on-brand page instead of a dead-end "Profile not
  * found": a tasteful preview of the hub's real branding (photo, name,
- * headline, bio — all already-public info), a kind banner, and ONE call to
+ * headline, bio. All already-public info), a kind banner, and ONE call to
  * action that routes the owner into the existing reactivation flow.
  *
  * CTA destination: /dashboard?tab=plan (signed-in owner) or
  * /auth?redirect=/dashboard?tab=plan (signed-out visitor). The Plan tab's
- * upgrade path runs create-personal-upgrade → Stripe checkout — no new
+ * upgrade path runs create-personal-upgrade → Stripe checkout. No new
  * billing flow was invented here.
  */
 export const ExpiredSoloHubPreview = ({ preview }: { preview: ExpiredProfilePreview }) => {
@@ -83,7 +83,7 @@ export const ExpiredSoloHubPreview = ({ preview }: { preview: ExpiredProfilePrev
             className="text-2xl sm:text-[26px] font-bold tracking-tight leading-snug"
             style={{ color: textColor }}
           >
-            Your trial ended — claim your hub.
+            Your trial ended. Claim your hub.
           </h1>
           <p className="mt-2 text-[15px] leading-relaxed" style={{ color: subColor }}>
             Your free trial ended, but your hub is still here waiting. Claim it
@@ -98,7 +98,7 @@ export const ExpiredSoloHubPreview = ({ preview }: { preview: ExpiredProfilePrev
             <ArrowRight className="h-5 w-5" />
           </a>
           <p className="mt-3 text-xs text-center" style={{ color: subColor }}>
-            Everything you built is saved — pick up right where you left off.
+            Everything you built is saved. Pick up right where you left off.
           </p>
         </div>
 
@@ -199,7 +199,7 @@ function isColorDark(color: string): boolean {
     const nums = hex.match(/\d+(?:\.\d+)?/g)?.map(Number) ?? [];
     [r, g, b] = [nums[0] ?? 0, nums[1] ?? 0, nums[2] ?? 0];
   }
-  // Relative luminance (sRGB) — below ~0.35 counts as dark.
+  // Relative luminance (sRGB). Below ~0.35 counts as dark.
   const lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
   return lum < 0.35;
 }

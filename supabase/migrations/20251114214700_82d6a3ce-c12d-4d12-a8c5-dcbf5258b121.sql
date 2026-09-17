@@ -22,7 +22,7 @@ SELECT
   'Las Islas Marías' as restaurant_name,
   'lasislasmarias' as custom_slug,
   'How was your visit?' as header_title,
-  'Share your experience in seconds — your feedback helps us grow.' as header_subtitle,
+  'Share your experience in seconds. Your feedback helps us grow.' as header_subtitle,
   'Our Menu' as menu_title,
   'standard'::text as plan_type,
   'active'::text as subscription_status,

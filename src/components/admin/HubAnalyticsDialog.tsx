@@ -52,7 +52,7 @@ const BUSINESS_ACTION_LABELS: Record<string, string> = {
 };
 
 const relativeTime = (iso: string | null) => {
-  if (!iso) return "—";
+  if (!iso) return "Not available";
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 60000);
   if (mins < 1) return "just now";
@@ -66,7 +66,7 @@ const relativeTime = (iso: string | null) => {
 
 const isMobileUA = (ua: string) => /Mobile|Android|iPhone|iPad|iPod/i.test(ua);
 
-/** Empty referrer means the visitor arrived directly — almost always an NFC tap. */
+/** Empty referrer means the visitor arrived directly. Almost always an NFC tap. */
 const referrerLabel = (ref?: string) => {
   if (!ref) return "Direct / NFC tap";
   try {
@@ -326,7 +326,7 @@ const HubAnalyticsDialog = ({ target, onClose }: Props) => {
                 </span>
                 <span>{target.plan_type ?? "no plan"}</span>
                 <span>·</span>
-                <span>{target.subscription_status ?? "—"}</span>
+                <span>{target.subscription_status ?? "Not available"}</span>
                 {target.slug && (
                   <a
                     href={`/${target.slug}`}
@@ -366,9 +366,9 @@ const HubAnalyticsDialog = ({ target, onClose }: Props) => {
             <p className="text-xs text-white/40">
               {lifetimeTaps === 0
                 ? `This hub has never been tapped${
-                    ageDays !== null ? ` — created ${ageDays} day${ageDays === 1 ? "" : "s"} ago` : ""
+                    ageDays !== null ? `. Created ${ageDays} day${ageDays === 1 ? "" : "s"} ago` : ""
                   }.`
-                : `${lifetimeTaps.toLocaleString()} taps all time — try a wider range.`}
+                : `${lifetimeTaps.toLocaleString()} taps all time. Try a wider range.`}
             </p>
           </div>
         ) : (
@@ -459,7 +459,7 @@ const HubAnalyticsDialog = ({ target, onClose }: Props) => {
                       Traffic sources
                     </div>
                     {derived.referrers.length === 0 ? (
-                      <p className="text-xs text-white/40">—</p>
+                      <p className="text-xs text-white/40"></p>
                     ) : (
                       <div className="text-xs space-y-1 text-white/70">
                         {derived.referrers.map((r) => (

@@ -51,7 +51,7 @@ const Auth = () => {
   // Get redirect destination from URL params
   const redirectTo = searchParams.get("redirect") || "/dashboard";
 
-  // Detect OAuth return — if user already has a session on mount in login mode, auto-redirect
+  // Detect OAuth return. If user already has a session on mount in login mode, auto-redirect
   useEffect(() => {
     const checkOAuthReturn = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -709,7 +709,7 @@ const Auth = () => {
                       await supabase.functions.invoke("request-dashboard-access", {
                         body: { email: normalized },
                       });
-                      setMessage("Check your inbox — we sent you a secure link.");
+                      setMessage("Check your inbox. We sent you a secure link.");
                     }}
                   >
                     Get dashboard access

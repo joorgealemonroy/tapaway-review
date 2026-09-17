@@ -11,7 +11,7 @@ export const useAdminAccess = () => {
   const [loading, setLoading] = useState(true);
   // Once a session has been confirmed as admin, a transient null user (token
   // refresh, tab refocus, preview iframe reload) must NOT downgrade it to
-  // "not an admin" — that used to eject admins to the homepage mid-session.
+  // "not an admin". That used to eject admins to the homepage mid-session.
   const confirmedAdminRef = useRef(false);
   const lastUserIdRef = useRef<string | null>(null);
 
@@ -25,7 +25,7 @@ export const useAdminAccess = () => {
 
       if (!user) {
         if (confirmedAdminRef.current) {
-          // Transient session gap — hold the last known state instead of
+          // Transient session gap. Hold the last known state instead of
           // flipping to "not admin" and triggering route guards.
           setLoading(true);
           return;

@@ -324,7 +324,7 @@ const Support = () => {
                 <h2 className="font-semibold">Something's not working</h2>
               </div>
               {issueSent ? (
-                <Sent text="Got it — we're on it and will follow up by email." />
+                <Sent text="Got it. We're on it and will follow up by email." />
               ) : (
                 <form className="space-y-4" onSubmit={sendIssue}>
                   <div className="flex flex-wrap gap-2">
@@ -377,7 +377,7 @@ const Support = () => {
                 Open my plan &amp; billing
               </Button>
               {billingSent ? (
-                <Sent text="Thanks — we'll get back to you by email." />
+                <Sent text="Thanks. We'll get back to you by email." />
               ) : (
                 <form className="space-y-3" onSubmit={sendBilling}>
                   <Textarea
@@ -405,7 +405,7 @@ const Support = () => {
                 <h2 className="font-semibold">General question or feedback</h2>
               </div>
               {gSent ? (
-                <Sent text="Thanks for writing in — we'll reply by email." />
+                <Sent text="Thanks for writing in. We'll reply by email." />
               ) : (
                 <form className="space-y-3" onSubmit={sendGeneral}>
                   <Textarea
@@ -449,7 +449,7 @@ const Support = () => {
                   We'll email you a secure link.
                 </p>
                 {accessSent ? (
-                  <Sent text="Check your inbox — we sent you a secure link." />
+                  <Sent text="Check your inbox. We sent you a secure link." />
                 ) : (
                   <form className="flex flex-col gap-2 sm:flex-row" onSubmit={sendAccessLink}>
                     <Input
@@ -475,7 +475,7 @@ const Support = () => {
                 <h2 className="font-semibold">General question or feedback</h2>
               </div>
               {gSent ? (
-                <Sent text="Thanks for writing in — we'll reply by email." />
+                <Sent text="Thanks for writing in. We'll reply by email." />
               ) : (
                 <form className="space-y-3" onSubmit={sendGeneral}>
                   <div className="space-y-2">

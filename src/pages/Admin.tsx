@@ -335,7 +335,7 @@ const Admin = () => {
       setRestaurants((prev) =>
         prev.map((x) => (x.id === r.id ? { ...x, is_approved: true, plan_type: "solo_pro" } : x))
       );
-      toast.success(`Hub approved — TapAway Solo dashboard unlocked for the rep.`);
+      toast.success(`Hub approved. TapAway Solo dashboard unlocked for the rep.`);
     }
   };
 
@@ -484,9 +484,9 @@ const Admin = () => {
                 <div className="font-medium text-white/90">{r.restaurant_name ?? "(no name)"}</div>
                 {r.header_title && <div className="text-xs text-white/40">{r.header_title}</div>}
               </td>
-              <td className="p-3 text-xs font-mono text-white/60">{r.custom_slug ?? "—"}</td>
+              <td className="p-3 text-xs font-mono text-white/60">{r.custom_slug ?? "Not available"}</td>
               <td className="p-3 text-white/80">{r.total_taps?.toLocaleString() ?? 0}</td>
-              <td className="p-3 text-white/70">{r.plan_type ?? "—"}</td>
+              <td className="p-3 text-white/70">{r.plan_type ?? "Not available"}</td>
               <td className="p-3">
                 <span
                   className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] ${
@@ -501,7 +501,7 @@ const Admin = () => {
                       : "bg-white/[0.04] text-white/50"
                   }`}
                 >
-                  {r.subscription_status ?? "—"}
+                  {r.subscription_status ?? "Not available"}
                 </span>
               </td>
               <td className="p-3 text-white/60">{locationsCount[r.id] ?? 0}</td>
@@ -530,7 +530,7 @@ const Admin = () => {
                 )}
               </td>
               <td className="p-3 text-white/50 text-xs">
-                {r.created_at ? new Date(r.created_at).toLocaleDateString() : "—"}
+                {r.created_at ? new Date(r.created_at).toLocaleDateString() : "Not available"}
               </td>
               <td className="p-3">
                 <div className="flex items-center justify-end gap-1">
@@ -625,7 +625,7 @@ const Admin = () => {
         <div>
           <h3 className="text-sm font-semibold text-white">All Accounts</h3>
           <p className="text-xs text-white/40">
-            Unified view — legacy businesses and Solo hubs together, sorted by engagement.
+            Unified view. Legacy businesses and Solo hubs together, sorted by engagement.
           </p>
         </div>
         <DropdownMenu>

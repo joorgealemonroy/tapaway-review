@@ -106,7 +106,7 @@ export const ComparisonSection = () => {
           transition={{ duration: 0.5, delay: 0.45 }}
           className="mx-auto mt-7 max-w-4xl text-center text-sm leading-relaxed text-muted-foreground md:text-base"
         >
-          NFC works on all iPhones (7+) and most Android phones — no app required. Every card
+          NFC works on all iPhones (7+) and most Android phones. No app required. Every card
           includes a QR backup.
         </motion.p>
       </div>

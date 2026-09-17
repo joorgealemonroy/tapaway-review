@@ -161,7 +161,7 @@ Deno.serve(async (req) => {
 
 
       if (deleteUserError) {
-        // 404 / user_not_found means the auth user is already gone — treat as success
+        // 404 / user_not_found means the auth user is already gone. Treat as success
         const status = (deleteUserError as { status?: number }).status;
         const code = (deleteUserError as { code?: string }).code;
         if (status === 404 || code === "user_not_found") {
@@ -340,7 +340,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // If the restaurant owner is the admin themselves, only delete the restaurant — not the auth user
+    // If the restaurant owner is the admin themselves, only delete the restaurant. Not the auth user
     if (isOwnAccount) {
       console.log(`Admin deleted own restaurant ${restaurantId} (auth user preserved)`);
       return new Response(JSON.stringify({ success: true }), {

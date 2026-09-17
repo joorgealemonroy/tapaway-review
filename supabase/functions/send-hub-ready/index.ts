@@ -1,4 +1,4 @@
-// send-hub-ready — one-tap "your hub is ready" notification for Jorge.
+// send-hub-ready. One-tap "your hub is ready" notification for Jorge.
 //
 // Fulfills the signup promise: "We'll send you a text and an email the
 // moment your hub is ready." Jorge taps one button in the admin when he
@@ -8,7 +8,7 @@
 //
 // What it does:
 //   1. Loads the account (email, name, phone, username/slug).
-//   2. Sends the `hub_ready` email template with the hub link CTA —
+//   2. Sends the `hub_ready` email template with the hub link CTA 
 //      logged to email_sends like other sends.
 //   3. If a phone is on file, sends the short SMS version via the Twilio
 //      connector gateway (same path as trial-followup / send-mass-sms /
@@ -147,7 +147,7 @@ serve(async (req) => {
 
     const hubUrl = account.username ? `${SITE_URL}/${account.username}` : SITE_URL;
 
-    // 1. Email — the full "your hub is ready" version.
+    // 1. Email. The full "your hub is ready" version.
     let emailResult: { ok: boolean; skipped?: string; error?: string } = { ok: false, skipped: "no email on file" };
     if (account.email) {
       const sent = await sendTemplatedEmail({
@@ -163,7 +163,7 @@ serve(async (req) => {
       emailResult = sent.ok ? { ok: true } : { ok: false, error: sent.error || "send failed" };
     }
 
-    // 2. SMS — the short version. Only when a phone is on file.
+    // 2. SMS. The short version. Only when a phone is on file.
     // Keep it to one segment (~160 chars): name, news, link, sign-off.
     let smsResult: { ok: boolean; skipped?: string; error?: string } = { ok: false, skipped: "no phone on file" };
     if (account.phone) {
@@ -173,7 +173,7 @@ serve(async (req) => {
       if (!lovableKey || !twilioKey || !twilioFrom) {
         smsResult = { ok: false, skipped: "Twilio not connected" };
       } else {
-        const body = `TapAway: Hey ${account.name}, your hub is ready! 🎉 See it here: ${hubUrl} — your cards are on the way.`;
+        const body = `TapAway: Hey ${account.name}, your hub is ready! 🎉 See it here: ${hubUrl}. Your cards are on the way.`;
         try {
           const res = await fetch(`${TWILIO_GATEWAY}/Messages.json`, {
             method: "POST",

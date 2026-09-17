@@ -26,7 +26,7 @@ export const DashboardShowcase = () => {
           className="text-center mb-8"
         >
           <h2 className="text-2xl md:text-3xl font-black mb-2">
-            Everything You Need — One Simple Dashboard
+            Everything You Need. One Simple Dashboard
           </h2>
           <p className="text-sm text-muted-foreground">
             Live performance. No guessing. No spreadsheets.

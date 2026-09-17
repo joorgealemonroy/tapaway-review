@@ -27,7 +27,7 @@ export const ReviewComplianceNotice = ({ tone = "muted", className = "" }: Revie
           Review policy:{" "}
         </span>
         TapAway facilitates direct customer feedback links in full compliance with search engine guidelines. Every
-        customer must be offered the same link — do not filter or "gate" who is asked, do not offer discounts, gifts or
+        customer must be offered the same link. Do not filter or "gate" who is asked, do not offer discounts, gifts or
         any other incentive in exchange for a review, and never require that feedback be positive. Reviews must be the
         customer's own, unprompted opinion.
       </div>

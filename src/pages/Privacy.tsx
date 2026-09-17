@@ -26,7 +26,7 @@ const Privacy = () => {
         <h1 className="text-4xl font-bold mb-8">Privacy Policy</h1>
         <p className="text-muted-foreground mb-8">Last Updated: February 21, 2026</p>
 
-        {/* SMS / A2P 10DLC Carrier-required disclosure — exact clause required by TCR */}
+        {/* SMS / A2P 10DLC Carrier-required disclosure. Exact clause required by TCR */}
         <div className="border border-primary/30 bg-primary/5 p-4 rounded-lg mb-8">
           <h2 className="text-lg font-bold mb-2">SMS Communications & Mobile Information</h2>
           <p className="text-sm text-foreground font-medium mb-3">
@@ -40,11 +40,11 @@ const Privacy = () => {
           </p>
           <ul className="list-disc pl-5 text-sm text-foreground space-y-1 mb-3">
             <li>
-              <strong>Marketing Texts</strong> — promotions, discount alerts, and loyalty rewards
+              <strong>Marketing Texts</strong>. Promotions, discount alerts, and loyalty rewards
               from TapAway and participating merchants.
             </li>
             <li>
-              <strong>Review Reminders & Service Notifications</strong> — reminders to leave a
+              <strong>Review Reminders & Service Notifications</strong>. Reminders to leave a
               review after a visit and service-related notices.
             </li>
           </ul>
@@ -164,9 +164,9 @@ const Privacy = () => {
           <section>
             <h2 className="text-2xl font-bold mb-4">3. Information We Do NOT Collect</h2>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li><strong>Credit card numbers</strong> — All payment processing is handled exclusively by Stripe. 
+              <li><strong>Credit card numbers</strong>. All payment processing is handled exclusively by Stripe. 
                   We never see, store, or process your full credit card information.</li>
-              <li><strong>Personal information of your customers</strong> — We do not collect names, 
+              <li><strong>Personal information of your customers</strong>. We do not collect names, 
                   emails, or any personally identifiable information from people who tap your NFC cards (unless they 
                   voluntarily submit information through an email capture form on your profile).</li>
               <li><strong>Social Security numbers or government IDs</strong></li>

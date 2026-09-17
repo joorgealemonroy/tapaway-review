@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------
--- STEP 1 — CREATE A PUBLIC FUNCTION TO READ JWT EMAIL
+-- STEP 1. CREATE A PUBLIC FUNCTION TO READ JWT EMAIL
 -- We can't modify auth schema, so create in public schema
 ------------------------------------------------------------------------
 create or replace function public.current_user_email() 
@@ -16,7 +16,7 @@ $$;
 
 
 ------------------------------------------------------------------------
--- STEP 2 — UNIVERSAL SUPER ADMIN POLICY FOR ALL TABLES
+-- STEP 2. UNIVERSAL SUPER ADMIN POLICY FOR ALL TABLES
 -- This automatically gives tap@tapaway.co FULL ACCESS to every table.
 ------------------------------------------------------------------------
 

@@ -23,13 +23,13 @@ const INFO_CARDS = [
   {
     icon: Share2,
     title: "Works everywhere",
-    desc: "Share your hub link in your Instagram bio, texts, email signatures — anywhere you want people to find you.",
+    desc: "Share your hub link in your Instagram bio, texts, email signatures. Anywhere you want people to find you.",
   },
 ];
 
 const STEPS = [
   { icon: User, title: "Pick a username", desc: "Choose your unique tapaway.co/username" },
-  { icon: Link2, title: "Add your links and info", desc: "Instagram, TikTok, payments, contact card — all in one place" },
+  { icon: Link2, title: "Add your links and info", desc: "Instagram, TikTok, payments, contact card. All in one place" },
   { icon: QrCode, title: "Share it everywhere", desc: "Text your link, post it in your bio, or simply use a tapaway card." },
 ];
 
@@ -77,7 +77,7 @@ export const AffiliateOnboarding = ({ refCode }: Props) => {
               All Your Links,<br />One TapAway
             </h1>
             <p className="text-muted-foreground mt-1">
-              One link for everything. Set up in about 3 minutes — free.
+              One link for everything. Set up in about 3 minutes. Free.
             </p>
           </div>
 

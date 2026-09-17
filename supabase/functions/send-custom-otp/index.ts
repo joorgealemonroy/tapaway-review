@@ -66,8 +66,8 @@ function generateOtpEmailHtml(code: string): string {
         </div>
         <p style="margin:0 0 24px 0;font-size:13px;color:#9ca3af;">This code expires in 10 minutes. If you didn't request this, you can ignore this email.</p>
         <p style="margin:0;font-size:14px;color:#6b7280;">
-          Need help? Reply to this email — we'll take care of you.<br/>
-          — TapAway
+          Need help? Reply to this email. We'll take care of you.<br/>
+         . TapAway
         </p>
       </td>
     </tr>
@@ -77,7 +77,7 @@ function generateOtpEmailHtml(code: string): string {
 }
 
 function generateOtpEmailText(code: string): string {
-  return `TapAway — Verification code
+  return `TapAway. Verification code
 
 Your TapAway verification code is: ${code}
 
@@ -85,7 +85,7 @@ This code expires in 10 minutes.
 If you didn't request this, ignore this email.
 
 Need help? Reply to this email.
-— TapAway`;
+ TapAway`;
 }
 
 async function sendEmail(to: string, subject: string, html: string, text: string): Promise<boolean> {
