@@ -1,5 +1,5 @@
 import { Component, lazy, ReactNode, Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCardShowcase } from "@/hooks/useCardShowcase";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -45,7 +45,6 @@ export default function CardShowcase({ width = "min(310px, 76vw)" }: CardShowcas
   const [webgl, setWebgl] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
   const [viewerFailed, setViewerFailed] = useState(false);
-  const [poster, setPoster] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
 
@@ -98,20 +97,20 @@ export default function CardShowcase({ width = "min(310px, 76vw)" }: CardShowcas
   if (!design) return <div className="aspect-[53.98/85.6] w-[min(310px,76vw)]" aria-label="No card designs are currently available" />;
 
   const show3d = webgl && !reducedMotion && !viewerFailed;
-  const fallbackSource = poster ?? design.frontImageUrl;
   return (
     <div ref={rootRef} className="flex flex-col items-center gap-3" style={{ width }} onKeyDown={(event) => {
       if (event.key === "ArrowLeft") void move(-1);
       if (event.key === "ArrowRight") void move(1);
     }}>
       <div className="relative w-full aspect-[53.98/85.6]" aria-live="polite">
-        <img
-          src={fallbackSource}
+        {show3d && !ready && <div className="absolute inset-0 grid place-items-center" aria-label="Loading printed card"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>}
+        {!show3d && <img
+          src={design.frontImageUrl}
           alt={`${design.businessName} printed NFC card front`}
-          className={`absolute inset-0 z-10 h-full w-full rounded-[6%] object-contain shadow-2xl transition-opacity duration-300 ${ready && show3d ? "pointer-events-none opacity-0" : "opacity-100"}`}
+          className="absolute inset-0 z-10 h-full w-full rounded-[6%] object-contain shadow-2xl"
           loading="eager"
           decoding="sync"
-        />
+        />}
         {show3d && (
           <div className="absolute inset-0">
             <ViewerErrorBoundary onError={() => { setViewerFailed(true); setReady(false); }}>
@@ -122,7 +121,6 @@ export default function CardShowcase({ width = "min(310px, 76vw)" }: CardShowcas
                   visible={visible}
                   mobile={isMobile}
                   onReady={() => setReady(true)}
-                  onPoster={setPoster}
                   onCycle={() => void move(1)}
                 />
               </Suspense>
