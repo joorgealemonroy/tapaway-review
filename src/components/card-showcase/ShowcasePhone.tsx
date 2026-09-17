@@ -18,7 +18,7 @@ export default function ShowcasePhone({ design }: ShowcasePhoneProps) {
       rel="noreferrer"
     >
       <div className="relative h-full w-full">
-        <div className="showcase-phone-screen absolute bottom-[2.7%] left-[6%] right-[6.9%] top-[2.6%] overflow-hidden bg-hub-preview [container-type:inline-size]">
+        <div className="showcase-phone-screen absolute bottom-[2.7%] left-[7.5%] right-[7.5%] top-[2.6%] overflow-hidden bg-hub-preview [container-type:inline-size]">
           <HomepageHubPreview preview={design.hubPreview} businessName={design.businessName} />
         </div>
         <img src={phoneFrameAsset.url} alt="" aria-hidden="true" className="pointer-events-none absolute inset-0 z-10 h-full w-full select-none" />
