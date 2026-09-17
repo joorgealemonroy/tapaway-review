@@ -10,4 +10,4 @@
 - [x] Correct uploaded card-back orientation, start with Las Islas Portland, and remove the Sugar Bloom loading flash
 - [x] Remove the business-name and arrow controls beneath the homepage card showcase
 - [x] Pair each rotating card with its matching live hub in the homepage hero, extend admin management, optimize loading/cycle timing, and provide desktop/mobile/recording evidence
-- [ ] Correct homepage showcase phone proportions, live-data hub preview, card alignment, finish, and matching verification evidence
+- [x] Correct homepage showcase phone proportions, live-data hub preview, card alignment, finish, and matching verification evidence
