@@ -1,46 +1,49 @@
-# Physical PVC Card Showcase Repair
+# Paired Card and Live Hub Homepage Showcase
 
 ## Goal
-Repair the existing showcase so the live homepage displays a genuinely rotatable, photographed-looking PVC card while preserving the homepage layout, flat uploaded artwork, and existing admin management.
+Update the existing homepage hero to pair the real rotating NFC card with a stationary phone showing the same business’s authentic mobile hub, while preserving the current navigation, copy, CTA, card geometry, artwork, admin security, and the rest of the homepage.
 
-## Diagnosis and renderer repair
-- Confirm the visible layer at runtime by inspecting the canvas, fallback opacity, texture requests, WebGL context, Suspense completion, and scene errors.
-- Fix the actual readiness/rendering fault rather than leaving the flat fallback over the canvas.
-- Keep React 18 and the installed compatible React Three Fiber 8 / Drei 9 stack.
-- Add a viewer-level error boundary so WebGL or texture failures intentionally retain the poster instead of silently masking a broken scene.
+## Homepage composition
+- Keep the existing headline, supporting copy, CTA, and reassurance text.
+- Recompose the first screen on the existing navy/cyan visual system: copy on the left and an unframed card-plus-phone presentation on the right at desktop widths.
+- Build one slim reusable phone frame containing a sharp, first-viewport mobile capture of the active business’s real public hub.
+- Make the phone preview and a visible “View live hub” link open the same public hub with clear accessible labels.
+- On mobile, order the content as headline, supporting copy, paired showcase, business/navigation controls, full-width CTA, and reassurance.
+- At 360px, target a 172px phone, 124px card, and 12px gap, with the card appearing about 55–60% of the phone height and enough room for rotation and shadows.
 
-## Locked reusable card model
-- Rebuild the model in centimeters at exactly 5.398 × 8.560 × 0.076, with 0.318 outer corner radius and 0.008 bevel.
-- Compensate the inset outline and extrusion depth for bevel expansion, then numerically verify the finished bounding box.
-- Use smooth rounded edge/bevel geometry with genuinely flat front/back caps and separate face and white-edge materials, without coplanar duplicates or artwork wrapping.
-- Prepare each uploaded front/back image as an in-memory white, face-ratio canvas using proportional contain fitting; preserve all original pixels and whitespace.
-- Correct UVs and winding so the front and already-upright Sugar Bloom back read normally without rotating source files.
+## Matched showcase behavior
+- Extend each showcase entry with an optional selected hub, resolved public URL, and independently replaceable hub-preview image.
+- Initially pair Las Islas Portland with `/lasislasportland`, Space Studios with `/spacestudios`, and Las Islas Marias with `/lasislasmarias`.
+- Leave Sugar Bloom card-only because no matching live hub currently exists; card-only entries remain valid until a preview is supplied.
+- Keep one active entry as the source of the card, phone screenshot, business label, and link.
+- Restore compact previous, next, and pause/play controls outside the canvas with 44px touch targets.
+- Change both card and phone atomically only after the next front, optional back, and hub preview are decoded. Keep the current pair visible on delays or failures.
+- Retain the safe edge-on automatic transition, manual mouse/touch card rotation, normal vertical mobile scrolling, reduced-motion behavior, and card-only fallback.
 
-## Physical finish and studio scene
-- Apply the specified opaque MeshPhysicalMaterial values to printed faces and a slightly rougher white PVC edge.
-- Use an invisible procedural PMREM studio environment with neutral front-left key, front-right fill, and restrained rear edge light.
-- Add only a soft transparent ground shadow; keep the canvas alpha-transparent.
-- Lock the camera at [0, 0, 22], FOV 28, near 0.1, far 100, with separate fixed-tilt and interactive-yaw groups.
-- Tune only light, roughness, and clearcoat against the attached physical-card reference; keep geometry and artwork fixed.
+## Faster high-quality card loading and motion
+- Keep the exact 53.98 × 85.60 × 0.76 mm geometry, 3.18 mm corners, white edge, satin material, lighting, complete artwork fit, and identical per-design scale.
+- Preserve high-DPI rendering while reducing startup work: preload the first pair immediately, preload the 3D module and next complete entry early, cache decoded images/processed textures, avoid remounting the scene between businesses, and remove unnecessary readback work from the public viewer.
+- Replace the current 16-second continuous cycle with a modestly faster cycle that still opens on a readable front hold and shows the matching back before switching.
+- Keep a stable reserved layout and the CTA usable while the showcase initializes. Never show mismatched businesses or a broken-image flash.
 
-## Rotation, fallback, and switching
-- Add full 360° horizontal mouse/touch drag with zoom and pan unavailable, while preserving normal mobile vertical scrolling.
-- Pause automatic motion during dragging; rotate continuously without video-style controls, while retaining previous/next controls.
-- Keep a slow, continuous 16-second full rotation.
-- Preload and decode the next pair, then atomically switch both textures at a camera-relative edge-on point after the back has been shown.
-- Keep the same scene mounted between designs and keep the current card visible if the next pair is delayed.
-- Keep the first enabled design poster visible until a complete textured 3D frame has rendered; respect reduced motion, WebGL failure, disabled entries, and the zero-design state.
+## Admin extension
+- Add a hub selector to each existing Card Showcase entry, drawing from existing personal and venue hubs and resolving the canonical public slug.
+- Add an optional hub-preview upload with validation, preview, independent replacement, and removal.
+- Preserve current front/back uploads, ordering, enabled state, reusable 3D preview, permissions, and transactional replacement sequence: upload a unique file, update the record, then remove only the superseded file.
+- Keep ordinary signed-in customers and anonymous visitors unable to read disabled records or perform showcase/storage mutations.
 
-## Admin inheritance
-- Reuse the existing Card Showcase page, storage paths, replacement lifecycle, ordering, and permissions.
-- Replace the flat upload preview with the same reusable 3D renderer and blank-white optional back, so every future design inherits identical geometry, framing, materials, and lighting.
-- Use a renderer-derived poster when browser support permits; otherwise preserve the authoritative flat-art fallback without treating it as a successful 3D render.
+## Technical details
+- Add nullable showcase fields for hub kind, hub ID, public slug/URL, and hub-preview storage path through one additive migration with explicit grants and existing RLS protections.
+- Extend the shared `CardDesign` mapping so public rendering remains storage-source independent.
+- Capture initial hub previews at 390 CSS pixels with 2× device scale, using only the first mobile viewport; upload optimized sharp images through the existing showcase storage flow.
+- Keep the public URL derived from the selected hub and preserve legacy hard-burned hub paths.
+- Keep one mounted renderer and coordinate its cycle signal with a parent-level staged-entry state so card and phone commit together.
 
-## Validation and evidence
-- Verify exact geometry bounds numerically and check texture aspect/contain calculations.
-- Verify front, three-quarter, edge, and back views in the actual homepage component, including readable/unmirrored artwork and moving reflections.
-- Verify drag, automatic rotation, pause/play, switching, delayed textures, missing back, one design, zero designs, reduced motion, and forced WebGL failure.
-- Verify desktop and 360 px mobile layouts without clipping or overflow.
-- Verify admin preview/upload inheritance and ordinary-customer denial remains intact.
-- Run the project checks and confirm no new console, network, TypeScript, lint, or security warnings.
-- Capture and provide actual component screenshots for front, three-quarter, thin side, and back, and report any remaining failures.
+## Verification
+- Verify the actual homepage at desktop, 390px, and 360px with no horizontal overflow, clipping, overlap, or layout shift.
+- Verify first-load timing, fallback removal, high-DPI artwork quality, readable front hold, faster rotation, matching back, mouse drag, touch drag, and normal vertical scrolling.
+- Observe several automatic transitions and test previous, next, pause/play, delayed/failed images, card-only entries, reduced motion, and WebGL failure.
+- Confirm every phone image and “View live hub” link opens the correct live hub and no card/hub mismatch appears during transitions.
+- Verify admin hub selection and independent screenshot replacement, plus anonymous and ordinary-customer denial for disabled data and all mutations.
+- Run project checks and inspect browser console/network output with zero new errors or warnings.
+- Provide actual completed desktop and mobile homepage screenshots and report any remaining visual or unverified issues.
