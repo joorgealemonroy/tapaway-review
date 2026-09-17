@@ -72,7 +72,7 @@ export const HeroSection = () => {
               Collect reviews effortlessly with branded NFC Cards. Zero setup. <span className="text-primary font-bold">$0 Today</span>
             </p>
 
-            <div className="relative left-1/2 mb-7 w-screen -translate-x-1/2 lg:hidden">
+            <div className="-mx-6 mb-7 w-[calc(100%+3rem)] sm:-mx-8 sm:w-[calc(100%+4rem)] lg:hidden">
               <TapAwayCard3D width="100%" />
             </div>
 
