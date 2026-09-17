@@ -268,23 +268,10 @@ All colors MUST be HSL.
   .showcase-phone {
     width: var(--showcase-phone-width);
     aspect-ratio: 1 / 2;
-    filter: drop-shadow(0 18px 18px hsl(var(--phone-bezel) / 0.22)) drop-shadow(0 4px 7px hsl(var(--phone-bezel) / 0.18));
+    filter: drop-shadow(0 18px 18px hsl(var(--phone-bezel) / 0.2)) drop-shadow(0 4px 7px hsl(var(--phone-bezel) / 0.15));
   }
 
-  .showcase-phone-rim {
-    border-radius: 14%;
-    border: max(1px, calc(var(--showcase-phone-width) * 0.004)) solid hsl(var(--phone-metal));
-    background: linear-gradient(120deg, hsl(var(--phone-metal) / 0.95), hsl(var(--hero-foreground) / 0.8) 22%, hsl(var(--phone-metal) / 0.72) 58%, hsl(var(--phone-bezel) / 0.62));
-    box-shadow: inset 1px 1px 0 hsl(var(--hero-foreground) / 0.72), inset -1px -1px 0 hsl(var(--phone-bezel) / 0.34);
-  }
-
-  .showcase-phone-bezel { border-radius: 13.2%; }
-  .showcase-phone-screen { border-radius: 12%; }
-  .showcase-phone-notch {
-    width: 28%;
-    height: 3.2%;
-    border-radius: 999px;
-  }
+  .showcase-phone-screen { border-radius: 11.8% / 5.6%; }
 
   .showcase-pool-light {
     background: radial-gradient(ellipse, hsl(var(--hero-foreground) / 0.11), transparent 68%);
