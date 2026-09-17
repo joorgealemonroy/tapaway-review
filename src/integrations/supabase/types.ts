@@ -1088,6 +1088,42 @@ export type Database = {
         }
         Relationships: []
       }
+      card_showcase_items: {
+        Row: {
+          back_image_path: string | null
+          business_name: string
+          created_at: string
+          created_by: string | null
+          front_image_path: string
+          id: string
+          is_enabled: boolean
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          back_image_path?: string | null
+          business_name: string
+          created_at?: string
+          created_by?: string | null
+          front_image_path: string
+          id?: string
+          is_enabled?: boolean
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          back_image_path?: string | null
+          business_name?: string
+          created_at?: string
+          created_by?: string | null
+          front_image_path?: string
+          id?: string
+          is_enabled?: boolean
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       client_errors: {
         Row: {
           component_stack: string | null
