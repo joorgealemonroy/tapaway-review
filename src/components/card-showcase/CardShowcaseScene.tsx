@@ -226,8 +226,8 @@ export interface CardShowcaseSceneProps extends CardMeshProps {
 export default function CardShowcaseScene(props: CardShowcaseSceneProps) {
   return (
     <Canvas
-      dpr={props.mobile ? 1 : [1, 1.5]}
-      camera={{ position: [0, 0, props.mobile ? 22.8 : 22], fov: 28, near: 0.1, far: 100 }}
+      dpr={[1, 2]}
+      camera={{ position: [0, 0, props.mobile ? 21 : 22], fov: 28, near: 0.1, far: 100 }}
       gl={{ antialias: true, alpha: true, powerPreference: "high-performance", preserveDrawingBuffer: true }}
       frameloop={props.visible ? "always" : "never"}
       aria-label={`3D printed card for ${props.design.businessName}`}

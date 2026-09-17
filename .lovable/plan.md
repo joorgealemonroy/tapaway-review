@@ -25,8 +25,8 @@ Repair the existing showcase so the live homepage displays a genuinely rotatable
 
 ## Rotation, fallback, and switching
 - Add full 360° horizontal mouse/touch drag with zoom and pan unavailable, while preserving normal mobile vertical scrolling.
-- Pause automatic motion during dragging; retain accessible pause/play and previous/next controls.
-- Keep the 3-second readable front hold and approximately 5-second smooth rotation.
+- Pause automatic motion during dragging; rotate continuously without video-style controls, while retaining previous/next controls.
+- Keep a slow, continuous 16-second full rotation.
 - Preload and decode the next pair, then atomically switch both textures at a camera-relative edge-on point after the back has been shown.
 - Keep the same scene mounted between designs and keep the current card visible if the next pair is delayed.
 - Keep the first enabled design poster visible until a complete textured 3D frame has rendered; respect reduced motion, WebGL failure, disabled entries, and the zero-design state.
