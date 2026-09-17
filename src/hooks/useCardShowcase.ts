@@ -28,6 +28,9 @@ const loadHubPreview = async (item: { hub_kind: string | null; hub_id: string | 
       description: typeof record.header_subtitle === "string" && record.header_subtitle ? record.header_subtitle : typeof record.header_title === "string" ? record.header_title : null,
       logoUrl: typeof record.logo_url === "string" ? record.logo_url : null,
       actions: restaurantActions(record),
+      profile: null,
+      links: [],
+      blocks: [],
     };
   }
 
