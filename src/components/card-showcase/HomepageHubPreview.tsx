@@ -10,17 +10,35 @@ interface HomepageHubPreviewProps {
 
 export default function HomepageHubPreview({ preview, businessName }: HomepageHubPreviewProps) {
   const viewportRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const scaleRef = useRef(0.5);
   const [scale, setScale] = useState(0.5);
-  const [minHeight, setMinHeight] = useState(860);
+  const [canvasHeight, setCanvasHeight] = useState(860);
 
   useEffect(() => {
     const viewport = viewportRef.current;
     if (!viewport) return;
     const update = () => {
-      // Width always drives the scale so the hub never spills past the phone screen.
       const widthScale = viewport.clientWidth / 430;
-      setScale(widthScale);
-      setMinHeight(widthScale > 0 ? viewport.clientHeight / widthScale : 860);
+      const hub = contentRef.current?.firstElementChild as HTMLElement | null;
+      // Natural content height, measured from the rendered children so the
+      // stretched canvas height never feeds back into the measurement.
+      let naturalHeight = 860;
+      if (hub) {
+        const top = hub.getBoundingClientRect().top;
+        let bottom = 0;
+        Array.from(hub.children).forEach((child) => {
+          bottom = Math.max(bottom, child.getBoundingClientRect().bottom - top);
+        });
+        const current = scaleRef.current || widthScale;
+        if (bottom > 0) naturalHeight = bottom / current;
+      }
+      const heightScale = viewport.clientHeight / naturalHeight;
+      // Fill the screen when possible, but never crop more than a sliver off the sides.
+      const next = Math.min(Math.max(widthScale, heightScale), widthScale * 1.12);
+      scaleRef.current = next;
+      setScale(next);
+      setCanvasHeight(next > 0 ? viewport.clientHeight / next : 860);
     };
     update();
     const observer = new ResizeObserver(update);
@@ -46,8 +64,13 @@ export default function HomepageHubPreview({ preview, businessName }: HomepageHu
   return (
     <div ref={viewportRef} className="relative h-full w-full overflow-hidden" aria-label={`${businessName} live hub preview`}>
       <div
-        className="homepage-hub-canvas homepage-hub-content pointer-events-none absolute left-1/2 top-0 w-[430px] origin-top bg-hub-preview [backface-visibility:hidden] [will-change:transform]"
-        style={{ transform: `translateX(-50%) scale(${scale})`, minHeight: `${minHeight}px` }}
+        ref={contentRef}
+        className="homepage-hub-canvas homepage-hub-content pointer-events-none absolute left-1/2 top-0 flex w-[430px] origin-top flex-col [backface-visibility:hidden] [will-change:transform]"
+        style={{
+          transform: `translateX(-50%) scale(${scale})`,
+          height: `${canvasHeight}px`,
+          background: preview.profile.background_color || "#000000",
+        }}
       >
         <ProfilePreviewRenderer
           profile={preview.profile}
