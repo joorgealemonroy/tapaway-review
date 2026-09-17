@@ -104,7 +104,7 @@ export default function CardShowcase({ width = "min(310px, 76vw)" }: CardShowcas
           decoding="sync"
         />
         {show3d && (
-          <div className="absolute inset-[-18%]">
+          <div className="absolute inset-0">
             <Suspense fallback={null}>
               <CardShowcaseScene
                 design={design}
