@@ -12,6 +12,7 @@ export const CARD_BEVEL = 0.008;
 
 const HALF_DEPTH = CARD_DEPTH / 2;
 const START_YAW = THREE.MathUtils.degToRad(15);
+const ROTATION_DURATION = 16;
 const blankBack = (() => {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1713"><rect width="100%" height="100%" fill="white"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="Arial,sans-serif" font-size="48" fill="#777">BLANK WHITE BACK</text></svg>`;
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
@@ -164,9 +165,8 @@ function CardMesh({ design, paused, visible, interactive = true, onReady, onCycl
   useFrame((_, rawDelta) => {
     if (!yawGroup.current || !visible || paused || dragging.current) return;
     elapsed.current += Math.min(rawDelta, 0.05);
-    const cycleDuration = 16;
-    const cycle = elapsed.current % cycleDuration;
-    const progress = cycle / cycleDuration;
+    const cycle = elapsed.current % ROTATION_DURATION;
+    const progress = cycle / ROTATION_DURATION;
     const yaw = START_YAW + progress * Math.PI * 2;
     yawGroup.current.rotation.y = yaw;
     manualYaw.current = yaw;
@@ -197,6 +197,8 @@ function CardMesh({ design, paused, visible, interactive = true, onReady, onCycl
     yawGroup.current.rotation.y = manualYaw.current;
   };
   const onPointerUp = (event: ThreeEvent<PointerEvent>) => {
+    const normalizedYaw = THREE.MathUtils.euclideanModulo(manualYaw.current - START_YAW, Math.PI * 2);
+    elapsed.current = normalizedYaw / (Math.PI * 2) * ROTATION_DURATION;
     dragging.current = false;
     const target = event.target as Element;
     if (target.hasPointerCapture(event.pointerId)) target.releasePointerCapture(event.pointerId);
@@ -226,8 +228,8 @@ export interface CardShowcaseSceneProps extends CardMeshProps {
 export default function CardShowcaseScene(props: CardShowcaseSceneProps) {
   return (
     <Canvas
-      dpr={props.mobile ? 1 : [1, 1.5]}
-      camera={{ position: [0, 0, props.mobile ? 22.8 : 22], fov: 28, near: 0.1, far: 100 }}
+      dpr={[1, 2]}
+      camera={{ position: [0, 0, props.mobile ? 21 : 22], fov: 28, near: 0.1, far: 100 }}
       gl={{ antialias: true, alpha: true, powerPreference: "high-performance", preserveDrawingBuffer: true }}
       frameloop={props.visible ? "always" : "never"}
       aria-label={`3D printed card for ${props.design.businessName}`}

@@ -94,7 +94,7 @@ export const HeroSection = () => {
             {/* Mobile card visual */}
             {isMobile && (
               <div className="mt-10 flex justify-center mb-6">
-                <TapAwayCard3D width="min(250px, 72vw)" />
+                <TapAwayCard3D width="min(285px, 82vw)" />
               </div>
             )}
 
