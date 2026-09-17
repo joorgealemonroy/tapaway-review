@@ -7,4 +7,10 @@ export interface CardDesign {
   backImagePath: string | null;
   enabled: boolean;
   sortOrder: number;
+  hubKind: "personal" | "restaurant" | null;
+  hubId: string | null;
+  hubSlug: string | null;
+  hubUrl: string | null;
+  hubScreenshotPath: string | null;
+  hubScreenshotUrl: string | null;
 }

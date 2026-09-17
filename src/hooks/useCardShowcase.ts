@@ -16,7 +16,7 @@ export const useCardShowcase = (includeDisabled = false) => {
     setLoading(true);
     let query = supabase
       .from("card_showcase_items")
-      .select("id,business_name,front_image_path,back_image_path,is_enabled,sort_order")
+      .select("id,business_name,front_image_path,back_image_path,is_enabled,sort_order,hub_kind,hub_id,hub_slug,hub_screenshot_path")
       .order("sort_order", { ascending: true })
       .order("created_at", { ascending: true });
     if (!includeDisabled) query = query.eq("is_enabled", true);
@@ -35,6 +35,12 @@ export const useCardShowcase = (includeDisabled = false) => {
         backImagePath: item.back_image_path,
         enabled: item.is_enabled,
         sortOrder: item.sort_order,
+          hubKind: item.hub_kind === "personal" || item.hub_kind === "restaurant" ? item.hub_kind : null,
+          hubId: item.hub_id,
+          hubSlug: item.hub_slug,
+          hubUrl: item.hub_slug ? `/${item.hub_slug}` : null,
+          hubScreenshotPath: item.hub_screenshot_path,
+          hubScreenshotUrl: publicUrl(item.hub_screenshot_path),
       })));
     }
     setLoading(false);
