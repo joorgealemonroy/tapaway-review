@@ -1,5 +1,5 @@
 import { Component, lazy, ReactNode, Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, ExternalLink, Loader2, Pause, Play } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, Pause, Play } from "lucide-react";
 import { useCardShowcase } from "@/hooks/useCardShowcase";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
@@ -113,7 +113,7 @@ export default function CardShowcase({ width = "min(620px, 100%)" }: CardShowcas
 
   return (
     <div ref={rootRef} className="mx-auto flex w-full flex-col items-center" style={{ maxWidth: width }}>
-      <div className={`showcase-pair relative flex justify-center ${hasHub ? "items-end" : "items-center"}`}>
+      <div className={`showcase-pair relative flex justify-center pb-3 sm:pb-4 ${hasHub ? "items-end" : "items-center"}`}>
         {hasHub && <div className="showcase-pool-light pointer-events-none absolute -bottom-[3%] left-[4%] right-[-2%] h-[22%]" aria-hidden="true" />}
         <div className={`relative z-10 shrink-0 ${hasHub ? "showcase-card" : "w-[210px] sm:w-[250px] aspect-[53.98/85.6]"}`}>
           <div className="relative h-full w-full" aria-live="polite">
@@ -132,12 +132,8 @@ export default function CardShowcase({ width = "min(620px, 100%)" }: CardShowcas
         {hasHub && <ShowcasePhone design={design} />}
       </div>
 
-      <div className="mt-3 flex min-h-12 w-full max-w-md items-center justify-center gap-2">
+      <div className="mt-1 flex min-h-11 items-center justify-center gap-2">
         {designs.length > 1 && <Button type="button" variant="ghost" size="icon" className="h-11 w-11 text-hero-foreground hover:bg-hero-foreground/10 hover:text-hero-foreground" onClick={() => void move(-1)} aria-label="Previous business"><ChevronLeft /></Button>}
-        <div className="min-w-0 flex-1 text-center">
-          <p className="truncate text-sm font-semibold text-hero-foreground">{design.businessName}</p>
-          {design.hubUrl && <a href={design.hubUrl} target="_blank" rel="noreferrer" className="mt-0.5 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline" aria-label={`View ${design.businessName} live hub`}>View live hub <ExternalLink className="h-3 w-3" /></a>}
-        </div>
         <Button type="button" variant="ghost" size="icon" className="h-11 w-11 text-hero-foreground hover:bg-hero-foreground/10 hover:text-hero-foreground" onClick={() => setPaused((value) => !value)} aria-label={paused ? "Play card rotation" : "Pause card rotation"}>{paused ? <Play /> : <Pause />}</Button>
         {designs.length > 1 && <Button type="button" variant="ghost" size="icon" className="h-11 w-11 text-hero-foreground hover:bg-hero-foreground/10 hover:text-hero-foreground" onClick={() => void move(1)} aria-label="Next business"><ChevronRight /></Button>}
       </div>
