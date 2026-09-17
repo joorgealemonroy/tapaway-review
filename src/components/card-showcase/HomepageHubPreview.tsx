@@ -11,6 +11,7 @@ interface HomepageHubPreviewProps {
 export default function HomepageHubPreview({ preview, businessName }: HomepageHubPreviewProps) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const scaleRef = useRef(0.5);
   const [scale, setScale] = useState(0.5);
   const [canvasHeight, setCanvasHeight] = useState(860);
 
