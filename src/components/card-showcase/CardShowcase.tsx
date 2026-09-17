@@ -95,10 +95,11 @@ export default function CardShowcase({ width = "min(620px, 100%)" }: CardShowcas
   // Warm every remaining design in the background so later switches are instant.
   useEffect(() => {
     if (designs.length < 2) return;
-    const idle = (cb: () => void) =>
-      "requestIdleCallback" in window
-        ? (window as unknown as { requestIdleCallback: (fn: () => void) => number }).requestIdleCallback(cb)
-        : window.setTimeout(cb, 1200);
+    const scheduler = window as unknown as { requestIdleCallback?: (fn: () => void) => number };
+    const idle = (cb: () => void) => {
+      if (scheduler.requestIdleCallback) return scheduler.requestIdleCallback(cb);
+      return window.setTimeout(cb, 1200);
+    };
     let cancelled = false;
     idle(() => {
       if (cancelled) return;
