@@ -10,17 +10,22 @@ interface HomepageHubPreviewProps {
 
 export default function HomepageHubPreview({ preview, businessName }: HomepageHubPreviewProps) {
   const viewportRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.5);
-  const [minHeight, setMinHeight] = useState(860);
+  const [canvasHeight, setCanvasHeight] = useState(860);
 
   useEffect(() => {
     const viewport = viewportRef.current;
     if (!viewport) return;
     const update = () => {
-      // Width always drives the scale so the hub never spills past the phone screen.
       const widthScale = viewport.clientWidth / 430;
-      setScale(widthScale);
-      setMinHeight(widthScale > 0 ? viewport.clientHeight / widthScale : 860);
+      const hub = contentRef.current?.firstElementChild as HTMLElement | null;
+      const contentHeight = hub?.scrollHeight || 860;
+      const heightScale = viewport.clientHeight / contentHeight;
+      // Fill the screen when possible, but never crop more than a sliver off the sides.
+      const next = Math.min(Math.max(widthScale, heightScale), widthScale * 1.12);
+      setScale(next);
+      setCanvasHeight(next > 0 ? viewport.clientHeight / next : 860);
     };
     update();
     const observer = new ResizeObserver(update);
