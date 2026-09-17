@@ -78,7 +78,7 @@ export function countMenuItems(sections: MenuSection[]): number {
   return sections.reduce((total, section) => total + section.items.length, 0);
 }
 
-const PRICE_AT_END = /(?:[-–\u{2014}.·\s]*)\$?\s*(\d{1,4}(?:[.,]\d{1,2})?)\s*$/;
+const PRICE_AT_END = /(?:[-–\u{2014}.·\s]*)\$?\s*(\d{1,4}(?:[.,]\d{1,2})?)\s*$/u;
 
 function normalizePrice(value: string): string {
   const cleaned = value.replace(",", ".");
@@ -110,7 +110,7 @@ export function parseMenuText(text: string): MenuSection[] {
   for (const line of lines) {
     const priceMatch = line.match(PRICE_AT_END);
     const withoutPrice = priceMatch ? line.slice(0, priceMatch.index).trim() : line;
-    const stripped = withoutPrice.replace(/[.\-–\u{2014}·:\s]+$/, "").trim();
+  const stripped = withoutPrice.replace(/[.\-–\u{2014}·:\s]+$/u, "").trim();
 
     const looksLikeSection =
       !priceMatch &&
@@ -130,7 +130,7 @@ export function parseMenuText(text: string): MenuSection[] {
     // "Name - description" split
     let name = stripped;
     let description = "";
-    const dashSplit = stripped.match(/^(.{2,60}?)\s+[-–\u{2014}]\s+(.+)$/);
+  const dashSplit = stripped.match(/^(.{2,60}?)\s+[-–\u{2014}]\s+(.+)$/u);
     if (dashSplit) {
       name = dashSplit[1].trim();
       description = dashSplit[2].trim();

@@ -256,7 +256,7 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
             `🔁 After that, your subscription continues month to month. Your hub and cards keep working, no interruption.`,
             `🚪 <strong>Not feeling it?</strong> Cancel from your dashboard before ${v.chargeDate || "day 14"} and you pay nothing. No hard feelings, no hoops.`,
           ]) +
-          `<p style="margin:0;">If TapAway's been earning its keep. Reviews coming in, customers tapping. You don't need to do a thing. It just keeps working.</p>`,
+          `<p style="margin:0;">If TapAway's been earning its keep, with reviews coming in and customers tapping, you don't need to do a thing. It just keeps working.</p>`,
         ctaLabel: "Review my plan",
         ctaUrl: String(v.dashboardUrl || DASHBOARD_URL),
         footerNote: `This is a one-time heads-up, not the start of a drip campaign.<br><br>${REPLY_FOOTER}`,
@@ -363,7 +363,7 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
             `<strong>Your links</strong>. Socials, menu, directions, everything in one place.`,
             `<strong>Your look</strong>. We matched it to your brand.`,
           ]) +
-          `<p style="margin:0 0 18px 0;">Want anything changed. Colors, links, wording? Just reply to this email and we'll take care of it.</p>` +
+          `<p style="margin:0 0 18px 0;">Want anything changed, such as colors, links, or wording? Just reply to this email and we'll take care of it.</p>` +
           `<div style="border-top:1px solid #e5e7eb;padding-top:18px;">
              <p style="margin:0 0 8px 0;font-weight:700;color:#111827;">Your dashboard</p>
              <p style="margin:0 0 6px 0;">Manage your hub, order cards, and handle billing from your dashboard.</p>
@@ -375,7 +375,7 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
         footerNote: REPLY_FOOTER,
       }),
     text: (v) =>
-      `TapAway. Your hub is ready 🎉\n\nHey ${v.name || "friend"}. Great news. We just finished building your TapAway hub and it's live right now.\n\nThis is the page every customer will land on when they tap your card or scan your QR code:\n${v.hubUrl || SITE_URL}\n\nWant anything changed. Colors, links, wording? Just reply and we'll take care of it.\n\nYOUR DASHBOARD\nManage your hub, order cards, and handle billing from your dashboard.\nSign in at ${SITE_URL}/auth with the email you signed up with.\nFirst time signing in? Use the "Forgot password" link on the sign-in page to set a password. We'll email a 6-digit code.\n\n TapAway`,
+      `TapAway. Your hub is ready 🎉\n\nHey ${v.name || "friend"}. Great news. We just finished building your TapAway hub and it's live right now.\n\nThis is the page every customer will land on when they tap your card or scan your QR code:\n${v.hubUrl || SITE_URL}\n\nWant anything changed, such as colors, links, or wording? Just reply and we'll take care of it.\n\nYOUR DASHBOARD\nManage your hub, order cards, and handle billing from your dashboard.\nSign in at ${SITE_URL}/auth with the email you signed up with.\nFirst time signing in? Use the "Forgot password" link on the sign-in page to set a password. We'll email a 6-digit code.\n\n TapAway`,
   },
 };
 
