@@ -164,18 +164,18 @@ function CardMesh({ design, paused, visible, interactive = true, onReady, onCycl
   useFrame((_, rawDelta) => {
     if (!yawGroup.current || !visible || paused || dragging.current) return;
     elapsed.current += Math.min(rawDelta, 0.05);
-    const cycle = elapsed.current % 8;
-    const progress = cycle < 3 ? 0 : (cycle - 3) / 5;
-    const eased = progress < 0.5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2;
-    const yaw = START_YAW + eased * Math.PI * 2;
+    const cycleDuration = 16;
+    const cycle = elapsed.current % cycleDuration;
+    const progress = cycle / cycleDuration;
+    const yaw = START_YAW + progress * Math.PI * 2;
     yawGroup.current.rotation.y = yaw;
     manualYaw.current = yaw;
     const cameraRelativeEdge = Math.abs(Math.cos(yaw)) < 0.045;
-    if (progress > 0.6 && cameraRelativeEdge && !cycleSent.current) {
+    if (progress > 0.68 && cameraRelativeEdge && !cycleSent.current) {
       cycleSent.current = true;
       onCycle();
     }
-    if (cycle < 0.2) cycleSent.current = false;
+    if (cycle < 0.3) cycleSent.current = false;
   });
 
   const onPointerDown = (event: ThreeEvent<PointerEvent>) => {
