@@ -151,7 +151,7 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
           `Trial reminder: you won't be charged today. Cancel anytime before day 14 if it's not for you.<br><br>${REPLY_FOOTER}`,
       }),
     text: (v) =>
-      `TapAway. You're in 🎉\n\nWelcome, ${v.name || "friend"}! Your setup for ${v.businessName || "your business"} is complete and your free 14-day trial is on.\n\nWhat happens next:\n- Your cards are being made. They ship in 1–2 business days.\n- Your hub is already live.\n- Nothing to install or train.\n\nOpen your dashboard: ${v.dashboardUrl || DASHBOARD_URL}\n\nTrial reminder: you won't be charged today. Cancel anytime before day 14.\n TapAway`,
+      `TapAway. You're in 🎉\n\nWelcome, ${v.name || "friend"}! Your setup for ${v.businessName || "your business"} is complete and your free 14-day trial is on.\n\nWhat happens next:\n- Your cards are being made. They ship in 1–2 business days.\n- Your hub is already live.\n- Nothing to install or train.\n\nOpen your dashboard: ${v.dashboardUrl || DASHBOARD_URL}\n\nTrial reminder: you won't be charged today. Cancel anytime before day 14.\n\nTapAway`,
   },
 
   // a2. Just signed up with NO trial. Paid today (discount pay links, any
@@ -180,7 +180,7 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
           `Your subscription renews monthly. No trial, no surprises. Cancel anytime from your dashboard.<br><br>${REPLY_FOOTER}`,
       }),
     text: (v) =>
-      `TapAway. You're in 🎉\n\nWelcome, ${v.name || "friend"}! Your setup for ${v.businessName || "your business"} is complete and your subscription is active now. Your card was charged today.\n\nWhat happens next:\n- Your cards are being made. They ship in 1–2 business days.\n- Your hub is already live.\n- Nothing to install or train.\n\nOpen your dashboard: ${v.dashboardUrl || DASHBOARD_URL}\n\nYour subscription renews monthly. No trial, no surprises. Cancel anytime.\n TapAway`,
+      `TapAway. You're in 🎉\n\nWelcome, ${v.name || "friend"}! Your setup for ${v.businessName || "your business"} is complete and your subscription is active now. Your card was charged today.\n\nWhat happens next:\n- Your cards are being made. They ship in 1–2 business days.\n- Your hub is already live.\n- Nothing to install or train.\n\nOpen your dashboard: ${v.dashboardUrl || DASHBOARD_URL}\n\nYour subscription renews monthly. No trial, no surprises. Cancel anytime.\n\nTapAway`,
   },
 
   // b. Cards printed. The fulfillment pipeline hit the printed stage.
@@ -206,7 +206,7 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
         footerNote: REPLY_FOOTER,
       }),
     text: (v) =>
-      `TapAway. Hot off the printer 🖨️\n\nGood news, ${v.name || "friend"}. Your TapAway NFC cards for ${v.businessName || "your business"} just came off the printer.\n\nWhat's next:\n- We're activating your cards so every tap opens your hub.\n- Then they're headed your way.\n\nPreview your hub: ${v.hubUrl || SITE_URL}\n TapAway`,
+      `TapAway. Hot off the printer 🖨️\n\nGood news, ${v.name || "friend"}. Your TapAway NFC cards for ${v.businessName || "your business"} just came off the printer.\n\nWhat's next:\n- We're activating your cards so every tap opens your hub.\n- Then they're headed your way.\n\nPreview your hub: ${v.hubUrl || SITE_URL}\n\nTapAway`,
   },
 
   // c. Cards delivered / on the way. Pass deliveryNote to stay honest about
@@ -235,7 +235,7 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
         footerNote: REPLY_FOOTER,
       }),
     text: (v) =>
-      `TapAway. Your cards are officially yours 🎉\n\n${v.deliveryNote || `Your TapAway cards for ${v.businessName || "your business"} are delivered.`}\n\nThe #1 move for first taps:\n- Put a card by the register.\n- Tell your team: "Tap that card to leave us a quick review. It takes 10 seconds."\n- Watch the taps roll in from your dashboard: ${v.dashboardUrl || DASHBOARD_URL}\n TapAway`,
+      `TapAway. Your cards are officially yours 🎉\n\n${v.deliveryNote || `Your TapAway cards for ${v.businessName || "your business"} are delivered.`}\n\nThe #1 move for first taps:\n- Put a card by the register.\n- Tell your team: "Tap that card to leave us a quick review. It takes 10 seconds."\n- Watch the taps roll in from your dashboard: ${v.dashboardUrl || DASHBOARD_URL}\n\nTapAway`,
   },
 
   // d. Trial has 3 days left (sent on day 11). Billing-focused angle 
@@ -262,7 +262,7 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
         footerNote: `This is a one-time heads-up, not the start of a drip campaign.<br><br>${REPLY_FOOTER}`,
       }),
     text: (v) =>
-      `TapAway. Your trial ends in 3 days\n\nHey ${v.name || "friend"}. Here's exactly what happens with ${v.businessName || "your business"}:\n\n- On ${v.chargeDate || "day 14"}, your card on file will be charged ${v.amount || "your plan's monthly rate"}.\n- After that, your subscription continues month to month. No interruption.\n- Not feeling it? Cancel from your dashboard before ${v.chargeDate || "day 14"} and you pay nothing.\n\nReview your plan: ${v.dashboardUrl || DASHBOARD_URL}\n TapAway`,
+      `TapAway. Your trial ends in 3 days\n\nHey ${v.name || "friend"}. Here's exactly what happens with ${v.businessName || "your business"}:\n\n- On ${v.chargeDate || "day 14"}, your card on file will be charged ${v.amount || "your plan's monthly rate"}.\n- After that, your subscription continues month to month. No interruption.\n- Not feeling it? Cancel from your dashboard before ${v.chargeDate || "day 14"} and you pay nothing.\n\nReview your plan: ${v.dashboardUrl || DASHBOARD_URL}\n\nTapAway`,
   },
 
   // e. A subscription payment failed. Update the card.
@@ -287,7 +287,7 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
         footerNote: REPLY_FOOTER,
       }),
     text: (v) =>
-      `TapAway. Quick payment hiccup\n\nHey ${v.name || "friend"}. We tried to charge${v.amount ? ` ${v.amount}` : ""} for ${v.businessName || "your TapAway plan"} and your card said no.\n\nFix it in 30 seconds: open your dashboard and update your card under Billing: ${v.dashboardUrl || DASHBOARD_URL}\n\nYour hub stays live for now, but update it soon so nothing pauses.\n TapAway`,
+      `TapAway. Quick payment hiccup\n\nHey ${v.name || "friend"}. We tried to charge${v.amount ? ` ${v.amount}` : ""} for ${v.businessName || "your TapAway plan"} and your card said no.\n\nFix it in 30 seconds: open your dashboard and update your card under Billing: ${v.dashboardUrl || DASHBOARD_URL}\n\nYour hub stays live for now, but update it soon so nothing pauses.\n\nTapAway`,
   },
 
   // f. Van-sale password setup. Same copy as the send-van-handoff email
@@ -309,7 +309,7 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
           "This link expires soon and only works once. If you didn't just sign up with Jorge in person, you can safely ignore this email.",
       }),
     text: (v) =>
-      `TapAway. Your hub is ready\n\nHey ${v.firstName || "there"},\n\nYour TapAway hub for ${v.business || "your business"} is live! Create your password here:\n\n${v.setupLink || SITE_URL}\n\nThis link expires soon and only works once. If you didn't just sign up with Jorge in person, you can safely ignore this email.\n\n TapAway`,
+      `TapAway. Your hub is ready\n\nHey ${v.firstName || "there"},\n\nYour TapAway hub for ${v.business || "your business"} is live! Create your password here:\n\n${v.setupLink || SITE_URL}\n\nThis link expires soon and only works once. If you didn't just sign up with Jorge in person, you can safely ignore this email.\n\n\nTapAway`,
   },
 
   // g. Generic layout for Jorge's manual sends: headline + body + CTA.
@@ -339,7 +339,7 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
       });
     },
     text: (v) =>
-      `TapAway. ${v.headline || "Quick update"}\n\nHey ${v.name || "friend"},\n\n${v.body || ""}\n\n${v.ctaUrl || ""}\n TapAway`,
+      `TapAway. ${v.headline || "Quick update"}\n\nHey ${v.name || "friend"},\n\n${v.body || ""}\n\n${v.ctaUrl || ""}\n\nTapAway`,
   },
 
   // hub_ready. Sent when Jorge finishes building a client's hub. The
@@ -375,7 +375,7 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
         footerNote: REPLY_FOOTER,
       }),
     text: (v) =>
-      `TapAway. Your hub is ready 🎉\n\nHey ${v.name || "friend"}. Great news. We just finished building your TapAway hub and it's live right now.\n\nThis is the page every customer will land on when they tap your card or scan your QR code:\n${v.hubUrl || SITE_URL}\n\nWant anything changed, such as colors, links, or wording? Just reply and we'll take care of it.\n\nYOUR DASHBOARD\nManage your hub, order cards, and handle billing from your dashboard.\nSign in at ${SITE_URL}/auth with the email you signed up with.\nFirst time signing in? Use the "Forgot password" link on the sign-in page to set a password. We'll email a 6-digit code.\n\n TapAway`,
+      `TapAway. Your hub is ready 🎉\n\nHey ${v.name || "friend"}. Great news. We just finished building your TapAway hub and it's live right now.\n\nThis is the page every customer will land on when they tap your card or scan your QR code:\n${v.hubUrl || SITE_URL}\n\nWant anything changed, such as colors, links, or wording? Just reply and we'll take care of it.\n\nYOUR DASHBOARD\nManage your hub, order cards, and handle billing from your dashboard.\nSign in at ${SITE_URL}/auth with the email you signed up with.\nFirst time signing in? Use the "Forgot password" link on the sign-in page to set a password. We'll email a 6-digit code.\n\n\nTapAway`,
   },
 };
 
