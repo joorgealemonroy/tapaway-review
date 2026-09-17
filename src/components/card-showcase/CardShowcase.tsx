@@ -92,6 +92,26 @@ export default function CardShowcase({ width = "min(620px, 100%)" }: CardShowcas
     }
   }, [design?.id, designs, index]);
 
+  // Warm every remaining design in the background so later switches are instant.
+  useEffect(() => {
+    if (designs.length < 2) return;
+    const idle = (cb: () => void) =>
+      "requestIdleCallback" in window
+        ? (window as unknown as { requestIdleCallback: (fn: () => void) => number }).requestIdleCallback(cb)
+        : window.setTimeout(cb, 1200);
+    let cancelled = false;
+    idle(() => {
+      if (cancelled) return;
+      void (async () => {
+        for (const item of designs) {
+          if (cancelled) return;
+          await preloadDesign(item.frontImageUrl, item.backImageUrl, item.hubPreview).catch(() => undefined);
+        }
+      })();
+    });
+    return () => { cancelled = true; };
+  }, [designs]);
+
   const move = useCallback(async (direction: number) => {
     if (designs.length < 2) return;
     const nextIndex = (index + direction + designs.length) % designs.length;
