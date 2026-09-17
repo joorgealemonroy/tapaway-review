@@ -64,6 +64,13 @@ export default {
           DEFAULT: "hsl(var(--hero-background))",
           foreground: "hsl(var(--hero-foreground))",
         },
+        "hub-preview": {
+          DEFAULT: "hsl(var(--hub-preview))",
+          foreground: "hsl(var(--hub-preview-foreground))",
+          muted: "hsl(var(--hub-preview-muted))",
+          border: "hsl(var(--hub-preview-border))",
+        },
+        "phone-bezel": "hsl(var(--phone-bezel))",
         text: {
           primary: "hsl(var(--text-primary))",
           muted: "hsl(var(--text-muted))",
