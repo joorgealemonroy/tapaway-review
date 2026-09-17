@@ -1,5 +1,5 @@
 import { Component, lazy, ReactNode, Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCardShowcase } from "@/hooks/useCardShowcase";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -103,6 +103,7 @@ export default function CardShowcase({ width = "min(310px, 76vw)" }: CardShowcas
       if (event.key === "ArrowRight") void move(1);
     }}>
       <div className="relative w-full aspect-[53.98/85.6]" aria-live="polite">
+        {show3d && !ready && <div className="absolute inset-0 grid place-items-center" aria-label="Loading printed card"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>}
         {!show3d && <img
           src={design.frontImageUrl}
           alt={`${design.businessName} printed NFC card front`}
