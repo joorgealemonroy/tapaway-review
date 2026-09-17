@@ -84,7 +84,7 @@ function extractMeta(html: string, property: string): string | null {
 function cleanTitle(raw: string): string {
   return raw
     .replace(/\s*\([@\w.]+\)\s*/g, '') // strip (@handle)
-    .replace(/\s*[|–\u{2014}-]\s*(Linktree|Stan Store|Stan|Beacons|lnk\.bio|Bio Link|Campsite|LinkPop).*$/i, '')
+    .replace(/\s*[|–\u{2014}-]\s*(Linktree|Stan Store|Stan|Beacons|lnk\.bio|Bio Link|Campsite|LinkPop).*$/iu, '')
     .trim();
 }
 
@@ -304,7 +304,7 @@ Deno.serve(async (req) => {
       // Clean up name. Remove platform suffixes
       if (name) {
         name = name
-          .replace(/\s*[@•·|–\u{2014}-]\s*(Instagram|TikTok|YouTube|X|Twitter|Twitch|Spotify).*$/i, '')
+          .replace(/\s*[@•·|–\u{2014}-]\s*(Instagram|TikTok|YouTube|X|Twitter|Twitch|Spotify).*$/iu, '')
           .replace(/\s*on\s+(Instagram|TikTok|YouTube|X|Twitter|Twitch|Spotify)$/i, '')
           .replace(/\([@\w.]+\)/g, '')
           .trim();

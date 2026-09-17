@@ -130,8 +130,8 @@ const ClassifyDialog = ({
         <DialogHeader>
           <DialogTitle>Classify billing</DialogTitle>
           <DialogDescription>
-            {location?.display_name ?? "Location"}. This records the change with your name, the
-            time and a reason. It does not change the live hub or any billing record.
+            For {location?.display_name ?? "this location"}, this records the change with your name,
+            the time, and a reason. It does not change the live hub or any billing record.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">

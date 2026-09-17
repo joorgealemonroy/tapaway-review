@@ -808,7 +808,7 @@ if (event.type === 'checkout.session.completed') {
                       body: JSON.stringify({
                         from: emailFrom,
                         to: [creatorEmail],
-                        subject: `New Booking! 📅. ${productData.title}`,
+                        subject: `New Booking! 📅: ${productData.title}`,
                         html: `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;"><h1 style="font-size:22px;color:#111;">New Booking! 📅</h1><p style="color:#555;font-size:15px;line-height:1.6;"><strong>${(bookingData as any).buyer_email}</strong> has paid and booked:</p><div style="background:#f8f8f8;border-radius:8px;padding:16px;margin:16px 0;"><p style="margin:0 0 4px;font-weight:600;">${productData.title}</p><p style="margin:0;color:#555;">${dateFormatted} at ${timeFormatted} (${tzLabel})</p><p style="margin:4px 0 0;color:#555;">${productData.duration_minutes || 30} minutes</p></div></div>`,
                       }),
                     });
@@ -823,7 +823,7 @@ if (event.type === 'checkout.session.completed') {
                       body: JSON.stringify({
                         from: emailFrom,
                         to: [(bookingData as any).buyer_email],
-                        subject: `Booking Confirmed! 📅. ${productData.title}`,
+                        subject: `Booking Confirmed! 📅: ${productData.title}`,
                         html: `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;"><h1 style="font-size:22px;color:#111;">Your Booking is Confirmed! ✅</h1><p style="color:#555;font-size:15px;line-height:1.6;">You've booked <strong>${productData.title}</strong> with ${creatorProfile.full_name}.</p><div style="background:#f8f8f8;border-radius:8px;padding:16px;margin:16px 0;"><p style="margin:0 0 4px;font-weight:600;">${dateFormatted}</p><p style="margin:0;color:#555;">${timeFormatted} (${tzLabel}) · ${productData.duration_minutes || 30} min</p></div><p style="color:#999;font-size:13px;">The creator will reach out with meeting details.</p></div>`,
                       }),
                     });
@@ -939,7 +939,7 @@ if (event.type === 'checkout.session.completed') {
                     body: JSON.stringify({
                       from: emailFrom,
                       to: [creatorEmail],
-                      subject: `You made a sale! 🎉. ${product.title}`,
+                      subject: `You made a sale! 🎉: ${product.title}`,
                       html: creatorHtml,
                     }),
                   });
@@ -1043,7 +1043,7 @@ if (event.type === 'checkout.session.completed') {
                   body: JSON.stringify({
                     from: emailFrom.includes('<') ? emailFrom : `TapAway <${emailFrom}>`,
                     to: [emailInternal],
-                    subject: `📦 One-Time Card Order. 3 cards`,
+                    subject: `📦 One-Time Card Order: 3 cards`,
                     html: `<p><strong>${session.metadata?.shipping_name || 'Customer'}</strong> ordered 3 cards (one-time).</p>
                            <p>${session.metadata?.shipping_line1 || ''}${session.metadata?.shipping_line2 ? ', ' + session.metadata.shipping_line2 : ''}<br/>
                            ${session.metadata?.shipping_city || ''}, ${session.metadata?.shipping_state || ''} ${session.metadata?.shipping_postal_code || ''}</p>

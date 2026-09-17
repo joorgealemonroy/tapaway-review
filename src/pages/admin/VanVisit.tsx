@@ -607,7 +607,7 @@ export default function VanVisit() {
                 <option value="">Just me (Jorge). No rep payout</option>
                 {reps.map((r) => (
                   <option key={r.id} value={r.id}>
-                    {r.name}. Earns $5 on close
+                    {r.name} (earns $5 on close)
                   </option>
                 ))}
               </select>
@@ -825,7 +825,7 @@ export default function VanVisit() {
               <h2 className="text-xl font-bold">Close the sale</h2>
               <p className="text-muted-foreground mt-1">
                 {business.full_name} paid. Mark them converted
-                {repId ? " and award the $5 rep bonus" : " (no rep payout. Your close)"}.
+                {repId ? " and award the $5 rep bonus" : " (no rep payout because it is your close)"}.
               </p>
             </div>
             <Button onClick={closeSale} className="w-full h-16 text-lg" disabled={closing}>

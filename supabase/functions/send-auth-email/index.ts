@@ -43,7 +43,7 @@ function generateOtpEmailHtml(token: string): string {
     <tr>
       <td>
         <p style="color: #888888; font-size: 14px; margin-top: 32px;">
-         . TapAway
+          TapAway
         </p>
       </td>
     </tr>

@@ -325,8 +325,8 @@ export default function FeatureUpdateComposer() {
                 <p className="text-white/60">
                   This goes to{" "}
                   <span className="font-semibold text-white">
-                    {recipientCount ?? "Not available"} active client{recipientCount === 1 ? "" : "s"}
-                  </span>{" "}. Paying subscribers only. No trials, no comped accounts.
+                    {recipientCount ?? "N/A"} active client{recipientCount === 1 ? "" : "s"}
+                  </span>. Paying subscribers only. No trials, no comped accounts.
                 </p>
                 <p className="text-white/40 text-xs">
                   The backend dedupes by email and logs every send. This can't be
@@ -354,7 +354,7 @@ export default function FeatureUpdateComposer() {
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Sending…
                 </>
               ) : (
-                `Send to ${recipientCount ?? "Not available"}`
+                `Send to ${recipientCount ?? "N/A"}`
               )}
             </Button>
           </div>
