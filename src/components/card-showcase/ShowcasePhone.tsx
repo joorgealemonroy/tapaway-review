@@ -17,7 +17,7 @@ export default function ShowcasePhone({ design }: ShowcasePhoneProps) {
       rel="noreferrer"
     >
       <div className="showcase-phone-rim relative h-full w-full overflow-hidden">
-        <div className="showcase-phone-bezel absolute inset-[2%] overflow-hidden bg-phone-bezel">
+        <div className="showcase-phone-bezel absolute inset-[0.4%] overflow-hidden bg-phone-bezel">
           <div className="showcase-phone-screen absolute inset-[2%] overflow-hidden bg-hub-preview [container-type:inline-size]">
             <HomepageHubPreview preview={design.hubPreview} businessName={design.businessName} />
           </div>

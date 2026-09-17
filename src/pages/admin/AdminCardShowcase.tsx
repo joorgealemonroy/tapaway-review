@@ -88,6 +88,7 @@ export default function AdminCardShowcase() {
     hubUrl: current?.hubUrl ?? null,
     hubScreenshotPath: current?.hubScreenshotPath ?? null,
     hubScreenshotUrl: current?.hubScreenshotUrl ?? null,
+    hubPreview: current?.hubPreview ?? null,
   } : null, [backPreview, businessName, current, frontPreview]);
   const ordered = useMemo(() => [...designs].sort((a, b) => a.sortOrder - b.sortOrder), [designs]);
 

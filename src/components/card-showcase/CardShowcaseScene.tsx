@@ -207,16 +207,16 @@ function CardMesh({ design, paused, visible, interactive = true, onReady, onCycl
   };
 
   return (
-    <group rotation={[THREE.MathUtils.degToRad(-4), 0, THREE.MathUtils.degToRad(-2)]}>
+    <group position={[0, -0.16, 0]} rotation={[THREE.MathUtils.degToRad(-3), 0, THREE.MathUtils.degToRad(-1.5)]}>
       <group ref={yawGroup} rotation={[0, START_YAW, 0]}>
         <mesh geometry={edgeGeometry} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
-          <meshPhysicalMaterial color="#ffffff" metalness={0} roughness={0.4} clearcoat={0.3} clearcoatRoughness={0.28} ior={1.46} transmission={0} opacity={1} />
+          <meshPhysicalMaterial color="#ffffff" metalness={0} roughness={0.48} clearcoat={0.22} clearcoatRoughness={0.34} ior={1.46} transmission={0} opacity={1} />
         </mesh>
         <mesh geometry={frontGeometry} position={[0, 0, HALF_DEPTH]} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
-          <meshPhysicalMaterial map={maps[0]} color="#ffffff" metalness={0} roughness={0.31} clearcoat={0.38} clearcoatRoughness={0.25} ior={1.46} transmission={0} opacity={1} emissive="#000000" side={THREE.FrontSide} />
+          <meshPhysicalMaterial map={maps[0]} color="#ffffff" metalness={0} roughness={0.38} clearcoat={0.26} clearcoatRoughness={0.3} ior={1.46} transmission={0} opacity={1} emissive="#000000" side={THREE.FrontSide} />
         </mesh>
         <mesh geometry={backGeometry} position={[0, 0, -HALF_DEPTH]} rotation={[0, Math.PI, 0]} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
-          <meshPhysicalMaterial map={maps[1]} color="#ffffff" metalness={0} roughness={0.31} clearcoat={0.38} clearcoatRoughness={0.25} ior={1.46} transmission={0} opacity={1} emissive="#000000" side={THREE.FrontSide} />
+          <meshPhysicalMaterial map={maps[1]} color="#ffffff" metalness={0} roughness={0.38} clearcoat={0.26} clearcoatRoughness={0.3} ior={1.46} transmission={0} opacity={1} emissive="#000000" side={THREE.FrontSide} />
         </mesh>
       </group>
     </group>
@@ -231,25 +231,26 @@ export default function CardShowcaseScene(props: CardShowcaseSceneProps) {
   return (
     <Canvas
       dpr={[1, 2]}
-      camera={{ position: [0, 0, props.mobile ? 21 : 22], fov: 28, near: 0.1, far: 100 }}
+      camera={{ position: [0, 0, 18.1], fov: 28, near: 0.1, far: 100 }}
       gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
       frameloop={props.visible ? "always" : "never"}
       aria-label={`3D printed card for ${props.design.businessName}`}
       style={{ background: "transparent", touchAction: "pan-y" }}
     >
-      <directionalLight position={[-7, 10, 12]} intensity={1.8} />
-      <directionalLight position={[8, 3, 10]} intensity={0.65} />
-      <directionalLight position={[2, 4, -8]} intensity={0.48} />
+      <ambientLight intensity={0.42} />
+      <directionalLight position={[-7, 10, 12]} intensity={1.35} />
+      <directionalLight position={[8, 3, 10]} intensity={0.42} />
+      <directionalLight position={[2, 4, -8]} intensity={0.3} />
       <Suspense fallback={null}>
         <CardMesh {...props} />
         <Environment resolution={128} background={false}>
-          <Lightformer color="#ffffff" intensity={3.2} position={[-5, 7, 8]} rotation-x={-0.35} scale={[9, 5, 1]} />
-          <Lightformer color="#f4f4f2" intensity={1.5} position={[7, 2, 8]} rotation-y={-0.45} scale={[7, 4, 1]} />
-          <Lightformer color="#ffffff" intensity={0.8} position={[1, 5, -7]} rotation-y={Math.PI} scale={[5, 3, 1]} />
+          <Lightformer color="#ffffff" intensity={2.25} position={[-5, 7, 8]} rotation-x={-0.35} scale={[9, 5, 1]} />
+          <Lightformer color="#f7f7f5" intensity={1.1} position={[7, 2, 8]} rotation-y={-0.45} scale={[7, 4, 1]} />
+          <Lightformer color="#ffffff" intensity={0.55} position={[1, 5, -7]} rotation-y={Math.PI} scale={[5, 3, 1]} />
         </Environment>
-        <mesh position={[0, -4.5, -0.35]} rotation-x={-Math.PI / 2} scale={[3.5, 0.55, 1]}>
+        <mesh position={[0, -4.28, -0.35]} rotation-x={-Math.PI / 2} scale={[3.4, 0.46, 1]}>
           <circleGeometry args={[1, 64]} />
-          <meshBasicMaterial color="#000000" transparent opacity={0.12} depthWrite={false} />
+          <meshBasicMaterial color="#000000" transparent opacity={0.1} depthWrite={false} />
         </mesh>
       </Suspense>
     </Canvas>
