@@ -11,17 +11,8 @@ export default function ShowcasePhone({ design }: ShowcasePhoneProps) {
 
   return (
     <div
-      role="link"
-      tabIndex={0}
-      aria-label={`View ${design.businessName} live hub from hub preview`}
-      className="showcase-phone group relative block shrink-0 cursor-pointer"
-      onClick={() => window.open(design.hubUrl || "", "_blank", "noopener,noreferrer")}
-      onKeyDown={(event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          window.open(design.hubUrl || "", "_blank", "noopener,noreferrer");
-        }
-      }}
+      aria-label={`${design.businessName} hub preview`}
+      className="showcase-phone relative block shrink-0"
     >
       <div className="relative h-full w-full">
         <div className="showcase-phone-screen absolute bottom-[2.7%] left-[7.5%] right-[7.5%] top-[2.6%] overflow-hidden bg-hub-preview [container-type:inline-size]">
