@@ -1,4 +1,4 @@
-import { ChangeEvent, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { ArrowDown, ArrowUp, GalleryVerticalEnd, ImagePlus, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import { useAdminGuard } from "@/hooks/useAdminGuard";
 import { useCardShowcase } from "@/hooks/useCardShowcase";
@@ -12,6 +12,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { toast } from "sonner";
 import type { CardDesign } from "@/types/cardShowcase";
+
+const CardShowcaseScene = lazy(() => import("@/components/card-showcase/CardShowcaseScene"));
 
 const BUCKET = "restaurant-logos";
 const ACCEPTED_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
@@ -64,6 +66,16 @@ export default function AdminCardShowcase() {
   const current = editing === "new" ? null : editing;
   const frontPreview = front?.url ?? current?.frontImageUrl ?? null;
   const backPreview = back?.url ?? current?.backImageUrl ?? null;
+  const previewDesign = useMemo<CardDesign | null>(() => frontPreview ? {
+    id: `${current?.id ?? "new"}-${frontPreview}-${backPreview ?? "blank"}`,
+    businessName: businessName.trim() || "Card preview",
+    frontImageUrl: frontPreview,
+    backImageUrl: backPreview,
+    frontImagePath: current?.frontImagePath ?? "preview",
+    backImagePath: current?.backImagePath ?? null,
+    enabled: true,
+    sortOrder: current?.sortOrder ?? 0,
+  } : null, [backPreview, businessName, current, frontPreview]);
   const ordered = useMemo(() => [...designs].sort((a, b) => a.sortOrder - b.sortOrder), [designs]);
 
   useEffect(() => () => {
@@ -170,7 +182,7 @@ export default function AdminCardShowcase() {
       <main className="mx-auto max-w-6xl px-4 pb-12">
         <AdminPageHeader title="Card Showcase" subtitle="Homepage printed-card rotation" icon={<GalleryVerticalEnd className="h-5 w-5 text-primary" />} actions={<Button size="sm" onClick={() => openEditor("new")}><Plus /> Add design</Button>} />
         <div className="mb-6 rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
-          <p><strong className="text-foreground">Material reference:</strong> physical Muchas Gracias card photograph (pending upload).</p>
+          <p><strong className="text-foreground">Material reference:</strong> attached physical Sugar Bloom PVC card photograph.</p>
           <p><strong className="text-foreground">Visual direction:</strong> generated Sugar Bloom showcase picture. Uploaded flat artwork remains the exact card texture.</p>
         </div>
         {ordered.length === 0 ? (
@@ -202,6 +214,7 @@ export default function AdminCardShowcase() {
           <DialogHeader><DialogTitle>{current ? "Edit showcase design" : "Add showcase design"}</DialogTitle><DialogDescription>Use the original flat print artwork. The preview shows how the complete image fits the card face.</DialogDescription></DialogHeader>
           <div className="space-y-5">
             <div><Label htmlFor="showcase-business">Business name</Label><Input id="showcase-business" value={businessName} maxLength={120} onChange={(event) => setBusinessName(event.target.value)} /></div>
+            {previewDesign && <div className="mx-auto aspect-[53.98/85.6] w-[min(250px,70vw)]" aria-label="Reusable physical card preview"><Suspense fallback={null}><CardShowcaseScene design={previewDesign} paused={false} visible mobile={false} interactive onReady={() => undefined} onCycle={() => undefined} /></Suspense></div>}
             <div className="grid gap-5 sm:grid-cols-2">
               {(["front", "back"] as const).map((face) => {
                 const preview = face === "front" ? frontPreview : backPreview;
