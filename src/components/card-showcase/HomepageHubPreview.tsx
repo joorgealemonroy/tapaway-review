@@ -20,10 +20,22 @@ export default function HomepageHubPreview({ preview, businessName }: HomepageHu
     const update = () => {
       const widthScale = viewport.clientWidth / 430;
       const hub = contentRef.current?.firstElementChild as HTMLElement | null;
-      const contentHeight = hub?.scrollHeight || 860;
-      const heightScale = viewport.clientHeight / contentHeight;
+      // Natural content height, measured from the rendered children so the
+      // stretched canvas height never feeds back into the measurement.
+      let naturalHeight = 860;
+      if (hub) {
+        const top = hub.getBoundingClientRect().top;
+        let bottom = 0;
+        Array.from(hub.children).forEach((child) => {
+          bottom = Math.max(bottom, child.getBoundingClientRect().bottom - top);
+        });
+        const current = scaleRef.current || widthScale;
+        if (bottom > 0) naturalHeight = bottom / current;
+      }
+      const heightScale = viewport.clientHeight / naturalHeight;
       // Fill the screen when possible, but never crop more than a sliver off the sides.
       const next = Math.min(Math.max(widthScale, heightScale), widthScale * 1.12);
+      scaleRef.current = next;
       setScale(next);
       setCanvasHeight(next > 0 ? viewport.clientHeight / next : 860);
     };
