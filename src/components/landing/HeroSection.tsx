@@ -63,13 +63,13 @@ export const HeroSection = () => {
           >
             {/* Main Headline */}
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-normal text-hero-foreground leading-[1.08] mb-5 md:mb-8">
-              Turn Taps into{" "}
-              <span className="text-primary whitespace-nowrap">5-Star Reviews.</span>
+              Your Entire Business,{" "}
+              <span className="text-primary whitespace-nowrap">One TapAway.</span>
             </h1>
 
             {/* Subheadline */}
             <p className="text-base md:text-lg text-hero-foreground/70 leading-relaxed mb-6 md:mb-9 max-w-xl">
-              Collect reviews effortlessly with branded NFC Cards. Zero setup. <span className="text-primary font-bold">$0 Today</span>
+              Menus, reviews, and socials on one custom NFC card. Try it Free today with Free Shipping and Done-For-You Setup.
             </p>
 
             <div className="-mx-6 mb-7 w-[calc(100%+3rem)] sm:-mx-8 sm:w-[calc(100%+4rem)] lg:hidden">
@@ -94,7 +94,7 @@ export const HeroSection = () => {
                 </motion.div>
 
                 <p className="text-xs text-center text-hero-foreground/60 mt-3 w-full">
-                  Pay $0 today. Cancel anytime.
+                  $0 to start. Free setup & shipping.
                 </p>
               </div>
 
