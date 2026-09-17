@@ -1095,6 +1095,10 @@ export type Database = {
           created_at: string
           created_by: string | null
           front_image_path: string
+          hub_id: string | null
+          hub_kind: string | null
+          hub_screenshot_path: string | null
+          hub_slug: string | null
           id: string
           is_enabled: boolean
           sort_order: number
@@ -1106,6 +1110,10 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           front_image_path: string
+          hub_id?: string | null
+          hub_kind?: string | null
+          hub_screenshot_path?: string | null
+          hub_slug?: string | null
           id?: string
           is_enabled?: boolean
           sort_order?: number
@@ -1117,6 +1125,10 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           front_image_path?: string
+          hub_id?: string | null
+          hub_kind?: string | null
+          hub_screenshot_path?: string | null
+          hub_slug?: string | null
           id?: string
           is_enabled?: boolean
           sort_order?: number

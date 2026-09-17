@@ -15,6 +15,13 @@
       "when": 1789670474127,
       "tag": "0001_tighten_card_showcase_grants",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789678432012,
+      "tag": "0002_extend_card_showcase_with_hub_previews",
+      "breakpoints": true
     }
   ]
 }
