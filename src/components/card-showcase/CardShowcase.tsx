@@ -1,6 +1,5 @@
 import { Component, lazy, ReactNode, Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
 import { useCardShowcase } from "@/hooks/useCardShowcase";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -98,10 +97,7 @@ export default function CardShowcase({ width = "min(310px, 76vw)" }: CardShowcas
 
   const show3d = webgl && !reducedMotion && !viewerFailed;
   return (
-    <div ref={rootRef} className="flex flex-col items-center gap-3" style={{ width }} onKeyDown={(event) => {
-      if (event.key === "ArrowLeft") void move(-1);
-      if (event.key === "ArrowRight") void move(1);
-    }}>
+    <div ref={rootRef} className="flex flex-col items-center" style={{ width }}>
       <div className="relative w-full aspect-[53.98/85.6]" aria-live="polite">
         {show3d && !ready && <div className="absolute inset-0 grid place-items-center" aria-label="Loading printed card"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>}
         {!show3d && <img
@@ -127,11 +123,6 @@ export default function CardShowcase({ width = "min(310px, 76vw)" }: CardShowcas
             </ViewerErrorBoundary>
           </div>
         )}
-      </div>
-      <div className="flex min-h-9 items-center justify-center gap-2">
-        {designs.length > 1 && <Button variant="ghost" size="icon" aria-label="Previous card design" onClick={() => void move(-1)}><ChevronLeft className="h-4 w-4" /></Button>}
-        <p className="min-w-28 text-center text-sm font-semibold text-foreground">{design.businessName}</p>
-        {designs.length > 1 && <Button variant="ghost" size="icon" aria-label="Next card design" onClick={() => void move(1)}><ChevronRight className="h-4 w-4" /></Button>}
       </div>
     </div>
   );
