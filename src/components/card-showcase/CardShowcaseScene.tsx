@@ -52,6 +52,7 @@ interface CardMeshProps {
 function CardMesh({ design, paused, visible, onReady, onCycle }: CardMeshProps) {
   const group = useRef<THREE.Group>(null);
   const elapsed = useRef(0);
+  const designRef = useRef(design);
   const cycleSent = useRef(false);
   const readyFrames = useRef(0);
   const maps = useTexture([design.frontImageUrl, design.backImageUrl ?? blankBack]);
@@ -74,6 +75,10 @@ function CardMesh({ design, paused, visible, onReady, onCycle }: CardMeshProps) 
       map.needsUpdate = true;
     });
     readyFrames.current = 0;
+    if (designRef.current.id !== design.id) {
+      elapsed.current = 6.75;
+      designRef.current = design;
+    }
   }, [maps, design.id]);
 
   useFrame((_, rawDelta) => {
@@ -90,7 +95,7 @@ function CardMesh({ design, paused, visible, onReady, onCycle }: CardMeshProps) 
     group.current.rotation.y = eased * Math.PI * 2;
     if (progress >= 0.75 && !cycleSent.current) {
       cycleSent.current = true;
-      onCycle();
+      if (Math.abs(Math.cos(group.current.rotation.y)) < 0.08) onCycle();
     }
     if (cycle < 0.2) cycleSent.current = false;
   });

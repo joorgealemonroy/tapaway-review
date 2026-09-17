@@ -2,6 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react"
 import { ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCardShowcase } from "@/hooks/useCardShowcase";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const CardShowcaseScene = lazy(() => import("./CardShowcaseScene"));
 
@@ -38,6 +39,7 @@ export default function CardShowcase({ width = "min(310px, 76vw)" }: CardShowcas
   const [webgl, setWebgl] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobile();
 
   const design = designs[index] ?? null;
 
@@ -108,7 +110,7 @@ export default function CardShowcase({ width = "min(310px, 76vw)" }: CardShowcas
                 design={design}
                 paused={paused}
                 visible={visible}
-                mobile={window.innerWidth < 768}
+                mobile={isMobile}
                 onReady={() => setReady(true)}
                 onCycle={() => void move(1)}
               />
