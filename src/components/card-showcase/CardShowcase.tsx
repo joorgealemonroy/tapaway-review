@@ -77,6 +77,7 @@ export default function CardShowcase({ width = "min(310px, 76vw)" }: CardShowcas
 
   useEffect(() => {
     setReady(false);
+    setViewerFailed(false);
     const next = designs[(index + 1) % designs.length];
     if (next && next.id !== design?.id) void preloadPair(next.frontImageUrl, next.backImageUrl).catch(() => undefined);
   }, [design?.id, designs, index]);
