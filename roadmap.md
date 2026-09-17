@@ -12,3 +12,4 @@
 - [x] Pair each rotating card with its matching live hub in the homepage hero, extend admin management, optimize loading/cycle timing, and provide desktop/mobile/recording evidence
 - [x] Correct homepage showcase phone proportions, live-data hub preview, card alignment, finish, and matching verification evidence
 - [x] Render each showcase phone from the matching hub's complete live profile, links, blocks, and styling
+- [ ] Restore XOL with its correct hub, add Paperboy as a separate card and hub, and fill the phone screen vertically

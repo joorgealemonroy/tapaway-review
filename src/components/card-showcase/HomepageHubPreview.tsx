@@ -15,12 +15,23 @@ export default function HomepageHubPreview({ preview, businessName }: HomepageHu
   useEffect(() => {
     const viewport = viewportRef.current;
     if (!viewport) return;
-    const update = () => setScale(viewport.clientWidth / 430);
+    const update = () => {
+      const widthScale = viewport.clientWidth / 430;
+      const canvas = viewport.querySelector<HTMLElement>(".homepage-hub-content");
+      const contentHeight = canvas?.scrollHeight || 860;
+      const heightScale = viewport.clientHeight / contentHeight;
+      setScale(Math.max(widthScale, heightScale));
+    };
     update();
     const observer = new ResizeObserver(update);
     observer.observe(viewport);
-    return () => observer.disconnect();
-  }, []);
+    const images = Array.from(viewport.querySelectorAll("img"));
+    images.forEach((image) => image.addEventListener("load", update));
+    return () => {
+      observer.disconnect();
+      images.forEach((image) => image.removeEventListener("load", update));
+    };
+  }, [preview]);
 
   if (!preview.profile) {
     return (
@@ -35,7 +46,7 @@ export default function HomepageHubPreview({ preview, businessName }: HomepageHu
   return (
     <div ref={viewportRef} className="relative h-full w-full overflow-hidden" aria-label={`${businessName} live hub preview`}>
       <div
-        className="homepage-hub-canvas pointer-events-none absolute left-0 top-0 w-[430px] origin-top-left"
+        className="homepage-hub-canvas homepage-hub-content pointer-events-none absolute left-1/2 top-0 w-[430px] origin-top -translate-x-1/2"
         style={{ transform: `scale(${scale})` }}
       >
         <ProfilePreviewRenderer
