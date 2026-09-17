@@ -231,7 +231,7 @@ export default function CardShowcaseScene(props: CardShowcaseSceneProps) {
   return (
     <Canvas
       dpr={[1, 2]}
-      camera={{ position: [0, 0, 19.6], fov: 28, near: 0.1, far: 100 }}
+      camera={{ position: [0, 0, 22.5], fov: 28, near: 0.1, far: 100 }}
       gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
       frameloop={props.visible ? "always" : "never"}
       aria-label={`3D printed card for ${props.design.businessName}`}

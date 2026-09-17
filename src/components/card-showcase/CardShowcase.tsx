@@ -119,7 +119,7 @@ export default function CardShowcase({ width = "min(620px, 100%)" }: CardShowcas
           <div className="relative h-full w-full" aria-live="polite">
             {show3d && !ready && <div className="absolute inset-0 grid place-items-center" aria-label="Loading printed card"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>}
             {!show3d && <img src={design.frontImageUrl} alt={`${design.businessName} printed NFC card front`} className="absolute inset-0 h-full w-full rounded-[6%] object-contain shadow-xl" loading="eager" decoding="sync" />}
-            {show3d && <div className="absolute inset-0">
+            {show3d && <div className="absolute left-0 right-0" style={{ top: "-7.5%", bottom: "-7.5%" }}>
               <ViewerErrorBoundary onError={() => { setViewerFailed(true); setReady(false); }}>
                 <Suspense fallback={null}>
                   <CardShowcaseScene design={design} paused={paused} visible={visible} mobile={isMobile} onReady={() => setReady(true)} onCycle={() => void move(1)} />
