@@ -5,6 +5,7 @@ Update the existing homepage hero to pair the real rotating NFC card with a stat
 
 ## Homepage composition
 - Keep the existing headline, supporting copy, CTA, and reassurance text.
+- Treat the attached desktop/mobile mockup as the visual acceptance reference for composition, spacing, relative card/phone scale, phone framing, and restrained shadows. Recreate only the website shown inside it, never its outer laptop or presentation phone.
 - Recompose the first screen on the existing navy/cyan visual system: copy on the left and an unframed card-plus-phone presentation on the right at desktop widths.
 - Build one slim reusable phone frame containing a sharp, first-viewport mobile capture of the active business’s real public hub.
 - Make the phone preview and a visible “View live hub” link open the same public hub with clear accessible labels.
@@ -18,12 +19,14 @@ Update the existing homepage hero to pair the real rotating NFC card with a stat
 - Keep one active entry as the source of the card, phone screenshot, business label, and link.
 - Restore compact previous, next, and pause/play controls outside the canvas with 44px touch targets.
 - Change both card and phone atomically only after the next front, optional back, and hub preview are decoded. Keep the current pair visible on delays or failures.
+- Rotate only the card. Keep the phone stationary with consistent framing and scale across every business.
 - Retain the safe edge-on automatic transition, manual mouse/touch card rotation, normal vertical mobile scrolling, reduced-motion behavior, and card-only fallback.
 
 ## Faster high-quality card loading and motion
 - Keep the exact 53.98 × 85.60 × 0.76 mm geometry, 3.18 mm corners, white edge, satin material, lighting, complete artwork fit, and identical per-design scale.
+- Tune only lighting, roughness, clearcoat, reflections, and shadows against the reference so the thin white edge, soft corners, and realistic satin PVC finish remain visible without altering geometry or artwork.
 - Preserve high-DPI rendering while reducing startup work: preload the first pair immediately, preload the 3D module and next complete entry early, cache decoded images/processed textures, avoid remounting the scene between businesses, and remove unnecessary readback work from the public viewer.
-- Replace the current 16-second continuous cycle with a modestly faster cycle that still opens on a readable front hold and shows the matching back before switching.
+- Replace the current 16-second continuous cycle with an explicit sequence: hold the readable front for about three seconds, then complete a smooth rotation in about five seconds, show the matching back, and synchronize the business change at the safe transition point.
 - Keep a stable reserved layout and the CTA usable while the showcase initializes. Never show mismatched businesses or a broken-image flash.
 
 ## Admin extension
@@ -46,4 +49,5 @@ Update the existing homepage hero to pair the real rotating NFC card with a stat
 - Confirm every phone image and “View live hub” link opens the correct live hub and no card/hub mismatch appears during transitions.
 - Verify admin hub selection and independent screenshot replacement, plus anonymous and ordinary-customer denial for disabled data and all mutations.
 - Run project checks and inspect browser console/network output with zero new errors or warnings.
-- Provide actual completed desktop and mobile homepage screenshots and report any remaining visual or unverified issues.
+- Visually compare the finished homepage directly against the supplied reference at desktop, 390px, and 360px.
+- Provide actual completed desktop and mobile homepage screenshots plus a short recording or working preview that demonstrates card rotation and a matched card/hub transition, then report every remaining visual difference or unverified behavior.
