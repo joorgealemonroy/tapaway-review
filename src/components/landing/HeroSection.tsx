@@ -3,6 +3,7 @@ import { ArrowRight, Star, TrendingUp } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import TapAwayCard3D from "@/components/TapAwayCard3D";
+import { useIsMobile } from "@/hooks/use-mobile";
 import victorAsset from "@/assets/victor-ramirez.jpg.asset.json";
 import soniaAsset from "@/assets/sonia-berumen.jpg.asset.json";
 import manuelAsset from "@/assets/manuel-monroy.jpg.asset.json";
@@ -61,6 +62,7 @@ const clientFeedback = [
 
 export const HeroSection = () => {
   const [currentCity, setCurrentCity] = useState(0);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -90,9 +92,11 @@ export const HeroSection = () => {
             </h1>
 
             {/* Mobile card visual */}
-            <div className="mt-10 flex justify-center lg:hidden mb-6">
-              <TapAwayCard3D width="min(180px, 55vw)" />
-            </div>
+            {isMobile && (
+              <div className="mt-10 flex justify-center mb-6">
+                <TapAwayCard3D width="min(180px, 55vw)" />
+              </div>
+            )}
 
             {/* Subheadline */}
             <p className="text-base md:text-lg text-muted-foreground leading-relaxed mb-8 md:mb-12 max-w-xl">
@@ -125,7 +129,7 @@ export const HeroSection = () => {
           </motion.div>
 
           {/* Right: Visual */}
-          <motion.div
+          {!isMobile && <motion.div
             initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.7, delay: 0.2 }}
@@ -158,7 +162,7 @@ export const HeroSection = () => {
                 </div>
               </motion.div>
             </div>
-          </motion.div>
+          </motion.div>}
           </div>
         </div>
       </section>
