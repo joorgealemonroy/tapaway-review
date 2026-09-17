@@ -100,10 +100,10 @@ function CardMesh({ design, paused, visible, onReady, onCycle }: CardMeshProps) 
       <mesh geometry={edgeGeometry} castShadow>
         <meshPhysicalMaterial color="white" metalness={0} roughness={0.52} clearcoat={0.16} clearcoatRoughness={0.5} />
       </mesh>
-      <mesh geometry={faceGeometry} position={[0, 0, DEPTH / 2 + 0.006]} castShadow>
+      <mesh geometry={faceGeometry} position={[0, 0, DEPTH / 2 + 0.016]} castShadow>
         <meshPhysicalMaterial map={maps[0]} metalness={0} roughness={0.6} clearcoat={0.12} polygonOffset polygonOffsetFactor={-1} />
       </mesh>
-      <mesh geometry={faceGeometry} position={[0, 0, -DEPTH / 2 - 0.006]} rotation={[0, Math.PI, 0]} castShadow>
+      <mesh geometry={faceGeometry} position={[0, 0, -DEPTH / 2 - 0.016]} rotation={[0, Math.PI, 0]} castShadow>
         <meshPhysicalMaterial map={maps[1]} metalness={0} roughness={0.6} clearcoat={0.12} polygonOffset polygonOffsetFactor={-1} />
       </mesh>
     </group>
