@@ -5,7 +5,7 @@ import { lovable } from "@/integrations/lovable";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Check, Loader2, ArrowRight, User, Building2, CloudUpload, X, Mail, Phone, CreditCard, Clock3 } from "lucide-react";
+import { Check, Loader2, ArrowRight, CloudUpload, X, Mail, Phone, CreditCard, Clock3 } from "lucide-react";
 // MagicLoadingOverlay removed. Concierge model: no auto-builder
 import { motion, AnimatePresence } from "framer-motion";
 import { Helmet } from "react-helmet-async";
@@ -32,8 +32,8 @@ type BillingInterval = "month" | "year";
 type Step = "plan" | "info";
 
 const PLAN_DETAILS = {
-  solo: { label: "TapAway Solo", subtitle: "For Service Pros & Individuals.", price: 20, yearlyPrice: 199, yearlyPerMonth: "16.58", yearlyBadge: "Save $41/yr", cards: 4, icon: User, refill: "3-card", badge: null, trialDays: 14, totalTrialDays: 14 },
-  venue: { label: "TapAway Pro", subtitle: "For Storefronts & Teams.", price: 39, yearlyPrice: 390, yearlyPerMonth: "32.50", yearlyBadge: "2 months free", cards: 15, icon: Building2, refill: "10-card", badge: "Most Popular", trialDays: 14, totalTrialDays: 14 },
+  solo: { label: "TapAway Solo", price: 20, yearlyPrice: 199, cards: 4, trialDays: 14, totalTrialDays: 14 },
+  venue: { label: "TapAway Pro", price: 39, yearlyPrice: 390, cards: 15, trialDays: 14, totalTrialDays: 14 },
 };
 
 type CatalogItem = { plan: Plan; interval: BillingInterval; amount: number; currency: "usd"; trialDays: number; available: boolean };
@@ -917,17 +917,17 @@ const Onboarding = () => {
   }
 
   return (
-    <div className={step === "plan" ? "min-h-screen bg-[hsl(var(--onboarding-bg))] text-[hsl(var(--onboarding-fg))]" : "min-h-screen bg-[#0a0e1a] text-white"}>
+    <div className="min-h-screen bg-hero text-hero-foreground">
       <Helmet>
         <title>Create Your Hub | TapAway</title>
         <meta name="description" content="Create your TapAway hub. Custom NFC cards, your business links in one place, free 14-day trial." />
         <link rel="canonical" href="https://tapaway.co/start" />
       </Helmet>
       {/* Nav */}
-      <nav className={step === "plan" ? "sticky top-0 z-50 bg-[hsl(var(--onboarding-bg)/0.94)] backdrop-blur-lg border-b border-[hsl(var(--onboarding-border))]" : "sticky top-0 z-50 bg-[#0a0e1a]/90 backdrop-blur-lg border-b border-white/5"}>
+      <nav className="sticky top-0 z-50 border-b border-hero-foreground/10 bg-hero/95 backdrop-blur-lg">
         <div className="max-w-3xl mx-auto px-5 py-4 flex items-center justify-between">
           <a href="/" className="font-black text-2xl">TapAway</a>
-          {step === "plan" ? <a href="/support" className="text-sm text-[hsl(var(--onboarding-muted))]">Need help?</a> : (
+          {step === "plan" ? <a href="/support" className="text-sm text-hero-foreground/65 transition-colors hover:text-hero-foreground">Need help?</a> : (
             <div className="flex gap-1.5">
               {[1, 2].map((s) => (
                 <div key={s} className={`h-1.5 rounded-full transition-all duration-300 ${s <= stepNumber ? "w-8 bg-blue-500" : "w-4 bg-white/10"}`} />
@@ -944,33 +944,31 @@ const Onboarding = () => {
         )}
       </nav>
 
-      <main className={step === "plan" ? "max-w-3xl mx-auto px-4 sm:px-6 pt-8 pb-52 md:pb-12" : "max-w-md mx-auto px-4 py-8"}>
+      <main className={step === "plan" ? "mx-auto max-w-3xl px-4 pb-44 pt-8 sm:px-6 md:pb-14 md:pt-12" : "max-w-md mx-auto px-4 py-8"}>
         <AnimatePresence mode="wait" custom={direction}>
           {/* ════════ STEP 1: Plan Selection ════════ */}
           {step === "plan" && (
-            <motion.div key="plan" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-7">
-              <header>
-                <p className="mb-2 text-xs font-bold uppercase text-[hsl(var(--onboarding-green))]">Made for your business</p>
-                <h1 className="text-4xl sm:text-5xl font-black leading-[1.02]">Let’s get your cards ready.</h1>
-                <p className="mt-4 max-w-2xl text-lg leading-relaxed text-[hsl(var(--onboarding-muted))]">Choose your plan. We’ll design your cards, build your business hub, and ship it all to you.</p>
+            <motion.div key="plan" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+              <header className="max-w-2xl">
+                <h1 className="text-4xl font-black leading-[1.05] sm:text-5xl">How many cards do you need?</h1>
+                <p className="mt-4 text-base leading-relaxed text-hero-foreground/70 sm:text-lg">We’ll design your cards, set up your business hub, and ship them to you.</p>
               </header>
 
-              <div className="flex items-center justify-between rounded-md bg-[hsl(var(--onboarding-green-soft))] px-4 py-3 font-bold text-[hsl(var(--onboarding-green))]">
-                <span className="flex items-center gap-2"><Clock3 className="h-5 w-5" />14 days free</span><span>$0 due today</span>
+              <div className="inline-flex items-center gap-2 rounded-md border border-primary/25 bg-primary/10 px-3 py-2 text-sm font-bold text-primary">
+                <Clock3 className="h-4 w-4" />14 days free <span aria-hidden="true">·</span> $0 due today
               </div>
 
-              <section aria-labelledby="choose-plan-heading">
-                <div className="mb-3 flex items-end justify-between gap-3">
-                  <h2 id="choose-plan-heading" className="text-xl font-black">Choose your plan</h2>
-                  <div className="grid grid-cols-2 rounded-md border border-[hsl(var(--onboarding-border))] bg-card p-1 text-sm">
-                    <Button type="button" variant="ghost" size="sm" onClick={() => selectBillingInterval("year")} className={billingInterval === "year" ? "bg-[hsl(var(--onboarding-green))] text-primary-foreground hover:bg-[hsl(var(--onboarding-green))]" : "text-[hsl(var(--onboarding-muted))]"}>Yearly</Button>
-                    <Button type="button" variant="ghost" size="sm" onClick={() => selectBillingInterval("month")} className={billingInterval === "month" ? "bg-[hsl(var(--onboarding-green))] text-primary-foreground hover:bg-[hsl(var(--onboarding-green))]" : "text-[hsl(var(--onboarding-muted))]"}>Monthly</Button>
+              <section aria-label="Card quantity and billing options">
+                <div className="mb-4 flex justify-start sm:justify-end">
+                  <div className="grid grid-cols-2 rounded-md border border-hero-foreground/15 bg-secondary p-1 text-sm">
+                    <Button type="button" variant="ghost" size="sm" onClick={() => selectBillingInterval("year")} className={billingInterval === "year" ? "bg-primary text-primary-foreground hover:bg-primary/90" : "text-hero-foreground/65 hover:bg-hero-foreground/5 hover:text-hero-foreground"}>Yearly</Button>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => selectBillingInterval("month")} className={billingInterval === "month" ? "bg-primary text-primary-foreground hover:bg-primary/90" : "text-hero-foreground/65 hover:bg-hero-foreground/5 hover:text-hero-foreground"}>Monthly</Button>
                   </div>
                 </div>
 
                 {billingInterval === "year" && !catalogLoading && catalog.filter((item) => item.interval === "year" && item.available).length < 2 && (
-                  <div className="mb-3 rounded-md border border-[hsl(var(--onboarding-border))] bg-card px-4 py-3 text-sm">
-                    Yearly is temporarily unavailable. <button type="button" className="font-bold underline" onClick={() => selectBillingInterval("month")}>Choose monthly</button>
+                  <div className="mb-4 rounded-md border border-hero-foreground/15 bg-secondary px-4 py-3 text-sm text-hero-foreground/75">
+                    Yearly is temporarily unavailable. <Button type="button" variant="link" className="h-auto p-0 font-bold" onClick={() => selectBillingInterval("month")}>Choose monthly</Button>
                   </div>
                 )}
 
@@ -980,27 +978,34 @@ const Onboarding = () => {
                     const selected = selectedPlan === plan;
                     const item = catalogItem(plan, billingInterval);
                     const unavailable = !catalogLoading && item?.available !== true;
-                    const monthlyEquivalent = d.yearlyPrice / 12;
-                    const savings = d.price * 12 - d.yearlyPrice;
+                    const monthlyItem = catalogItem(plan, "month");
+                    const yearlyItem = catalogItem(plan, "year");
+                    const monthlyCatalogPrice = monthlyItem?.amount ? monthlyItem.amount / 100 : d.price;
+                    const yearlyCatalogPrice = yearlyItem?.amount ? yearlyItem.amount / 100 : d.yearlyPrice;
+                    const monthlyEquivalent = yearlyCatalogPrice / 12;
+                    const savings = monthlyCatalogPrice * 12 - yearlyCatalogPrice;
                     return (
-                      <Button key={plan} type="button" variant="outline" disabled={unavailable} onClick={() => selectPlan(plan)} className={`h-auto min-h-[238px] whitespace-normal p-5 text-left items-stretch justify-start border-2 bg-card text-card-foreground hover:bg-card ${selected ? "border-[hsl(var(--onboarding-green))]" : "border-[hsl(var(--onboarding-border))]"}`}>
-                        <span className="flex w-full flex-col">
+                      <Button key={plan} type="button" variant="outline" disabled={unavailable} onClick={() => selectPlan(plan)} aria-pressed={selected} className={`h-auto min-h-[220px] items-stretch justify-start whitespace-normal border-2 bg-secondary p-5 text-left text-secondary-foreground hover:bg-secondary/90 ${selected ? "border-primary ring-2 ring-primary/20" : "border-hero-foreground/15"}`}>
+                        <span className="flex w-full flex-col justify-between gap-5">
                           <span className="flex items-start gap-4">
-                            <span className="relative flex h-24 w-16 shrink-0 items-center justify-center overflow-hidden rounded-md bg-[hsl(var(--onboarding-green))] shadow-md">
-                              <img src="/tapaway-card-front-v2.svg" alt="" className="h-full w-full object-cover" />
+                            <span className="relative flex h-28 w-[4.4rem] shrink-0 items-center justify-center overflow-hidden rounded-md bg-hero shadow-lg">
+                              <img src="/tapaway-card-front-v2.svg" alt="TapAway custom NFC card" className="h-full w-full object-cover" />
                             </span>
-                            <span className="min-w-0 flex-1 pt-1">
+                            <span className="min-w-0 flex-1">
                               <span className="flex items-start justify-between gap-2">
-                                <span className="text-xl font-black">{d.label}</span>
-                                <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 ${selected ? "border-[hsl(var(--onboarding-green))] bg-[hsl(var(--onboarding-green))] text-primary-foreground" : "border-[hsl(var(--onboarding-muted))]"}`}>{selected && <Check className="h-4 w-4" />}</span>
+                                <span className="text-3xl font-black leading-none text-hero-foreground">{d.cards} cards</span>
+                                <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 ${selected ? "border-primary bg-primary text-primary-foreground" : "border-hero-foreground/35"}`}>{selected && <Check className="h-4 w-4" />}</span>
                               </span>
-                              <span className="mt-1 block text-sm text-[hsl(var(--onboarding-muted))]">{plan === "solo" ? "For independent pros & small businesses" : "For storefronts, restaurants & teams"}</span>
+                              <span className="mt-2 block text-sm text-hero-foreground/70">Custom printed with your logo.</span>
                             </span>
                           </span>
-                          <span className="my-4 block h-px bg-[hsl(var(--onboarding-border))]" />
-                          <span className="flex items-end justify-between gap-4">
-                            <span><strong className="block text-base">{d.cards} custom smart cards</strong><span className="text-sm text-[hsl(var(--onboarding-muted))]">Your branding · Tap + QR</span></span>
-                            <span className="text-right"><strong className="block text-xl">{billingInterval === "year" ? `$${monthlyEquivalent.toFixed(2)}/mo` : `$${d.price}/mo`}</strong><span className="text-xs text-[hsl(var(--onboarding-muted))]">{billingInterval === "year" ? `$${d.yearlyPrice} billed yearly · save $${savings}` : "after your free trial"}</span></span>
+                          <span className="block h-px bg-hero-foreground/15" />
+                          <span className="flex items-end justify-between gap-3">
+                            <span className="text-left">
+                              <strong className="block text-2xl text-hero-foreground">{billingInterval === "year" ? `$${monthlyEquivalent.toFixed(2)}/mo` : `$${monthlyCatalogPrice}/month`}</strong>
+                              <span className="mt-1 block text-xs text-hero-foreground/65">{billingInterval === "year" ? `$${yearlyCatalogPrice}/year` : "after 14-day trial"}</span>
+                            </span>
+                            {billingInterval === "year" && <span className="rounded-md bg-primary/15 px-2 py-1 text-xs font-bold text-primary">Save ${savings}/year</span>}
                           </span>
                         </span>
                       </Button>
@@ -1009,14 +1014,28 @@ const Onboarding = () => {
                 </div>
               </section>
 
-              <section>
-                <h2 className="mb-3 text-xl font-black">Included with either plan</h2>
-                <div className="grid grid-cols-2 gap-x-5 gap-y-3 text-sm text-[hsl(var(--onboarding-muted))]">
-                  {["Done-for-you setup", "Free US shipping", "Custom business hub", "Cancel anytime"].map((benefit) => <div key={benefit} className="flex items-center gap-2"><span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--onboarding-green))] text-primary-foreground"><Check className="h-3 w-3" /></span>{benefit}</div>)}
+              <section aria-label="Included with every option">
+                <div className="grid gap-3 text-sm text-hero-foreground/75 sm:grid-cols-3">
+                  {["Custom business hub", "Done-for-you setup", "Free US shipping"].map((benefit) => <div key={benefit} className="flex items-center gap-2"><span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground"><Check className="h-3 w-3" /></span>{benefit}</div>)}
                 </div>
               </section>
 
-              <p className="text-xs leading-relaxed text-[hsl(var(--onboarding-muted))]">Your free trial starts today and runs 14 days. We’ll place a temporary $1 hold to verify your card; it is released automatically. Unless canceled before the trial ends, your selected plan renews automatically. Yearly cancellation stops the next renewal and does not refund the current annual term. See our <a href="/terms" className="underline">Terms</a> and <a href="/refund" className="underline">Refund Policy</a>.</p>
+              {selectedPlan && (
+                <div className="sticky bottom-0 z-40 -mx-4 border-t border-hero-foreground/10 bg-hero/95 px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4 backdrop-blur sm:-mx-6 sm:px-6 md:static md:mx-0 md:border-0 md:bg-transparent md:p-0">
+                  <Button onClick={continueFromPlan} disabled={catalogLoading || catalogItem(selectedPlan, billingInterval)?.available === false} className="h-14 w-full text-base font-bold">
+                    Continue with {PLAN_DETAILS[selectedPlan].cards} cards <ArrowRight className="h-5 w-5" />
+                  </Button>
+                </div>
+              )}
+
+              {selectedPlan && (
+                <div className="space-y-2 text-sm leading-relaxed text-hero-foreground/65">
+                  <p>14 days free, then {billingInterval === "year" ? `$${PLAN_DETAILS[selectedPlan].yearlyPrice}/year` : `$${PLAN_DETAILS[selectedPlan].price}/month`}. Renews {billingInterval === "year" ? "yearly" : "monthly"} until canceled.</p>
+                  <p>Cancel before your trial ends to avoid the first subscription charge.</p>
+                  {billingInterval === "year" && <p>Canceling stops the next renewal and does not refund the current annual term.</p>}
+                  <div className="flex gap-4 pt-1 text-xs"><a href="/terms" className="underline underline-offset-4 hover:text-hero-foreground">Terms</a><a href="/refund" className="underline underline-offset-4 hover:text-hero-foreground">Refund Policy</a></div>
+                </div>
+              )}
             </motion.div>
           )}
 
@@ -1172,7 +1191,7 @@ const Onboarding = () => {
                     After trial: {billingInterval === "year" ? `$${PLAN_DETAILS[selectedPlan].yearlyPrice}/year` : `$${PLAN_DETAILS[selectedPlan].price}/month`}
                   </p>
                   <p className="text-xs text-gray-600">
-                    Your 14-day free trial starts today. Cards ship free while you try it.
+                    Your 14-day free trial starts after your card is verified. Cards ship free while you try it.
                   </p>
                 </div>
               )}
@@ -1291,23 +1310,6 @@ const Onboarding = () => {
         </AnimatePresence>
       </main>
 
-      {/* Fixed mobile summary for plan step */}
-      <AnimatePresence>
-        {step === "plan" && selectedPlan && (
-          <motion.div
-            initial={false}
-            className="fixed bottom-0 left-0 right-0 z-50 border-t border-[hsl(var(--onboarding-border))] bg-[hsl(var(--onboarding-bg)/0.97)] p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] backdrop-blur md:static md:mt-8 md:border-t md:bg-transparent md:p-0"
-          >
-            <div className="max-w-3xl mx-auto">
-              <div className="mb-3 flex items-center justify-between text-sm"><strong>{PLAN_DETAILS[selectedPlan].label} · {PLAN_DETAILS[selectedPlan].cards} cards</strong><strong className="text-[hsl(var(--onboarding-green))]">$0 today</strong></div>
-              <Button onClick={continueFromPlan} disabled={catalogLoading || catalogItem(selectedPlan, billingInterval)?.available === false} className="h-14 w-full bg-[hsl(var(--onboarding-fg))] text-base font-bold text-primary-foreground hover:bg-[hsl(var(--onboarding-green))]">
-                Continue with {selectedPlan === "solo" ? "Solo" : "Pro"} <ArrowRight className="w-5 h-5" />
-              </Button>
-              <p className="mt-2 text-center text-xs text-[hsl(var(--onboarding-muted))]">Then {billingInterval === "year" ? `$${PLAN_DETAILS[selectedPlan].yearlyPrice}/year` : `$${PLAN_DETAILS[selectedPlan].price}/month`} after 14 days. Cancel anytime.</p>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 };
