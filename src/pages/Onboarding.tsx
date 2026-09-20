@@ -5,7 +5,7 @@ import { lovable } from "@/integrations/lovable";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Check, Loader2, Shield, ArrowRight, User, Building2, CloudUpload, X, Mail, Phone, CreditCard } from "lucide-react";
+import { Check, Loader2, Shield, ArrowRight, User, Building2, CloudUpload, X, Mail, Phone, CreditCard, Clock3 } from "lucide-react";
 // MagicLoadingOverlay removed. Concierge model: no auto-builder
 import { motion, AnimatePresence } from "framer-motion";
 import { Helmet } from "react-helmet-async";
@@ -20,7 +20,11 @@ import {
   clearOnboardingData,
   generateSlug,
   setPendingSetup,
+  getCampaignParams,
 } from "@/lib/onboardingData";
+import { track } from "@/lib/analytics";
+import { getAppSettings } from "@/lib/appSettings";
+import { Button } from "@/components/ui/button";
 
 
 type Plan = "solo" | "venue";
@@ -33,6 +37,9 @@ const PLAN_DETAILS = {
 };
 
 const PROTECTION_PRICE = 5;
+
+type CatalogItem = { plan: Plan; interval: BillingInterval; amount: number; currency: "usd"; trialDays: number; available: boolean };
+const CATALOG_CACHE_KEY = "tapaway_onboarding_catalog_v1";
 
 const slideVariants = {
   enter: (dir: number) => ({ x: dir > 0 ? 300 : -300, opacity: 0 }),
@@ -112,6 +119,8 @@ const Onboarding = () => {
   // value (Solo $199/yr = save $41; Venue $390/yr = 2 months free).
   const [billingInterval, setBillingInterval] = useState<BillingInterval>("year");
   const [hasProtection, setHasProtection] = useState(false);
+  const [catalog, setCatalog] = useState<CatalogItem[]>([]);
+  const [catalogLoading, setCatalogLoading] = useState(true);
   const [dashboardType, setDashboardType] = useState<"restaurant" | "personal" | null>(null);
 
   // Business info state
@@ -197,10 +206,18 @@ const Onboarding = () => {
 
       if (savedData.businessName) setBusinessName(savedData.businessName);
       if (savedData.planType) setSelectedPlan(savedData.planType as Plan);
-      if (savedData.billingInterval === "month" || savedData.billingInterval === "year") {
+      const explicitBilling = searchParams.get("billing") || searchParams.get("billing_interval");
+      if (explicitBilling === "month" || explicitBilling === "year") {
+        setBillingInterval(explicitBilling);
+        saveOnboardingData({ billingInterval: explicitBilling, billingSelectionExplicit: true });
+      } else if (savedData.billingInterval === "month" || savedData.billingInterval === "year") {
         setBillingInterval(savedData.billingInterval);
+      } else {
+        const settings = await getAppSettings(supabase);
+        setBillingInterval(settings.onboardingDefaultBilling);
       }
-      if (savedData.hasProtection) setHasProtection(true);
+      setHasProtection(false);
+      saveOnboardingData({ hasProtection: false, campaign: { ...savedData.campaign, ...getCampaignParams() } });
       if (savedData.dashboardType) setDashboardType(savedData.dashboardType as 'personal' | 'restaurant');
       if (savedData.phone) setOwnerPhone(savedData.phone);
 
@@ -281,6 +298,57 @@ const Onboarding = () => {
     };
     init();
   }, [navigate, searchParams]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadCatalog = async () => {
+      try {
+        const cached = sessionStorage.getItem(CATALOG_CACHE_KEY);
+        if (cached) {
+          const parsed = JSON.parse(cached) as { expiresAt: number; catalog: CatalogItem[] };
+          if (parsed.expiresAt > Date.now() && Array.isArray(parsed.catalog)) {
+            if (!cancelled) setCatalog(parsed.catalog);
+            return;
+          }
+        }
+        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/onboarding-plan-catalog`, {
+          headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
+        });
+        if (!response.ok) throw new Error("Catalog unavailable");
+        const data = await response.json();
+        const items = Array.isArray(data?.catalog) ? data.catalog as CatalogItem[] : [];
+        sessionStorage.setItem(CATALOG_CACHE_KEY, JSON.stringify({ expiresAt: Date.now() + 10 * 60 * 1000, catalog: items }));
+        if (!cancelled) setCatalog(items);
+      } catch (error) {
+        console.error("[onboarding] Plan catalog unavailable", error);
+      } finally {
+        if (!cancelled) setCatalogLoading(false);
+      }
+    };
+    loadCatalog();
+    track("plan_view", { hubKind: "site", props: { default_interval: billingInterval } });
+    return () => { cancelled = true; };
+  }, []);
+
+  const selectBillingInterval = (interval: BillingInterval) => {
+    setBillingInterval(interval);
+    saveOnboardingData({ billingInterval: interval, billingSelectionExplicit: true, hasProtection: false });
+    track("billing_cycle_change", { hubKind: "site", props: { interval } });
+  };
+
+  const selectPlan = (plan: Plan) => {
+    setSelectedPlan(plan);
+    setDashboardType(plan === "solo" ? "personal" : null);
+    setHasProtection(false);
+    saveOnboardingData({ planType: plan, billingInterval, billingSelectionExplicit: true, hasProtection: false, dashboardType: plan === "solo" ? "personal" : undefined });
+  };
+
+  const continueFromPlan = () => {
+    if (!selectedPlan) return;
+    saveOnboardingData({ planType: selectedPlan, billingInterval, billingSelectionExplicit: true, hasProtection: false });
+    track("continue_click", { hubKind: "site", props: { plan: selectedPlan, interval: billingInterval } });
+    goTo("info", 1);
+  };
 
   // ── Card claim (NFC tap flow) ──
   // Claims a stashed card code after onboarding completes, mirroring the
@@ -378,7 +446,7 @@ const Onboarding = () => {
         clientEmail: clientEmail.trim(),
         businessName: businessName.trim(),
         planType: selectedPlan || "venue",
-        hasProtection,
+        hasProtection: false,
         googlePlaceId: selectedGooglePlace?.placeId || "",
         googlePlaceName: selectedGooglePlace?.name || "",
         googlePlaceAddress: selectedGooglePlace?.address || "",
@@ -456,7 +524,7 @@ const Onboarding = () => {
         logoUrl: logoUrl || '',
         planType: selectedPlan || 'venue',
         billingInterval,
-        hasProtection,
+        hasProtection: false,
         googlePlaceId: selectedGooglePlace?.placeId || '',
         googlePlaceName: selectedGooglePlace?.name || '',
         googlePlaceAddress: selectedGooglePlace?.address || '',
@@ -585,7 +653,7 @@ const Onboarding = () => {
       const slug = generateSlug(bName);
 
       const plan = (savedData.planType as Plan) || selectedPlan || "venue";
-      const protection = savedData.hasProtection || hasProtection;
+      const protection = false;
       const resolvedDashboardType = savedData.dashboardType || dashboardType || (plan === 'solo' ? 'personal' : 'restaurant');
       const totalTrialDays = PLAN_DETAILS[plan].totalTrialDays;
       const trialEndsAt = new Date(Date.now() + totalTrialDays * 86400000).toISOString();
@@ -753,7 +821,7 @@ const Onboarding = () => {
             billingInterval: savedData.billingInterval === "month" || savedData.billingInterval === "year"
               ? savedData.billingInterval
               : billingInterval,
-            hasProtection: protection,
+            hasProtection: false,
             promoToken: promoTokenParam || undefined,
             dashboardType: resolvedDashboardType,
             trybeVisitorId: getTrybeVisitorId(),
