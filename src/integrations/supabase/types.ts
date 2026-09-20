@@ -511,18 +511,21 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          onboarding_default_billing: string
           paywall_enabled: boolean
           updated_at: string
         }
         Insert: {
           created_at?: string
           id: string
+          onboarding_default_billing?: string
           paywall_enabled?: boolean
           updated_at?: string
         }
         Update: {
           created_at?: string
           id?: string
+          onboarding_default_billing?: string
           paywall_enabled?: boolean
           updated_at?: string
         }
