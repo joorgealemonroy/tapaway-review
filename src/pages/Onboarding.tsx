@@ -978,6 +978,7 @@ const Onboarding = () => {
               {[1, 2].map((s) => (
                 <div key={s} className={`h-1.5 rounded-full transition-all duration-300 ${s <= stepNumber ? "w-8 bg-blue-500" : "w-4 bg-white/10"}`} />
               ))}
+              </div>
             </div>
           )}
         </div>
