@@ -215,6 +215,16 @@ const Onboarding = () => {
       saveOnboardingData({ hasProtection: false, campaign: { ...savedData.campaign, ...getCampaignParams() } });
       if (savedData.dashboardType) setDashboardType(savedData.dashboardType as 'personal' | 'restaurant');
       if (savedData.phone) setOwnerPhone(savedData.phone);
+      if (savedData.websiteUrl) setWebsiteUrl(savedData.websiteUrl);
+      if (savedData.notOnGoogle) setNotOnGoogle(true);
+      if (savedData.logoUrl) setLogoUrl(savedData.logoUrl);
+      if (savedData.googlePlaceId && savedData.googlePlaceName) {
+        setSelectedGooglePlace({
+          placeId: savedData.googlePlaceId,
+          name: savedData.googlePlaceName,
+          address: savedData.googlePlaceAddress || '',
+        });
+      }
 
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
@@ -382,11 +392,39 @@ const Onboarding = () => {
   // ── Navigation helpers ──
   const goTo = (s: Step, dir: number) => { setDirection(dir); setStep(s); };
 
+  // Autosave typed business info (debounced) so navigating back never loses it.
+  useEffect(() => {
+    if (!initialCheckDone) return;
+    const t = setTimeout(() => {
+      saveOnboardingData({ businessName, websiteUrl, phone: ownerPhone });
+    }, 400);
+    return () => clearTimeout(t);
+  }, [businessName, websiteUrl, ownerPhone, initialCheckDone]);
+
   // ── Google place handler ──
   const handleGooglePlaceSelected = useCallback(({ placeId, name, address }: { placeId: string; name: string; address: string }) => {
     const normalized = normalizeGooglePlaceId(placeId) || placeId.replace(/^places\//, "");
     setSelectedGooglePlace({ placeId: normalized, name, address });
     setBusinessName(name);
+    // Persist immediately so going back to the plan step never loses the pick.
+    saveOnboardingData({
+      businessName: name,
+      googlePlaceId: normalized,
+      googlePlaceName: name,
+      googlePlaceAddress: address,
+      notOnGoogle: false,
+    });
+  }, []);
+
+  // Switch between Google search and manual entry, persisting the choice.
+  const setNotOnGooglePersisted = useCallback((value: boolean) => {
+    setNotOnGoogle(value);
+    if (value) {
+      setSelectedGooglePlace(null);
+      saveOnboardingData({ notOnGoogle: true, googlePlaceId: '', googlePlaceName: '', googlePlaceAddress: '' });
+    } else {
+      saveOnboardingData({ notOnGoogle: false });
+    }
   }, []);
 
   // ── Logo upload handler ──
@@ -928,10 +966,19 @@ const Onboarding = () => {
         <div className="max-w-3xl mx-auto px-5 py-4 flex items-center justify-between">
           <a href="/" className="font-black text-2xl">TapAway</a>
           {step === "plan" ? <a href="/support" className="text-sm text-hero-foreground/65 transition-colors hover:text-hero-foreground">Need help?</a> : (
-            <div className="flex gap-1.5">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => goTo("plan", -1)}
+                className="inline-flex items-center gap-1 text-xs font-medium text-hero-foreground/80 hover:text-hero-foreground px-3 py-1.5 rounded-full bg-white/10 border border-white/15 active:scale-95 transition-all"
+              >
+                ← Back
+              </button>
+              <div className="flex gap-1.5">
               {[1, 2].map((s) => (
                 <div key={s} className={`h-1.5 rounded-full transition-all duration-300 ${s <= stepNumber ? "w-8 bg-blue-500" : "w-4 bg-white/10"}`} />
               ))}
+              </div>
             </div>
           )}
         </div>
@@ -1064,7 +1111,7 @@ const Onboarding = () => {
                     )}
                     <button
                       type="button"
-                      onClick={() => { setNotOnGoogle(true); setSelectedGooglePlace(null); }}
+                      onClick={() => setNotOnGooglePersisted(true)}
                       className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-300 hover:text-white mt-2 px-4 py-2 rounded-full bg-blue-500/15 hover:bg-blue-500/25 border border-blue-500/30 active:scale-95 transition-all"
                     >
                       Not on Google yet? Click Here
@@ -1093,7 +1140,7 @@ const Onboarding = () => {
                     </div>
                     <button
                       type="button"
-                      onClick={() => setNotOnGoogle(false)}
+                      onClick={() => setNotOnGooglePersisted(false)}
                       className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
                     >
                       ← Search Google instead
