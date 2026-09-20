@@ -77,8 +77,13 @@ serve(async (req) => {
     // Validate the plan FIRST: validPlanType and config are referenced by the
     // subscription data and success URL built below. (Declaring them after
     // use would throw at runtime. Const bindings in the temporal dead zone.)
-    const rawPlanType = typeof planType === 'string' ? planType : 'venue';
-    const validPlanType = rawPlanType === 'solo' || rawPlanType === 'venue' ? rawPlanType : 'venue';
+    const rawPlanType = typeof planType === 'string' ? planType : '';
+    if (rawPlanType !== 'solo' && rawPlanType !== 'venue') {
+      return new Response(JSON.stringify({ error: 'Invalid plan selection.' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400,
+      });
+    }
+    const validPlanType = rawPlanType;
     const config = PLAN_CONFIG[validPlanType];
     if (!config) {
       return new Response(JSON.stringify({ error: `Unknown plan type: ${rawPlanType}` }), {
@@ -93,7 +98,12 @@ serve(async (req) => {
     // Yearly behavior: the 14-day free trial still applies (standard SaaS);
     // the trial's first charge is the FULL yearly amount ($199 / $390). The
     // $1 card verification still runs on trial signups regardless of period.
-    const rawBillingInterval = typeof billingInterval === 'string' ? billingInterval : 'month';
+    const rawBillingInterval = typeof billingInterval === 'string' ? billingInterval : '';
+    if (rawBillingInterval !== 'month' && rawBillingInterval !== 'year') {
+      return new Response(JSON.stringify({ error: 'Invalid billing selection.' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400,
+      });
+    }
     const isYearly = rawBillingInterval === 'year';
 
     // Van mode: noTrial skips the free trial and charges immediately.

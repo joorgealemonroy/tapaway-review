@@ -131,7 +131,7 @@ function campaign() {
   const savedRaw = safeGet(window.sessionStorage, "tapaway_campaign");
   let saved: Record<string, string> = {};
   try { saved = savedRaw ? JSON.parse(savedRaw) : {}; } catch { saved = {}; }
-  const current = Object.fromEntries(["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "src", "via"].flatMap((key) => {
+  const current = Object.fromEntries(["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "fbclid", "src", "via"].flatMap((key) => {
     const value = p.get(key);
     return value ? [[key, value.slice(0, 250)]] : [];
   }));

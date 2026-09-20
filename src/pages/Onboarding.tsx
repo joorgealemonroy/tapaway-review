@@ -5,7 +5,7 @@ import { lovable } from "@/integrations/lovable";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Check, Loader2, Shield, ArrowRight, User, Building2, CloudUpload, X, Mail, Phone, CreditCard, Clock3 } from "lucide-react";
+import { Check, Loader2, ArrowRight, User, Building2, CloudUpload, X, Mail, Phone, CreditCard, Clock3 } from "lucide-react";
 // MagicLoadingOverlay removed. Concierge model: no auto-builder
 import { motion, AnimatePresence } from "framer-motion";
 import { Helmet } from "react-helmet-async";
@@ -29,7 +29,7 @@ import { Button } from "@/components/ui/button";
 
 type Plan = "solo" | "venue";
 type BillingInterval = "month" | "year";
-type Step = "plan" | "protection" | "info";
+type Step = "plan" | "info";
 
 const PLAN_DETAILS = {
   solo: { label: "TapAway Solo", subtitle: "For Service Pros & Individuals.", price: 20, yearlyPrice: 199, yearlyPerMonth: "16.58", yearlyBadge: "Save $41/yr", cards: 4, icon: User, refill: "3-card", badge: null, trialDays: 14, totalTrialDays: 14 },
@@ -116,7 +116,6 @@ const Onboarding = () => {
   // Billing period: yearly is preselected and visually pushed as the best
   // value (Solo $199/yr = save $41; Venue $390/yr = 2 months free).
   const [billingInterval, setBillingInterval] = useState<BillingInterval>("year");
-  const [hasProtection, setHasProtection] = useState(false);
   const [catalog, setCatalog] = useState<CatalogItem[]>([]);
   const [catalogLoading, setCatalogLoading] = useState(true);
   const [dashboardType, setDashboardType] = useState<"restaurant" | "personal" | null>(null);
@@ -213,7 +212,6 @@ const Onboarding = () => {
         const settings = await getAppSettings(supabase);
         setBillingInterval(settings.onboardingDefaultBilling);
       }
-      setHasProtection(false);
       saveOnboardingData({ hasProtection: false, campaign: { ...savedData.campaign, ...getCampaignParams() } });
       if (savedData.dashboardType) setDashboardType(savedData.dashboardType as 'personal' | 'restaurant');
       if (savedData.phone) setOwnerPhone(savedData.phone);
@@ -283,6 +281,7 @@ const Onboarding = () => {
             await claimPendingCard();
             clearOnboardingData();
             navigate("/onboarding-success");
+            if (!cancelled) setCatalogLoading(false);
             return;
           } catch (err: any) {
             console.error("[onboarding] Checkout verification failed:", err);
@@ -339,7 +338,6 @@ const Onboarding = () => {
   const selectPlan = (plan: Plan) => {
     setSelectedPlan(plan);
     setDashboardType(plan === "solo" ? "personal" : null);
-    setHasProtection(false);
     saveOnboardingData({ planType: plan, billingInterval, billingSelectionExplicit: true, hasProtection: false, dashboardType: plan === "solo" ? "personal" : undefined });
   };
 
@@ -568,7 +566,7 @@ const Onboarding = () => {
         logoUrl: logoUrl || '',
         planType: selectedPlan || 'venue',
         billingInterval,
-        hasProtection,
+        hasProtection: false,
         googlePlaceId: selectedGooglePlace?.placeId || '',
         googlePlaceName: selectedGooglePlace?.name || '',
         googlePlaceAddress: selectedGooglePlace?.address || '',
