@@ -965,7 +965,15 @@ const Onboarding = () => {
       <nav className="sticky top-0 z-50 border-b border-hero-foreground/10 bg-hero/95 backdrop-blur-lg">
         <div className="max-w-3xl mx-auto px-5 py-4 flex items-center justify-between">
           <a href="/" className="font-black text-2xl">TapAway</a>
-          {step === "plan" ? <a href="/support" className="text-sm text-hero-foreground/65 transition-colors hover:text-hero-foreground">Need help?</a> : (
+          {step === "plan" ? (
+            <button
+              type="button"
+              onClick={() => navigate("/")}
+              className="inline-flex items-center gap-1 text-xs font-medium text-hero-foreground/80 hover:text-hero-foreground px-3 py-1.5 rounded-full bg-white/10 border border-white/15 active:scale-95 transition-all"
+            >
+              ← Back
+            </button>
+          ) : (
             <div className="flex items-center gap-3">
               <button
                 type="button"
