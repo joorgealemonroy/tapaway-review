@@ -281,7 +281,6 @@ const Onboarding = () => {
             await claimPendingCard();
             clearOnboardingData();
             navigate("/onboarding-success");
-            if (!cancelled) setCatalogLoading(false);
             return;
           } catch (err: any) {
             console.error("[onboarding] Checkout verification failed:", err);
@@ -307,6 +306,7 @@ const Onboarding = () => {
           const parsed = JSON.parse(cached) as { expiresAt: number; catalog: CatalogItem[] };
           if (parsed.expiresAt > Date.now() && Array.isArray(parsed.catalog)) {
             if (!cancelled) setCatalog(parsed.catalog);
+            if (!cancelled) setCatalogLoading(false);
             return;
           }
         }
@@ -1019,69 +1019,7 @@ const Onboarding = () => {
             </motion.div>
           )}
 
-          {/* ════════ STEP 2: Loss Protection ════════ */}
-          {step === "protection" && selectedPlan && (
-            <motion.div key="protection" custom={direction} variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.3 }} className="space-y-6">
-              <div className="text-center">
-                <h1 className="text-2xl font-black mb-2">Customers love these cards.<br />Sometimes too much.</h1>
-                <p className="text-gray-400 text-sm leading-relaxed">
-                  {selectedPlan === "solo"
-                    ? "Don't let missing cards stall your growth. Includes priority replacements, easy to claim anytime in your dashboard."
-                    : "In busy venues, cards tend to walk home with guests. Don't stop growing because a card went missing."}
-                </p>
-              </div>
-
-              {/* Protection card */}
-              <div className="relative rounded-2xl overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-transparent to-purple-600/10 pointer-events-none" />
-                <div className="border border-white/10 rounded-2xl p-6 bg-[#111827] space-y-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center">
-                      <Shield className="w-6 h-6 text-blue-400" />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-lg">Loss Protection</h3>
-                      <p className="text-blue-400 font-black text-xl">$5<span className="text-sm font-normal text-gray-500">/mo</span> <span className="text-emerald-400 text-sm font-semibold">($0 Today)</span></p>
-                    </div>
-                  </div>
-                  <ul className="space-y-2 text-sm text-gray-300">
-                    <li className="flex items-center gap-2"><Check className="w-4 h-4 text-blue-400 shrink-0" /> <span><span className="font-bold text-white">Monthly</span> {PLAN_DETAILS[selectedPlan].refill} refills available when you need them.</span></li>
-                    <li className="flex items-center gap-2"><Check className="w-4 h-4 text-blue-400 shrink-0" /> No questions asked replacements</li>
-                    <li className="flex items-center gap-2"><Check className="w-4 h-4 text-blue-400 shrink-0" /> Cancel anytime</li>
-                  </ul>
-                </div>
-              </div>
-
-              <button
-                onClick={() => { setHasProtection(true); goTo("info", 1); }}
-                className="w-full h-14 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-lg transition-colors flex items-center justify-center gap-2"
-              >
-                Add Protection. $0 Today
-              </button>
-
-              <div className="space-y-2">
-                <button
-                  onClick={() => { setHasProtection(false); goTo("info", 1); }}
-                  className="w-full text-center text-sm text-gray-400 hover:text-gray-300 transition-colors underline"
-                >
-                  No thanks, I'll pay $10 + shipping per replacement
-                </button>
-
-                <p className="text-center text-xs text-gray-400">
-                  Standard billing starts after your trial ends. Cancel anytime.
-                </p>
-
-                <button
-                  onClick={() => goTo("plan", -1)}
-                  className="w-full text-center text-xs text-gray-500 hover:text-gray-400 transition-colors"
-                >
-                  ← Back
-                </button>
-              </div>
-            </motion.div>
-          )}
-
-          {/* ════════ STEP 3: Business Info + Auth ════════ */}
+          {/* ════════ STEP 2: Business Info + Auth ════════ */}
           {step === "info" && (
             <motion.div key="info" custom={direction} variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.3 }} className="space-y-8">
               <div className="text-center">
