@@ -1067,7 +1067,7 @@ const Onboarding = () => {
                       onClick={() => { setNotOnGoogle(true); setSelectedGooglePlace(null); }}
                       className="text-xs text-blue-400 hover:text-blue-300 mt-2 transition-colors"
                     >
-                      Not on Google yet?
+                      Not on Google yet? Click Here
                     </button>
                   </>
                 ) : (
