@@ -827,6 +827,7 @@ const Onboarding = () => {
             promoToken: promoTokenParam || undefined,
             dashboardType: resolvedDashboardType,
             trybeVisitorId: getTrybeVisitorId(),
+            campaign: savedData.campaign || {},
           },
         });
         if (error) throw error;

@@ -58,7 +58,7 @@ serve(async (req) => {
     const stripe = new Stripe(stripeSecretKey, { apiVersion: '2023-10-16' });
 
     const body = await req.json();
-    const { email, userId, restaurantId, planType, billingInterval, hasProtection: hasProtectionFlag, promoToken, dashboardType, claimRestaurantId, noTrial, personalProfileId, successPath, trybeVisitorId } = body;
+    const { email, userId, restaurantId, planType, billingInterval, hasProtection: hasProtectionFlag, promoToken, dashboardType, claimRestaurantId, noTrial, personalProfileId, successPath, trybeVisitorId, campaign } = body;
 
     // Trybe creator-attribution visitor id (optional; only present once the
     // consent-gated pixel has loaded). Stored on the subscription so every
@@ -67,6 +67,12 @@ serve(async (req) => {
       typeof trybeVisitorId === 'string' && trybeVisitorId.length > 0 && trybeVisitorId.length <= 128
         ? trybeVisitorId
         : '';
+    const campaignMetadata = campaign && typeof campaign === 'object' && !Array.isArray(campaign)
+      ? Object.fromEntries(['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'fbclid', 'src', 'via'].flatMap((key) => {
+          const value = (campaign as Record<string, unknown>)[key];
+          return typeof value === 'string' && value.length > 0 ? [[key, value.slice(0, 250)]] : [];
+        }))
+      : {};
 
     // Validate the plan FIRST: validPlanType and config are referenced by the
     // subscription data and success URL built below. (Declaring them after
@@ -250,6 +256,7 @@ serve(async (req) => {
         dashboard_type: dashboardType || 'restaurant',
         claim_restaurant_id: claimRestaurantId || '',
         trybe_visitor_id: trybeVid,
+        ...campaignMetadata,
       },
     };
 

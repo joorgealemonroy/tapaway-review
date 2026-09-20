@@ -731,11 +731,14 @@ if (event.type === 'checkout.session.completed') {
         // trial is a new-customer conversion; later positive invoices renewals.
         // The Stripe invoice id is the immutable dedupe key.
         try {
-          const conversionKind = invoice.billing_reason === 'subscription_cycle'
-            && invoice.lines?.data?.some((line: any) => line.period?.start === invoice.period_start)
-            && invoice.subscription_details?.metadata?.first_paid_invoice !== invoice.id
-            ? (invoice.subscription_details?.metadata?.first_paid_invoice ? 'subscription_renewal' : 'paid_conversion')
-            : (invoice.billing_reason === 'subscription_create' ? 'paid_conversion' : 'subscription_renewal');
+          const { data: priorConversion } = await supabaseAdmin
+            .from('analytics_hits')
+            .select('id')
+            .eq('event_name', 'paid_conversion')
+            .eq('props->>subscription_id', invoiceSubId)
+            .limit(1)
+            .maybeSingle();
+          const conversionKind = priorConversion ? 'subscription_renewal' : 'paid_conversion';
           await supabaseAdmin.from('analytics_hits').insert({
             event_id: `stripe_${invoice.id}`,
             event_name: conversionKind,
