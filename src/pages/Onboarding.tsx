@@ -978,8 +978,10 @@ const Onboarding = () => {
                     const selected = selectedPlan === plan;
                     const item = catalogItem(plan, billingInterval);
                     const unavailable = !catalogLoading && item?.available !== true;
-                    const monthlyCatalogPrice = catalogItem(plan, "month")?.amount ? catalogItem(plan, "month")!.amount / 100 : d.price;
-                    const yearlyCatalogPrice = catalogItem(plan, "year")?.amount ? catalogItem(plan, "year")!.amount / 100 : d.yearlyPrice;
+                    const monthlyItem = catalogItem(plan, "month");
+                    const yearlyItem = catalogItem(plan, "year");
+                    const monthlyCatalogPrice = monthlyItem?.amount ? monthlyItem.amount / 100 : d.price;
+                    const yearlyCatalogPrice = yearlyItem?.amount ? yearlyItem.amount / 100 : d.yearlyPrice;
                     const monthlyEquivalent = yearlyCatalogPrice / 12;
                     const savings = monthlyCatalogPrice * 12 - yearlyCatalogPrice;
                     return (
