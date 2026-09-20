@@ -1041,8 +1041,8 @@ const Onboarding = () => {
                     const savings = monthlyCatalogPrice * 12 - yearlyCatalogPrice;
                     return (
                       <Button key={plan} type="button" variant="outline" disabled={unavailable} onClick={() => selectPlan(plan)} aria-pressed={selected} className={`h-auto min-h-[220px] items-stretch justify-start whitespace-normal border-2 bg-secondary p-5 text-left text-secondary-foreground hover:bg-secondary/90 ${selected ? "border-primary ring-2 ring-primary/20" : "border-hero-foreground/15"}`}>
-                        <span className="flex w-full flex-col justify-between gap-5">
-                          <span className="flex items-start gap-4">
+                        <span className="flex w-full flex-col justify-between gap-3">
+                          <span className="flex items-center gap-4">
                             <span className="relative flex h-28 w-[4.4rem] shrink-0 items-center justify-center overflow-hidden rounded-md bg-hero shadow-lg">
                               <img src="/tapaway-card-front-v2.svg" alt="TapAway custom NFC card" className="h-full w-full object-cover" />
                             </span>
@@ -1051,7 +1051,8 @@ const Onboarding = () => {
                                 <span className="text-3xl font-black leading-none text-hero-foreground">{d.cards} cards</span>
                                 <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 ${selected ? "border-primary bg-primary text-primary-foreground" : "border-hero-foreground/35"}`}>{selected && <Check className="h-4 w-4" />}</span>
                               </span>
-                              <span className="mt-2 block text-sm text-hero-foreground/70">Custom printed with your logo.</span>
+                              <span className="mt-2 block text-[14px] leading-snug text-hero-foreground">Your logo. Your business links.</span>
+                              <span className="block text-[14px] leading-snug text-hero-foreground/55">Ready to tap or scan.</span>
                             </span>
                           </span>
                           <span className="block h-px bg-hero-foreground/15" />
