@@ -968,7 +968,7 @@ const Onboarding = () => {
                   </div>
                 </div>
 
-                {billingInterval === "year" && !catalogLoading && catalog.some((item) => item.interval === "year" && !item.available) && (
+                {billingInterval === "year" && !catalogLoading && catalog.filter((item) => item.interval === "year" && item.available).length < 2 && (
                   <div className="mb-3 rounded-md border border-[hsl(var(--onboarding-border))] bg-card px-4 py-3 text-sm">
                     Yearly is temporarily unavailable. <button type="button" className="font-bold underline" onClick={() => selectBillingInterval("month")}>Choose monthly</button>
                   </div>
@@ -979,7 +979,7 @@ const Onboarding = () => {
                     const d = PLAN_DETAILS[plan];
                     const selected = selectedPlan === plan;
                     const item = catalogItem(plan, billingInterval);
-                    const unavailable = !catalogLoading && item?.available === false;
+                    const unavailable = !catalogLoading && item?.available !== true;
                     const monthlyEquivalent = d.yearlyPrice / 12;
                     const savings = d.price * 12 - d.yearlyPrice;
                     return (
