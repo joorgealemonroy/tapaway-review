@@ -140,6 +140,7 @@ const Onboarding = () => {
   // Email signup
   const [showEmailInput, setShowEmailInput] = useState(false);
   const [emailSignupAddress, setEmailSignupAddress] = useState("");
+  const [emailSignupPassword, setEmailSignupPassword] = useState("");
   const [emailSubmitting, setEmailSubmitting] = useState(false);
 
   // Auth / restaurant IDs
@@ -587,6 +588,10 @@ const Onboarding = () => {
       toast.error("Please enter a valid email address");
       return;
     }
+    if (emailSignupPassword.length < 8) {
+      toast.error("Please create a password with at least 8 characters");
+      return;
+    }
     if (!selectedGooglePlace && !businessName.trim()) {
       toast.error("Please search and select your business");
       return;
@@ -612,24 +617,19 @@ const Onboarding = () => {
         dashboardType: dashboardType || (selectedPlan === 'solo' ? 'personal' : 'restaurant'),
       });
 
-      // Create user via edge function (auto-confirmed, bypasses email verification)
+      // Create user via edge function (unconfirmed — Supabase sends a
+      // verification email; the user logs in after verifying)
       const { data, error } = await supabase.functions.invoke("create-email-signup", {
-        body: { email, businessName: businessName.trim() },
+        body: { email, businessName: businessName.trim(), password: emailSignupPassword },
       });
 
       if (error) throw new Error(error.message || "Signup failed");
       if (data?.error) throw new Error(data.error);
 
-      // Sign in with the temp credentials to get a session
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password: data.tempPassword,
-      });
-
-      if (signInError) throw signInError;
-
-      // Session is now set. The completeSetup useEffect will fire automatically
-      console.log("[onboarding] Email signup successful, session set");
+      // No session yet: verification email is on its way. Saved onboarding
+      // data resumes setup after the user verifies and logs in.
+      toast.success("Account created. Check your email to verify it, then log in to continue.");
+      navigate("/auth?redirect=/onboarding");
     } catch (err: any) {
       console.error("[onboarding] Email signup failed:", err);
       toast.error(err.message || "Failed to create account");
@@ -799,17 +799,16 @@ const Onboarding = () => {
       // (Removed: auto-yelp-from-place + magic-onboarding edge function calls.)
 
       // ── FREE PROMO: skip Stripe entirely ──
+      // The server validates the token, marks it used, and grants 'active'
+      // (validate-promo-token, service role). The client never writes billing
+      // columns directly — the restaurants billing guard trigger forbids it.
       if (promoDiscountType === 'free' && promoTokenParam) {
         try {
-          await supabase.from("restaurants").update({
-            subscription_status: "active",
-            onboarding_completed: true,
-            onboarding_step: 4,
-          }).eq("id", rId);
-
-          await supabase.functions.invoke("validate-promo-token", {
-            body: { token: promoTokenParam, markUsed: true },
+          const { data: promoData, error: promoError } = await supabase.functions.invoke("validate-promo-token", {
+            body: { token: promoTokenParam, markUsed: true, restaurantId: rId },
           });
+          if (promoError) throw new Error(promoError.message || "Promo redemption failed");
+          if (!promoData?.valid) throw new Error(promoData?.error || "Promo token invalid or already used");
 
           try { await supabase.functions.invoke("finalize-onboarding", { body: { restaurantId: rId } }); } catch {}
 
@@ -1332,9 +1331,17 @@ const Onboarding = () => {
                         onKeyDown={(e) => { if (e.key === "Enter") handleEmailSignup(); }}
                         autoFocus
                       />
+                      <Input
+                        type="password"
+                        value={emailSignupPassword}
+                        onChange={(e) => setEmailSignupPassword(e.target.value)}
+                        placeholder="Create a password (8+ characters)"
+                        className="h-12 bg-[#111827] border-white/10 text-white placeholder:text-gray-600 rounded-xl focus:border-blue-500 focus:ring-blue-500/20"
+                        onKeyDown={(e) => { if (e.key === "Enter") handleEmailSignup(); }}
+                      />
                       <button
                         onClick={handleEmailSignup}
-                        disabled={emailSubmitting || !emailSignupAddress.trim()}
+                        disabled={emailSubmitting || !emailSignupAddress.trim() || emailSignupPassword.length < 8}
                         className="w-full h-14 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-base transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                       >
                         {emailSubmitting ? (

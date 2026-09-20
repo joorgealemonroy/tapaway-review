@@ -1,4 +1,5 @@
 import { checkRateLimit, getRateLimitKey, rateLimitResponse } from "../_shared/rateLimit.ts";
+import { requireUser } from "../_shared/security.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -220,8 +221,14 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Public scraper: throttle to 20/min per IP to prevent abuse as a general fetch proxy.
-  if (!checkRateLimit(getRateLimitKey(req, "scrape-link-bio"), 20, 60 * 1000)) {
+  // M-7: Firecrawl/Microlink credits cost money. Authenticated callers get
+  // 20/min per IP; unauthenticated callers are allowed at a strict 5/min per
+  // IP because link-bio import runs pre-auth in personal signup
+  // (MagicLinkStep.tsx). The tight public throttle bounds abuse cost without
+  // breaking the funnel. URL allowlist + validation still apply to everyone.
+  const caller = await requireUser(req);
+  const perMinuteLimit = caller ? 20 : 5;
+  if (!checkRateLimit(getRateLimitKey(req, "scrape-link-bio"), perMinuteLimit, 60 * 1000)) {
     return rateLimitResponse(corsHeaders);
   }
 

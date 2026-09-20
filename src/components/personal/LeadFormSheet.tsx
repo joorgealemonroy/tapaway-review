@@ -39,6 +39,9 @@ const LeadFormSheet = ({ profileId, accentColor }: Props) => {
   const [smsTransactionalConsent, setSmsTransactionalConsent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  // Honeypot: bots fill hidden fields; humans never see it. Checked by
+  // notify-new-lead, which silently deletes the spam row.
+  const [website, setWebsite] = useState("");
 
   useEffect(() => {
     const loadForm = async () => {
@@ -89,9 +92,10 @@ const LeadFormSheet = ({ profileId, accentColor }: Props) => {
       if (error) throw error;
 
       // Fire-and-forget notification. Server re-reads the row and derives all content.
+      // Honeypot travels along so the function can silently drop bot submissions.
       if (inserted?.id) {
         supabase.functions
-          .invoke("notify-new-lead", { body: { submissionId: inserted.id } })
+          .invoke("notify-new-lead", { body: { submissionId: inserted.id, website } })
           .catch(() => {});
       }
 
@@ -101,13 +105,14 @@ const LeadFormSheet = ({ profileId, accentColor }: Props) => {
         setSubmitted(false);
         setFormData({});
         setSmsConsent(false);
+        setWebsite("");
       }, 2000);
     } catch (err) {
       console.error("Submission error:", err);
     } finally {
       setSubmitting(false);
     }
-  }, [form, formData, profileId, hasPhoneField, smsConsent]);
+  }, [form, formData, profileId, hasPhoneField, smsConsent, website]);
 
   if (!form) return null;
 
@@ -239,6 +244,17 @@ const LeadFormSheet = ({ profileId, accentColor }: Props) => {
                 />
               )}
 
+              {/* Honeypot: invisible to humans. Bots that fill it get silently dropped. */}
+              <input
+                type="text"
+                name="website"
+                value={website}
+                onChange={(e) => setWebsite(e.target.value)}
+                autoComplete="off"
+                tabIndex={-1}
+                aria-hidden="true"
+                className="absolute h-0 w-0 overflow-hidden opacity-0"
+              />
               <Button
                 onClick={handleSubmit}
                 disabled={submitting || (hasPhoneField && !smsConsent)}

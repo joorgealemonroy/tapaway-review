@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.81.1";
 import { checkRateLimit, getRateLimitKey, rateLimitResponse } from "../_shared/rateLimit.ts";
+import { requireUser, isAdmin } from "../_shared/security.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -43,6 +44,18 @@ serve(async (req) => {
   }
 
   try {
+    // M-8: authenticate. Only the affiliate themselves, the referred user, or
+    // an admin may run an abuse check for a given affiliate/referral pair.
+    // Previously anyone could probe arbitrary affiliate IDs (recon on
+    // signup velocity / duplicate IPs) and plant flags on others' referrals.
+    const caller = await requireUser(req);
+    if (!caller) {
+      return new Response(
+        JSON.stringify({ error: "Authentication required" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -53,6 +66,38 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ error: "referralId and affiliateId required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // The referral must belong to the claimed affiliate, and the caller must
+    // be the affiliate owner, the referred user, or an admin.
+    const { data: referral } = await supabase
+      .from("affiliate_referrals")
+      .select("id, affiliate_id, referred_user_id")
+      .eq("id", referralId)
+      .maybeSingle();
+
+    if (!referral || referral.affiliate_id !== affiliateId) {
+      return new Response(
+        JSON.stringify({ error: "Referral not found" }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const { data: affiliate } = await supabase
+      .from("affiliates")
+      .select("id, user_id")
+      .eq("id", affiliateId)
+      .maybeSingle();
+
+    const callerIsAdmin = await isAdmin(caller.user.id);
+    const callerIsAffiliate = !!affiliate && affiliate.user_id === caller.user.id;
+    const callerIsReferred = referral.referred_user_id === caller.user.id;
+
+    if (!callerIsAdmin && !callerIsAffiliate && !callerIsReferred) {
+      return new Response(
+        JSON.stringify({ error: "Forbidden" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 

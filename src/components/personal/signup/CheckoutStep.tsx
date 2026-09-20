@@ -582,23 +582,8 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
         await logAffiliateReferral(signInData.user.id, profileResult.id, formData.planType);
       }
 
-      // Step 8: Send welcome email with correct public username
-      logCheckpoint("Sending welcome email");
-      try {
-        await supabase.functions.invoke("send-personal-welcome-emails", {
-          body: {
-            fullName: formData.fullName,
-            username: finalUsername, // Use the public username
-            email: formData.email,
-            profilePhotoUrl: profilePhotoUrl,
-            profileId: profileResult.id,
-          }
-        });
-        logCheckpoint("Welcome email sent");
-      } catch (emailErr) {
-        console.warn("Welcome email failed:", emailErr);
-        // Non-fatal, continue
-      }
+      // Welcome emails are sent server-side only now (send-personal-welcome-emails
+      // requires a service-role bearer); the client must not invoke it directly.
 
       // Claim NFC card if this signup originated from card activation
       if (cardCode) {
@@ -778,20 +763,8 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
         await supabase.from("personal_blocks").insert(blocksToInsert);
       }
 
-      // Send welcome email
-      try {
-        await supabase.functions.invoke("send-personal-welcome-emails", {
-          body: {
-            fullName: formData.fullName,
-            username: finalUsername,
-            email: formData.email,
-            profilePhotoUrl: profilePhotoUrl,
-            profileId: profileResult.id,
-          }
-        });
-      } catch (emailErr) {
-        console.warn("Welcome email failed:", emailErr);
-      }
+      // Welcome emails are sent server-side only now; client must not invoke
+      // send-personal-welcome-emails directly (it requires a service-role bearer).
 
       // Affiliate referral logging for free-plan signups
       if (isFreePlan) {
@@ -1107,20 +1080,8 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
         await logAffiliateReferral(signInData.user.id, profileResult.id, formData.planType);
       }
 
-      // Send welcome email
-      try {
-        await supabase.functions.invoke("send-personal-welcome-emails", {
-          body: {
-            fullName: formData.fullName,
-            username: finalUsername,
-            email: formData.email,
-            profilePhotoUrl: profilePhotoUrl,
-            profileId: profileResult.id,
-          }
-        });
-      } catch (emailErr) {
-        console.warn("Welcome email failed:", emailErr);
-      }
+      // Welcome emails are sent server-side only now; client must not invoke
+      // send-personal-welcome-emails directly (it requires a service-role bearer).
 
       toast.success("Personal profile created! Welcome to TapAway!");
       localStorage.removeItem("tapaway_personal_draft");

@@ -1,4 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { requireUser } from "../_shared/security.ts";
+import { checkRateLimit, getRateLimitKey, rateLimitResponse } from "../_shared/rateLimit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -173,6 +175,16 @@ function mergeSections(groups: MenuSection[][]): MenuSection[] {
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // M-7: Lovable AI vision calls cost money. Authenticated callers only,
+  // throttled per IP so one account can't burn the budget.
+  const caller = await requireUser(req);
+  if (!caller) {
+    return json({ success: false, step: "auth", error: "Authentication required." }, 401);
+  }
+  if (!checkRateLimit(getRateLimitKey(req, "parse-menu-image"), 10, 60 * 1000)) {
+    return rateLimitResponse(corsHeaders);
   }
 
   try {

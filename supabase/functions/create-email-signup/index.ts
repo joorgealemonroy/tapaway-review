@@ -7,6 +7,8 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+const SITE_URL = "https://tapaway.co";
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -19,7 +21,7 @@ Deno.serve(async (req) => {
       return rateLimitResponse(corsHeaders);
     }
 
-    const { email, businessName } = await req.json();
+    const { email, businessName, password } = await req.json();
 
     if (!email || typeof email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return new Response(
@@ -35,57 +37,55 @@ Deno.serve(async (req) => {
       );
     }
 
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
-
-    // Check if user already exists
-    const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
-    const existingUser = existingUsers?.users?.find(
-      (u) => u.email?.toLowerCase() === email.toLowerCase()
-    );
-
-    if (existingUser) {
-      // NEVER reset or return passwords from this public endpoint (previous
-      // "@tapaway.co / +test" backdoor removed. Was an account-takeover vector).
+    if (!password || typeof password !== "string" || password.length < 8) {
       return new Response(
-        JSON.stringify({ error: "An account with this email already exists. Please log in." }),
+        JSON.stringify({ error: "Password must be at least 8 characters" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Create user with auto-confirmed email and random temp password
-    const tempPassword = crypto.randomUUID();
-    const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+    // C-1: use the public signUp flow (anon key), NOT auth.admin.createUser.
+    // admin.createUser does not reliably send the verification email, which
+    // left users created-but-unconfirmed with no way to verify. signUp makes
+    // Supabase Auth send the confirmation email and starts the user
+    // unconfirmed, exactly matching the client's "check your email" UX.
+    //
+    // No enumeration: we deliberately do NOT pre-check listUsers (it was also
+    // paginated and broken past 50 users). signUp's response for an already
+    // registered address is opaque; we map only the explicit error.
+    // (Requires https://tapaway.co/auth* in the Auth redirect allowlist.)
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!
+    );
+
+    const { error: signUpError } = await supabase.auth.signUp({
       email: email.trim().toLowerCase(),
-      email_confirm: true,
-      password: tempPassword,
-      user_metadata: { full_name: businessName.trim() },
+      password,
+      options: {
+        data: { full_name: businessName.trim() },
+        emailRedirectTo: `${SITE_URL}/auth?redirect=/onboarding`,
+      },
     });
 
-    if (createError) {
-      console.error("[create-email-signup] Create user error:", createError);
+    if (signUpError) {
+      console.error("[create-email-signup] signUp error:", signUpError.message);
+      const alreadyRegistered = /already registered|already exists/i.test(signUpError.message);
       return new Response(
-        JSON.stringify({ error: createError.message }),
+        JSON.stringify({
+          error: alreadyRegistered
+            ? "An account with this email already exists. Please log in."
+            : "Could not create your account. Please try again.",
+        }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    if (!newUser?.user) {
-      return new Response(
-        JSON.stringify({ error: "Failed to create account" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    console.log("[create-email-signup] User created:", newUser.user.id);
-
+    // Never return passwords or sessions from this endpoint. The account is
+    // unconfirmed until the user clicks the verification email; the client
+    // sends them to /auth?redirect=/onboarding.
     return new Response(
-      JSON.stringify({
-        userId: newUser.user.id,
-        tempPassword,
-      }),
+      JSON.stringify({ ok: true }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {

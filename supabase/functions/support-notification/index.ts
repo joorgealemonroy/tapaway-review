@@ -44,6 +44,16 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const data: SupportNotificationRequest = await req.json();
 
+    // M-10 honeypot: bots fill the hidden "website" field. Silently pretend
+    // success so the bot learns nothing (no email is sent).
+    if (typeof (data as Record<string, unknown>).website === "string" &&
+        ((data as Record<string, unknown>).website as string).trim().length > 0) {
+      return new Response(
+        JSON.stringify({ success: true }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Server-side length validation
     const tooLong = validateFieldLengths({
       name: data.name,

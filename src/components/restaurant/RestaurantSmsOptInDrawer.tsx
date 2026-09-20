@@ -49,6 +49,8 @@ export const RestaurantSmsOptInDrawer = ({
   const [marketingConsent, setMarketingConsent] = useState(false);
   const [transactionalConsent, setTransactionalConsent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  // Honeypot for sms-opt-in: bots fill hidden fields; humans never see it.
+  const [website, setWebsite] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,39 +66,28 @@ export const RestaurantSmsOptInDrawer = ({
 
     setSubmitting(true);
     try {
-      const optInAt = new Date().toISOString();
-      const { error } = await (supabase.from("restaurant_sms_subscribers" as any) as any).insert({
-        restaurant_id: restaurantId,
-        name: parsed.data.name,
-        phone: parsed.data.phone,
-        sms_opt_in: marketingConsent || transactionalConsent,
-        sms_opt_in_at: optInAt,
-        sms_marketing_opt_in: marketingConsent,
-        sms_marketing_opt_in_at: marketingConsent ? optInAt : null,
-        sms_transactional_opt_in: transactionalConsent,
-        sms_transactional_opt_in_at: transactionalConsent ? optInAt : null,
+      // M-9: SMS writes go through the service-role sms-opt-in function.
+      // Direct INSERT policies on restaurant_sms_subscribers /
+      // sms_signup_submissions were dropped (harvesting/spam risk).
+      const { data, error } = await supabase.functions.invoke("sms-opt-in", {
+        body: {
+          restaurantId,
+          name: parsed.data.name,
+          phone: parsed.data.phone,
+          marketingConsent,
+          transactionalConsent,
+          consentText: marketingConsent
+            ? SMS_MARKETING_CONSENT_TEXT
+            : SMS_TRANSACTIONAL_CONSENT_TEXT,
+          marketingConsentText: marketingConsent ? SMS_MARKETING_CONSENT_TEXT : null,
+          transactionalConsentText: transactionalConsent ? SMS_TRANSACTIONAL_CONSENT_TEXT : null,
+          userAgent: navigator.userAgent,
+          website, // honeypot: must stay empty
+        },
       });
 
       if (error) throw error;
-
-      // A2P 10DLC audit trail. Persist the exact consent copy per campaign.
-      await supabase.from("sms_signup_submissions" as any).insert({
-        name: parsed.data.name,
-        phone: parsed.data.phone,
-        consent_text: marketingConsent
-          ? SMS_MARKETING_CONSENT_TEXT
-          : SMS_TRANSACTIONAL_CONSENT_TEXT,
-        consent_at: optInAt,
-        marketing_consent_text: marketingConsent ? SMS_MARKETING_CONSENT_TEXT : null,
-        marketing_consent_at: marketingConsent ? optInAt : null,
-        transactional_consent_text: transactionalConsent
-          ? SMS_TRANSACTIONAL_CONSENT_TEXT
-          : null,
-        transactional_consent_at: transactionalConsent ? optInAt : null,
-        user_agent: navigator.userAgent,
-        source: `restaurant-hub:${restaurantId}`,
-      } as any);
-
+      if (!data?.ok) throw new Error(data?.error || "Opt-in failed");
 
       toast.success("You're on the list! 🎉");
       setName("");
@@ -139,6 +130,17 @@ export const RestaurantSmsOptInDrawer = ({
   const formContent = (
     <form onSubmit={handleSubmit} className="space-y-4 px-4 pb-6">
       {trustChips}
+      {/* Honeypot: invisible to humans. Bots that fill it are silently ignored. */}
+      <input
+        type="text"
+        name="website"
+        value={website}
+        onChange={(e) => setWebsite(e.target.value)}
+        autoComplete="off"
+        tabIndex={-1}
+        aria-hidden="true"
+        className="absolute h-0 w-0 overflow-hidden opacity-0"
+      />
       <div className="space-y-2">
         <Label htmlFor="r-sms-name">Full Name</Label>
         <Input

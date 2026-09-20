@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { checkRateLimit, getRateLimitKey, rateLimitResponse } from "../_shared/rateLimit.ts";
+import { requireUser } from "../_shared/security.ts";
 
 
 const corsHeaders = {
@@ -25,8 +26,15 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Google Places calls cost money. Throttle unauthenticated callers to 20/min.
-  if (!checkRateLimit(getRateLimitKey(req, "lookup-place-id"), 20, 60 * 1000)) {
+  // Google Places calls cost money. Authenticated callers get 20/min per IP;
+  // unauthenticated callers are allowed at a strict 8/min per IP because the
+  // address autocomplete is funnel-critical (used in unauthenticated
+  // onboarding: Onboarding.tsx / OnboardingNew.tsx via
+  // GooglePlacesAutocomplete). The tight public throttle bounds abuse cost
+  // without breaking signup.
+  const caller = await requireUser(req);
+  const perMinuteLimit = caller ? 20 : 8;
+  if (!checkRateLimit(getRateLimitKey(req, "lookup-place-id"), perMinuteLimit, 60 * 1000)) {
     return rateLimitResponse(corsHeaders);
   }
 

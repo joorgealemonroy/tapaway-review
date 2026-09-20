@@ -38,6 +38,8 @@ const AdminCards = () => {
   const { isAdmin, loading: adminLoading } = useAdminAccess();
   const [quantity, setQuantity] = useState(100);
   const [cardType, setCardType] = useState<"standard" | "vip">("standard");
+  // LOW: paid-order link required for VIP plan grants at claim time.
+  const [paidOrderRef, setPaidOrderRef] = useState("");
   const [generating, setGenerating] = useState(false);
   const [generatedCodes, setGeneratedCodes] = useState<string[]>([]);
   const [cards, setCards] = useState<NfcCard[]>([]);
@@ -70,6 +72,15 @@ const AdminCards = () => {
       toast.error("Quantity must be between 1 and 1000");
       return;
     }
+    // LOW: a VIP card without a recorded paid-order reference can never grant
+    // the VIP plan at claim time, so generating one without it is always a
+    // mistake. Enforce the reference up front. (There is no server-side order
+    // record for VIP cards -- they are admin-generated physical inventory,
+    // often sold in person -- so the admin-entered reference is the control.)
+    if (cardType === "vip" && !paidOrderRef.trim()) {
+      toast.error("Enter the paid order reference: VIP cards require it for the plan grant at claim time.");
+      return;
+    }
 
     setGenerating(true);
     try {
@@ -93,6 +104,8 @@ const AdminCards = () => {
           claim_code_hash: "",
           batch_id: batchId,
           card_type: cardType,
+          // VIP plan grants at claim time require this link.
+          paid_order_ref: cardType === "vip" && paidOrderRef.trim() ? paidOrderRef.trim() : null,
         }));
 
         const { error } = await supabase.from("nfc_cards").insert(batch);
@@ -197,6 +210,20 @@ const AdminCards = () => {
                 </button>
               </div>
             </div>
+            {cardType === "vip" && (
+              <div>
+                <label className="text-sm text-muted-foreground mb-1 block">
+                  Paid order reference <span className="text-amber-500">(required for VIP plan grant)</span>
+                </label>
+                <Input
+                  type="text"
+                  placeholder="e.g. Stripe pi_... or invoice #"
+                  value={paidOrderRef}
+                  onChange={(e) => setPaidOrderRef(e.target.value)}
+                  maxLength={100}
+                />
+              </div>
+            )}
             <Button onClick={handleGenerate} disabled={generating}>
               {generating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
               Generate

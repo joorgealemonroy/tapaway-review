@@ -143,11 +143,21 @@ serve(async (req) => {
     // Determine plan type from subscription
     let planType = 'trial';
     let usedTrialPrice = false;
+    // Persist the REAL Stripe subscription status, never hard-code 'active'.
+    let subscriptionStatus = 'active';
+    let trialEndsAt: string | null = null;
     if (subscriptionId) {
       try {
         const subscription = await stripe.subscriptions.retrieve(subscriptionId);
         const priceId = subscription.items.data[0]?.price.id || '';
-        
+
+        if (subscription.status === 'trialing') {
+          subscriptionStatus = 'trialing';
+          if (subscription.trial_end) {
+            trialEndsAt = new Date(subscription.trial_end * 1000).toISOString();
+          }
+        }
+
         // Check if using the trial price
         if (priceId === TRIAL_PRICE_ID) {
           usedTrialPrice = true;
@@ -158,14 +168,68 @@ serve(async (req) => {
         } else {
           planType = 'monthly';
         }
-        
+
         // Check if it's a trial (backup check)
         if (subscription.trial_end) {
           planType = 'trial';
+          if (!trialEndsAt) trialEndsAt = new Date(subscription.trial_end * 1000).toISOString();
         }
       } catch (e) {
         console.log('[lookup-stripe-session] Could not determine plan type, defaulting to trial');
       }
+    }
+
+    // M-4: fail-closed $1 trial card verification, same as the main checkout
+    // paths (verify-checkout / stripe-webhook). A trialing subscription whose
+    // card can't be verified is canceled in Stripe and never provisioned.
+    // (supabaseUrl/supabaseServiceKey are declared just below; the check
+    // needs them, so read env directly here.)
+    let cardCheckFields: { card_check_status: string; card_check_message: string | null } | null = null;
+    if (subscriptionStatus === 'trialing' && subscriptionId && customerId) {
+      const fallbackMessage = "Your card couldn't be verified. Please try a different card or contact your bank.";
+      const checkClientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+        || req.headers.get('x-real-ip')
+        || undefined;
+      let cardCheck: { ok?: boolean; message?: string } | null = null;
+      try {
+        const checkRes = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/verify-trial-card`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+          },
+          body: JSON.stringify({
+            customerId,
+            ...(checkClientIp ? { clientIp: checkClientIp } : {}),
+            idempotencyKey: subscriptionId,
+          }),
+        });
+        cardCheck = await checkRes.json();
+      } catch (checkErr) {
+        console.error('[lookup-stripe-session] card check call failed (fail-closed):', checkErr);
+      }
+
+      if (!cardCheck?.ok) {
+        console.log('[lookup-stripe-session] card check failed, canceling dead-card trial:', subscriptionId);
+        try {
+          await stripe.subscriptions.cancel(subscriptionId);
+        } catch (cancelErr) {
+          console.error('[lookup-stripe-session] failed to cancel dead-card subscription (non-fatal):', cancelErr);
+        }
+        return new Response(JSON.stringify({
+          success: false,
+          error: cardCheck?.message || fallbackMessage,
+          cardCheckFailed: true,
+          needsRetry: false,
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      console.log('[lookup-stripe-session] card check passed for subscription:', subscriptionId);
+      // Stamp the card-check result on the restaurant write paths below
+      // (mirrors stripe-webhook's cardCheckFields).
+      cardCheckFields = { card_check_status: 'passed', card_check_message: cardCheck?.message || null };
     }
 
     // Create Supabase admin client
@@ -180,11 +244,21 @@ serve(async (req) => {
       },
     });
 
-    // Check if user already exists
-    const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
-    const existingUser = existingUsers?.users?.find(
-      (u: any) => u.email?.toLowerCase() === customerEmail.toLowerCase()
-    );
+    // Find the user by email. listUsers() defaults to 50 rows per page, so a
+    // single unpaginated call can miss accounts; page through instead.
+    let existingUser: any = null;
+    {
+      let page = 1;
+      const perPage = 1000;
+      const target = customerEmail.toLowerCase();
+      while (page <= 100) {
+        const { data: pageData, error: pageError } = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
+        if (pageError || !pageData?.users?.length) break;
+        existingUser = pageData.users.find((u: any) => u.email?.toLowerCase() === target) || null;
+        if (existingUser || pageData.users.length < perPage) break;
+        page++;
+      }
+    }
 
     let userId: string;
     let isNewUser = false;
@@ -252,7 +326,9 @@ serve(async (req) => {
           stripe_customer_id: customerId,
           stripe_subscription_id: subscriptionId,
           plan_type: planType,
-          subscription_status: 'active',
+          subscription_status: subscriptionStatus,
+          trial_ends_at: trialEndsAt,
+          ...(cardCheckFields || {}),
         })
         .eq('id', restaurantId);
 
@@ -270,7 +346,9 @@ serve(async (req) => {
           stripe_customer_id: customerId,
           stripe_subscription_id: subscriptionId,
           plan_type: planType,
-          subscription_status: 'active',
+          subscription_status: subscriptionStatus,
+          trial_ends_at: trialEndsAt,
+          ...(cardCheckFields || {}),
           header_title: "How was your visit?",
           header_subtitle: "We'd love to hear about your experience!",
           menu_title: "Our Menu",

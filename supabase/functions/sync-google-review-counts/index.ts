@@ -8,6 +8,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { hasServiceRoleBearer, requireUser, isAdmin } from "../_shared/security.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -41,7 +42,22 @@ async function fetchReviewCount(
   }
 }
 
-serve(async (_req) => {
+serve(async (req) => {
+  // M-7: Places quota across every restaurant. Server-to-server (pg_cron
+  // with the service-role key) or an admin only. Previously callable by
+  // anyone who knew the URL.
+  const authorized = hasServiceRoleBearer(req) ||
+    (await (async () => {
+      const caller = await requireUser(req);
+      return caller ? await isAdmin(caller.user.id) : false;
+    })());
+  if (!authorized) {
+    return new Response(JSON.stringify({ ok: false, error: "Forbidden" }), {
+      status: 403,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
   if (!GOOGLE_PLACES_API_KEY) {
     return new Response(
       JSON.stringify({ ok: false, error: "GOOGLE_PLACES_API_KEY_SERVER not set" }),

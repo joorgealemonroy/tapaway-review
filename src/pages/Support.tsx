@@ -69,6 +69,22 @@ const Support = () => {
   const [issueText, setIssueText] = useState("");
   const [issueSending, setIssueSending] = useState(false);
   const [issueSent, setIssueSent] = useState(false);
+  // M-10 honeypot: bots fill hidden fields; humans never see it. Checked by
+  // support-notification, which silently drops bot submissions.
+  const [website, setWebsite] = useState("");
+
+  const honeypotField = (
+    <input
+      type="text"
+      name="website"
+      value={website}
+      onChange={(e) => setWebsite(e.target.value)}
+      autoComplete="off"
+      tabIndex={-1}
+      aria-hidden="true"
+      className="absolute h-0 w-0 overflow-hidden opacity-0"
+    />
+  );
 
   // Signed-in: billing note
   const [billingText, setBillingText] = useState("");
@@ -163,6 +179,7 @@ const Support = () => {
         email,
         description,
         requestDetails: details ?? {},
+        website, // honeypot: must stay empty
       },
     });
   };
@@ -327,6 +344,7 @@ const Support = () => {
                 <Sent text="Got it. We're on it and will follow up by email." />
               ) : (
                 <form className="space-y-4" onSubmit={sendIssue}>
+                  {honeypotField}
                   <div className="flex flex-wrap gap-2">
                     {ISSUE_CHIPS.map((chip) => {
                       const active = issueChips.includes(chip);
@@ -380,6 +398,7 @@ const Support = () => {
                 <Sent text="Thanks. We'll get back to you by email." />
               ) : (
                 <form className="space-y-3" onSubmit={sendBilling}>
+                  {honeypotField}
                   <Textarea
                     placeholder="Still want to write in? Add a note (optional)"
                     rows={3}
@@ -408,6 +427,7 @@ const Support = () => {
                 <Sent text="Thanks for writing in. We'll reply by email." />
               ) : (
                 <form className="space-y-3" onSubmit={sendGeneral}>
+                  {honeypotField}
                   <Textarea
                     placeholder="What's on your mind?"
                     rows={4}
@@ -478,6 +498,7 @@ const Support = () => {
                 <Sent text="Thanks for writing in. We'll reply by email." />
               ) : (
                 <form className="space-y-3" onSubmit={sendGeneral}>
+                  {honeypotField}
                   <div className="space-y-2">
                     <Label htmlFor="support-name">Your name</Label>
                     <Input

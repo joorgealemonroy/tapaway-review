@@ -26,7 +26,11 @@ serve(async (req) => {
   }
 
   try {
-    const { submissionId } = await req.json();
+    const body = (await req.json().catch(() => ({}))) as {
+      submissionId?: string;
+      website?: string;
+    };
+    const { submissionId } = body;
 
     if (!submissionId) {
       return new Response(
@@ -39,6 +43,16 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+
+    // M-10 honeypot: bots fill the hidden "website" field. Silently delete the
+    // spam submission and pretend success so the bot learns nothing.
+    if (typeof body.website === "string" && body.website.trim().length > 0) {
+      await supabaseAdmin.from("lead_submissions").delete().eq("id", submissionId);
+      return new Response(
+        JSON.stringify({ success: true }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // Verify the submission exists server-side and derive all email content from it.
     const { data: submission } = await supabaseAdmin

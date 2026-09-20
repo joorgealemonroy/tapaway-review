@@ -33,9 +33,6 @@ verify_jwt = true
 [functions.request-more-cards]
 verify_jwt = true
 
-[functions.send-test-welcome-email]
-verify_jwt = true
-
 [functions.delete-user-complete]
 verify_jwt = true
 
@@ -69,19 +66,19 @@ verify_jwt = true
 [functions.send-demo-request-notification]
 verify_jwt = true
 
-[functions.send-auth-email]
-verify_jwt = false
-
 [functions.send-custom-otp]
 verify_jwt = false
 
 [functions.verify-custom-otp]
 verify_jwt = false
 
-[functions.send-test-emails]
+[functions.send-personal-welcome-emails]
 verify_jwt = false
 
-[functions.send-personal-welcome-emails]
+[functions.reconcile-expired-trials]
+verify_jwt = false
+
+[functions.sms-opt-in]
 verify_jwt = false
 
 [functions.send-card-approval]
@@ -130,9 +127,6 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.download-product]
-verify_jwt = false
-
-[functions.admin-reset-password]
 verify_jwt = false
 
 [functions.notify-new-lead]

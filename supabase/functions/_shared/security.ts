@@ -41,9 +41,27 @@ export async function isAdmin(userId: string): Promise<boolean> {
     .eq("user_id", userId)
     .eq("role", "admin")
     .maybeSingle();
-  if (data) return true;
-  const { data: u } = await admin.auth.admin.getUserById(userId);
-  return u?.user?.email === "tap@tapaway.co";
+  return !!data;
+}
+
+/**
+ * Verify the caller presents the service-role key as a Bearer token.
+ * Use for endpoints that must never be callable from the browser
+ * (server-to-server / cron / other edge functions only). The anon key,
+ * a user JWT, or a missing header all fail this check.
+ */
+export function hasServiceRoleBearer(req: Request): boolean {
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) return false;
+  const token = authHeader.substring(7).trim();
+  const expected = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+  if (!expected || token.length !== expected.length) return false;
+  // Constant-time comparison to avoid leaking the key via timing.
+  let diff = 0;
+  for (let i = 0; i < token.length; i++) {
+    diff |= token.charCodeAt(i) ^ expected.charCodeAt(i);
+  }
+  return diff === 0;
 }
 
 /**

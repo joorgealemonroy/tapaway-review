@@ -63,7 +63,7 @@ serve(async (req) => {
     // 1. Verify card exists and is unclaimed
     const { data: card, error: cardError } = await serviceClient
       .from("nfc_cards")
-      .select("id, status, owner_user_id, card_type")
+      .select("id, status, owner_user_id, card_type, paid_order_ref")
       .eq("public_code", public_code.toUpperCase())
       .single();
 
@@ -116,21 +116,32 @@ serve(async (req) => {
       );
     }
 
-    // 4. If VIP card, upgrade user's profile to VIP plan
+    // 4. If VIP card, upgrade user's profile to VIP plan — but ONLY when the
+    // card carries a verified paid-order link (LOW: previously any holder of a
+    // VIP public code got a free VIP plan + active status). Cards without a
+    // link still claim as normal cards; the plan upgrade is skipped and logged.
     if (card.card_type === "vip") {
-      const { error: vipError } = await serviceClient
-        .from("personal_profiles")
-        .update({
-          plan_type: "vip",
-          subscription_status: "active",
-        })
-        .eq("user_id", userId);
-
-      if (vipError) {
-        console.error("[claim-card] Error setting VIP:", vipError);
-        // Card is already claimed, don't fail the whole request
+      const paidRef = typeof card.paid_order_ref === "string" ? card.paid_order_ref.trim() : "";
+      if (!paidRef) {
+        console.log("[claim-card] VIP card claimed without paid-order link; plan upgrade skipped", {
+          cardId: card.id,
+          userId,
+        });
       } else {
-        console.log("[claim-card] VIP plan granted to user", userId);
+        const { error: vipError } = await serviceClient
+          .from("personal_profiles")
+          .update({
+            plan_type: "vip",
+            subscription_status: "active",
+          })
+          .eq("user_id", userId);
+
+        if (vipError) {
+          console.error("[claim-card] Error setting VIP:", vipError);
+          // Card is already claimed, don't fail the whole request
+        } else {
+          console.log("[claim-card] VIP plan granted to user", userId, "order ref:", paidRef);
+        }
       }
     }
 

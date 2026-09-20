@@ -93,15 +93,44 @@ serve(async (req) => {
 
     // Optionally mark as used (only with verified JWT; user id is from the JWT, not the body)
     if (markUsed && authedUserId) {
-      const { error: updateError } = await adminClient
+      // Free-promo redemption: burn the token AND activate the caller's own
+      // restaurant in one atomic transaction (redeem_free_promo_token). The
+      // client must never write billing columns directly (see the restaurants
+      // billing guard trigger). Exactly one concurrent caller wins the burn.
+      if (tokenRow.discount_type === 'free') {
+        const restaurantId = typeof body.restaurantId === 'string' ? body.restaurantId : null;
+        if (!restaurantId) {
+          return new Response(JSON.stringify({ valid: false, error: 'Missing restaurantId' }), {
+            status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        const { data: redeemed, error: redeemError } = await adminClient
+          .rpc('redeem_free_promo_token', {
+            p_token_id: tokenRow.id,
+            p_user_id: authedUserId,
+            p_restaurant_id: restaurantId,
+          });
+        if (redeemError || redeemed !== true) {
+          console.error('[validate-promo-token] Free promo redemption failed:', redeemError || 'token already burned');
+          return new Response(JSON.stringify({ valid: false, error: 'Failed to activate account' }), {
+            status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        console.log('[validate-promo-token] Free promo activated restaurant:', restaurantId);
+      }
+
+      // Non-free tokens: atomic burn guarded on is_used=false (a replay
+      // matches zero rows and does not throw).
+      const { error: updateError, count: burnedCount } = await adminClient
         .from('promo_tokens')
-        .update({ is_used: true, used_by_user_id: authedUserId })
-        .eq('id', tokenRow.id);
+        .update({ is_used: true, used_by_user_id: authedUserId, reserved_by: null, reserved_at: null }, { count: 'exact' })
+        .eq('id', tokenRow.id)
+        .eq('is_used', false);
 
       if (updateError) {
         console.error('[validate-promo-token] Failed to mark used:', updateError);
-      } else {
-        console.log('[validate-promo-token] Token marked as used:', tokenRow.id);
+      } else if (tokenRow.discount_type !== 'free') {
+        console.log('[validate-promo-token] Token marked as used:', tokenRow.id, 'burned:', burnedCount);
       }
     }
 

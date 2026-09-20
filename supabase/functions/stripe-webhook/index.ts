@@ -4,6 +4,7 @@ import { checkRateLimit, getRateLimitKey, rateLimitResponse } from "../_shared/r
 import { sendTemplatedEmail } from "../_shared/email.ts";
 import { sendMetaCapiEvent } from "../_shared/metaCapi.ts";
 import { reportTrybeOrder } from "../_shared/trybeOrders.ts";
+import { ONBOARDING_CATALOG_RULES } from "../_shared/onboardingCatalog.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -58,6 +59,92 @@ serve(async (req) => {
 
     console.log('[stripe-webhook] Received event:', event.type);
 
+    // M-3: webhook idempotency via ATOMIC CLAIM at the start of handling.
+    // Stripe redelivers events on any non-2xx, and two deliveries can arrive
+    // concurrently. claim_stripe_event() does INSERT ... ON CONFLICT DO
+    // NOTHING, so exactly one delivery wins; the loser sees the existing row
+    // and stands down. The claim starts as status='claimed' and flips to
+    // 'processed' on every terminal 200 below. A throw deletes our claim and
+    // returns 5xx so Stripe retries and the retry re-claims. A stale claim
+    // (>15 min, worker died mid-flight) is taken over atomically.
+    const idempotencyAdmin = await import('https://esm.sh/@supabase/supabase-js@2.39.7').then(
+      mod => mod.createClient(
+        Deno.env.get('SUPABASE_URL')!,
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+        { auth: { autoRefreshToken: false, persistSession: false } },
+      )
+    );
+
+    const STALE_CLAIM_MS = 15 * 60 * 1000;
+    let ownsClaim = false;
+
+    const releaseClaim = async () => {
+      // Only delete while still 'claimed': never remove a 'processed' marker.
+      await idempotencyAdmin
+        .from('processed_stripe_events')
+        .delete()
+        .eq('event_id', event.id)
+        .eq('status', 'claimed');
+    };
+
+    const markStripeEventProcessed = async () => {
+      const { data: marked } = await idempotencyAdmin
+        .from('processed_stripe_events')
+        .update({ status: 'processed', processed_at: new Date().toISOString() })
+        .eq('event_id', event.id)
+        .eq('status', 'claimed')
+        .select('event_id');
+      if (!marked || marked.length === 0) {
+        throw new Error(`[stripe-webhook] Lost claim on event ${event.id}; refusing to ack as processed`);
+      }
+    };
+
+    {
+      const { data: claimRows, error: claimError } = await idempotencyAdmin
+        .rpc('claim_stripe_event', { p_event_id: event.id, p_event_type: event.type });
+      if (claimError) throw claimError;
+      const claim = (claimRows as Array<{ claimed: boolean; existing_status: string; claimed_at: string }>)?.[0];
+      if (!claim) throw new Error(`[stripe-webhook] claim_stripe_event returned no row for ${event.id}`);
+
+      if (claim.claimed) {
+        ownsClaim = true;
+      } else if (claim.existing_status === 'processed') {
+        console.log('[stripe-webhook] Duplicate delivery, already processed:', event.id);
+        return new Response(JSON.stringify({ received: true, deduped: true }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      } else {
+        // Claimed by another delivery but not processed.
+        const claimAgeMs = Date.now() - new Date(claim.claimed_at).getTime();
+        if (claimAgeMs < STALE_CLAIM_MS) {
+          console.log('[stripe-webhook] Event in flight on another delivery:', event.id);
+          return new Response(JSON.stringify({ received: true, in_flight: true }), {
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        // Stale claim: take over atomically. Only one takeover wins.
+        const cutoff = new Date(Date.now() - STALE_CLAIM_MS).toISOString();
+        const { data: tookOver } = await idempotencyAdmin
+          .from('processed_stripe_events')
+          .update({ processed_at: new Date().toISOString() })
+          .eq('event_id', event.id)
+          .eq('status', 'claimed')
+          .lt('processed_at', cutoff)
+          .select('event_id');
+        if (!tookOver || tookOver.length === 0) {
+          console.log('[stripe-webhook] Lost stale-claim race:', event.id);
+          return new Response(JSON.stringify({ received: true, deduped: true }), {
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        ownsClaim = true;
+        console.log('[stripe-webhook] Took over stale claim:', event.id);
+      }
+    }
+
 if (event.type === 'checkout.session.completed') {
       const session = event.data.object as Stripe.Checkout.Session;
       
@@ -99,6 +186,9 @@ if (event.type === 'checkout.session.completed') {
         
         if (!customerEmail) {
           console.error('[stripe-webhook] Could not find customer email anywhere');
+          // Terminal: retrying won't produce an email. Mark processed so this
+          // doesn't retry-loop; the error is in the logs.
+          await markStripeEventProcessed();
           return new Response(JSON.stringify({ error: 'No customer email' }), {
             status: 400,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -182,6 +272,73 @@ if (event.type === 'checkout.session.completed') {
           }
         } catch (subErr) {
           console.error('[stripe-webhook] Failed to retrieve subscription (non-fatal):', subErr);
+        }
+      }
+
+      // LOW: never provision on an unpaid session. Trials legitimately carry
+      // payment_status 'unpaid'/'no_payment_required' alongside a trialing
+      // subscription, so those are allowed; anything else that isn't paid is
+      // refused. (A literal payment_status === 'paid' assertion would reject
+      // every trial checkout and kill the trial funnel.)
+      if (session.payment_status !== 'paid' && subscriptionStatus !== 'trialing') {
+        console.error('[stripe-webhook] Refusing to provision unpaid session:', {
+          session: session.id,
+          payment_status: session.payment_status,
+          subscriptionStatus,
+        });
+        // Terminal decision: nothing to provision for an unpaid session.
+        await markStripeEventProcessed();
+        return new Response(JSON.stringify({ received: true, skipped: 'unpaid_session' }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // M-6: verify the charged amount against the server-side catalog for
+      // THIS plan+interval (metadata.plan_type is solo|venue|solo_yearly|
+      // venue_yearly). Exact matches only: the catalog price, half of it when
+      // an authorized promo token rode on the session, or $0 for a trialing
+      // subscription (nothing due today). Pre-catalog legacy amounts are
+      // accepted as exact values for sessions created before the catalog
+      // lockdown. Anything else is a terminal mismatch: mark processed so it
+      // stays visible in logs + processed_stripe_events for manual follow-up
+      // instead of retry-looping.
+      {
+        const amountTotal = typeof session.amount_total === 'number' ? session.amount_total : null;
+        const isYearlyPlan = typeof planType === 'string' && planType.endsWith('_yearly');
+        const basePlan = isYearlyPlan ? planType.slice(0, -'_yearly'.length) : planType;
+        const catalogRule = ONBOARDING_CATALOG_RULES.find(
+          (r) => r.plan === basePlan && r.interval === (isYearlyPlan ? 'year' : 'month'),
+        );
+        const expectedAmounts = new Set<number>();
+        if (subscriptionStatus === 'trialing') expectedAmounts.add(0);
+        if (catalogRule) {
+          expectedAmounts.add(catalogRule.amount);
+          const promoOnSession = typeof session.metadata?.promo_token === 'string'
+            && session.metadata.promo_token.length > 0;
+          // The 50%-off promo coupon halves the first charge when an
+          // atomically reserved token was on the session (see M-5).
+          if (promoOnSession) expectedAmounts.add(Math.floor(catalogRule.amount / 2));
+        }
+        // Pre-catalog legacy sessions still in flight: legacy Solo $15,
+        // bundle $25, legacy Venue $30 (exact amounts only).
+        const LEGACY_AMOUNTS = new Set([1500, 2500, 3000]);
+        if (amountTotal !== null && !expectedAmounts.has(amountTotal) && !LEGACY_AMOUNTS.has(amountTotal)) {
+          console.error('[stripe-webhook] Amount mismatch, refusing to provision:', {
+            session: session.id,
+            amount_total: amountTotal,
+            planType,
+            expected: [...expectedAmounts],
+            promo_token: session.metadata?.promo_token ? '[present]' : '[absent]',
+          });
+          // Terminal: an amount mismatch never resolves on retry. Mark
+          // processed (stays visible in logs + processed_stripe_events for
+          // manual follow-up) instead of retry-looping for days.
+          await markStripeEventProcessed();
+          return new Response(JSON.stringify({ error: 'Amount mismatch' }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
         }
       }
 
@@ -334,6 +491,7 @@ if (event.type === 'checkout.session.completed') {
 
           // Handled: don't provision a trial, print cards, or pay commissions
           // for a dead card. Stripe won't retry (200).
+          await markStripeEventProcessed();
           return new Response(
             JSON.stringify({ received: true, card_check: 'failed' }),
             { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -374,6 +532,7 @@ if (event.type === 'checkout.session.completed') {
           console.log('[stripe-webhook] Handed off demo hub to paying owner:', claimRestaurantId);
         }
 
+        await markStripeEventProcessed();
         return new Response(
           JSON.stringify({ received: true, claimed: claimRestaurantId }),
           { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -637,10 +796,14 @@ if (event.type === 'checkout.session.completed') {
           const now = new Date();
           const periodLabel = now.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 
-          // Create commission as trial_pending with 0 points
+          // Create commission as trial_pending with 0 points.
+          // M-3: upsert with ignoreDuplicates so a retried webhook never
+          // double-pays. ignoreDuplicates (not an update) is deliberate: if
+          // invoice.paid already upgraded this row trial_pending -> pending,
+          // a replay must not regress it.
           const { error: commissionError } = await supabaseAdmin
             .from('commissions')
-            .insert({
+            .upsert({
               rep_id: salesRepId,
               rep_restaurant_id: repRestaurantId || null,
               restaurant_id: restaurantId,
@@ -654,7 +817,7 @@ if (event.type === 'checkout.session.completed') {
               period_label: periodLabel,
               stripe_subscription_id: subscriptionId || null,
               note: `Upfront commission for ${session.metadata?.restaurant_name || 'restaurant'} (${metaPlanTier} ${metaBillingCycle}). Awaiting first payment`,
-            });
+            }, { onConflict: 'stripe_subscription_id,commission_type', ignoreDuplicates: true });
 
           if (commissionError) {
             console.error('[stripe-webhook] Failed to create trial_pending commission:', commissionError);
@@ -690,21 +853,22 @@ if (event.type === 'checkout.session.completed') {
       // ============================================================
       const promoToken = session.metadata?.promo_token;
       if (promoToken && promoToken.length > 0) {
-        try {
-          const { error: promoUpdateError } = await supabaseAdmin
-            .from('promo_tokens')
-            .update({ is_used: true, used_by_user_id: userId })
-            .eq('token', promoToken)
-            .eq('is_used', false);
+        // M-5: burn failures are LOUD. A failed burn throws, the webhook
+        // returns 500, and Stripe retries the event (which is only marked
+        // processed after this point). The .eq('is_used', false) guard makes
+        // the burn itself atomic: a replay after a successful burn matches
+        // zero rows, returns no error, and does not throw.
+        const { error: promoUpdateError } = await supabaseAdmin
+          .from('promo_tokens')
+          .update({ is_used: true, used_by_user_id: userId, reserved_by: null, reserved_at: null })
+          .eq('token', promoToken)
+          .eq('is_used', false);
 
-          if (promoUpdateError) {
-            console.error('[stripe-webhook] Failed to burn promo token:', promoUpdateError);
-          } else {
-            console.log('[stripe-webhook] Promo token burned:', promoToken);
-          }
-        } catch (promoErr) {
-          console.error('[stripe-webhook] Promo token burn error (non-fatal):', promoErr);
+        if (promoUpdateError) {
+          console.error('[stripe-webhook] FAILED to burn promo token:', promoUpdateError);
+          throw new Error(`promo token burn failed: ${promoUpdateError.message}`);
         }
+        console.log('[stripe-webhook] Promo token burned:', promoToken);
       }
 
       console.log('[stripe-webhook] Successfully processed checkout session');
@@ -984,6 +1148,21 @@ if (event.type === 'checkout.session.completed') {
       if (cardType === 'card_addon' || cardType === 'card_onetime') {
         console.log(`[stripe-webhook] Processing ${cardType} checkout`);
 
+        // LOW: one-time card orders are payment-mode checkouts; never fulfill
+        // an unpaid one.
+        if (cardType === 'card_onetime' && session.payment_status !== 'paid') {
+          console.error('[stripe-webhook] Refusing card_onetime for unpaid session:', {
+            session: session.id,
+            payment_status: session.payment_status,
+          });
+          // Terminal decision: refuse fulfillment for an unpaid one-time order.
+          await markStripeEventProcessed();
+          return new Response(JSON.stringify({ received: true, skipped: 'unpaid_session' }), {
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
         const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
         const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
         const supabaseAdmin = await import('https://esm.sh/@supabase/supabase-js@2.39.7').then(
@@ -1006,10 +1185,12 @@ if (event.type === 'checkout.session.completed') {
           }
 
           if (cardType === 'card_onetime') {
-            // One-time $10: auto-create card request since user paid specifically for cards
+            // One-time $10: auto-create card request since user paid specifically for cards.
+            // M-3: upsert on stripe_session_id so a retried webhook cannot
+            // print a duplicate card batch.
             const { error: insertErr } = await supabaseAdmin
               .from('personal_card_requests')
-              .insert({
+              .upsert({
                 profile_id: profileId,
                 user_id: userId,
                 quantity: 3,
@@ -1023,7 +1204,7 @@ if (event.type === 'checkout.session.completed') {
                 shipping_state: session.metadata?.shipping_state || null,
                 shipping_postal_code: session.metadata?.shipping_postal_code || null,
                 shipping_country: session.metadata?.shipping_country || 'US',
-              });
+              }, { onConflict: 'stripe_session_id', ignoreDuplicates: true });
 
             if (insertErr) {
               console.error('[stripe-webhook] Failed to create card request:', insertErr);
@@ -1152,6 +1333,36 @@ if (event.type === 'checkout.session.completed') {
             console.error('[stripe-webhook] Affiliate paid commission error (non-fatal):', affErr);
           }
         }
+      }
+    }
+
+    // ============================================================
+    // H-6: STRIPE DUNNING STATES. The trialing->active conversion above is
+    // not the only lifecycle transition that matters: when Stripe moves a
+    // subscription to past_due/unpaid, local access gates (which read
+    // subscription_status) must reflect it.
+    // ============================================================
+    if (event.type === 'customer.subscription.updated') {
+      const dunningSub = event.data.object as any;
+      if (dunningSub.status === 'past_due' || dunningSub.status === 'unpaid') {
+        const dunningSubId = dunningSub.id as string;
+        const dunningCustomerId = dunningSub.customer as string;
+        console.log(`[stripe-webhook] Subscription ${dunningSubId} is ${dunningSub.status}; restricting access`);
+
+        const dunningAdmin = await import('https://esm.sh/@supabase/supabase-js@2.39.7').then(
+          mod => mod.createClient(
+            Deno.env.get('SUPABASE_URL')!,
+            Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+            { auth: { autoRefreshToken: false, persistSession: false } },
+          )
+        );
+
+        await setSubscriptionStatusByStripe(dunningAdmin, {
+          subscriptionId: dunningSubId,
+          customerId: dunningCustomerId,
+          from: ['active', 'trialing', 'past_due'],
+          to: dunningSub.status === 'unpaid' ? 'unpaid' : 'past_due',
+        });
       }
     }
 
@@ -1405,6 +1616,15 @@ if (event.type === 'checkout.session.completed') {
         } else {
           console.log('[stripe-webhook] invoice.paid: no rep commission found for this subscription, skipping');
         }
+
+        // H-6: a paid invoice recovers a delinquent account back to active.
+        // from/to guard means this never resurrects canceled accounts.
+        await setSubscriptionStatusByStripe(supabaseAdmin, {
+          subscriptionId: invoiceSubId,
+          customerId: invoice.customer as string,
+          from: ['past_due', 'unpaid'],
+          to: 'active',
+        });
       }
     }
 
@@ -1441,6 +1661,8 @@ if (event.type === 'checkout.session.completed') {
           let ownerName = 'there';
           let businessName = 'your TapAway plan';
           let profileId: string | null = null;
+          let failRestaurantId: string | null = null;
+          let failRestaurantComplimentary = false;
 
           if (failProfile) {
             toEmail = String(failProfile.stripe_billing_email || failProfile.email || '').trim() || null;
@@ -1458,9 +1680,36 @@ if (event.type === 'checkout.session.completed') {
               toEmail = String(failRestaurant.email || '').trim() || null;
               ownerName = String(failRestaurant.owner_name || '').trim().split(' ')[0] || 'there';
               businessName = String(failRestaurant.restaurant_name || 'your TapAway plan').trim();
+              failRestaurantId = failRestaurant.id;
             } else if (failRestaurant) {
+              failRestaurantComplimentary = true;
               console.log('[stripe-webhook] invoice.payment_failed: comped account, skipping email');
             }
+          }
+
+          // H-6: a failed payment moves the account into dunning. The nudge
+          // email below is kept; the status drives access gates. Complimentary
+          // (family) accounts are never touched.
+          try {
+            if (profileId) {
+              const { error: pdErr } = await supabaseAdmin
+                .from('personal_profiles')
+                .update({ subscription_status: 'past_due' })
+                .eq('id', profileId)
+                .in('subscription_status', ['active', 'trialing', 'past_due']);
+              if (pdErr) console.error('[stripe-webhook] Failed to set personal past_due:', pdErr);
+              else console.log('[stripe-webhook] Personal profile set past_due:', profileId);
+            } else if (failRestaurantId && !failRestaurantComplimentary) {
+              const { error: pdErr } = await supabaseAdmin
+                .from('restaurants')
+                .update({ subscription_status: 'past_due' })
+                .eq('id', failRestaurantId)
+                .in('subscription_status', ['active', 'trialing', 'past_due']);
+              if (pdErr) console.error('[stripe-webhook] Failed to set restaurant past_due:', pdErr);
+              else console.log('[stripe-webhook] Restaurant set past_due:', failRestaurantId);
+            }
+          } catch (statusErr) {
+            console.error('[stripe-webhook] past_due status update failed (non-fatal):', statusErr);
           }
 
           if (toEmail) {
@@ -1640,12 +1889,22 @@ if (event.type === 'checkout.session.completed') {
       }
     }
 
+    // M-3: record successful handling so Stripe redeliveries dedupe. A throw
+    // here fails the webhook (Stripe retries) rather than risking a replay
+    // that thinks it was already handled.
+    await markStripeEventProcessed();
+
     return new Response(JSON.stringify({ received: true }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
     console.error('[stripe-webhook] Error processing webhook:', error);
+    // M-3: release our claim so Stripe's retry can re-claim and reprocess.
+    // Never delete a 'processed' marker (releaseClaim only removes 'claimed').
+    if (ownsClaim) {
+      try { await releaseClaim(); } catch (e) { console.error('[stripe-webhook] releaseClaim failed:', e); }
+    }
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -1662,6 +1921,48 @@ function sbAdmin() {
       auth: { autoRefreshToken: false, persistSession: false },
     }),
   );
+}
+
+// H-6: sync subscription_status with Stripe's dunning lifecycle.
+// Matches by Stripe subscription id (precise), falling back to customer id.
+// Only transitions rows currently in `from`, so canceled/complimentary
+// accounts are never resurrected by a stray event. Complimentary (family)
+// restaurants are excluded outright. Service-role client: bypasses RLS;
+// never throws (logs and continues).
+async function setSubscriptionStatusByStripe(
+  admin: any,
+  opts: { subscriptionId?: string | null; customerId?: string | null; from: string[]; to: string },
+): Promise<void> {
+  const { subscriptionId, customerId, from, to } = opts;
+  if (!subscriptionId && !customerId) return;
+
+  for (const table of ['personal_profiles', 'restaurants'] as const) {
+    try {
+      let q = admin.from(table).select('id').in('subscription_status', from);
+      if (table === 'restaurants') q = q.neq('payment_state', 'complimentary');
+      q = subscriptionId
+        ? q.eq('stripe_subscription_id', subscriptionId)
+        : q.eq('stripe_customer_id', customerId);
+      const { data: rows, error: selErr } = await q;
+      if (selErr) {
+        console.error(`[stripe-webhook] status sync select failed on ${table}:`, selErr);
+        continue;
+      }
+      if (rows && rows.length > 0) {
+        const { error: updErr } = await admin
+          .from(table)
+          .update({ subscription_status: to })
+          .in('id', rows.map((r: any) => r.id));
+        if (updErr) {
+          console.error(`[stripe-webhook] status sync update failed on ${table}:`, updErr);
+        } else {
+          console.log(`[stripe-webhook] ${table}: ${rows.length} row(s) -> ${to}`);
+        }
+      }
+    } catch (e) {
+      console.error(`[stripe-webhook] status sync failed on ${table} (non-fatal):`, e);
+    }
+  }
 }
 
 async function sha256Hex(input: string): Promise<string> {

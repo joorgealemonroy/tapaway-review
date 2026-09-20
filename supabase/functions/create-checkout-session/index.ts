@@ -211,28 +211,51 @@ serve(async (req) => {
 
       const { data: tokenRow } = await adminClient
         .from('promo_tokens')
-        .select('id, discount_type, expires_at, is_used')
+        .select('id, discount_type, expires_at, is_used, reserved_by, reserved_at')
         .eq('token', promoToken)
         .maybeSingle();
 
       if (tokenRow && !tokenRow.is_used && new Date(tokenRow.expires_at) > new Date() && tokenRow.discount_type === '50_off') {
-        // Find or create a 50% off coupon
-        const existingCoupons = await stripe.coupons.list({ limit: 100 });
-        let couponId = existingCoupons.data.find(
-          (c: any) => c.percent_off === 50 && c.duration === 'once' && c.valid
-        )?.id;
-
-        if (!couponId) {
-          const coupon = await stripe.coupons.create({
-            percent_off: 50,
-            duration: 'once',
-            name: 'TapAway 50% Off Promo',
+        // M-5: atomic compare-and-set reservation. reserve_promo_token() is a
+        // single UPDATE that only succeeds when this caller actually acquires
+        // the token (unused, unexpired, unreserved-or-stale-or-ours), so N
+        // concurrent checkouts cannot all redeem it. Returns false when
+        // another user's active reservation holds the token: skip the
+        // discount. Reservations self-heal after 60 minutes so abandoned
+        // checkouts don't lock a token forever. The webhook burn remains the
+        // final mark.
+        const { data: reserved, error: reserveError } = await adminClient
+          .rpc('reserve_promo_token', {
+            p_token_id: tokenRow.id,
+            p_user_id: userId,
+            p_hold_minutes: 60,
           });
-          couponId = coupon.id;
+
+        if (reserveError) {
+          console.error('[create-checkout-session] Promo reservation RPC failed:', reserveError);
         }
 
-        discounts = [{ coupon: couponId }];
-        console.log('[create-checkout-session] Applied 50% off promo coupon');
+        if (!reserveError && reserved === true) {
+          // Find or create a 50% off coupon
+          const existingCoupons = await stripe.coupons.list({ limit: 100 });
+          let couponId = existingCoupons.data.find(
+            (c: any) => c.percent_off === 50 && c.duration === 'once' && c.valid
+          )?.id;
+
+          if (!couponId) {
+            const coupon = await stripe.coupons.create({
+              percent_off: 50,
+              duration: 'once',
+              name: 'TapAway 50% Off Promo',
+            });
+            couponId = coupon.id;
+          }
+
+          discounts = [{ coupon: couponId }];
+          console.log('[create-checkout-session] Applied 50% off promo coupon');
+        } else {
+          console.log('[create-checkout-session] Promo token not acquired (held by another active checkout); skipping discount');
+        }
       }
     }
 
