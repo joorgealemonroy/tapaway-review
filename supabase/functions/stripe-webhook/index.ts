@@ -727,6 +727,31 @@ if (event.type === 'checkout.session.completed') {
           })
         );
 
+        // Internal funnel reporting: first positive subscription charge after
+        // trial is a new-customer conversion; later positive invoices renewals.
+        // The Stripe invoice id is the immutable dedupe key.
+        try {
+          const conversionKind = invoice.billing_reason === 'subscription_cycle'
+            && invoice.lines?.data?.some((line: any) => line.period?.start === invoice.period_start)
+            && invoice.subscription_details?.metadata?.first_paid_invoice !== invoice.id
+            ? (invoice.subscription_details?.metadata?.first_paid_invoice ? 'subscription_renewal' : 'paid_conversion')
+            : (invoice.billing_reason === 'subscription_create' ? 'paid_conversion' : 'subscription_renewal');
+          await supabaseAdmin.from('analytics_hits').insert({
+            event_id: `stripe_${invoice.id}`,
+            event_name: conversionKind,
+            session_id: `stripe_${invoiceSubId}`,
+            visitor_id: null,
+            hub_kind: 'site',
+            path: '/onboarding',
+            entry_path: '/onboarding',
+            traffic_class: 'human',
+            is_validated: true,
+            props: { invoice_id: invoice.id, subscription_id: invoiceSubId, amount_paid: amountPaid, billing_reason: invoice.billing_reason },
+          });
+        } catch (analyticsError) {
+          console.error('[stripe-webhook] Conversion analytics failed (non-fatal):', analyticsError);
+        }
+
         const buyerEmail = session.customer_email || session.customer_details?.email || '';
         const accessToken = crypto.randomUUID();
         const expiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString(); // 72 hours

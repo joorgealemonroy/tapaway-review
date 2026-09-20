@@ -36,8 +36,6 @@ const PLAN_DETAILS = {
   venue: { label: "TapAway Pro", subtitle: "For Storefronts & Teams.", price: 39, yearlyPrice: 390, yearlyPerMonth: "32.50", yearlyBadge: "2 months free", cards: 15, icon: Building2, refill: "10-card", badge: "Most Popular", trialDays: 14, totalTrialDays: 14 },
 };
 
-const PROTECTION_PRICE = 5;
-
 type CatalogItem = { plan: Plan; interval: BillingInterval; amount: number; currency: "usd"; trialDays: number; available: boolean };
 const CATALOG_CACHE_KEY = "tapaway_onboarding_catalog_v1";
 
@@ -151,8 +149,7 @@ const Onboarding = () => {
 
   // Success/loading
 
-  const totalPrice = selectedPlan ? PLAN_DETAILS[selectedPlan].price + (hasProtection ? PROTECTION_PRICE : 0) : 0;
-  const stepNumber = step === "plan" ? 1 : step === "protection" ? 2 : 3;
+  const stepNumber = step === "plan" ? 1 : 2;
 
   // ── Handle Stripe return ──
   const [verifyingCheckout, setVerifyingCheckout] = useState(false);
@@ -247,6 +244,9 @@ const Onboarding = () => {
             });
             if (error) throw error;
             console.log("[onboarding] Stripe checkout verified:", data);
+            if (data?.subscriptionStatus === "trialing") {
+              track("trial_start_confirmed", { hubKind: "site", props: { session_id: sessionId } });
+            }
 
             // CARD-CHECK: the $1 card verification failed. The trial was
             // canceled in Stripe. Show the plain-language message with a
@@ -349,6 +349,8 @@ const Onboarding = () => {
     track("continue_click", { hubKind: "site", props: { plan: selectedPlan, interval: billingInterval } });
     goTo("info", 1);
   };
+
+  const catalogItem = (plan: Plan, interval: BillingInterval) => catalog.find((item) => item.plan === plan && item.interval === interval);
 
   // ── Card claim (NFC tap flow) ──
   // Claims a stashed card code after onboarding completes, mirroring the

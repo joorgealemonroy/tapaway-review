@@ -9,15 +9,14 @@ type CatalogRule = {
   amount: number;
   productKey: string;
   label: string;
-  lookupKey: string;
-  envKey: string;
+  priceId: string;
 };
 
 export const ONBOARDING_CATALOG_RULES: CatalogRule[] = [
-  { plan: "solo", interval: "month", amount: 2000, productKey: "solo", label: "TapAway Solo", lookupKey: "tapaway_solo_monthly", envKey: "STRIPE_SOLO_MONTHLY_PRICE_ID" },
-  { plan: "solo", interval: "year", amount: 19900, productKey: "annual_value_pass", label: "TapAway Solo", lookupKey: "tapaway_solo_yearly", envKey: "STRIPE_SOLO_YEARLY_PRICE_ID" },
-  { plan: "venue", interval: "month", amount: 3900, productKey: "venue", label: "TapAway Pro", lookupKey: "tapaway_pro_monthly", envKey: "STRIPE_PRO_MONTHLY_PRICE_ID" },
-  { plan: "venue", interval: "year", amount: 39000, productKey: "venue", label: "TapAway Pro", lookupKey: "tapaway_pro_yearly", envKey: "STRIPE_PRO_YEARLY_PRICE_ID" },
+  { plan: "solo", interval: "month", amount: 2000, productKey: "solo", label: "TapAway Solo", priceId: "price_1UF9UkDg8DaTuVNZfeu06iQ6" },
+  { plan: "solo", interval: "year", amount: 19900, productKey: "annual_value_pass", label: "TapAway Solo", priceId: "price_1UCl7ZDg8DaTuVNZMQw3XC3g" },
+  { plan: "venue", interval: "month", amount: 3900, productKey: "venue", label: "TapAway Pro", priceId: "price_1TLK31Dg8DaTuVNZu9t79rFA" },
+  { plan: "venue", interval: "year", amount: 39000, productKey: "venue", label: "TapAway Pro", priceId: "price_1UF9UoDg8DaTuVNZKYLiLHl7" },
 ];
 
 export type VerifiedCatalogItem = {
@@ -64,15 +63,7 @@ export async function resolveOnboardingPrice(
   const cached = cache.get(cacheKey);
   if (!forceRefresh && cached && cached.expiresAt > Date.now()) return cached.value;
 
-  const explicitPriceId = Deno.env.get(rule.envKey)?.trim();
-  let price: Stripe.Price | null = null;
-  if (explicitPriceId) {
-    price = await stripe.prices.retrieve(explicitPriceId, { expand: ["product"] });
-  } else {
-    const byLookupKey = await stripe.prices.list({ lookup_keys: [rule.lookupKey], active: true, limit: 2, expand: ["data.product"] });
-    if (byLookupKey.data.length === 1) price = byLookupKey.data[0];
-  }
-  if (!price) throw new Error(`Missing exact Stripe catalog mapping for ${cacheKey}`);
+  const price = await stripe.prices.retrieve(rule.priceId, { expand: ["product"] });
   const value = validatePrice(price, rule);
   cache.set(cacheKey, { expiresAt: Date.now() + CACHE_TTL_MS, value });
   return value;
