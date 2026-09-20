@@ -1065,7 +1065,7 @@ const Onboarding = () => {
                     <button
                       type="button"
                       onClick={() => { setNotOnGoogle(true); setSelectedGooglePlace(null); }}
-                      className="text-xs text-blue-400 hover:text-blue-300 mt-2 transition-colors"
+                      className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-300 hover:text-white mt-2 px-4 py-2 rounded-full bg-blue-500/15 hover:bg-blue-500/25 border border-blue-500/30 active:scale-95 transition-all"
                     >
                       Not on Google yet? Click Here
                     </button>
