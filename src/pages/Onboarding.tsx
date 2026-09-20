@@ -215,6 +215,16 @@ const Onboarding = () => {
       saveOnboardingData({ hasProtection: false, campaign: { ...savedData.campaign, ...getCampaignParams() } });
       if (savedData.dashboardType) setDashboardType(savedData.dashboardType as 'personal' | 'restaurant');
       if (savedData.phone) setOwnerPhone(savedData.phone);
+      if (savedData.websiteUrl) setWebsiteUrl(savedData.websiteUrl);
+      if (savedData.notOnGoogle) setNotOnGoogle(true);
+      if (savedData.logoUrl) setLogoUrl(savedData.logoUrl);
+      if (savedData.googlePlaceId && savedData.googlePlaceName) {
+        setSelectedGooglePlace({
+          placeId: savedData.googlePlaceId,
+          name: savedData.googlePlaceName,
+          address: savedData.googlePlaceAddress || '',
+        });
+      }
 
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
