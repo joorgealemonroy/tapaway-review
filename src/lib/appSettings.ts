@@ -2,6 +2,7 @@ import { SupabaseClient } from '@supabase/supabase-js';
 
 export interface AppSettings {
   paywallEnabled: boolean;
+  onboardingDefaultBilling: 'month' | 'year';
 }
 
 /**
@@ -10,18 +11,19 @@ export interface AppSettings {
 export const getAppSettings = async (supabaseClient: SupabaseClient): Promise<AppSettings> => {
   const { data, error } = await supabaseClient
     .from('app_settings')
-    .select('paywall_enabled')
+    .select('paywall_enabled, onboarding_default_billing')
     .eq('id', 'global')
     .single();
 
   if (error) {
     console.error('Error fetching app settings:', error);
     // Default to paywall enabled if we can't fetch settings
-    return { paywallEnabled: true };
+    return { paywallEnabled: true, onboardingDefaultBilling: 'year' };
   }
 
   return {
-    paywallEnabled: data?.paywall_enabled ?? true
+    paywallEnabled: data?.paywall_enabled ?? true,
+    onboardingDefaultBilling: data?.onboarding_default_billing === 'month' ? 'month' : 'year'
   };
 };
 
