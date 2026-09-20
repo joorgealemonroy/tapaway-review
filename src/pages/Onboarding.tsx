@@ -966,7 +966,15 @@ const Onboarding = () => {
         <div className="max-w-3xl mx-auto px-5 py-4 flex items-center justify-between">
           <a href="/" className="font-black text-2xl">TapAway</a>
           {step === "plan" ? <a href="/support" className="text-sm text-hero-foreground/65 transition-colors hover:text-hero-foreground">Need help?</a> : (
-            <div className="flex gap-1.5">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => goTo("plan", -1)}
+                className="inline-flex items-center gap-1 text-xs font-medium text-hero-foreground/80 hover:text-hero-foreground px-3 py-1.5 rounded-full bg-white/10 border border-white/15 active:scale-95 transition-all"
+              >
+                ← Back
+              </button>
+              <div className="flex gap-1.5">
               {[1, 2].map((s) => (
                 <div key={s} className={`h-1.5 rounded-full transition-all duration-300 ${s <= stepNumber ? "w-8 bg-blue-500" : "w-4 bg-white/10"}`} />
               ))}
@@ -1102,7 +1110,7 @@ const Onboarding = () => {
                     )}
                     <button
                       type="button"
-                      onClick={() => { setNotOnGoogle(true); setSelectedGooglePlace(null); }}
+                      onClick={() => setNotOnGooglePersisted(true)}
                       className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-300 hover:text-white mt-2 px-4 py-2 rounded-full bg-blue-500/15 hover:bg-blue-500/25 border border-blue-500/30 active:scale-95 transition-all"
                     >
                       Not on Google yet? Click Here
@@ -1131,7 +1139,7 @@ const Onboarding = () => {
                     </div>
                     <button
                       type="button"
-                      onClick={() => setNotOnGoogle(false)}
+                      onClick={() => setNotOnGooglePersisted(false)}
                       className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
                     >
                       ← Search Google instead
