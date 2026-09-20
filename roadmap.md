@@ -14,3 +14,4 @@
 - [x] Render each showcase phone from the matching hub's complete live profile, links, blocks, and styling
 - [x] Restore XOL with its correct hub, add Paperboy as a separate card and hub, and fill the phone screen vertically
 - [x] Redesign onboarding plan selection with exact cached Stripe mappings, no Loss Protection, persistent attribution, and separated trial/new-customer/renewal reporting
+- [x] Refine onboarding into a dark quantity-first 4-card versus 15-card decision without changing checkout logic
