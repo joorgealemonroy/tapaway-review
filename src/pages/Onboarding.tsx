@@ -810,6 +810,7 @@ const Onboarding = () => {
 
       // Redirect to Stripe Checkout for card on file
       try {
+        track("checkout_start", { hubKind: "site", props: { plan, interval: savedData.billingInterval || billingInterval } });
         const { data, error } = await supabase.functions.invoke("create-checkout-session", {
           body: {
             email: session.user.email,

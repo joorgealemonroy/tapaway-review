@@ -249,7 +249,13 @@ serve(async (req) => {
       shipping_address_collection: { allowed_countries: ['US', 'CA', 'MX'] },
       subscription_data: {
         ...subscriptionData,
-        ...(trybeVid ? { metadata: { trybe_visitor_id: trybeVid } } : {}),
+        metadata: {
+          onboarding_catalog: 'true',
+          plan_type: isYearly ? `${validPlanType}_yearly` : validPlanType,
+          billing_interval: isYearly ? 'year' : 'month',
+          ...(trybeVid ? { trybe_visitor_id: trybeVid } : {}),
+          ...campaignMetadata,
+        },
       },
       metadata: {
         // plan_type is what verify-checkout / the webhook persist to the DB:
