@@ -1222,12 +1222,6 @@ const Onboarding = () => {
                     <span>{PLAN_DETAILS[selectedPlan].label}</span>
                     <span className="text-emerald-400 font-semibold">$0.00</span>
                   </div>
-                  {hasProtection && (
-                    <div className="flex justify-between text-sm text-gray-400">
-                      <span>Loss Protection</span>
-                      <span className="text-emerald-400 font-semibold">$0.00</span>
-                    </div>
-                  )}
                   <div className="flex justify-between text-sm text-gray-400">
                     <span>Shipping</span>
                     <span className="text-emerald-400 font-semibold">$0.00</span>
@@ -1237,7 +1231,7 @@ const Onboarding = () => {
                     <span className="text-emerald-400 text-lg">$0.00</span>
                   </div>
                   <p className="text-xs text-gray-500 pt-2">
-                    After trial: ${PLAN_DETAILS[selectedPlan].price}{hasProtection ? ` + $${PROTECTION_PRICE}` : ""}/mo
+                    After trial: {billingInterval === "year" ? `$${PLAN_DETAILS[selectedPlan].yearlyPrice}/year` : `$${PLAN_DETAILS[selectedPlan].price}/month`}
                   </p>
                   <p className="text-xs text-gray-600">
                     Your 14-day free trial starts today. Cards ship free while you try it.
@@ -1349,7 +1343,7 @@ const Onboarding = () => {
               </p>
 
               <button
-                onClick={() => goTo("protection", -1)}
+                onClick={() => goTo("plan", -1)}
                 className="w-full text-center text-xs text-gray-600 hover:text-gray-400 transition-colors"
               >
                 ← Back
@@ -1359,23 +1353,19 @@ const Onboarding = () => {
         </AnimatePresence>
       </main>
 
-      {/* Fixed bottom CTA for plan step */}
+      {/* Fixed mobile summary for plan step */}
       <AnimatePresence>
         {step === "plan" && selectedPlan && (
           <motion.div
-            initial={{ y: 100, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 100, opacity: 0 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-gradient-to-t from-[#0a0e1a] via-[#0a0e1a]/95 to-transparent pt-10"
+            initial={false}
+            className="fixed bottom-0 left-0 right-0 z-50 border-t border-[hsl(var(--onboarding-border))] bg-[hsl(var(--onboarding-bg)/0.97)] p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] backdrop-blur md:static md:mt-8 md:border-t md:bg-transparent md:p-0"
           >
-            <div className="max-w-md mx-auto">
-              <button
-                onClick={() => goTo("protection", 1)}
-                className="w-full h-14 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-lg transition-colors flex items-center justify-center gap-2 shadow-[0_0_30px_rgba(59,130,246,0.3)]"
-              >
-                Continue <ArrowRight className="w-5 h-5" />
-              </button>
+            <div className="max-w-3xl mx-auto">
+              <div className="mb-3 flex items-center justify-between text-sm"><strong>{PLAN_DETAILS[selectedPlan].label} · {PLAN_DETAILS[selectedPlan].cards} cards</strong><strong className="text-[hsl(var(--onboarding-green))]">$0 today</strong></div>
+              <Button onClick={continueFromPlan} disabled={catalogLoading || catalogItem(selectedPlan, billingInterval)?.available === false} className="h-14 w-full bg-[hsl(var(--onboarding-fg))] text-base font-bold text-primary-foreground hover:bg-[hsl(var(--onboarding-green))]">
+                Continue with {selectedPlan === "solo" ? "Solo" : "Pro"} <ArrowRight className="w-5 h-5" />
+              </Button>
+              <p className="mt-2 text-center text-xs text-[hsl(var(--onboarding-muted))]">Then {billingInterval === "year" ? `$${PLAN_DETAILS[selectedPlan].yearlyPrice}/year` : `$${PLAN_DETAILS[selectedPlan].price}/month`} after 14 days. Cancel anytime.</p>
             </div>
           </motion.div>
         )}
