@@ -1276,6 +1276,38 @@ if (event.type === 'checkout.session.completed') {
           })
         );
 
+        // Internal acquisition reporting only for the redesigned onboarding
+        // catalog. First positive invoice is the conversion; later ones renew.
+        // Meta Purchase remains the single existing emitter above.
+        try {
+          const analyticsSub: any = await stripe.subscriptions.retrieve(invoiceSubId);
+          if (analyticsSub.metadata?.onboarding_catalog === 'true') {
+            const { data: priorConversion } = await supabaseAdmin
+              .from('analytics_hits')
+              .select('id')
+              .eq('event_name', 'paid_conversion')
+              .eq('props->>subscription_id', invoiceSubId)
+              .limit(1)
+              .maybeSingle();
+            const conversionKind = priorConversion ? 'subscription_renewal' : 'paid_conversion';
+            const { error: analyticsInsertError } = await supabaseAdmin.from('analytics_hits').insert({
+              event_id: `stripe_${invoice.id}`,
+              event_name: conversionKind,
+              session_id: `stripe_${invoiceSubId}`,
+              visitor_id: null,
+              hub_kind: 'site',
+              path: '/onboarding',
+              entry_path: '/onboarding',
+              traffic_class: 'human',
+              is_validated: true,
+              props: { invoice_id: invoice.id, subscription_id: invoiceSubId, amount_paid: amountPaid, billing_reason: invoice.billing_reason },
+            });
+            if (analyticsInsertError && analyticsInsertError.code !== '23505') throw analyticsInsertError;
+          }
+        } catch (analyticsError) {
+          console.error('[stripe-webhook] Conversion analytics failed (non-fatal):', analyticsError);
+        }
+
         // Find the upfront commission linked to this subscription
         const { data: existingComm } = await supabaseAdmin
           .from('commissions')

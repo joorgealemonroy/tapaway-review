@@ -5,7 +5,7 @@ import { lovable } from "@/integrations/lovable";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Check, Loader2, Shield, ArrowRight, User, Building2, CloudUpload, X, Mail, Phone, CreditCard } from "lucide-react";
+import { Check, Loader2, ArrowRight, User, Building2, CloudUpload, X, Mail, Phone, CreditCard, Clock3 } from "lucide-react";
 // MagicLoadingOverlay removed. Concierge model: no auto-builder
 import { motion, AnimatePresence } from "framer-motion";
 import { Helmet } from "react-helmet-async";
@@ -20,19 +20,24 @@ import {
   clearOnboardingData,
   generateSlug,
   setPendingSetup,
+  getCampaignParams,
 } from "@/lib/onboardingData";
+import { track } from "@/lib/analytics";
+import { getAppSettings } from "@/lib/appSettings";
+import { Button } from "@/components/ui/button";
 
 
 type Plan = "solo" | "venue";
 type BillingInterval = "month" | "year";
-type Step = "plan" | "protection" | "info";
+type Step = "plan" | "info";
 
 const PLAN_DETAILS = {
   solo: { label: "TapAway Solo", subtitle: "For Service Pros & Individuals.", price: 20, yearlyPrice: 199, yearlyPerMonth: "16.58", yearlyBadge: "Save $41/yr", cards: 4, icon: User, refill: "3-card", badge: null, trialDays: 14, totalTrialDays: 14 },
   venue: { label: "TapAway Pro", subtitle: "For Storefronts & Teams.", price: 39, yearlyPrice: 390, yearlyPerMonth: "32.50", yearlyBadge: "2 months free", cards: 15, icon: Building2, refill: "10-card", badge: "Most Popular", trialDays: 14, totalTrialDays: 14 },
 };
 
-const PROTECTION_PRICE = 5;
+type CatalogItem = { plan: Plan; interval: BillingInterval; amount: number; currency: "usd"; trialDays: number; available: boolean };
+const CATALOG_CACHE_KEY = "tapaway_onboarding_catalog_v1";
 
 const slideVariants = {
   enter: (dir: number) => ({ x: dir > 0 ? 300 : -300, opacity: 0 }),
@@ -111,7 +116,8 @@ const Onboarding = () => {
   // Billing period: yearly is preselected and visually pushed as the best
   // value (Solo $199/yr = save $41; Venue $390/yr = 2 months free).
   const [billingInterval, setBillingInterval] = useState<BillingInterval>("year");
-  const [hasProtection, setHasProtection] = useState(false);
+  const [catalog, setCatalog] = useState<CatalogItem[]>([]);
+  const [catalogLoading, setCatalogLoading] = useState(true);
   const [dashboardType, setDashboardType] = useState<"restaurant" | "personal" | null>(null);
 
   // Business info state
@@ -142,8 +148,7 @@ const Onboarding = () => {
 
   // Success/loading
 
-  const totalPrice = selectedPlan ? PLAN_DETAILS[selectedPlan].price + (hasProtection ? PROTECTION_PRICE : 0) : 0;
-  const stepNumber = step === "plan" ? 1 : step === "protection" ? 2 : 3;
+  const stepNumber = step === "plan" ? 1 : 2;
 
   // ── Handle Stripe return ──
   const [verifyingCheckout, setVerifyingCheckout] = useState(false);
@@ -197,10 +202,17 @@ const Onboarding = () => {
 
       if (savedData.businessName) setBusinessName(savedData.businessName);
       if (savedData.planType) setSelectedPlan(savedData.planType as Plan);
-      if (savedData.billingInterval === "month" || savedData.billingInterval === "year") {
+      const explicitBilling = searchParams.get("billing") || searchParams.get("billing_interval");
+      if (explicitBilling === "month" || explicitBilling === "year") {
+        setBillingInterval(explicitBilling);
+        saveOnboardingData({ billingInterval: explicitBilling, billingSelectionExplicit: true });
+      } else if (savedData.billingInterval === "month" || savedData.billingInterval === "year") {
         setBillingInterval(savedData.billingInterval);
+      } else {
+        const settings = await getAppSettings(supabase);
+        setBillingInterval(settings.onboardingDefaultBilling);
       }
-      if (savedData.hasProtection) setHasProtection(true);
+      saveOnboardingData({ hasProtection: false, campaign: { ...savedData.campaign, ...getCampaignParams() } });
       if (savedData.dashboardType) setDashboardType(savedData.dashboardType as 'personal' | 'restaurant');
       if (savedData.phone) setOwnerPhone(savedData.phone);
 
@@ -230,6 +242,9 @@ const Onboarding = () => {
             });
             if (error) throw error;
             console.log("[onboarding] Stripe checkout verified:", data);
+            if (data?.subscriptionStatus === "trialing") {
+              track("trial_start_confirmed", { hubKind: "site", props: { session_id: sessionId } });
+            }
 
             // CARD-CHECK: the $1 card verification failed. The trial was
             // canceled in Stripe. Show the plain-language message with a
@@ -281,6 +296,59 @@ const Onboarding = () => {
     };
     init();
   }, [navigate, searchParams]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadCatalog = async () => {
+      try {
+        const cached = sessionStorage.getItem(CATALOG_CACHE_KEY);
+        if (cached) {
+          const parsed = JSON.parse(cached) as { expiresAt: number; catalog: CatalogItem[] };
+          if (parsed.expiresAt > Date.now() && Array.isArray(parsed.catalog)) {
+            if (!cancelled) setCatalog(parsed.catalog);
+            if (!cancelled) setCatalogLoading(false);
+            return;
+          }
+        }
+        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/onboarding-plan-catalog`, {
+          headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
+        });
+        if (!response.ok) throw new Error("Catalog unavailable");
+        const data = await response.json();
+        const items = Array.isArray(data?.catalog) ? data.catalog as CatalogItem[] : [];
+        sessionStorage.setItem(CATALOG_CACHE_KEY, JSON.stringify({ expiresAt: Date.now() + 10 * 60 * 1000, catalog: items }));
+        if (!cancelled) setCatalog(items);
+      } catch (error) {
+        console.error("[onboarding] Plan catalog unavailable", error);
+      } finally {
+        if (!cancelled) setCatalogLoading(false);
+      }
+    };
+    loadCatalog();
+    track("plan_view", { hubKind: "site", props: { default_interval: billingInterval } });
+    return () => { cancelled = true; };
+  }, []);
+
+  const selectBillingInterval = (interval: BillingInterval) => {
+    setBillingInterval(interval);
+    saveOnboardingData({ billingInterval: interval, billingSelectionExplicit: true, hasProtection: false });
+    track("billing_cycle_change", { hubKind: "site", props: { interval } });
+  };
+
+  const selectPlan = (plan: Plan) => {
+    setSelectedPlan(plan);
+    setDashboardType(plan === "solo" ? "personal" : null);
+    saveOnboardingData({ planType: plan, billingInterval, billingSelectionExplicit: true, hasProtection: false, dashboardType: plan === "solo" ? "personal" : undefined });
+  };
+
+  const continueFromPlan = () => {
+    if (!selectedPlan) return;
+    saveOnboardingData({ planType: selectedPlan, billingInterval, billingSelectionExplicit: true, hasProtection: false });
+    track("continue_click", { hubKind: "site", props: { plan: selectedPlan, interval: billingInterval } });
+    goTo("info", 1);
+  };
+
+  const catalogItem = (plan: Plan, interval: BillingInterval) => catalog.find((item) => item.plan === plan && item.interval === interval);
 
   // ── Card claim (NFC tap flow) ──
   // Claims a stashed card code after onboarding completes, mirroring the
@@ -378,7 +446,7 @@ const Onboarding = () => {
         clientEmail: clientEmail.trim(),
         businessName: businessName.trim(),
         planType: selectedPlan || "venue",
-        hasProtection,
+        hasProtection: false,
         googlePlaceId: selectedGooglePlace?.placeId || "",
         googlePlaceName: selectedGooglePlace?.name || "",
         googlePlaceAddress: selectedGooglePlace?.address || "",
@@ -456,7 +524,7 @@ const Onboarding = () => {
         logoUrl: logoUrl || '',
         planType: selectedPlan || 'venue',
         billingInterval,
-        hasProtection,
+        hasProtection: false,
         googlePlaceId: selectedGooglePlace?.placeId || '',
         googlePlaceName: selectedGooglePlace?.name || '',
         googlePlaceAddress: selectedGooglePlace?.address || '',
@@ -498,7 +566,7 @@ const Onboarding = () => {
         logoUrl: logoUrl || '',
         planType: selectedPlan || 'venue',
         billingInterval,
-        hasProtection,
+        hasProtection: false,
         googlePlaceId: selectedGooglePlace?.placeId || '',
         googlePlaceName: selectedGooglePlace?.name || '',
         googlePlaceAddress: selectedGooglePlace?.address || '',
@@ -585,7 +653,7 @@ const Onboarding = () => {
       const slug = generateSlug(bName);
 
       const plan = (savedData.planType as Plan) || selectedPlan || "venue";
-      const protection = savedData.hasProtection || hasProtection;
+      const protection = false;
       const resolvedDashboardType = savedData.dashboardType || dashboardType || (plan === 'solo' ? 'personal' : 'restaurant');
       const totalTrialDays = PLAN_DETAILS[plan].totalTrialDays;
       const trialEndsAt = new Date(Date.now() + totalTrialDays * 86400000).toISOString();
@@ -742,6 +810,7 @@ const Onboarding = () => {
 
       // Redirect to Stripe Checkout for card on file
       try {
+        track("checkout_start", { hubKind: "site", props: { plan, interval: savedData.billingInterval || billingInterval } });
         const { data, error } = await supabase.functions.invoke("create-checkout-session", {
           body: {
             email: session.user.email,
@@ -753,10 +822,11 @@ const Onboarding = () => {
             billingInterval: savedData.billingInterval === "month" || savedData.billingInterval === "year"
               ? savedData.billingInterval
               : billingInterval,
-            hasProtection: protection,
+            hasProtection: false,
             promoToken: promoTokenParam || undefined,
             dashboardType: resolvedDashboardType,
             trybeVisitorId: getTrybeVisitorId(),
+            campaign: savedData.campaign || {},
           },
         });
         if (error) throw error;
@@ -847,21 +917,23 @@ const Onboarding = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0e1a] text-white">
+    <div className={step === "plan" ? "min-h-screen bg-[hsl(var(--onboarding-bg))] text-[hsl(var(--onboarding-fg))]" : "min-h-screen bg-[#0a0e1a] text-white"}>
       <Helmet>
         <title>Create Your Hub | TapAway</title>
         <meta name="description" content="Create your TapAway hub. Custom NFC cards, your business links in one place, free 14-day trial." />
         <link rel="canonical" href="https://tapaway.co/start" />
       </Helmet>
       {/* Nav */}
-      <nav className="sticky top-0 z-50 bg-[#0a0e1a]/90 backdrop-blur-lg border-b border-white/5">
-        <div className="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
-          <a href="/" className="font-black text-xl tracking-tight">TapAway</a>
-          <div className="flex gap-1.5">
-            {[1, 2, 3].map((s) => (
-              <div key={s} className={`h-1.5 rounded-full transition-all duration-300 ${s <= stepNumber ? "w-8 bg-blue-500" : "w-4 bg-white/10"}`} />
-            ))}
-          </div>
+      <nav className={step === "plan" ? "sticky top-0 z-50 bg-[hsl(var(--onboarding-bg)/0.94)] backdrop-blur-lg border-b border-[hsl(var(--onboarding-border))]" : "sticky top-0 z-50 bg-[#0a0e1a]/90 backdrop-blur-lg border-b border-white/5"}>
+        <div className="max-w-3xl mx-auto px-5 py-4 flex items-center justify-between">
+          <a href="/" className="font-black text-2xl">TapAway</a>
+          {step === "plan" ? <a href="/support" className="text-sm text-[hsl(var(--onboarding-muted))]">Need help?</a> : (
+            <div className="flex gap-1.5">
+              {[1, 2].map((s) => (
+                <div key={s} className={`h-1.5 rounded-full transition-all duration-300 ${s <= stepNumber ? "w-8 bg-blue-500" : "w-4 bg-white/10"}`} />
+              ))}
+            </div>
+          )}
         </div>
         {promoDiscountType && (
           <div className="max-w-md mx-auto px-4 pt-1">
@@ -872,195 +944,83 @@ const Onboarding = () => {
         )}
       </nav>
 
-      <main className="max-w-md mx-auto px-4 py-8">
+      <main className={step === "plan" ? "max-w-3xl mx-auto px-4 sm:px-6 pt-8 pb-52 md:pb-12" : "max-w-md mx-auto px-4 py-8"}>
         <AnimatePresence mode="wait" custom={direction}>
           {/* ════════ STEP 1: Plan Selection ════════ */}
           {step === "plan" && (
-            <motion.div key="plan" custom={direction} variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.3 }} className="space-y-6">
-              <div className="text-center">
-                <h1 className="text-3xl font-black mb-2">What's your setup?</h1>
-                <p className="text-gray-400">Pick the plan that fits your business.</p>
+            <motion.div key="plan" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-7">
+              <header>
+                <p className="mb-2 text-xs font-bold uppercase text-[hsl(var(--onboarding-green))]">Made for your business</p>
+                <h1 className="text-4xl sm:text-5xl font-black leading-[1.02]">Let’s get your cards ready.</h1>
+                <p className="mt-4 max-w-2xl text-lg leading-relaxed text-[hsl(var(--onboarding-muted))]">Choose your plan. We’ll design your cards, build your business hub, and ship it all to you.</p>
+              </header>
+
+              <div className="flex items-center justify-between rounded-md bg-[hsl(var(--onboarding-green-soft))] px-4 py-3 font-bold text-[hsl(var(--onboarding-green))]">
+                <span className="flex items-center gap-2"><Clock3 className="h-5 w-5" />14 days free</span><span>$0 due today</span>
               </div>
 
-              {/* Billing period toggle. Yearly is preselected and pushed as the best value */}
-              <div className="flex justify-center">
-                <div className="relative grid grid-cols-2 gap-1 p-1 rounded-2xl bg-[#111827] border border-white/10 w-72">
-                  <button
-                    type="button"
-                    onClick={() => setBillingInterval("month")}
-                    className={`h-11 rounded-xl text-sm font-bold transition-colors ${
-                      billingInterval === "month"
-                        ? "bg-white/10 text-white"
-                        : "text-gray-400 hover:text-gray-200"
-                    }`}
-                  >
-                    Monthly
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setBillingInterval("year")}
-                    className={`relative h-11 rounded-xl text-sm font-bold transition-colors ${
-                      billingInterval === "year"
-                        ? "bg-blue-600 text-white shadow-[0_0_20px_rgba(59,130,246,0.4)]"
-                        : "text-gray-400 hover:text-gray-200"
-                    }`}
-                  >
-                    Yearly
-                    <span className="absolute -top-2.5 -right-1 bg-emerald-500 text-white text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full">
-                      Best value
-                    </span>
-                  </button>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                {(["solo", "venue"] as Plan[]).map((plan) => {
-                  const d = PLAN_DETAILS[plan];
-                  const selected = selectedPlan === plan;
-                  const Icon = d.icon;
-                  return (
-                    <button
-                      key={plan}
-                      onClick={() => { setSelectedPlan(plan); if (plan === 'solo') setDashboardType('personal'); else setDashboardType(null); }}
-                      className={`w-full text-left p-5 rounded-2xl border-2 transition-all duration-200 relative overflow-hidden ${
-                        selected
-                          ? "border-blue-500 bg-blue-500/10 shadow-[0_0_30px_rgba(59,130,246,0.15)]"
-                          : "border-white/10 bg-[#111827] hover:border-white/20"
-                      }`}
-                    >
-                      {/* Trial badge. Top left */}
-                      <div className="absolute top-0 left-0 bg-emerald-500 text-white text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-br-lg">
-                        {d.trialDays}-Day Free Trial
-                      </div>
-                      {d.badge && (
-                        <div className="absolute top-0 right-0 bg-[#3B82F6] text-white text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-bl-lg">
-                          {d.badge}
-                        </div>
-                      )}
-                      <div className="flex items-start gap-4 mt-3">
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${selected ? "bg-blue-500/20" : "bg-white/5"}`}>
-                          <Icon className={`w-6 h-6 ${selected ? "text-blue-400" : "text-gray-400"}`} />
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between gap-2 mb-1">
-                            <span className="text-lg font-bold">{d.label}</span>
-                            {/* Radio selection indicator */}
-                            <div
-                              className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
-                                selected ? "border-[#3B82F6] bg-[#3B82F6]" : "border-white/30 bg-transparent"
-                              }`}
-                              aria-hidden="true"
-                            >
-                              {selected && <div className="w-2 h-2 rounded-full bg-white" />}
-                            </div>
-                          </div>
-                          <div className="mb-1">
-                            <div className="text-2xl font-black text-[#3B82F6] leading-tight">$0 Today</div>
-                            {billingInterval === "year" ? (
-                              <div className="text-xs text-gray-500">
-                                (then <span className="font-bold text-emerald-400">${d.yearlyPrice}/yr</span> after {d.trialDays} days. ${d.yearlyPerMonth}/mo · {d.yearlyBadge})
-                              </div>
-                            ) : (
-                              <div className="text-xs text-gray-500">(then ${d.price}/mo after {d.trialDays} days)</div>
-                            )}
-                          </div>
-                          <p className="text-sm text-gray-400 mb-1">{d.subtitle}</p>
-                          <div className="space-y-1 text-xs text-gray-500">
-                            <p>Includes <span className="font-bold text-gray-400">{d.cards} Smart Cards + Free Shipping</span>.</p>
-                            <p className="flex items-start gap-1.5"><Check className="mt-0.5 h-3 w-3 shrink-0 text-emerald-400" /> <span>Custom hub designed &amp; built for you.</span></p>
-                            <p className="flex items-start gap-1.5"><Check className="mt-0.5 h-3 w-3 shrink-0 text-emerald-400" /> <span>Backed by the 14-Day Love-It Promise.</span></p>
-                          </div>
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Trial terms disclosure. Required before any trial starts. */}
-              <p className="mt-4 text-[11px] leading-relaxed text-gray-500">
-                Trial terms: your free trial starts today and runs{" "}
-                {selectedPlan ? PLAN_DETAILS[selectedPlan].trialDays : 14} days. We'll place a temporary $1 hold
-                to verify your card. It's released automatically. Never charged. Unless you cancel before the trial
-                ends, your plan renews automatically{billingInterval === "year" && selectedPlan
-                  ? <> at the listed yearly price (<span className="font-semibold text-gray-400">${PLAN_DETAILS[selectedPlan].yearlyPrice}/year</span>)</>
-                  : " at the listed monthly price"} and your card is charged. Cancel any
-                time from your dashboard. Smart Cards and stands shipped during the trial remain the property of TapAway
-                until a paid plan is active. If the trial ends without activation, your hub is deactivated and its
-                public link stops resolving. See our{" "}
-                <a href="/terms" className="underline">Terms</a> and{" "}
-                <a href="/refund" className="underline">Refund Policy</a>.
-              </p>
-
-              {/* Spacer for fixed bottom button */}
-              {selectedPlan && <div className="h-20" />}
-
-            </motion.div>
-          )}
-
-          {/* ════════ STEP 2: Loss Protection ════════ */}
-          {step === "protection" && selectedPlan && (
-            <motion.div key="protection" custom={direction} variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.3 }} className="space-y-6">
-              <div className="text-center">
-                <h1 className="text-2xl font-black mb-2">Customers love these cards.<br />Sometimes too much.</h1>
-                <p className="text-gray-400 text-sm leading-relaxed">
-                  {selectedPlan === "solo"
-                    ? "Don't let missing cards stall your growth. Includes priority replacements, easy to claim anytime in your dashboard."
-                    : "In busy venues, cards tend to walk home with guests. Don't stop growing because a card went missing."}
-                </p>
-              </div>
-
-              {/* Protection card */}
-              <div className="relative rounded-2xl overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-transparent to-purple-600/10 pointer-events-none" />
-                <div className="border border-white/10 rounded-2xl p-6 bg-[#111827] space-y-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center">
-                      <Shield className="w-6 h-6 text-blue-400" />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-lg">Loss Protection</h3>
-                      <p className="text-blue-400 font-black text-xl">$5<span className="text-sm font-normal text-gray-500">/mo</span> <span className="text-emerald-400 text-sm font-semibold">($0 Today)</span></p>
-                    </div>
+              <section aria-labelledby="choose-plan-heading">
+                <div className="mb-3 flex items-end justify-between gap-3">
+                  <h2 id="choose-plan-heading" className="text-xl font-black">Choose your plan</h2>
+                  <div className="grid grid-cols-2 rounded-md border border-[hsl(var(--onboarding-border))] bg-card p-1 text-sm">
+                    <Button type="button" variant="ghost" size="sm" onClick={() => selectBillingInterval("year")} className={billingInterval === "year" ? "bg-[hsl(var(--onboarding-green))] text-primary-foreground hover:bg-[hsl(var(--onboarding-green))]" : "text-[hsl(var(--onboarding-muted))]"}>Yearly</Button>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => selectBillingInterval("month")} className={billingInterval === "month" ? "bg-[hsl(var(--onboarding-green))] text-primary-foreground hover:bg-[hsl(var(--onboarding-green))]" : "text-[hsl(var(--onboarding-muted))]"}>Monthly</Button>
                   </div>
-                  <ul className="space-y-2 text-sm text-gray-300">
-                    <li className="flex items-center gap-2"><Check className="w-4 h-4 text-blue-400 shrink-0" /> <span><span className="font-bold text-white">Monthly</span> {PLAN_DETAILS[selectedPlan].refill} refills available when you need them.</span></li>
-                    <li className="flex items-center gap-2"><Check className="w-4 h-4 text-blue-400 shrink-0" /> No questions asked replacements</li>
-                    <li className="flex items-center gap-2"><Check className="w-4 h-4 text-blue-400 shrink-0" /> Cancel anytime</li>
-                  </ul>
                 </div>
-              </div>
 
-              <button
-                onClick={() => { setHasProtection(true); goTo("info", 1); }}
-                className="w-full h-14 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-lg transition-colors flex items-center justify-center gap-2"
-              >
-                Add Protection. $0 Today
-              </button>
+                {billingInterval === "year" && !catalogLoading && catalog.filter((item) => item.interval === "year" && item.available).length < 2 && (
+                  <div className="mb-3 rounded-md border border-[hsl(var(--onboarding-border))] bg-card px-4 py-3 text-sm">
+                    Yearly is temporarily unavailable. <button type="button" className="font-bold underline" onClick={() => selectBillingInterval("month")}>Choose monthly</button>
+                  </div>
+                )}
 
-              <div className="space-y-2">
-                <button
-                  onClick={() => { setHasProtection(false); goTo("info", 1); }}
-                  className="w-full text-center text-sm text-gray-400 hover:text-gray-300 transition-colors underline"
-                >
-                  No thanks, I'll pay $10 + shipping per replacement
-                </button>
+                <div className="grid gap-4 md:grid-cols-2">
+                  {(["solo", "venue"] as Plan[]).map((plan) => {
+                    const d = PLAN_DETAILS[plan];
+                    const selected = selectedPlan === plan;
+                    const item = catalogItem(plan, billingInterval);
+                    const unavailable = !catalogLoading && item?.available !== true;
+                    const monthlyEquivalent = d.yearlyPrice / 12;
+                    const savings = d.price * 12 - d.yearlyPrice;
+                    return (
+                      <Button key={plan} type="button" variant="outline" disabled={unavailable} onClick={() => selectPlan(plan)} className={`h-auto min-h-[238px] whitespace-normal p-5 text-left items-stretch justify-start border-2 bg-card text-card-foreground hover:bg-card ${selected ? "border-[hsl(var(--onboarding-green))]" : "border-[hsl(var(--onboarding-border))]"}`}>
+                        <span className="flex w-full flex-col">
+                          <span className="flex items-start gap-4">
+                            <span className="relative flex h-24 w-16 shrink-0 items-center justify-center overflow-hidden rounded-md bg-[hsl(var(--onboarding-green))] shadow-md">
+                              <img src="/tapaway-card-front-v2.svg" alt="" className="h-full w-full object-cover" />
+                            </span>
+                            <span className="min-w-0 flex-1 pt-1">
+                              <span className="flex items-start justify-between gap-2">
+                                <span className="text-xl font-black">{d.label}</span>
+                                <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 ${selected ? "border-[hsl(var(--onboarding-green))] bg-[hsl(var(--onboarding-green))] text-primary-foreground" : "border-[hsl(var(--onboarding-muted))]"}`}>{selected && <Check className="h-4 w-4" />}</span>
+                              </span>
+                              <span className="mt-1 block text-sm text-[hsl(var(--onboarding-muted))]">{plan === "solo" ? "For independent pros & small businesses" : "For storefronts, restaurants & teams"}</span>
+                            </span>
+                          </span>
+                          <span className="my-4 block h-px bg-[hsl(var(--onboarding-border))]" />
+                          <span className="flex items-end justify-between gap-4">
+                            <span><strong className="block text-base">{d.cards} custom smart cards</strong><span className="text-sm text-[hsl(var(--onboarding-muted))]">Your branding · Tap + QR</span></span>
+                            <span className="text-right"><strong className="block text-xl">{billingInterval === "year" ? `$${monthlyEquivalent.toFixed(2)}/mo` : `$${d.price}/mo`}</strong><span className="text-xs text-[hsl(var(--onboarding-muted))]">{billingInterval === "year" ? `$${d.yearlyPrice} billed yearly · save $${savings}` : "after your free trial"}</span></span>
+                          </span>
+                        </span>
+                      </Button>
+                    );
+                  })}
+                </div>
+              </section>
 
-                <p className="text-center text-xs text-gray-400">
-                  Standard billing starts after your trial ends. Cancel anytime.
-                </p>
+              <section>
+                <h2 className="mb-3 text-xl font-black">Included with either plan</h2>
+                <div className="grid grid-cols-2 gap-x-5 gap-y-3 text-sm text-[hsl(var(--onboarding-muted))]">
+                  {["Done-for-you setup", "Free US shipping", "Custom business hub", "Cancel anytime"].map((benefit) => <div key={benefit} className="flex items-center gap-2"><span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--onboarding-green))] text-primary-foreground"><Check className="h-3 w-3" /></span>{benefit}</div>)}
+                </div>
+              </section>
 
-                <button
-                  onClick={() => goTo("plan", -1)}
-                  className="w-full text-center text-xs text-gray-500 hover:text-gray-400 transition-colors"
-                >
-                  ← Back
-                </button>
-              </div>
+              <p className="text-xs leading-relaxed text-[hsl(var(--onboarding-muted))]">Your free trial starts today and runs 14 days. We’ll place a temporary $1 hold to verify your card; it is released automatically. Unless canceled before the trial ends, your selected plan renews automatically. Yearly cancellation stops the next renewal and does not refund the current annual term. See our <a href="/terms" className="underline">Terms</a> and <a href="/refund" className="underline">Refund Policy</a>.</p>
             </motion.div>
           )}
 
-          {/* ════════ STEP 3: Business Info + Auth ════════ */}
+          {/* ════════ STEP 2: Business Info + Auth ════════ */}
           {step === "info" && (
             <motion.div key="info" custom={direction} variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.3 }} className="space-y-8">
               <div className="text-center">
@@ -1200,12 +1160,6 @@ const Onboarding = () => {
                     <span>{PLAN_DETAILS[selectedPlan].label}</span>
                     <span className="text-emerald-400 font-semibold">$0.00</span>
                   </div>
-                  {hasProtection && (
-                    <div className="flex justify-between text-sm text-gray-400">
-                      <span>Loss Protection</span>
-                      <span className="text-emerald-400 font-semibold">$0.00</span>
-                    </div>
-                  )}
                   <div className="flex justify-between text-sm text-gray-400">
                     <span>Shipping</span>
                     <span className="text-emerald-400 font-semibold">$0.00</span>
@@ -1215,7 +1169,7 @@ const Onboarding = () => {
                     <span className="text-emerald-400 text-lg">$0.00</span>
                   </div>
                   <p className="text-xs text-gray-500 pt-2">
-                    After trial: ${PLAN_DETAILS[selectedPlan].price}{hasProtection ? ` + $${PROTECTION_PRICE}` : ""}/mo
+                    After trial: {billingInterval === "year" ? `$${PLAN_DETAILS[selectedPlan].yearlyPrice}/year` : `$${PLAN_DETAILS[selectedPlan].price}/month`}
                   </p>
                   <p className="text-xs text-gray-600">
                     Your 14-day free trial starts today. Cards ship free while you try it.
@@ -1327,7 +1281,7 @@ const Onboarding = () => {
               </p>
 
               <button
-                onClick={() => goTo("protection", -1)}
+                onClick={() => goTo("plan", -1)}
                 className="w-full text-center text-xs text-gray-600 hover:text-gray-400 transition-colors"
               >
                 ← Back
@@ -1337,23 +1291,19 @@ const Onboarding = () => {
         </AnimatePresence>
       </main>
 
-      {/* Fixed bottom CTA for plan step */}
+      {/* Fixed mobile summary for plan step */}
       <AnimatePresence>
         {step === "plan" && selectedPlan && (
           <motion.div
-            initial={{ y: 100, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 100, opacity: 0 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-gradient-to-t from-[#0a0e1a] via-[#0a0e1a]/95 to-transparent pt-10"
+            initial={false}
+            className="fixed bottom-0 left-0 right-0 z-50 border-t border-[hsl(var(--onboarding-border))] bg-[hsl(var(--onboarding-bg)/0.97)] p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] backdrop-blur md:static md:mt-8 md:border-t md:bg-transparent md:p-0"
           >
-            <div className="max-w-md mx-auto">
-              <button
-                onClick={() => goTo("protection", 1)}
-                className="w-full h-14 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-lg transition-colors flex items-center justify-center gap-2 shadow-[0_0_30px_rgba(59,130,246,0.3)]"
-              >
-                Continue <ArrowRight className="w-5 h-5" />
-              </button>
+            <div className="max-w-3xl mx-auto">
+              <div className="mb-3 flex items-center justify-between text-sm"><strong>{PLAN_DETAILS[selectedPlan].label} · {PLAN_DETAILS[selectedPlan].cards} cards</strong><strong className="text-[hsl(var(--onboarding-green))]">$0 today</strong></div>
+              <Button onClick={continueFromPlan} disabled={catalogLoading || catalogItem(selectedPlan, billingInterval)?.available === false} className="h-14 w-full bg-[hsl(var(--onboarding-fg))] text-base font-bold text-primary-foreground hover:bg-[hsl(var(--onboarding-green))]">
+                Continue with {selectedPlan === "solo" ? "Solo" : "Pro"} <ArrowRight className="w-5 h-5" />
+              </Button>
+              <p className="mt-2 text-center text-xs text-[hsl(var(--onboarding-muted))]">Then {billingInterval === "year" ? `$${PLAN_DETAILS[selectedPlan].yearlyPrice}/year` : `$${PLAN_DETAILS[selectedPlan].price}/month`} after 14 days. Cancel anytime.</p>
             </div>
           </motion.div>
         )}

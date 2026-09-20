@@ -2,6 +2,7 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Stripe from 'https://esm.sh/stripe@14.21.0';
 import { checkRateLimit, getRateLimitKey, rateLimitResponse } from "../_shared/rateLimit.ts";
+import { resolveOnboardingPrice } from "../_shared/onboardingCatalog.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -28,8 +29,6 @@ const PLAN_CONFIG: Record<string, {
   venue: { name: 'TapAway Pro', amount: 3900, yearlyAmount: 39000, trialDays: 14, productName: 'TapAway Pro', yearlyProductKey: 'venue', yearlyProductName: 'TapAway Pro' },
 };
 
-const PROTECTION_AMOUNT = 500; // $5/mo
-
 function validateEmail(email: string): boolean {
   if (!email || typeof email !== 'string') return false;
   if (email.length > 255) return false;
@@ -40,55 +39,6 @@ function validateUuid(value: string | undefined): boolean {
   if (!value) return true;
   if (typeof value !== 'string') return false;
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
-}
-
-/** Find or create a Stripe product by metadata key */
-async function findOrCreateProduct(
-  stripe: Stripe,
-  metaKey: string,
-  metaValue: string,
-  productName: string,
-): Promise<string> {
-  // Search for existing product
-  const existing = await stripe.products.search({
-    query: `metadata["${metaKey}"]:"${metaValue}" active:"true"`,
-    limit: 1,
-  });
-  if (existing.data.length > 0) return existing.data[0].id;
-
-  // Create new product
-  const product = await stripe.products.create({
-    name: productName,
-    metadata: { [metaKey]: metaValue },
-  });
-  return product.id;
-}
-
-/** Find or create a recurring USD price on a product, for the given interval */
-async function findOrCreatePrice(
-  stripe: Stripe,
-  productId: string,
-  unitAmount: number,
-  interval: 'month' | 'year',
-): Promise<string> {
-  const prices = await stripe.prices.list({
-    product: productId,
-    type: 'recurring',
-    active: true,
-    limit: 20,
-  });
-  const match = prices.data.find(
-    (p: any) => p.unit_amount === unitAmount && p.currency === 'usd' && p.recurring?.interval === interval,
-  );
-  if (match) return match.id;
-
-  const price = await stripe.prices.create({
-    product: productId,
-    unit_amount: unitAmount,
-    currency: 'usd',
-    recurring: { interval },
-  });
-  return price.id;
 }
 
 serve(async (req) => {
@@ -108,7 +58,7 @@ serve(async (req) => {
     const stripe = new Stripe(stripeSecretKey, { apiVersion: '2023-10-16' });
 
     const body = await req.json();
-    const { email, userId, restaurantId, planType, billingInterval, hasProtection: hasProtectionFlag, promoToken, dashboardType, claimRestaurantId, noTrial, personalProfileId, successPath, trybeVisitorId } = body;
+    const { email, userId, restaurantId, planType, billingInterval, hasProtection: hasProtectionFlag, promoToken, dashboardType, claimRestaurantId, noTrial, personalProfileId, successPath, trybeVisitorId, campaign } = body;
 
     // Trybe creator-attribution visitor id (optional; only present once the
     // consent-gated pixel has loaded). Stored on the subscription so every
@@ -117,12 +67,23 @@ serve(async (req) => {
       typeof trybeVisitorId === 'string' && trybeVisitorId.length > 0 && trybeVisitorId.length <= 128
         ? trybeVisitorId
         : '';
+    const campaignMetadata = campaign && typeof campaign === 'object' && !Array.isArray(campaign)
+      ? Object.fromEntries(['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'fbclid', 'src', 'via'].flatMap((key) => {
+          const value = (campaign as Record<string, unknown>)[key];
+          return typeof value === 'string' && value.length > 0 ? [[key, value.slice(0, 250)]] : [];
+        }))
+      : {};
 
     // Validate the plan FIRST: validPlanType and config are referenced by the
     // subscription data and success URL built below. (Declaring them after
     // use would throw at runtime. Const bindings in the temporal dead zone.)
-    const rawPlanType = typeof planType === 'string' ? planType : 'venue';
-    const validPlanType = rawPlanType === 'solo' || rawPlanType === 'venue' ? rawPlanType : 'venue';
+    const rawPlanType = typeof planType === 'string' ? planType : '';
+    if (rawPlanType !== 'solo' && rawPlanType !== 'venue') {
+      return new Response(JSON.stringify({ error: 'Invalid plan selection.' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400,
+      });
+    }
+    const validPlanType = rawPlanType;
     const config = PLAN_CONFIG[validPlanType];
     if (!config) {
       return new Response(JSON.stringify({ error: `Unknown plan type: ${rawPlanType}` }), {
@@ -137,7 +98,12 @@ serve(async (req) => {
     // Yearly behavior: the 14-day free trial still applies (standard SaaS);
     // the trial's first charge is the FULL yearly amount ($199 / $390). The
     // $1 card verification still runs on trial signups regardless of period.
-    const rawBillingInterval = typeof billingInterval === 'string' ? billingInterval : 'month';
+    const rawBillingInterval = typeof billingInterval === 'string' ? billingInterval : '';
+    if (rawBillingInterval !== 'month' && rawBillingInterval !== 'year') {
+      return new Response(JSON.stringify({ error: 'Invalid billing selection.' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400,
+      });
+    }
     const isYearly = rawBillingInterval === 'year';
 
     // Van mode: noTrial skips the free trial and charges immediately.
@@ -202,10 +168,11 @@ serve(async (req) => {
       });
     }
 
-    console.log('[create-checkout-session] Building dynamic checkout:', {
+    const protectionAllowed = Boolean(hasProtectionFlag && noTrial);
+    console.log('[create-checkout-session] Building verified checkout:', {
       plan: validPlanType,
       billingInterval: isYearly ? 'year' : 'month',
-      protection: !!hasProtectionFlag,
+      protection: protectionAllowed,
       email: email.substring(0, 3) + '***',
       noTrial: !!noTrial,
     });
@@ -213,31 +180,23 @@ serve(async (req) => {
     // --- Build line items dynamically ---
     // Yearly selects the plan's yearly price (same product family; Solo
     // yearly = the Annual Value Pass SKU shared with the /claim flow).
-    const baseProdId = await findOrCreateProduct(
-      stripe,
-      'tapaway_plan',
-      isYearly ? config.yearlyProductKey : validPlanType,
-      isYearly ? config.yearlyProductName : config.productName,
-    );
-    const basePriceId = await findOrCreatePrice(
-      stripe,
-      baseProdId,
-      isYearly ? config.yearlyAmount : config.amount,
-      isYearly ? 'year' : 'month',
-    );
+    let verifiedPrice;
+    try {
+      verifiedPrice = await resolveOnboardingPrice(stripe, validPlanType, isYearly ? 'year' : 'month', true);
+    } catch (catalogError) {
+      console.error('[create-checkout-session] Catalog validation failed', {
+        plan: validPlanType,
+        interval: isYearly ? 'year' : 'month',
+        error: catalogError instanceof Error ? catalogError.message : 'unknown',
+      });
+      return new Response(JSON.stringify({ error: isYearly ? 'Yearly is temporarily unavailable' : 'This plan is temporarily unavailable' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 503,
+      });
+    }
 
     const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [
-      { price: basePriceId, quantity: 1 },
+      { price: verifiedPrice.priceId, quantity: 1 },
     ];
-
-    let protectionPriceId: string | null = null;
-    if (hasProtectionFlag) {
-      const protProdId = await findOrCreateProduct(stripe, 'tapaway_addon', 'loss_protection', 'TapAway Loss Protection');
-      // Protection stays monthly even on yearly plans. A $5/mo add-on on a
-      // yearly subscription is valid in Stripe and keeps the add-on simple.
-      protectionPriceId = await findOrCreatePrice(stripe, protProdId, PROTECTION_AMOUNT, 'month');
-      lineItems.push({ price: protectionPriceId, quantity: 1 });
-    }
 
     // --- Handle promo token for 50% off ---
     let discounts: Stripe.Checkout.SessionCreateParams.Discount[] | undefined;
@@ -290,7 +249,13 @@ serve(async (req) => {
       shipping_address_collection: { allowed_countries: ['US', 'CA', 'MX'] },
       subscription_data: {
         ...subscriptionData,
-        ...(trybeVid ? { metadata: { trybe_visitor_id: trybeVid } } : {}),
+        metadata: {
+          onboarding_catalog: 'true',
+          plan_type: isYearly ? `${validPlanType}_yearly` : validPlanType,
+          billing_interval: isYearly ? 'year' : 'month',
+          ...(trybeVid ? { trybe_visitor_id: trybeVid } : {}),
+          ...campaignMetadata,
+        },
       },
       metadata: {
         // plan_type is what verify-checkout / the webhook persist to the DB:
@@ -298,7 +263,7 @@ serve(async (req) => {
         // plans as yearly_price/12 instead of mistaking them for monthly.
         plan_type: isYearly ? `${validPlanType}_yearly` : validPlanType,
         billing_interval: isYearly ? 'year' : 'month',
-        has_protection: String(!!hasProtectionFlag),
+        has_protection: String(protectionAllowed),
         user_id: userId || '',
         restaurant_id: restaurantId || '',
         van_sale: noTrial ? 'true' : 'false',
@@ -307,6 +272,7 @@ serve(async (req) => {
         dashboard_type: dashboardType || 'restaurant',
         claim_restaurant_id: claimRestaurantId || '',
         trybe_visitor_id: trybeVid,
+        ...campaignMetadata,
       },
     };
 
