@@ -392,6 +392,15 @@ const Onboarding = () => {
   // ── Navigation helpers ──
   const goTo = (s: Step, dir: number) => { setDirection(dir); setStep(s); };
 
+  // Autosave typed business info (debounced) so navigating back never loses it.
+  useEffect(() => {
+    if (!initialCheckDone) return;
+    const t = setTimeout(() => {
+      saveOnboardingData({ businessName, websiteUrl, phone: ownerPhone });
+    }, 400);
+    return () => clearTimeout(t);
+  }, [businessName, websiteUrl, ownerPhone, initialCheckDone]);
+
   // ── Google place handler ──
   const handleGooglePlaceSelected = useCallback(({ placeId, name, address }: { placeId: string; name: string; address: string }) => {
     const normalized = normalizeGooglePlaceId(placeId) || placeId.replace(/^places\//, "");
