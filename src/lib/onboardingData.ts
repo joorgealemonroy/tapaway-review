@@ -31,6 +31,8 @@ export interface OnboardingData {
   googlePlaceId?: string;
   googlePlaceName?: string;
   googlePlaceAddress?: string;
+  notOnGoogle?: boolean;
+  websiteUrl?: string;
   dashboardType?: string;
   billingInterval?: 'month' | 'year';
   billingSelectionExplicit?: boolean;

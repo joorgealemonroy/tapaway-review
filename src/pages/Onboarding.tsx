@@ -387,6 +387,25 @@ const Onboarding = () => {
     const normalized = normalizeGooglePlaceId(placeId) || placeId.replace(/^places\//, "");
     setSelectedGooglePlace({ placeId: normalized, name, address });
     setBusinessName(name);
+    // Persist immediately so going back to the plan step never loses the pick.
+    saveOnboardingData({
+      businessName: name,
+      googlePlaceId: normalized,
+      googlePlaceName: name,
+      googlePlaceAddress: address,
+      notOnGoogle: false,
+    });
+  }, []);
+
+  // Switch between Google search and manual entry, persisting the choice.
+  const setNotOnGooglePersisted = useCallback((value: boolean) => {
+    setNotOnGoogle(value);
+    if (value) {
+      setSelectedGooglePlace(null);
+      saveOnboardingData({ notOnGoogle: true, googlePlaceId: '', googlePlaceName: '', googlePlaceAddress: '' });
+    } else {
+      saveOnboardingData({ notOnGoogle: false });
+    }
   }, []);
 
   // ── Logo upload handler ──
