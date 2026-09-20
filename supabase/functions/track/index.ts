@@ -28,6 +28,12 @@ const ALLOWED_EVENTS = new Set([
   "contact_save",
   "lead_submit",
   "checkout_start",
+  "plan_view",
+  "billing_cycle_change",
+  "continue_click",
+  "trial_start_confirmed",
+  "paid_conversion",
+  "subscription_renewal",
   "purchase",
 ]);
 

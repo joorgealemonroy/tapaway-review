@@ -41,6 +41,12 @@ export type AnalyticsEventName =
   | "contact_save"
   | "lead_submit"
   | "checkout_start"
+  | "plan_view"
+  | "billing_cycle_change"
+  | "continue_click"
+  | "trial_start_confirmed"
+  | "paid_conversion"
+  | "subscription_renewal"
   | "purchase";
 
 export interface TrackOptions {
@@ -122,18 +128,29 @@ function stripQuery(path: string): string {
 
 function campaign() {
   const p = new URLSearchParams(window.location.search);
-  const src = p.get("utm_source");
-  const medium = p.get("utm_medium");
-  const explicit = p.get("src") || p.get("via");
+  const savedRaw = safeGet(window.sessionStorage, "tapaway_campaign");
+  let saved: Record<string, string> = {};
+  try { saved = savedRaw ? JSON.parse(savedRaw) : {}; } catch { saved = {}; }
+  const current = Object.fromEntries(["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "src", "via"].flatMap((key) => {
+    const value = p.get(key);
+    return value ? [[key, value.slice(0, 250)]] : [];
+  }));
+  if (Object.keys(current).length) {
+    saved = { ...saved, ...current };
+    safeSet(window.sessionStorage, "tapaway_campaign", JSON.stringify(saved));
+  }
+  const src = saved.utm_source ?? null;
+  const medium = saved.utm_medium ?? null;
+  const explicit = saved.src || saved.via;
   let channel: string | null = null;
   if (explicit === "nfc" || medium === "nfc") channel = "nfc";
   else if (explicit === "qr" || medium === "qr") channel = "qr";
   return {
     utm_source: src,
     utm_medium: medium,
-    utm_campaign: p.get("utm_campaign"),
-    utm_content: p.get("utm_content"),
-    utm_term: p.get("utm_term"),
+    utm_campaign: saved.utm_campaign ?? null,
+    utm_content: saved.utm_content ?? null,
+    utm_term: saved.utm_term ?? null,
     campaign_channel: channel,
   };
 }
