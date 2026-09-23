@@ -3168,6 +3168,8 @@ export type Database = {
           expires_at: string
           id: string
           is_used: boolean
+          reserved_at: string | null
+          reserved_by: string | null
           token: string
           used_by_user_id: string | null
         }
@@ -3178,6 +3180,8 @@ export type Database = {
           expires_at: string
           id?: string
           is_used?: boolean
+          reserved_at?: string | null
+          reserved_by?: string | null
           token?: string
           used_by_user_id?: string | null
         }
@@ -3188,6 +3192,8 @@ export type Database = {
           expires_at?: string
           id?: string
           is_used?: boolean
+          reserved_at?: string | null
+          reserved_by?: string | null
           token?: string
           used_by_user_id?: string | null
         }
@@ -5174,6 +5180,14 @@ export type Database = {
       recompute_closer_pool: {
         Args: { _period_label: string; _rep_id: string }
         Returns: undefined
+      }
+      redeem_free_promo_token: {
+        Args: { p_restaurant_id: string; p_token_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      reserve_promo_token: {
+        Args: { p_hold_minutes?: number; p_token_id: string; p_user_id: string }
+        Returns: boolean
       }
       rpt_admin_hub_table: {
         Args: { _caller_user_id: string; _since: string; _until: string }

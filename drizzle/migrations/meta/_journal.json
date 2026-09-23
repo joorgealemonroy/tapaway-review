@@ -36,6 +36,13 @@
       "when": 1790146830978,
       "tag": "0004_20260920120000_restaurants_billing_guard",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790146847441,
+      "tag": "0005_20260920121000_promo_token_reservation",
+      "breakpoints": true
     }
   ]
 }
