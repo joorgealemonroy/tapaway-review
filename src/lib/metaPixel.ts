@@ -32,7 +32,7 @@ declare global {
 
 let initialized = false;
 let loadAttempted = false;
-let suppressNextPageView = false;
+let suppressNextPageView: string | null = null;
 
 function injectPixelScript(): void {
   if (loadAttempted || typeof document === "undefined") return;
@@ -75,9 +75,9 @@ export function initMetaPixel(): void {
     window.fbq?.("init", PIXEL_ID);
     window.fbq?.("track", "PageView");
     initialized = true;
-    // init already counted the current page. Swallow the very next
-    // route-level PageView so the first load is not double counted.
-    suppressNextPageView = true;
+    // init already counted the current page. Swallow a route-level PageView
+    // for this same path so the first load is not double counted.
+    suppressNextPageView = typeof location !== "undefined" ? location.pathname : "";
   } catch {
     /* ignore */
   }
@@ -99,9 +99,11 @@ export function trackMetaEvent(
 
 /** Convenience: PageView on SPA route changes (dedupe handled by caller). */
 export function trackMetaPageView(): void {
-  if (suppressNextPageView) {
-    suppressNextPageView = false;
-    return;
+  const path = typeof location !== "undefined" ? location.pathname : "";
+  if (suppressNextPageView !== null) {
+    const skip = suppressNextPageView === path;
+    suppressNextPageView = null;
+    if (skip) return;
   }
   trackMetaEvent("PageView");
 }
