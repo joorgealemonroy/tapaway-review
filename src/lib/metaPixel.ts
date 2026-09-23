@@ -19,7 +19,10 @@
 
 import { getConsent, onConsentChange } from "@/lib/consent";
 
-const PIXEL_ID = import.meta.env.VITE_META_PIXEL_ID as string | undefined;
+/** Production pixel. Overridable per-environment via VITE_META_PIXEL_ID. */
+const DEFAULT_PIXEL_ID = "1117523280799077";
+const ENV_PIXEL_ID = (import.meta.env.VITE_META_PIXEL_ID as string | undefined)?.trim();
+const PIXEL_ID = ENV_PIXEL_ID || DEFAULT_PIXEL_ID;
 
 declare global {
   interface Window {
@@ -29,6 +32,7 @@ declare global {
 
 let initialized = false;
 let loadAttempted = false;
+let suppressNextPageView: string | null = null;
 
 function injectPixelScript(): void {
   if (loadAttempted || typeof document === "undefined") return;
@@ -71,6 +75,9 @@ export function initMetaPixel(): void {
     window.fbq?.("init", PIXEL_ID);
     window.fbq?.("track", "PageView");
     initialized = true;
+    // init already counted the current page. Swallow a route-level PageView
+    // for this same path so the first load is not double counted.
+    suppressNextPageView = typeof location !== "undefined" ? location.pathname : "";
   } catch {
     /* ignore */
   }
@@ -92,6 +99,12 @@ export function trackMetaEvent(
 
 /** Convenience: PageView on SPA route changes (dedupe handled by caller). */
 export function trackMetaPageView(): void {
+  const path = typeof location !== "undefined" ? location.pathname : "";
+  if (suppressNextPageView !== null) {
+    const skip = suppressNextPageView === path;
+    suppressNextPageView = null;
+    if (skip) return;
+  }
   trackMetaEvent("PageView");
 }
 
