@@ -2400,6 +2400,7 @@ export type Database = {
           destination_value: string | null
           id: string
           owner_user_id: string | null
+          paid_order_ref: string | null
           public_code: string
           status: string
         }
@@ -2413,6 +2414,7 @@ export type Database = {
           destination_value?: string | null
           id?: string
           owner_user_id?: string | null
+          paid_order_ref?: string | null
           public_code: string
           status?: string
         }
@@ -2426,6 +2428,7 @@ export type Database = {
           destination_value?: string | null
           id?: string
           owner_user_id?: string | null
+          paid_order_ref?: string | null
           public_code?: string
           status?: string
         }
