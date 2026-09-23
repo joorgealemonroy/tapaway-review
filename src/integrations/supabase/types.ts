@@ -2400,6 +2400,7 @@ export type Database = {
           destination_value: string | null
           id: string
           owner_user_id: string | null
+          paid_order_ref: string | null
           public_code: string
           status: string
         }
@@ -2413,6 +2414,7 @@ export type Database = {
           destination_value?: string | null
           id?: string
           owner_user_id?: string | null
+          paid_order_ref?: string | null
           public_code: string
           status?: string
         }
@@ -2426,6 +2428,7 @@ export type Database = {
           destination_value?: string | null
           id?: string
           owner_user_id?: string | null
+          paid_order_ref?: string | null
           public_code?: string
           status?: string
         }
@@ -3160,6 +3163,27 @@ export type Database = {
         }
         Relationships: []
       }
+      processed_stripe_events: {
+        Row: {
+          event_id: string
+          event_type: string
+          processed_at: string
+          status: string
+        }
+        Insert: {
+          event_id: string
+          event_type: string
+          processed_at?: string
+          status?: string
+        }
+        Update: {
+          event_id?: string
+          event_type?: string
+          processed_at?: string
+          status?: string
+        }
+        Relationships: []
+      }
       promo_tokens: {
         Row: {
           created_at: string
@@ -3168,6 +3192,8 @@ export type Database = {
           expires_at: string
           id: string
           is_used: boolean
+          reserved_at: string | null
+          reserved_by: string | null
           token: string
           used_by_user_id: string | null
         }
@@ -3178,6 +3204,8 @@ export type Database = {
           expires_at: string
           id?: string
           is_used?: boolean
+          reserved_at?: string | null
+          reserved_by?: string | null
           token?: string
           used_by_user_id?: string | null
         }
@@ -3188,6 +3216,8 @@ export type Database = {
           expires_at?: string
           id?: string
           is_used?: boolean
+          reserved_at?: string | null
+          reserved_by?: string | null
           token?: string
           used_by_user_id?: string | null
         }
@@ -4641,117 +4671,48 @@ export type Database = {
       personal_profiles_public: {
         Row: {
           background_color: string | null
-          banner_image_url: string | null
-          bg_style: string | null
           bio: string | null
-          button_theme: string | null
-          contact_address: string | null
-          contact_button_label: string | null
-          contact_company: string | null
-          contact_display_style: string | null
-          contact_email: string | null
-          contact_enabled: boolean | null
-          contact_name: string | null
-          contact_phone: string | null
-          contact_photo_url: string | null
-          contact_title: string | null
-          contact_website: string | null
-          founding_number: number | null
           full_name: string | null
           header_color: string | null
           header_image_url: string | null
           header_type: string | null
           headline: string | null
           id: string | null
-          is_approved: boolean | null
-          is_founding_user: boolean | null
           pfp_position: string | null
           plan_type: string | null
           profile_photo_url: string | null
-          show_founding_badge: boolean | null
-          show_shop_section: boolean | null
-          show_username: boolean | null
           subscription_status: string | null
-          text_color: string | null
-          user_id: string | null
           username: string | null
-          vibe_id: string | null
         }
         Insert: {
           background_color?: string | null
-          banner_image_url?: string | null
-          bg_style?: string | null
           bio?: string | null
-          button_theme?: string | null
-          contact_address?: string | null
-          contact_button_label?: string | null
-          contact_company?: string | null
-          contact_display_style?: string | null
-          contact_email?: string | null
-          contact_enabled?: boolean | null
-          contact_name?: string | null
-          contact_phone?: string | null
-          contact_photo_url?: string | null
-          contact_title?: string | null
-          contact_website?: string | null
-          founding_number?: number | null
           full_name?: string | null
           header_color?: string | null
           header_image_url?: string | null
           header_type?: string | null
           headline?: string | null
           id?: string | null
-          is_approved?: boolean | null
-          is_founding_user?: boolean | null
           pfp_position?: string | null
           plan_type?: string | null
           profile_photo_url?: string | null
-          show_founding_badge?: boolean | null
-          show_shop_section?: boolean | null
-          show_username?: boolean | null
           subscription_status?: string | null
-          text_color?: string | null
-          user_id?: string | null
           username?: string | null
-          vibe_id?: string | null
         }
         Update: {
           background_color?: string | null
-          banner_image_url?: string | null
-          bg_style?: string | null
           bio?: string | null
-          button_theme?: string | null
-          contact_address?: string | null
-          contact_button_label?: string | null
-          contact_company?: string | null
-          contact_display_style?: string | null
-          contact_email?: string | null
-          contact_enabled?: boolean | null
-          contact_name?: string | null
-          contact_phone?: string | null
-          contact_photo_url?: string | null
-          contact_title?: string | null
-          contact_website?: string | null
-          founding_number?: number | null
           full_name?: string | null
           header_color?: string | null
           header_image_url?: string | null
           header_type?: string | null
           headline?: string | null
           id?: string | null
-          is_approved?: boolean | null
-          is_founding_user?: boolean | null
           pfp_position?: string | null
           plan_type?: string | null
           profile_photo_url?: string | null
-          show_founding_badge?: boolean | null
-          show_shop_section?: boolean | null
-          show_username?: boolean | null
           subscription_status?: string | null
-          text_color?: string | null
-          user_id?: string | null
           username?: string | null
-          vibe_id?: string | null
         }
         Relationships: []
       }
@@ -4947,6 +4908,14 @@ export type Database = {
         Returns: Json
       }
       build_google_review_url: { Args: { place_id: string }; Returns: string }
+      claim_stripe_event: {
+        Args: { p_event_id: string; p_event_type: string }
+        Returns: {
+          claimed: boolean
+          claimed_at: string
+          existing_status: string
+        }[]
+      }
       cleanup_expired_archives: { Args: never; Returns: undefined }
       current_user_email: { Args: never; Returns: string }
       expire_analytics_ip_hashes: { Args: never; Returns: undefined }
@@ -5174,6 +5143,29 @@ export type Database = {
       recompute_closer_pool: {
         Args: { _period_label: string; _rep_id: string }
         Returns: undefined
+      }
+      record_sms_optin: {
+        Args: {
+          p_consent_text: string
+          p_marketing_consent: boolean
+          p_marketing_consent_text: string
+          p_name: string
+          p_phone: string
+          p_restaurant_id: string
+          p_source: string
+          p_transactional_consent: boolean
+          p_transactional_consent_text: string
+          p_user_agent: string
+        }
+        Returns: undefined
+      }
+      redeem_free_promo_token: {
+        Args: { p_restaurant_id: string; p_token_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      reserve_promo_token: {
+        Args: { p_hold_minutes?: number; p_token_id: string; p_user_id: string }
+        Returns: boolean
       }
       rpt_admin_hub_table: {
         Args: { _caller_user_id: string; _since: string; _until: string }

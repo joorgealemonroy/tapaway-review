@@ -29,6 +29,55 @@
       "when": 1789896511636,
       "tag": "0003_add_onboarding_default_billing",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790146830978,
+      "tag": "0004_20260920120000_restaurants_billing_guard",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790146847441,
+      "tag": "0005_20260920121000_promo_token_reservation",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790146888207,
+      "tag": "0006_20260920122000_stripe_webhook_idempotency",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790146925994,
+      "tag": "0007_20260920124000_personal_profiles_public_lockdown",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1790146942519,
+      "tag": "0008_20260920125000_sms_optin_lockdown",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1790146971792,
+      "tag": "0009_20260920130000_intake_velocity_throttles",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1790146982005,
+      "tag": "0010_20260920131000_nfc_cards_paid_order_ref",
+      "breakpoints": true
     }
   ]
 }
