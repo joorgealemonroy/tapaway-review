@@ -5141,6 +5141,21 @@ export type Database = {
         Args: { _period_label: string; _rep_id: string }
         Returns: undefined
       }
+      record_sms_optin: {
+        Args: {
+          p_consent_text: string
+          p_marketing_consent: boolean
+          p_marketing_consent_text: string
+          p_name: string
+          p_phone: string
+          p_restaurant_id: string
+          p_source: string
+          p_transactional_consent: boolean
+          p_transactional_consent_text: string
+          p_user_agent: string
+        }
+        Returns: undefined
+      }
       redeem_free_promo_token: {
         Args: { p_restaurant_id: string; p_token_id: string; p_user_id: string }
         Returns: boolean
