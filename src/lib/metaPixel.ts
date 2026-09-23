@@ -19,7 +19,10 @@
 
 import { getConsent, onConsentChange } from "@/lib/consent";
 
-const PIXEL_ID = import.meta.env.VITE_META_PIXEL_ID as string | undefined;
+/** Production pixel. Overridable per-environment via VITE_META_PIXEL_ID. */
+const DEFAULT_PIXEL_ID = "1117523280799077";
+const ENV_PIXEL_ID = (import.meta.env.VITE_META_PIXEL_ID as string | undefined)?.trim();
+const PIXEL_ID = ENV_PIXEL_ID || DEFAULT_PIXEL_ID;
 
 declare global {
   interface Window {
