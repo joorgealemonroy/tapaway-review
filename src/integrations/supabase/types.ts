@@ -3160,6 +3160,27 @@ export type Database = {
         }
         Relationships: []
       }
+      processed_stripe_events: {
+        Row: {
+          event_id: string
+          event_type: string
+          processed_at: string
+          status: string
+        }
+        Insert: {
+          event_id: string
+          event_type: string
+          processed_at?: string
+          status?: string
+        }
+        Update: {
+          event_id?: string
+          event_type?: string
+          processed_at?: string
+          status?: string
+        }
+        Relationships: []
+      }
       promo_tokens: {
         Row: {
           created_at: string
@@ -4953,6 +4974,14 @@ export type Database = {
         Returns: Json
       }
       build_google_review_url: { Args: { place_id: string }; Returns: string }
+      claim_stripe_event: {
+        Args: { p_event_id: string; p_event_type: string }
+        Returns: {
+          claimed: boolean
+          claimed_at: string
+          existing_status: string
+        }[]
+      }
       cleanup_expired_archives: { Args: never; Returns: undefined }
       current_user_email: { Args: never; Returns: string }
       expire_analytics_ip_hashes: { Args: never; Returns: undefined }

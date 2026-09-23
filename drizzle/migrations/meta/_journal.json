@@ -43,6 +43,13 @@
       "when": 1790146847441,
       "tag": "0005_20260920121000_promo_token_reservation",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790146888207,
+      "tag": "0006_20260920122000_stripe_webhook_idempotency",
+      "breakpoints": true
     }
   ]
 }
