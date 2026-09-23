@@ -50,6 +50,13 @@
       "when": 1790146888207,
       "tag": "0006_20260920122000_stripe_webhook_idempotency",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790146925994,
+      "tag": "0007_20260920124000_personal_profiles_public_lockdown",
+      "breakpoints": true
     }
   ]
 }

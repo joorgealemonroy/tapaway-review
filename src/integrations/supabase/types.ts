@@ -4668,117 +4668,48 @@ export type Database = {
       personal_profiles_public: {
         Row: {
           background_color: string | null
-          banner_image_url: string | null
-          bg_style: string | null
           bio: string | null
-          button_theme: string | null
-          contact_address: string | null
-          contact_button_label: string | null
-          contact_company: string | null
-          contact_display_style: string | null
-          contact_email: string | null
-          contact_enabled: boolean | null
-          contact_name: string | null
-          contact_phone: string | null
-          contact_photo_url: string | null
-          contact_title: string | null
-          contact_website: string | null
-          founding_number: number | null
           full_name: string | null
           header_color: string | null
           header_image_url: string | null
           header_type: string | null
           headline: string | null
           id: string | null
-          is_approved: boolean | null
-          is_founding_user: boolean | null
           pfp_position: string | null
           plan_type: string | null
           profile_photo_url: string | null
-          show_founding_badge: boolean | null
-          show_shop_section: boolean | null
-          show_username: boolean | null
           subscription_status: string | null
-          text_color: string | null
-          user_id: string | null
           username: string | null
-          vibe_id: string | null
         }
         Insert: {
           background_color?: string | null
-          banner_image_url?: string | null
-          bg_style?: string | null
           bio?: string | null
-          button_theme?: string | null
-          contact_address?: string | null
-          contact_button_label?: string | null
-          contact_company?: string | null
-          contact_display_style?: string | null
-          contact_email?: string | null
-          contact_enabled?: boolean | null
-          contact_name?: string | null
-          contact_phone?: string | null
-          contact_photo_url?: string | null
-          contact_title?: string | null
-          contact_website?: string | null
-          founding_number?: number | null
           full_name?: string | null
           header_color?: string | null
           header_image_url?: string | null
           header_type?: string | null
           headline?: string | null
           id?: string | null
-          is_approved?: boolean | null
-          is_founding_user?: boolean | null
           pfp_position?: string | null
           plan_type?: string | null
           profile_photo_url?: string | null
-          show_founding_badge?: boolean | null
-          show_shop_section?: boolean | null
-          show_username?: boolean | null
           subscription_status?: string | null
-          text_color?: string | null
-          user_id?: string | null
           username?: string | null
-          vibe_id?: string | null
         }
         Update: {
           background_color?: string | null
-          banner_image_url?: string | null
-          bg_style?: string | null
           bio?: string | null
-          button_theme?: string | null
-          contact_address?: string | null
-          contact_button_label?: string | null
-          contact_company?: string | null
-          contact_display_style?: string | null
-          contact_email?: string | null
-          contact_enabled?: boolean | null
-          contact_name?: string | null
-          contact_phone?: string | null
-          contact_photo_url?: string | null
-          contact_title?: string | null
-          contact_website?: string | null
-          founding_number?: number | null
           full_name?: string | null
           header_color?: string | null
           header_image_url?: string | null
           header_type?: string | null
           headline?: string | null
           id?: string | null
-          is_approved?: boolean | null
-          is_founding_user?: boolean | null
           pfp_position?: string | null
           plan_type?: string | null
           profile_photo_url?: string | null
-          show_founding_badge?: boolean | null
-          show_shop_section?: boolean | null
-          show_username?: boolean | null
           subscription_status?: string | null
-          text_color?: string | null
-          user_id?: string | null
           username?: string | null
-          vibe_id?: string | null
         }
         Relationships: []
       }
