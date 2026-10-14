@@ -40,7 +40,7 @@ export function getStripe(): Stripe {
 export function webhookSecret(): string | undefined {
   return stripeMode() === "live"
     ? Deno.env.get("PAYMENT_FIRST_WEBHOOK_SECRET_LIVE")
-    : Deno.env.get("PAYMENT_FIRST_WEBHOOK_SECRET_TEST");
+    : (Deno.env.get("STRIPE_TEST_WEBHOOK_SECRET") || Deno.env.get("PAYMENT_FIRST_WEBHOOK_SECRET_TEST"));
 }
 
 /** Retrieves and validates a configured price. Never trusts client values. */
