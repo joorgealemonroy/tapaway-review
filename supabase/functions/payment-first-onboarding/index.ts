@@ -77,7 +77,7 @@ serve(async (req) => {
       const { data: prof, error: pErr } = await db.from("personal_profiles").insert({
         user_id: user.id, username, full_name: name, email, onboarding_source: "payment_first",
         plan_type: intent.billing_interval === "year" ? `${intent.plan}_yearly` : intent.plan,
-        subscription_status: "trialing", is_approved: false, pipeline_status: "setup_pending",
+        subscription_status: "trialing", is_approved: false, pipeline_status: "draft",
         stripe_customer_id: (await db.from("checkout_intents").select("stripe_customer_id").eq("id", session.checkout_intent_id).single()).data?.stripe_customer_id ?? null,
         stripe_subscription_id: session.stripe_subscription_id, legacy_allowance: false,
       }).select("id").single();
