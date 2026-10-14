@@ -353,7 +353,7 @@ const Onboarding = () => {
     saveOnboardingData({ planType: selectedPlan, billingInterval, billingSelectionExplicit: true, hasProtection: false });
     track(cardClub ? "card_club_selected" : "card_club_declined", { hubKind: "site", props: { plan: selectedPlan, interval: billingInterval } });
     track("checkout_clicked", { hubKind: "site", props: { plan: selectedPlan, interval: billingInterval, card_club: cardClub } });
-    const saved = loadOnboardingData();
+    const saved = getOnboardingData();
     const { ok, data } = await callFunction<{ url?: string; error?: string }>("payment-first-checkout", {
       plan: selectedPlan, interval: billingInterval, cardClub, source: "onboarding",
       attribution: { ...(saved.campaign || {}), landing_path: window.location.pathname },
