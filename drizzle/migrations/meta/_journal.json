@@ -99,6 +99,13 @@
       "when": 1791969159506,
       "tag": "0013_card_club_redeem_and_reprint_setting",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1791970115517,
+      "tag": "0014_payment_first_admin_rpcs",
+      "breakpoints": true
     }
   ]
 }

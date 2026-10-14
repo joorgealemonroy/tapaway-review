@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { GooglePlacesAutocomplete } from "@/components/GooglePlacesAutocomplete";
 import { callFunction } from "@/lib/paymentFirst";
 import { track } from "@/lib/analytics";
+import { verifyTokenHash } from "@/lib/authGuard";
 
 type Address = { name?: string | null; line1?: string | null; line2?: string | null; city?: string | null; state?: string | null; postal_code?: string | null };
 type OnboardingState = {
@@ -53,7 +54,7 @@ export default function Welcome() {
         if (data.emailHint) setEmailHint(data.emailHint);
         if (!tracked.current && data.status && data.status !== "not_paid") { tracked.current = true; track("purchase_completed", { hubKind: "site" }); }
         if (data.status === "ready" && data.token_hash) {
-          const { error: e } = await supabase.auth.verifyOtp({ token_hash: data.token_hash, type: "email" });
+          const { error: e } = await verifyTokenHash(data.token_hash, "email");
           if (!e) { await refresh(); return; }
           console.warn("welcome sign-in failed", e.message);
           setPhase("sign_in"); return;
