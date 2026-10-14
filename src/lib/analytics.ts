@@ -47,7 +47,8 @@ export type AnalyticsEventName =
   | "trial_start_confirmed"
   | "paid_conversion"
   | "subscription_renewal"
-  | "purchase";
+  | "purchase"
+;
 
 export interface TrackOptions {
   hubId?: string | null;
