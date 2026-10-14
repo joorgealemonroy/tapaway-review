@@ -120,7 +120,7 @@ export default function AdminNewOrders() {
                 {m?.status === "activation_failed" && <Button size="sm" disabled={busy} onClick={() => retry(m.id)}>Retry Card Club setup</Button>}
                 {m && m.status !== "declined" && <Button size="sm" variant="ghost" disabled={busy} onClick={() => override(m.id)}>Card Club override</Button>}
                 {s?.personal_profile_id && <Button size="sm" variant="ghost" asChild><Link to={`/dashboard?admin_view_personal=${s.personal_profile_id}`}>Open customer</Link></Button>}
-                <Button size="sm" variant="ghost" asChild><Link to="/admin/print-queue">Print queue</Link></Button>
+                <Button size="sm" variant="ghost" asChild><Link to="/admin/fulfillment">Print queue</Link></Button>
               </div>
             </div>
           );
