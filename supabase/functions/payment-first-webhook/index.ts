@@ -7,12 +7,19 @@ import { activateCheckout, syncMembership } from "../_shared/paymentFirstActivat
 serve(async (req) => {
   const secret = webhookSecret();
   const sig = req.headers.get("stripe-signature");
-  if (!secret || !sig) return new Response("Missing signature", { status: 400 });
   const stripe = getStripe();
   const raw = await req.text();
   let event: Stripe.Event;
   try {
-    event = await stripe.webhooks.constructEventAsync(raw, sig, secret, undefined, Stripe.createSubtleCryptoProvider());
+    if (secret) {
+      if (!sig) return new Response("Missing signature", { status: 400 });
+      event = await stripe.webhooks.constructEventAsync(raw, sig, secret, undefined, Stripe.createSubtleCryptoProvider());
+    } else {
+      // No signing secret configured: trust only the event as re-fetched from Stripe by id.
+      const id = JSON.parse(raw)?.id;
+      if (typeof id !== "string" || !/^evt_[A-Za-z0-9]+$/.test(id)) return new Response("Bad event", { status: 400 });
+      event = await stripe.events.retrieve(id);
+    }
   } catch {
     return new Response("Bad signature", { status: 400 });
   }
