@@ -2,7 +2,7 @@
 // Remove after QA.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { admin, cors, getStripe, json, paymentFirstAllowed, stripeMode } from "../_shared/paymentFirst.ts";
-import { ensureCardClubSubscription } from "../_shared/paymentFirstActivation.ts";
+import { ensureCardClubSubscription, syncMembership } from "../_shared/paymentFirstActivation.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -49,6 +49,8 @@ serve(async (req) => {
   if (body.action === "retry") {
     if (!m) return json({ error: "no membership" }, 400);
     await ensureCardClubSubscription(stripe, db, m.id);
+    const { data: fresh } = await db.from("card_club_memberships").select("*").eq("id", m.id).single();
+    if (fresh?.card_club_stripe_subscription_id) await syncMembership(stripe, db, fresh);
     const { data } = await db.from("card_club_memberships").select("status, card_club_stripe_subscription_id").eq("id", m.id).single();
     return json(data);
   }
