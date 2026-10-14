@@ -2,6 +2,7 @@
 // waiting for an existing account owner to confirm their email.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { admin, cors, json, userFromRequest } from "../_shared/paymentFirst.ts";
+import { ensureDraftProfile } from "../_shared/paymentFirstActivation.ts";
 
 const str = (v: unknown, max = 200) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 
@@ -25,6 +26,7 @@ serve(async (req) => {
       await db.from("checkout_intents").update({ status: "associated", user_id: user.id }).eq("id", p.id).eq("status", "pending_association");
       await db.from("onboarding_sessions").update({ user_id: user.id }).eq("checkout_intent_id", p.id);
       await db.from("card_club_memberships").update({ user_id: user.id }).eq("checkout_intent_id", p.id);
+      await ensureDraftProfile(db, p.id, user.id);
     }
 
     const { data: session } = await db.from("onboarding_sessions").select("*").eq("user_id", user.id)
@@ -34,7 +36,7 @@ serve(async (req) => {
 
     if (!session) return json({ session: null, needsReview: (pending ?? []).length > 0 });
     const { data: intent } = await db.from("checkout_intents").select("plan, billing_interval, card_quantity, card_club_selected").eq("id", session.checkout_intent_id).single();
-    const { data: club } = await db.from("card_club_memberships").select("id,status,plan,card_club_paid_at,last_redemption_at,total_redemptions,declined_at")
+    const { data: club } = await db.from("card_club_memberships").select("id,status,plan,card_club_paid_at,last_approved_at,total_redemptions,declined_at")
       .eq("checkout_intent_id", session.checkout_intent_id).maybeSingle();
 
     let patch: Record<string, unknown> | null = null;
@@ -63,6 +65,13 @@ serve(async (req) => {
       patch = { shipping_address: shipping, shipping_confirmed_at: new Date().toISOString(), step: "done",
         completed_at: session.completed_at ?? new Date().toISOString() };
     }
+    if (action === "business" && patch) {
+      await ensureDraftProfile(db, session.checkout_intent_id, user.id, String(patch.business_name || ""));
+      if (patch.google_place_id) {
+        const { data: sp } = await db.from("onboarding_sessions").select("personal_profile_id").eq("id", session.id).single();
+        if (sp?.personal_profile_id) await db.from("personal_profiles").update({ google_place_id: patch.google_place_id, formatted_address: patch.business_address || null }).eq("id", sp.personal_profile_id).eq("is_approved", false);
+      }
+    }
     let current = session;
     if (patch) {
       const { data } = await db.from("onboarding_sessions").update(patch).eq("id", session.id).select("*").single();
@@ -73,8 +82,14 @@ serve(async (req) => {
       const { data } = await db.rpc("card_club_entitlement", { _membership_id: club.id });
       entitlement = Array.isArray(data) ? data[0] : data;
     }
+    let redemption = null;
+    if (club) {
+      const { data } = await db.from("card_club_redemptions").select("id,status,requested_at,approved_at,shipped_at,tracking_number")
+        .eq("membership_id", club.id).order("requested_at", { ascending: false }).limit(1).maybeSingle();
+      redemption = data;
+    }
     const { data: settings } = await db.from("app_settings").select("reprint_price_cents").limit(1).maybeSingle();
-    return json({ session: current, intent, club, entitlement, reprintPriceCents: settings?.reprint_price_cents ?? null });
+    return json({ session: current, intent, club, entitlement, reprintPriceCents: settings?.reprint_price_cents ?? null, redemption });
   } catch (e) {
     console.error("[payment-first-onboarding] failed", e instanceof Error ? e.message : e);
     return json({ error: "Something went wrong. Please try again." }, 500);

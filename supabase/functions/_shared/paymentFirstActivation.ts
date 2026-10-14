@@ -28,7 +28,7 @@ export async function activateCheckout(stripe: Stripe, session: Stripe.Checkout.
 
   // Claim the intent once: only a 'created'/'checkout_started' row moves forward.
   const { data: claimed } = await db.from("checkout_intents")
-    .update({ status: "paid", email, stripe_customer_id: customer, stripe_subscription_id: mainSub, paid_at: new Date().toISOString() })
+    .update({ status: "paid", email, stripe_customer_id: customer, stripe_subscription_id: mainSub, paid_at: new Date().toISOString(), stripe_livemode: session.livemode === true })
     .eq("id", intent.id).in("status", ["created", "checkout_started"]).select("id");
   if (!claimed?.length) return { already: true };
 
@@ -58,17 +58,21 @@ export async function activateCheckout(stripe: Stripe, session: Stripe.Checkout.
     billing_address: addr(session.customer_details?.address, session.customer_details?.name),
   }, { onConflict: "checkout_intent_id", ignoreDuplicates: true });
 
+  // Initial order = draft Solo/Pro hub (existing model). Unapproved and without print artwork,
+  // so it is neither public nor in the print queue until the team finishes setup.
+  if (userId) await ensureDraftProfile(db, intent.id, userId);
+
   const plan = intent.plan as Plan;
   if (intent.card_club_selected) {
     const { data: m } = await db.from("card_club_memberships").upsert({
       checkout_intent_id: intent.id, user_id: userId, stripe_customer_id: customer, main_stripe_subscription_id: mainSub,
-      stripe_price_id: cardClubPriceId(), status: "pending_activation", plan, enrollment_date: new Date().toISOString(),
+      stripe_price_id: cardClubPriceId(), status: "pending_activation", plan, enrollment_date: new Date().toISOString(), stripe_livemode: session.livemode === true,
     }, { onConflict: "checkout_intent_id" }).select("*").single();
     if (m) await ensureCardClubSubscription(stripe, db, m.id);
   } else {
     await db.from("card_club_memberships").upsert({
       checkout_intent_id: intent.id, user_id: userId, stripe_customer_id: customer, main_stripe_subscription_id: mainSub,
-      status: "declined", plan, declined_at: new Date().toISOString(),
+      status: "declined", plan, declined_at: new Date().toISOString(), stripe_livemode: session.livemode === true,
     }, { onConflict: "checkout_intent_id", ignoreDuplicates: true });
   }
 
@@ -130,4 +134,37 @@ export async function syncMembership(stripe: Stripe, db: Db, m: Record<string, a
     : ["past_due", "unpaid", "incomplete", "incomplete_expired"].includes(cc.status) || (m.card_club_paid_at && !mainOk) ? "past_due"
     : "pending_activation";
   await db.from("card_club_memberships").update({ status: next, plan }).eq("id", m.id);
+}
+
+
+/** Creates (once) the unapproved draft hub that represents a payment-first order. */
+export async function ensureDraftProfile(db: Db, intentId: string, userId: string, businessName?: string) {
+  const { data: sess } = await db.from("onboarding_sessions").select("id, personal_profile_id, shipping_address, stripe_subscription_id").eq("checkout_intent_id", intentId).maybeSingle();
+  if (!sess) return null;
+  if (sess.personal_profile_id) {
+    if (businessName) await db.from("personal_profiles").update({ full_name: businessName }).eq("id", sess.personal_profile_id).eq("is_approved", false);
+    return sess.personal_profile_id as string;
+  }
+  const { data: intent } = await db.from("checkout_intents").select("plan, billing_interval, email, stripe_customer_id, stripe_livemode").eq("id", intentId).single();
+  if (!intent) return null;
+  const name = businessName || "New TapAway business";
+  const base = (businessName || "tapaway").toLowerCase().replace(/[^a-z0-9]+/g, "").slice(0, 24) || "tapaway";
+  let username = `${base}${Math.floor(1000 + Math.random() * 9000)}`;
+  for (let i = 0; i < 20; i++) {
+    const { data: ok } = await db.rpc("is_username_available", { check_username: username });
+    if (ok) break;
+    username = `${base}${Math.floor(1000 + Math.random() * 9000)}`;
+  }
+  const a = (sess.shipping_address ?? {}) as Record<string, string | null>;
+  const { data: prof, error } = await db.from("personal_profiles").insert({
+    user_id: userId, username, full_name: name, email: intent.email,
+    onboarding_source: intent.stripe_livemode ? "payment_first" : "payment_first_test",
+    plan_type: intent.billing_interval === "year" ? `${intent.plan}_yearly` : intent.plan,
+    subscription_status: "trialing", is_approved: false, pipeline_status: "draft", legacy_allowance: false,
+    stripe_customer_id: intent.stripe_customer_id, stripe_subscription_id: sess.stripe_subscription_id,
+    place_city: a.city ?? null, place_state: a.state ?? null, place_zip: a.postal_code ?? null,
+  }).select("id").single();
+  if (error || !prof) { console.error("[activation] draft hub failed", error?.message); return null; }
+  await db.from("onboarding_sessions").update({ personal_profile_id: prof.id, hub_status: "draft" }).eq("id", sess.id).is("personal_profile_id", null);
+  return prof.id as string;
 }

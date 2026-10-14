@@ -131,6 +131,7 @@ serve(async (req) => {
       status: string | null;
       slug: string | null;
       legacyAllowance: boolean;
+      paymentFirst: boolean;
     };
 
     let account: Account | null = null;
@@ -152,6 +153,7 @@ serve(async (req) => {
           status: restaurant.subscription_status,
           slug: restaurant.custom_slug,
           legacyAllowance: restaurant.legacy_allowance === true,
+          paymentFirst: false,
         };
       }
     }
@@ -159,7 +161,7 @@ serve(async (req) => {
     if (!account) {
       let q = supabaseAdmin
         .from('personal_profiles')
-        .select('id, full_name, username, email, plan_type, subscription_status, legacy_allowance');
+        .select('id, full_name, username, email, plan_type, subscription_status, legacy_allowance, onboarding_source');
       if (personalProfileId) q = q.eq('id', personalProfileId);
       if (!isAdmin) q = q.eq('user_id', user.id);
       const { data: profile } = await q.maybeSingle();
@@ -173,6 +175,7 @@ serve(async (req) => {
           status: profile.subscription_status,
           slug: profile.username,
           legacyAllowance: profile.legacy_allowance === true,
+          paymentFirst: typeof profile.onboarding_source === 'string' && profile.onboarding_source.startsWith('payment_first'),
         };
       }
     }
@@ -194,7 +197,8 @@ serve(async (req) => {
     // The free monthly allowance applies only to grandfathered accounts
     // (legacy_allowance, set once before payment-first launch). Everyone else
     // uses Card Club (card-club-request) or paid reprints.
-    if (!isAdmin && !account.legacyAllowance) {
+    // Behind the payment-first flag: only payment-first accounts lose the free monthly allowance.
+    if (!isAdmin && account.paymentFirst && !account.legacyAllowance) {
       return json({
         success: false,
         error: "Free monthly cards aren't part of this plan. Card Club members can request a fresh batch from the dashboard, or contact us for reprint pricing.",

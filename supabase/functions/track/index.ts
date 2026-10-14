@@ -58,6 +58,8 @@ const ALLOWED_EVENTS = new Set([
   "dashboard_opened",
   "card_club_request_viewed",
   "card_club_replacement_requested",
+  "card_club_replacement_approved",
+  "shipping_confirmed",
   "card_club_replacement_completed",
 ]);
 

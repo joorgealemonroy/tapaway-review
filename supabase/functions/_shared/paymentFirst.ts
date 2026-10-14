@@ -40,7 +40,7 @@ export function getStripe(): Stripe {
 export function webhookSecret(): string | undefined {
   return stripeMode() === "live"
     ? Deno.env.get("PAYMENT_FIRST_WEBHOOK_SECRET_LIVE")
-    : Deno.env.get("PAYMENT_FIRST_WEBHOOK_SECRET_TEST");
+    : (Deno.env.get("STRIPE_TEST_WEBHOOK_SECRET") || Deno.env.get("PAYMENT_FIRST_WEBHOOK_SECRET_TEST"));
 }
 
 /** Retrieves and validates a configured price. Never trusts client values. */
@@ -107,7 +107,17 @@ export async function sendWelcomeLink(email: string, kind: "purchase" | "verify"
 
 export const cors = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-pf-test-key",
 };
+
+/** Payment-first is off for ordinary traffic until GO LIVE (PAYMENT_FIRST_ENABLED=true).
+ *  Before that, only requests carrying the private test access key may start a purchase. */
+export async function paymentFirstAllowed(req: Request): Promise<boolean> {
+  if (Deno.env.get("PAYMENT_FIRST_ENABLED") === "true") return true;
+  const key = req.headers.get("x-pf-test-key") || "";
+  if (!key || key.length > 64 || stripeMode() !== "test") return false;
+  const { data } = await admin().from("payment_first_config").select("test_access_key").eq("id", 1).maybeSingle();
+  return !!data?.test_access_key && data.test_access_key === key;
+}
 export const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json" } });

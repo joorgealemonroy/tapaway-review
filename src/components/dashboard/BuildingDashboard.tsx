@@ -15,6 +15,7 @@ type State = {
   club: { status: string } | null;
   entitlement: { eligible: boolean; reason: string; quantity: number; next_eligible_at: string | null } | null;
   reprintPriceCents: number | null;
+  redemption: { status: string; requested_at: string; approved_at: string | null; shipped_at: string | null; tracking_number: string | null } | null;
 };
 
 const ORDER = ["purchase_complete", "business_identified", "needs_business_research", "logo_received", "logo_needed", "links_being_prepared", "hub_ready", "cards_ready_to_print", "cards_printed", "ready_to_ship", "shipped"];
@@ -89,6 +90,10 @@ export default function BuildingDashboard() {
               {ent?.next_eligible_at && <div className="flex justify-between gap-4"><dt className="text-hero-foreground/70">Next eligible replacement</dt><dd>{ent.eligible ? "Available now" : fmtDate(ent.next_eligible_at)}</dd></div>}
               {!ent?.next_eligible_at && <div className="flex justify-between gap-4"><dt className="text-hero-foreground/70">First replacement</dt><dd>30 days after your first Card Club payment</dd></div>}
             </dl>
+            {state.redemption && ["requested", "in_review"].includes(state.redemption.status) && <p className="mt-5 rounded-lg bg-hero-foreground/10 p-3 text-sm">Replacement request pending. We'll review it shortly.</p>}
+            {state.redemption && ["approved", "printing", "shipped"].includes(state.redemption.status) && (
+              <p className="mt-5 rounded-lg bg-hero-foreground/10 p-3 text-sm">Latest replacement: {state.redemption.status === "approved" ? "approved, being prepared" : state.redemption.status === "printing" ? "being printed" : `shipped${state.redemption.tracking_number ? ` · tracking ${state.redemption.tracking_number}` : ""}`}</p>
+            )}
             {ent?.eligible && !requesting && <Button className="mt-5 h-12 w-full" onClick={() => { setRequesting(true); track("card_club_request_viewed", { hubKind: "site" }); }}>Request Fresh Cards</Button>}
             {requesting && (
               <div className="mt-5 space-y-4">
@@ -104,9 +109,9 @@ export default function BuildingDashboard() {
         ) : (
           <section className="rounded-2xl border border-hero-foreground/15 p-5">
             <h2 className="text-xl font-bold">Need more cards?</h2>
-            <p className="mt-2 text-sm text-hero-foreground/75">Card Club wasn't added to your original order, but you can still order replacement cards anytime.</p>
+            <p className="mt-2 text-sm text-hero-foreground/75">{club?.status === "cancelled" ? "Your Card Club membership has ended, but you can still order replacement cards anytime." : "Card Club wasn't added to your original order, but you can still order replacement cards anytime."}</p>
             <p className="mt-2 text-sm text-hero-foreground/75">{state.reprintPriceCents ? `Replacement batches are $${(state.reprintPriceCents / 100).toFixed(2)} plus shipping.` : "Contact us for reprint pricing."}</p>
-            <Button asChild variant="secondary" className="mt-4 h-12 w-full"><Link to="/support">Order Replacement Cards</Link></Button>
+            <Button asChild variant="secondary" className="mt-4 h-12 w-full"><Link to="/support">Contact Us</Link></Button>
           </section>
         )}
         {message && <p role="status" className="text-sm">{message}</p>}

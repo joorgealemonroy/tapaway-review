@@ -106,6 +106,34 @@
       "when": 1791970115517,
       "tag": "0014_payment_first_admin_rpcs",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1791971624341,
+      "tag": "0015_legacy_allowance_cohort",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1791971677251,
+      "tag": "0016_card_club_approval_timing_and_livemode",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1791971738840,
+      "tag": "0017_payment_first_draft_profiles",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1791972097394,
+      "tag": "0018_payment_first_profile_order_model",
+      "breakpoints": true
     }
   ]
 }

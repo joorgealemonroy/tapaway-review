@@ -3,7 +3,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { checkRateLimit, getRateLimitKey, rateLimitResponse } from "../_shared/rateLimit.ts";
 import {
-  admin, CARD_QUANTITY, cors, frontendUrl, getStripe, json, ONBOARDING_VERSION, stripeMode, TRIAL_DAYS, verifiedPrice,
+  paymentFirstAllowed, admin, CARD_QUANTITY, cors, frontendUrl, getStripe, json, ONBOARDING_VERSION, stripeMode, TRIAL_DAYS, verifiedPrice,
   type Interval, type Plan,
 } from "../_shared/paymentFirst.ts";
 
@@ -11,6 +11,7 @@ const ATTR_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "u
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
+  if (!(await paymentFirstAllowed(req))) return json({ error: "Not available." }, 404);
   if (!checkRateLimit(getRateLimitKey(req, "payment-first-checkout"), 20, 60 * 60 * 1000)) return rateLimitResponse(cors);
   try {
     const body = await req.json().catch(() => ({}));
@@ -58,8 +59,17 @@ serve(async (req) => {
     const clubText = cardClub
       ? ` TapAway Card Club is a separate recurring charge of $5/month that also starts after your ${TRIAL_DAYS}-day trial and renews monthly until canceled.`
       : "";
+    // Test-only: attach a Stripe test clock so trial end can be simulated. Never used in live mode.
+    let customer: string | undefined;
+    if (stripeMode() === "test" && body.testClock === true && typeof body.testEmail === "string" && /^tap\+pftest[a-z0-9]+@tapaway\.co$/.test(body.testEmail)) {
+      const clock = await stripe.testHelpers.testClocks.create({ frozen_time: Math.floor(Date.now() / 1000), name: `pf ${intent.id}` });
+      const c = await stripe.customers.create({ email: body.testEmail, test_clock: clock.id, metadata: { payment_first_test: "true" } });
+      customer = c.id;
+      meta.test_clock_id = clock.id;
+    }
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
+      ...(customer ? { customer } : {}),
       line_items: [{ price: main.id, quantity: 1 }],
       success_url: `${origin}/welcome?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/onboarding?plan=${plan}&cycle=${interval}&canceled=1`,

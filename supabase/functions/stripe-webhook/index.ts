@@ -147,6 +147,11 @@ serve(async (req) => {
 
 if (event.type === 'checkout.session.completed') {
       const session = event.data.object as Stripe.Checkout.Session;
+      // Payment-first purchases are activated only by payment-first-webhook.
+      if (session.metadata?.onboarding_version === 'payment_first_v1') {
+        if (ownsClaim) await markStripeEventProcessed();
+        return new Response(JSON.stringify({ received: true, skipped: 'payment_first' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
       
       console.log('[stripe-webhook] Processing checkout session:', {
         id: session.id,
