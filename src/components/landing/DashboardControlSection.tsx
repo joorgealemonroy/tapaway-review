@@ -1,9 +1,6 @@
-import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 import { motion, useInView } from "framer-motion";
 import {
   Check,
-  Eye,
   LayoutGrid,
   Link2,
   MessageSquareReply,
