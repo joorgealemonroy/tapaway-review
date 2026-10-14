@@ -5605,6 +5605,13 @@ export type Database = {
         Args: { check_username: string }
         Returns: boolean
       }
+      legacy_allowance_status: {
+        Args: { _key: string; _since: string }
+        Returns: {
+          allowance: number
+          used: number
+        }[]
+      }
       personal_profile_is_active: {
         Args: { _profile_id: string }
         Returns: boolean
