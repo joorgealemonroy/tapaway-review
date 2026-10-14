@@ -1,9 +1,6 @@
-import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 import { motion, useInView } from "framer-motion";
 import {
   Check,
-  Eye,
   LayoutGrid,
   Link2,
   MessageSquareReply,
@@ -121,10 +118,6 @@ export const DashboardControlSection = () => {
                         <p className="truncate text-xs font-bold text-foreground">Sample Cafe</p>
                         <p className="truncate text-[9px] text-muted-foreground">Illustrative business hub</p>
                       </div>
-                      <Button asChild variant="outline" className="h-11 shrink-0 px-2 text-xs"><Link to="/examples" aria-label="View business hub examples">
-                        <Eye className="h-2.5 w-2.5" />
-                        View
-                      </Link></Button>
                     </div>
 
                     {/* Hero stat card */}

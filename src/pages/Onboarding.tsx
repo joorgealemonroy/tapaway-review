@@ -673,7 +673,7 @@ const Onboarding = () => {
       const plan = (savedData.planType as Plan) || selectedPlan || "venue";
       const protection = false;
       const resolvedDashboardType = savedData.dashboardType || dashboardType || (plan === 'solo' ? 'personal' : 'restaurant');
-      const totalTrialDays = PLAN_DETAILS[plan].totalTrialDays;
+      const totalTrialDays = catalogItem(plan, billingInterval)?.trialDays ?? catalog.find((item) => item.available)?.trialDays ?? 14; // Server catalog sets a 14-day trial.
       const trialEndsAt = new Date(Date.now() + totalTrialDays * 86400000).toISOString();
 
       const ownerPhoneSaved = (savedData.phone || ownerPhone || '').trim();
@@ -1003,7 +1003,7 @@ const Onboarding = () => {
 
                 {billingInterval === "year" && !catalogLoading && catalog.filter((item) => item.interval === "year" && item.available).length < 2 && (
                   <div className="mb-4 rounded-md border border-hero-foreground/15 bg-secondary px-4 py-3 text-sm text-hero-foreground/75">
-                    Yearly is temporarily unavailable. <Button type="button" variant="link" className="h-auto p-0 font-bold" aria-pressed={billingInterval === "month"} onClick={() => selectBillingInterval("month")}>Choose monthly</Button>
+                    Yearly is temporarily unavailable. <Button type="button" variant="link" className="h-auto p-0 font-bold" onClick={() => selectBillingInterval("month")}>Choose monthly</Button>
                   </div>
                 )}
 
