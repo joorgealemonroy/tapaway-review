@@ -130,6 +130,7 @@ serve(async (req) => {
       planType: string | null;
       status: string | null;
       slug: string | null;
+      legacyAllowance: boolean;
     };
 
     let account: Account | null = null;
@@ -137,7 +138,7 @@ serve(async (req) => {
     if (!personalProfileId) {
       let q = supabaseAdmin
         .from('restaurants')
-        .select('id, restaurant_name, owner_name, email, plan_type, subscription_status, custom_slug');
+        .select('id, restaurant_name, owner_name, email, plan_type, subscription_status, custom_slug, legacy_allowance');
       if (restaurantId) q = q.eq('id', restaurantId);
       if (!isAdmin) q = q.eq('owner_id', user.id);
       const { data: restaurant } = await q.maybeSingle();
@@ -150,6 +151,7 @@ serve(async (req) => {
           planType: restaurant.plan_type,
           status: restaurant.subscription_status,
           slug: restaurant.custom_slug,
+          legacyAllowance: restaurant.legacy_allowance === true,
         };
       }
     }
@@ -157,7 +159,7 @@ serve(async (req) => {
     if (!account) {
       let q = supabaseAdmin
         .from('personal_profiles')
-        .select('id, full_name, username, email, plan_type, subscription_status');
+        .select('id, full_name, username, email, plan_type, subscription_status, legacy_allowance');
       if (personalProfileId) q = q.eq('id', personalProfileId);
       if (!isAdmin) q = q.eq('user_id', user.id);
       const { data: profile } = await q.maybeSingle();
@@ -170,6 +172,7 @@ serve(async (req) => {
           planType: profile.plan_type,
           status: profile.subscription_status,
           slug: profile.username,
+          legacyAllowance: profile.legacy_allowance === true,
         };
       }
     }
@@ -185,6 +188,18 @@ serve(async (req) => {
         error: "Card requests need an active plan. Open the Plan tab in your dashboard to get set up.",
         code: 'inactive_subscription',
       }, 400);
+    }
+
+    // ── Legacy vs Card Club ───────────────────────────────────────────
+    // The free monthly allowance applies only to grandfathered accounts
+    // (legacy_allowance, set once before payment-first launch). Everyone else
+    // uses Card Club (card-club-request) or paid reprints.
+    if (!isAdmin && !account.legacyAllowance) {
+      return json({
+        success: false,
+        error: "Free monthly cards aren't part of this plan. Card Club members can request a fresh batch from the dashboard, or contact us for reprint pricing.",
+        code: 'not_legacy_allowance',
+      }, 403);
     }
 
     // ── Plan-based monthly allowance ───────────────────────────────────

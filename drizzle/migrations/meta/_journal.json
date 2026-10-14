@@ -78,6 +78,27 @@
       "when": 1790146982005,
       "tag": "0010_20260920131000_nfc_cards_paid_order_ref",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1791968948434,
+      "tag": "0011_payment_first_onboarding_card_club",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1791969074644,
+      "tag": "0012_payment_first_intent_flags",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1791969159506,
+      "tag": "0013_card_club_redeem_and_reprint_setting",
+      "breakpoints": true
     }
   ]
 }

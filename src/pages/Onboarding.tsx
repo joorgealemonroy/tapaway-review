@@ -23,6 +23,8 @@ import {
   getCampaignParams,
 } from "@/lib/onboardingData";
 import { track } from "@/lib/analytics";
+import { paymentFirstEnabled, callFunction } from "@/lib/paymentFirst";
+import { CardClubStep } from "@/components/onboarding/CardClubStep";
 import { getAppSettings } from "@/lib/appSettings";
 import { Button } from "@/components/ui/button";
 import { formatCatalogPrice, useOnboardingCatalog } from "@/lib/onboardingCatalog";
@@ -30,7 +32,7 @@ import { formatCatalogPrice, useOnboardingCatalog } from "@/lib/onboardingCatalo
 
 type Plan = "solo" | "venue";
 type BillingInterval = "month" | "year";
-type Step = "plan" | "info";
+type Step = "plan" | "info" | "cardclub";
 
 const PLAN_DETAILS = {
   solo: { cards: 4 },
@@ -333,7 +335,37 @@ const Onboarding = () => {
     if (!selectedPlan || catalogItem(selectedPlan, billingInterval)?.available !== true) return;
     saveOnboardingData({ planType: selectedPlan, billingInterval, billingSelectionExplicit: true, hasProtection: false });
     track("continue_click", { hubKind: "site", props: { plan: selectedPlan, interval: billingInterval } });
+    if (paymentFirst) {
+      track("card_club_offered", { hubKind: "site", props: { plan: selectedPlan, interval: billingInterval } });
+      goTo("cardclub", 1);
+      return;
+    }
     goTo("info", 1);
+  };
+
+  // Payment-first: plan + interval + Card Club go straight to Stripe. No account first.
+  const paymentFirst = paymentFirstEnabled();
+  const [pfBusy, setPfBusy] = useState(false);
+  const [pfError, setPfError] = useState<string | null>(null);
+  const startPaymentFirstCheckout = async (cardClub: boolean) => {
+    if (!selectedPlan || pfBusy) return;
+    setPfBusy(true); setPfError(null);
+    saveOnboardingData({ planType: selectedPlan, billingInterval, billingSelectionExplicit: true, hasProtection: false });
+    track(cardClub ? "card_club_selected" : "card_club_declined", { hubKind: "site", props: { plan: selectedPlan, interval: billingInterval } });
+    track("checkout_clicked", { hubKind: "site", props: { plan: selectedPlan, interval: billingInterval, card_club: cardClub } });
+    const saved = getOnboardingData();
+    const { ok, data } = await callFunction<{ url?: string; error?: string }>("payment-first-checkout", {
+      plan: selectedPlan, interval: billingInterval, cardClub, source: "onboarding", returnOrigin: window.location.origin,
+      attribution: { ...(saved.campaign || {}), landing_path: window.location.pathname },
+      trybeVisitorId: getTrybeVisitorId(),
+    }).catch(() => ({ ok: false, data: {} as { url?: string; error?: string } }));
+    if (ok && data.url) {
+      track("stripe_checkout_started", { hubKind: "site", props: { plan: selectedPlan, interval: billingInterval, card_club: cardClub } });
+      window.location.href = data.url;
+      return;
+    }
+    setPfError(data.error || "Checkout is temporarily unavailable. Please try again.");
+    setPfBusy(false);
   };
 
   const catalogItem = (plan: Plan, interval: BillingInterval) => catalog.find((item) => item.plan === plan && item.interval === interval);
@@ -1072,6 +1104,20 @@ const Onboarding = () => {
                   <div className="flex gap-4 pt-1 text-xs"><a href="/terms" className="underline underline-offset-4 hover:text-hero-foreground">Terms</a><a href="/refund" className="underline underline-offset-4 hover:text-hero-foreground">Refund Policy</a></div>
                 </div>
               )}
+            </motion.div>
+          )}
+
+          {step === "cardclub" && selectedPlan && (
+            <motion.div key="cardclub" custom={direction} variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.3 }}>
+              <CardClubStep
+                cards={PLAN_DETAILS[selectedPlan].cards}
+                priceLabel={formatCatalogPrice(catalogItem(selectedPlan, billingInterval))}
+                busy={pfBusy}
+                error={pfError}
+                onChoose={startPaymentFirstCheckout}
+                onBack={() => goTo("plan", -1)}
+                onDeclineViewed={() => track("card_club_decline_prompt", { hubKind: "site", props: { plan: selectedPlan } })}
+              />
             </motion.div>
           )}
 
