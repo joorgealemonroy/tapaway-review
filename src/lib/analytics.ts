@@ -48,7 +48,30 @@ export type AnalyticsEventName =
   | "paid_conversion"
   | "subscription_renewal"
   | "purchase"
-;
+  | "landing_cta_clicked"
+  | "plan_selection_viewed"
+  | "cards_4_selected"
+  | "cards_15_selected"
+  | "monthly_selected"
+  | "yearly_selected"
+  | "card_club_offered"
+  | "card_club_selected"
+  | "card_club_declined"
+  | "card_club_decline_prompt"
+  | "checkout_clicked"
+  | "stripe_checkout_started"
+  | "purchase_completed"
+  | "purchase_failed"
+  | "business_search_started"
+  | "business_selected"
+  | "business_not_found"
+  | "logo_uploaded"
+  | "logo_skipped"
+  | "onboarding_completed"
+  | "dashboard_opened"
+  | "card_club_request_viewed"
+  | "card_club_replacement_requested"
+  | "card_club_replacement_completed";
 
 export interface TrackOptions {
   hubId?: string | null;
