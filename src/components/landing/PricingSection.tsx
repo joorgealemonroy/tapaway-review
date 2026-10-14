@@ -44,7 +44,7 @@ export function PricingSection() {
         </div>
         {loading && <p role="status" className="mb-4 text-muted-foreground">Checking current prices…</p>}
         {failed && <p role="status" className="mb-4 text-muted-foreground">Prices are temporarily unavailable. <Button variant="link" onClick={retry}>Try again</Button></p>}
-        {!loading && interval === "year" && catalog.some((item) => item.interval === "year" && !item.available) && <p className="mb-4 text-muted-foreground">Yearly is temporarily unavailable for some options. <Button variant="link" onClick={() => setInterval("month")}>Choose monthly</Button></p>}
+        {!loading && interval === "year" && catalog.some((item) => item.interval === "year" && !item.available) && <p className="mb-4 text-muted-foreground">Yearly is temporarily unavailable for some options. <Button variant="link" onClick={() => { setInterval("month"); saveOnboardingData({ billingInterval: "month", billingSelectionExplicit: true }); }}>Choose monthly</Button></p>}
         <div className="grid gap-4 sm:grid-cols-2">
           {(["solo", "venue"] as const).map((plan) => {
             const item = catalog.find((value) => value.plan === plan && value.interval === interval);

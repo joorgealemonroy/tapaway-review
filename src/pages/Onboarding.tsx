@@ -368,7 +368,10 @@ const Onboarding = () => {
   }, []);
 
   // ── Navigation helpers ──
-  const goTo = (s: Step, dir: number) => { setDirection(dir); setStep(s); };
+  const goTo = (s: Step, dir: number) => {
+    saveOnboardingData({ businessName, websiteUrl, phone: ownerPhone });
+    setDirection(dir); setStep(s);
+  };
 
   // Autosave typed business info (debounced) so navigating back never loses it.
   useEffect(() => {

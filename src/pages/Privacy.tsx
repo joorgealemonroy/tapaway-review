@@ -1,3 +1,4 @@
+import { Helmet } from "react-helmet-async";
 import { openConsentSettings } from "@/lib/consent";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ const Privacy = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <Helmet><title>Privacy Policy | TapAway</title><meta name="description" content="Privacy Policy for TapAway, including optional Meta and Trybe tracking and your cookie settings." /></Helmet>
       <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate("/")}>
