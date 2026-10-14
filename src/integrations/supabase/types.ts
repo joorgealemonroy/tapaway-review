@@ -5195,6 +5195,10 @@ export type Database = {
         Args: { _card_public_code: string; _profile_id: string }
         Returns: Json
       }
+      admin_card_club_override: {
+        Args: { _membership_id: string; _reason: string; _status: string }
+        Returns: undefined
+      }
       admin_engagement_daily: {
         Args: { _days?: number; _tz?: string }
         Returns: {
@@ -5210,6 +5214,10 @@ export type Database = {
       }
       admin_set_print_status: {
         Args: { _notes: string; _profile_id: string; _status: string }
+        Returns: undefined
+      }
+      admin_set_setup_status: {
+        Args: { _session_id: string; _status: string }
         Returns: undefined
       }
       admin_swap_hub_slug: {
