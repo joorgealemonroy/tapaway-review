@@ -1091,6 +1091,154 @@ export type Database = {
         }
         Relationships: []
       }
+      card_club_memberships: {
+        Row: {
+          admin_override: boolean
+          cancellation_date: string | null
+          card_club_paid_at: string | null
+          card_club_stripe_subscription_id: string | null
+          card_club_stripe_subscription_item_id: string | null
+          checkout_intent_id: string | null
+          created_at: string
+          declined_at: string | null
+          enrollment_date: string | null
+          id: string
+          last_redemption_at: string | null
+          main_stripe_subscription_id: string
+          plan: string
+          replacement_interval_days: number
+          review_reason: string | null
+          status: string
+          stripe_customer_id: string | null
+          stripe_price_id: string | null
+          total_redemptions: number
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          admin_override?: boolean
+          cancellation_date?: string | null
+          card_club_paid_at?: string | null
+          card_club_stripe_subscription_id?: string | null
+          card_club_stripe_subscription_item_id?: string | null
+          checkout_intent_id?: string | null
+          created_at?: string
+          declined_at?: string | null
+          enrollment_date?: string | null
+          id?: string
+          last_redemption_at?: string | null
+          main_stripe_subscription_id: string
+          plan: string
+          replacement_interval_days?: number
+          review_reason?: string | null
+          status: string
+          stripe_customer_id?: string | null
+          stripe_price_id?: string | null
+          total_redemptions?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          admin_override?: boolean
+          cancellation_date?: string | null
+          card_club_paid_at?: string | null
+          card_club_stripe_subscription_id?: string | null
+          card_club_stripe_subscription_item_id?: string | null
+          checkout_intent_id?: string | null
+          created_at?: string
+          declined_at?: string | null
+          enrollment_date?: string | null
+          id?: string
+          last_redemption_at?: string | null
+          main_stripe_subscription_id?: string
+          plan?: string
+          replacement_interval_days?: number
+          review_reason?: string | null
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_price_id?: string | null
+          total_redemptions?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "card_club_memberships_checkout_intent_id_fkey"
+            columns: ["checkout_intent_id"]
+            isOneToOne: true
+            referencedRelation: "checkout_intents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      card_club_redemptions: {
+        Row: {
+          created_at: string
+          design_update_note: string | null
+          design_version: string
+          eligibility_period_start: string
+          id: string
+          idempotency_key: string | null
+          main_stripe_subscription_id: string | null
+          membership_id: string
+          printed_at: string | null
+          quantity: number
+          requested_at: string
+          shipped_at: string | null
+          shipping_address: Json
+          status: string
+          tracking_number: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          design_update_note?: string | null
+          design_version?: string
+          eligibility_period_start: string
+          id?: string
+          idempotency_key?: string | null
+          main_stripe_subscription_id?: string | null
+          membership_id: string
+          printed_at?: string | null
+          quantity: number
+          requested_at?: string
+          shipped_at?: string | null
+          shipping_address: Json
+          status?: string
+          tracking_number?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          design_update_note?: string | null
+          design_version?: string
+          eligibility_period_start?: string
+          id?: string
+          idempotency_key?: string | null
+          main_stripe_subscription_id?: string | null
+          membership_id?: string
+          printed_at?: string | null
+          quantity?: number
+          requested_at?: string
+          shipped_at?: string | null
+          shipping_address?: Json
+          status?: string
+          tracking_number?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "card_club_redemptions_membership_id_fkey"
+            columns: ["membership_id"]
+            isOneToOne: false
+            referencedRelation: "card_club_memberships"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       card_showcase_items: {
         Row: {
           back_image_path: string | null
@@ -1136,6 +1284,72 @@ export type Database = {
           is_enabled?: boolean
           sort_order?: number
           updated_at?: string
+        }
+        Relationships: []
+      }
+      checkout_intents: {
+        Row: {
+          attribution: Json
+          billing_interval: string
+          card_club_price_id: string | null
+          card_club_selected: boolean
+          card_quantity: number
+          checkout_source: string | null
+          created_at: string
+          email: string | null
+          id: string
+          main_price_id: string
+          onboarding_version: string
+          plan: string
+          review_reason: string | null
+          status: string
+          stripe_checkout_session_id: string | null
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          attribution?: Json
+          billing_interval: string
+          card_club_price_id?: string | null
+          card_club_selected?: boolean
+          card_quantity: number
+          checkout_source?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          main_price_id: string
+          onboarding_version?: string
+          plan: string
+          review_reason?: string | null
+          status?: string
+          stripe_checkout_session_id?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          attribution?: Json
+          billing_interval?: string
+          card_club_price_id?: string | null
+          card_club_selected?: boolean
+          card_quantity?: number
+          checkout_source?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          main_price_id?: string
+          onboarding_version?: string
+          plan?: string
+          review_reason?: string | null
+          status?: string
+          stripe_checkout_session_id?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -2434,6 +2648,92 @@ export type Database = {
         }
         Relationships: []
       }
+      onboarding_sessions: {
+        Row: {
+          billing_address: Json | null
+          business_address: string | null
+          business_city: string | null
+          business_link: string | null
+          business_name: string | null
+          checkout_intent_id: string
+          completed_at: string | null
+          created_at: string
+          google_place_id: string | null
+          id: string
+          logo_skipped: boolean
+          logo_url: string | null
+          needs_research: boolean
+          personal_profile_id: string | null
+          place_details: Json | null
+          restaurant_id: string | null
+          setup_status: string
+          shipping_address: Json | null
+          shipping_confirmed_at: string | null
+          step: string
+          stripe_subscription_id: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          billing_address?: Json | null
+          business_address?: string | null
+          business_city?: string | null
+          business_link?: string | null
+          business_name?: string | null
+          checkout_intent_id: string
+          completed_at?: string | null
+          created_at?: string
+          google_place_id?: string | null
+          id?: string
+          logo_skipped?: boolean
+          logo_url?: string | null
+          needs_research?: boolean
+          personal_profile_id?: string | null
+          place_details?: Json | null
+          restaurant_id?: string | null
+          setup_status?: string
+          shipping_address?: Json | null
+          shipping_confirmed_at?: string | null
+          step?: string
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          billing_address?: Json | null
+          business_address?: string | null
+          business_city?: string | null
+          business_link?: string | null
+          business_name?: string | null
+          checkout_intent_id?: string
+          completed_at?: string | null
+          created_at?: string
+          google_place_id?: string | null
+          id?: string
+          logo_skipped?: boolean
+          logo_url?: string | null
+          needs_research?: boolean
+          personal_profile_id?: string | null
+          place_details?: Json | null
+          restaurant_id?: string | null
+          setup_status?: string
+          shipping_address?: Json | null
+          shipping_confirmed_at?: string | null
+          step?: string
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_sessions_checkout_intent_id_fkey"
+            columns: ["checkout_intent_id"]
+            isOneToOne: true
+            referencedRelation: "checkout_intents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pending_otps: {
         Row: {
           code: string
@@ -2877,6 +3177,7 @@ export type Database = {
           is_approved: boolean
           is_founding_user: boolean
           is_stripe_onboarded: boolean | null
+          legacy_allowance: boolean
           logo_bg_color: string | null
           logo_scale: string
           payment_state: string
@@ -2980,6 +3281,7 @@ export type Database = {
           is_approved?: boolean
           is_founding_user?: boolean
           is_stripe_onboarded?: boolean | null
+          legacy_allowance?: boolean
           logo_bg_color?: string | null
           logo_scale?: string
           payment_state?: string
@@ -3083,6 +3385,7 @@ export type Database = {
           is_approved?: boolean
           is_founding_user?: boolean
           is_stripe_onboarded?: boolean | null
+          legacy_allowance?: boolean
           logo_bg_color?: string | null
           logo_scale?: string
           payment_state?: string
@@ -3833,6 +4136,7 @@ export type Database = {
           is_demo_account: boolean | null
           is_legacy_user: boolean
           last_google_sync_at: string | null
+          legacy_allowance: boolean
           logo_url: string | null
           meal_order_url: string | null
           menu_image_url: string | null
@@ -3901,6 +4205,7 @@ export type Database = {
           is_demo_account?: boolean | null
           is_legacy_user?: boolean
           last_google_sync_at?: string | null
+          legacy_allowance?: boolean
           logo_url?: string | null
           meal_order_url?: string | null
           menu_image_url?: string | null
@@ -3969,6 +4274,7 @@ export type Database = {
           is_demo_account?: boolean | null
           is_legacy_user?: boolean
           last_google_sync_at?: string | null
+          legacy_allowance?: boolean
           logo_url?: string | null
           meal_order_url?: string | null
           menu_image_url?: string | null
@@ -4908,6 +5214,16 @@ export type Database = {
         Returns: Json
       }
       build_google_review_url: { Args: { place_id: string }; Returns: string }
+      card_club_entitlement: {
+        Args: { _membership_id: string }
+        Returns: {
+          eligible: boolean
+          next_eligible_at: string
+          period_start: string
+          quantity: number
+          reason: string
+        }[]
+      }
       claim_stripe_event: {
         Args: { p_event_id: string; p_event_type: string }
         Returns: {
