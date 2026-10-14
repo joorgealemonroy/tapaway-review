@@ -68,3 +68,13 @@ export function uninstallAuthGuard(): void {
 
   console.info("[AUTH_GUARD] Uninstalled. Original methods restored.");
 }
+
+/**
+ * Exchanges a server-issued one-time token hash for a session. Verifying a
+ * token hash never sends an email, so it is allowed through the guard.
+ */
+export function verifyTokenHash(tokenHash: string, type: "email" | "magiclink" | "recovery" = "email") {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const fn = (originals.verifyOtp ?? (supabase.auth as any).verifyOtp) as (args: { token_hash: string; type: string }) => Promise<{ error: Error | null }>;
+  return fn.call(supabase.auth, { token_hash: tokenHash, type });
+}
