@@ -141,6 +141,13 @@
       "when": 1792017709540,
       "tag": "0019_legacy_allowance_pooled_usage",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1792017932165,
+      "tag": "0020_legacy_allowance_atomic_claims",
+      "breakpoints": true
     }
   ]
 }

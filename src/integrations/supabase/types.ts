@@ -2317,6 +2317,47 @@ export type Database = {
           },
         ]
       }
+      legacy_allowance_claims: {
+        Row: {
+          created_at: string
+          id: string
+          idempotency_key: string | null
+          period_start: string
+          quantity: number
+          relationship_key: string
+          source_id: string
+          source_kind: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          idempotency_key?: string | null
+          period_start: string
+          quantity: number
+          relationship_key: string
+          source_id: string
+          source_kind: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          idempotency_key?: string | null
+          period_start?: string
+          quantity?: number
+          relationship_key?: string
+          source_id?: string
+          source_kind?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "legacy_allowance_claims_relationship_key_fkey"
+            columns: ["relationship_key"]
+            isOneToOne: false
+            referencedRelation: "legacy_allowance_entitlements"
+            referencedColumns: ["relationship_key"]
+          },
+        ]
+      }
       legacy_allowance_entitlements: {
         Row: {
           granted_at: string
@@ -5639,6 +5680,22 @@ export type Database = {
       redeem_free_promo_token: {
         Args: { p_restaurant_id: string; p_token_id: string; p_user_id: string }
         Returns: boolean
+      }
+      reserve_legacy_allowance: {
+        Args: {
+          _idempotency_key: string
+          _key: string
+          _quantity: number
+          _source_id: string
+          _source_kind: string
+        }
+        Returns: {
+          allowance: number
+          claim_id: string
+          ok: boolean
+          reason: string
+          used: number
+        }[]
       }
       reserve_promo_token: {
         Args: { p_hold_minutes?: number; p_token_id: string; p_user_id: string }
