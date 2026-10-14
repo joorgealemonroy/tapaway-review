@@ -73,8 +73,8 @@ serve(async (req) => {
       const { data } = await db.rpc("card_club_entitlement", { _membership_id: club.id });
       entitlement = Array.isArray(data) ? data[0] : data;
     }
-    const { data: settings } = await db.from("app_settings").select("key, value").eq("key", "reprint_price_cents").maybeSingle();
-    return json({ session: current, intent, club, entitlement, reprintPriceCents: settings?.value ?? null });
+    const { data: settings } = await db.from("app_settings").select("reprint_price_cents").limit(1).maybeSingle();
+    return json({ session: current, intent, club, entitlement, reprintPriceCents: settings?.reprint_price_cents ?? null });
   } catch (e) {
     console.error("[payment-first-onboarding] failed", e instanceof Error ? e.message : e);
     return json({ error: "Something went wrong. Please try again." }, 500);

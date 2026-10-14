@@ -92,6 +92,13 @@
       "when": 1791969074644,
       "tag": "0012_payment_first_intent_flags",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1791969159506,
+      "tag": "0013_card_club_redeem_and_reprint_setting",
+      "breakpoints": true
     }
   ]
 }

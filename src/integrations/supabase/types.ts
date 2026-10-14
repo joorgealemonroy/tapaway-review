@@ -513,6 +513,7 @@ export type Database = {
           id: string
           onboarding_default_billing: string
           paywall_enabled: boolean
+          reprint_price_cents: number | null
           updated_at: string
         }
         Insert: {
@@ -520,6 +521,7 @@ export type Database = {
           id: string
           onboarding_default_billing?: string
           paywall_enabled?: boolean
+          reprint_price_cents?: number | null
           updated_at?: string
         }
         Update: {
@@ -527,6 +529,7 @@ export type Database = {
           id?: string
           onboarding_default_billing?: string
           paywall_enabled?: boolean
+          reprint_price_cents?: number | null
           updated_at?: string
         }
         Relationships: []
@@ -5235,6 +5238,15 @@ export type Database = {
           quantity: number
           reason: string
         }[]
+      }
+      card_club_redeem: {
+        Args: {
+          _address: Json
+          _design_note: string
+          _idempotency_key: string
+          _membership_id: string
+        }
+        Returns: Json
       }
       claim_stripe_event: {
         Args: { p_event_id: string; p_event_type: string }
