@@ -3,7 +3,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { checkRateLimit, getRateLimitKey, rateLimitResponse } from "../_shared/rateLimit.ts";
 import {
-  admin, CARD_QUANTITY, cors, frontendUrl, getStripe, json, ONBOARDING_VERSION, stripeMode, TRIAL_DAYS, verifiedPrice,
+  paymentFirstAllowed, admin, CARD_QUANTITY, cors, frontendUrl, getStripe, json, ONBOARDING_VERSION, stripeMode, TRIAL_DAYS, verifiedPrice,
   type Interval, type Plan,
 } from "../_shared/paymentFirst.ts";
 
@@ -11,6 +11,7 @@ const ATTR_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "u
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
+  if (!(await paymentFirstAllowed(req))) return json({ error: "Not available." }, 404);
   if (!checkRateLimit(getRateLimitKey(req, "payment-first-checkout"), 20, 60 * 60 * 1000)) return rateLimitResponse(cors);
   try {
     const body = await req.json().catch(() => ({}));
