@@ -80,7 +80,14 @@ const Dashboard = () => {
           .eq("user_id", user.id)
           .limit(1)
           .maybeSingle(),
+        supabase
+          .from("onboarding_sessions")
+          .select("id")
+          .eq("user_id", user.id)
+          .limit(1)
+          .maybeSingle(),
       ]);
+      const onboardingResult = await Promise.resolve(arguments.length ? null : null);
 
       // Legacy Business dashboard only for users with an active restaurant on
       // a legacy paid plan. Everyone else. Including all new signups 
