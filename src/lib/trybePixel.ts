@@ -72,6 +72,11 @@ export function watchConsentForTrybePixel(): () => void {
   initTrybePixel();
   return onConsentChange((state) => {
     if (state === "accepted") initTrybePixel();
+    else if (loadAttempted) {
+      // No verified Trybe unload API. Reload only after the decline is persisted
+      // (including the consent store's storage-blocked denial fallback).
+      window.location.reload();
+    }
   });
 }
 
@@ -82,6 +87,7 @@ export function watchConsentForTrybePixel(): () => void {
  * creator attribution for this order".
  */
 export function getTrybeVisitorId(): string {
+  if (getConsent() !== "accepted") return "";
   try {
     const w = window as any;
     const vid = w?.trybe?.getVisitorId?.() ?? w?._trybe?.getVisitorId?.();

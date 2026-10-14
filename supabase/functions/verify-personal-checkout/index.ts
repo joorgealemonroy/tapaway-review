@@ -422,8 +422,9 @@ serve(async (req) => {
     // Never fails the checkout.
     try {
       const paidNow = (session.amount_total || 0) > 0;
-      const capiResult = await sendMetaCapiEvent({
-        eventName: paidNow ? "Purchase" : "Lead",
+      // Paid subscriptions are reported only by the existing invoice emitter.
+      const capiResult = paidNow ? { ok: false, skipped: "Purchase belongs to invoice emitter" } : await sendMetaCapiEvent({
+        eventName: "Lead",
         eventId: `verify_${sessionId}`,
         email: customerEmail,
         phone: customerPhone,

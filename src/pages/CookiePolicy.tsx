@@ -1,3 +1,4 @@
+import { openConsentSettings } from "@/lib/consent";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Smartphone } from "lucide-react";
@@ -24,7 +25,7 @@ const CookiePolicy = () => {
 
       <div className="container mx-auto px-4 py-12 max-w-4xl">
         <h1 className="text-4xl font-bold mb-8">Cookie & Analytics Policy</h1>
-        <p className="text-muted-foreground mb-8">Last Updated: February 21, 2026</p>
+        <p className="text-muted-foreground mb-8">Tracking description updated: October 14, 2026</p>
 
         <div className="prose prose-slate dark:prose-invert max-w-none space-y-8">
           <section>
@@ -40,8 +41,7 @@ const CookiePolicy = () => {
           <section>
             <h2 className="text-2xl font-bold mb-4">2. Types of Cookies We Use</h2>
             <p className="text-muted-foreground mb-4">
-              TapAway uses <strong>strictly necessary cookies only</strong>. We do not use advertising cookies,
-              third-party tracking cookies, or marketing cookies. The cookies we use fall into the following categories:
+              TapAway uses necessary authentication and security storage, saved signup selections, preferences, and optional tracking. Optional Meta, Trybe, and returning-visitor analytics identifiers are enabled only after explicit acceptance.
             </p>
 
             <h3 className="text-xl font-semibold mb-2">Authentication & Session Cookies</h3>
@@ -64,15 +64,10 @@ const CookiePolicy = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-bold mb-4">3. Cookies We Do NOT Use</h2>
-            <p className="text-muted-foreground mb-4">TapAway does <strong>NOT</strong> use:</p>
-            <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li>Third-party advertising or remarketing cookies (Google Ads, Facebook Pixel, etc.)</li>
-              <li>Third-party analytics cookies (Google Analytics, Fathom, Hotjar, etc.)</li>
-              <li>Social media tracking cookies</li>
-              <li>Cross-site tracking cookies</li>
-              <li>Any cookies that track you across other websites</li>
-            </ul>
+            <h2 className="text-2xl font-bold mb-4">3. Optional Meta and Trybe Tracking</h2>
+            <p className="text-muted-foreground">After you accept, Meta (Facebook and Instagram) receives browser page and event information for advertising measurement, optimization, and retargeting. Trybe receives browser and referral information for creator attribution. These providers may use cookies or similar identifiers under their own policies. Trybe automatic tracking is disabled in our configuration.</p>
+            <p className="mt-4 text-muted-foreground">The browser stores your choice with a visitor-specific reference, timestamp, notice version, and notice text. A declined choice retains the preceding acceptance notice for context. Legacy or absent choices prompt a new decision. Blocked storage fails closed for optional tracking.</p>
+            <p className="mt-4 text-muted-foreground">Server advertising and order attribution reports are disabled in this source revision because current, revocable server consent evidence is not available. Checkout contact information and a saved visitor ID are not permission to send those reports.</p>
           </section>
 
           <section>
@@ -82,7 +77,7 @@ const CookiePolicy = () => {
               database. This is not cookie-based third-party analytics. The analytics data we collect includes:
             </p>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li>NFC card tap events (anonymized device interactions)</li>
+              <li>NFC card tap events and device/session information</li>
               <li>QR code scan events</li>
               <li>Hub page views and button clicks (Google, Yelp, Instagram, Directions)</li>
               <li>Profile page views for personal accounts</li>
@@ -90,20 +85,14 @@ const CookiePolicy = () => {
               <li>Dashboard usage activity</li>
             </ul>
             <p className="text-muted-foreground mt-4">
-              This data is collected for the sole purpose of providing analytics and insights to you within your
-              TapAway dashboard. It is not shared with, sold to, or accessible by third parties.
+              First-party reporting supports customer dashboards and product usage insights. A returning-visitor identifier is stored only after acceptance and removed from this browser after decline. Usage and tap events can still be recorded without that identifier; this is not a claim that all technical data is anonymous.
             </p>
           </section>
 
           <section>
-            <h2 className="text-2xl font-bold mb-4">5. Why No Cookie Consent Banner</h2>
-            <p className="text-muted-foreground">
-              TapAway does not display a cookie consent banner because all cookies used by TapAway fall under the
-              "strictly necessary" exemption recognized under the EU ePrivacy Directive (Cookie Law), UK PECR, and
-              similar regulations. Strictly necessary cookies are exempt from consent requirements because they are
-              essential for the website to function. Since TapAway does not use any non-essential cookies (advertising,
-              analytics via third-party tools, or marketing), no consent mechanism is required.
-            </p>
+            <h2 className="text-2xl font-bold mb-4">5. Your Consent Choice</h2>
+            <p className="text-muted-foreground">You can accept or decline optional tracking without affecting billing or your hub. Reopen Cookie settings at any time. After decline, new Meta calls and Trybe visitor identifiers stop. If Trybe has already loaded, the page reloads to stop the SDK reliably. Previously sent data cannot be recalled through this setting. Reaccepting enables optional tracking again.</p>
+            <Button variant="outline" className="mt-4" onClick={openConsentSettings}>Cookie settings</Button>
           </section>
 
           <section>
@@ -129,7 +118,7 @@ const CookiePolicy = () => {
             <p className="text-muted-foreground">
               In addition to cookies, TapAway may use browser local storage and session storage to store preferences,
               authentication tokens, and temporary data needed for the application to function. These technologies
-              serve similar purposes to strictly necessary cookies and are governed by this same policy.
+              include the consent record and, only with acceptance, optional returning-visitor identifiers. They are governed by this policy.
             </p>
           </section>
 
@@ -137,8 +126,7 @@ const CookiePolicy = () => {
             <h2 className="text-2xl font-bold mb-4">8. Changes to This Policy</h2>
             <p className="text-muted-foreground">
               We may update this Cookie & Analytics Policy at any time. The "Last Updated" date at the top reflects
-              the most recent revision. If we begin using non-essential cookies in the future, we will update this
-              policy and implement appropriate consent mechanisms.
+              the most recent revision. Material changes to optional tracking are reflected in the notice and consent settings.
             </p>
           </section>
 

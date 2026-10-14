@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useId } from "react";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, MapPin } from "lucide-react";
@@ -130,11 +130,13 @@ export const GooglePlacesAutocomplete = ({
     });
   };
 
+  const inputId = useId();
   return (
     <div ref={containerRef} className="relative">
-      {label && <Label className="text-gray-300 text-sm">{label}</Label>}
+      {label && <Label htmlFor={inputId} className="text-foreground text-sm">{label}</Label>}
       <div className="relative mt-1">
         <input
+          id={inputId} aria-label={label || "Search businesses on Google"}
           type="text"
           value={query}
           onChange={handleInputChange}

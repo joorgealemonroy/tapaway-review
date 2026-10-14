@@ -1135,7 +1135,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
   // Share preview (OG tags): when someone shares the hub, the native share
   // sheet and link unfurls show the hub's photo, name, and headline.
   const sharePageUrl = `https://tapaway.co/${profile.username}`;
-  const shareName = profile.full_name?.trim() || null;
+  const shareName = profile.full_name?.trim() || profile.username || "Business hub";
   const shareTitle = shareName ? `${shareName} | TapAway` : "TapAway";
   const shareDescription =
     profile.headline || profile.bio || (shareName ? `Tap to view ${shareName}'s links on TapAway.` : "Tap to view this hub on TapAway.");
@@ -1388,7 +1388,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
             // Banner mode: white text with drop shadows, readable over the banner fade
             <>
               <h1 className="text-3xl font-bold drop-shadow-lg text-white">
-                {profile.show_username !== false ? `@${profile.username}` : profile.full_name}
+                {profile.show_username !== false ? `@${profile.username}` : shareName}
               </h1>
               {profile.headline && (
                 <p className="text-base mt-2 drop-shadow-md text-white/90">
@@ -1406,7 +1406,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
             </>
           ) : (
           <>
-          <h1 className={`text-2xl font-bold ${headingClass}`} style={headingStyle}>{profile.full_name}</h1>
+          <h1 className={`text-2xl font-bold ${headingClass}`} style={headingStyle}>{shareName}</h1>
               {profile.headline && (
                 <p className={`text-sm ${textClass} mt-1`} style={textStyle}>{profile.headline}</p>
               )}

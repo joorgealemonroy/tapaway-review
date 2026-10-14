@@ -34,7 +34,7 @@ const LivePhoneFrame = ({ slug, fallbackContent }: { slug: string; fallbackConte
   }, [slug]);
 
   return (
-    <div className="mx-auto w-[320px] sm:w-[340px] rounded-[2.5rem] border-[6px] border-foreground/80 bg-background shadow-2xl overflow-hidden">
+    <div className="mx-auto w-full max-w-[320px] sm:max-w-[340px] rounded-[2.5rem] border-[6px] border-foreground/80 bg-background shadow-2xl overflow-hidden">
       {/* Notch */}
       <div className="mx-auto mt-2 h-5 w-28 rounded-full bg-foreground/80" />
       <div className="relative overflow-hidden" style={{ height: 600 }}>
@@ -66,7 +66,7 @@ const LivePhoneFrame = ({ slug, fallbackContent }: { slug: string; fallbackConte
           />
         ) : (
           <div className="px-4 py-4 space-y-3 min-h-[600px] overflow-y-auto">
-            {fallbackContent}
+            <p className="mb-3 text-sm font-semibold text-muted-foreground">Illustrative fallback, not a live hub</p>{fallbackContent}
           </div>
         )}
       </div>
@@ -148,7 +148,7 @@ const Examples = () => {
           See TapAway in Action
         </h1>
         <p className="mt-3 text-muted-foreground max-w-lg mx-auto">
-          These are real businesses using TapAway right now. Tap around inside the phone to see exactly what their customers experience.
+          Explore public business hubs. If a live preview is unavailable, an illustrative layout is shown instead.
         </p>
       </section>
 
@@ -167,11 +167,11 @@ const Examples = () => {
 
               <div className="space-y-5 pt-4">
                 <h3 className="text-xl font-bold text-foreground">Las Islas – Salem</h3>
-                <p className="text-sm text-muted-foreground">This is a live TapAway page. Scroll, tap buttons, and see exactly what customers experience.</p>
+                <p className="text-sm text-muted-foreground">This preview loads the public hub when available. Scroll, tap buttons, and see exactly what customers experience.</p>
                 <Callout title="Google & Yelp Reviews" desc="One tap sends customers straight to the review page. No searching required." />
                 <Callout title="Digital Menu" desc="Customers browse the full menu right from their phone, no PDF or app needed." />
                 <Callout title="Directions" desc="Opens Apple Maps with the exact location. Great for new customers." />
-                <Callout title="Social Media" desc="Grow your Instagram following effortlessly." />
+                <Callout title="Social Media" desc="Let customers open your Instagram page." />
                 <Callout title="NFC & Link" desc="Works with our NFC cards or custom link in bio." />
               </div>
             </div>
@@ -184,8 +184,8 @@ const Examples = () => {
 
               <div className="space-y-5 pt-4">
                 <h3 className="text-xl font-bold text-foreground">Reborn Wraps</h3>
-                <p className="text-sm text-muted-foreground">This is a live TapAway page. Scroll, tap buttons, and see exactly what Reborn Wraps' customers see.</p>
-                <Callout title="Collect Reviews Automatically" desc="Hand a customer your card, they tap, and your Google rating grows." />
+                <p className="text-sm text-muted-foreground">This preview loads the public hub when available. Scroll, tap buttons, and see exactly what Reborn Wraps' customers see.</p>
+                <Callout title="Invite Honest Reviews" desc="Customers can open your review link and share their experience." />
                 <Callout title="Direct Calls & Booking" desc="Let customers call or book with one tap. No hunting for your number." />
                 <Callout title="Your Website Front & Center" desc="Drive traffic straight to your site or portfolio." />
                 <Callout title="No App Required" desc="Customers don't download anything. Tap → done." />
@@ -202,7 +202,7 @@ const Examples = () => {
         <Accordion type="single" collapsible className="w-full">
           <AccordionItem value="reviews">
             <AccordionTrigger>Collect More Reviews</AccordionTrigger>
-            <AccordionContent>NFC tap or QR scan sends customers straight to your Google or Yelp review page. No searching, no friction. Businesses see 3–5× more reviews in the first month.</AccordionContent>
+            <AccordionContent>NFC tap or QR scan opens your business hub. Customers can choose a review link and share honest feedback. Follow each platform’s current rules; review outcomes vary.</AccordionContent>
           </AccordionItem>
           <AccordionItem value="one-link">
             <AccordionTrigger>One Link, Everything</AccordionTrigger>
@@ -231,7 +231,7 @@ const Examples = () => {
       <section className="bg-primary/5 py-16 px-4 text-center">
         <h2 className="text-2xl sm:text-3xl font-bold text-foreground">Ready to get started?</h2>
         <p className="mt-2 text-muted-foreground max-w-md mx-auto">
-          Set up takes under 5 minutes. Or call us and we'll do it for you.
+          Choose your cards and tell us about your business. Done-for-you setup is included.
         </p>
         <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
           <Button size="lg" asChild>

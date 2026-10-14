@@ -88,7 +88,7 @@ export function trackMetaEvent(
   eventName: string,
   params?: Record<string, unknown>
 ): void {
-  if (!initialized || !window.fbq) return;
+  if (getConsent() !== "accepted" || !initialized || !window.fbq) return;
   try {
     if (params) window.fbq("track", eventName, params);
     else window.fbq("track", eventName);
@@ -115,7 +115,12 @@ export function trackMetaPageView(): void {
 export function watchConsentForPixel(): () => void {
   initMetaPixel();
   return onConsentChange((state) => {
-    if (state === "accepted") initMetaPixel();
+    if (state === "accepted") {
+      window.fbq?.("consent", "grant");
+      initMetaPixel();
+    } else if (initialized) {
+      window.fbq?.("consent", "revoke");
+    }
   });
 }
 

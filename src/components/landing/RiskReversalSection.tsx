@@ -11,11 +11,11 @@ export const RiskReversalSection = () => {
   const bullets = [
     "Cards designed, printed & shipped to you",
     "Your hub built and live within days",
-    "No charge until day 14. Cancel anytime",
+    "Subscription billing begins after your 14-day trial",
   ];
 
   return (
-    <section ref={ref} className="bg-[#0a0f1c] py-16 md:py-24 px-4">
+    <section ref={ref} className="bg-hero py-12 md:py-16 px-4">
       <div className="max-w-7xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -28,10 +28,10 @@ export const RiskReversalSection = () => {
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary mb-4">
               START FREE
             </p>
-            <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-white mb-4 leading-tight">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-hero-foreground mb-4 leading-tight">
               Your first 14 days are on us.
             </h2>
-            <p className="text-base md:text-lg text-white/70 mb-6 leading-relaxed max-w-xl mx-auto md:mx-0">
+            <p className="text-base md:text-lg text-hero-foreground/70 mb-6 leading-relaxed max-w-xl mx-auto md:mx-0">
               4 custom cards with your logo, your hub built for you, and the full dashboard. Free for 14 days.
             </p>
 
@@ -39,21 +39,21 @@ export const RiskReversalSection = () => {
               {bullets.map((bullet, index) => (
                 <li key={index} className="flex items-center gap-3">
                   <Check className="w-5 h-5 text-primary flex-shrink-0" strokeWidth={3} />
-                  <span className="text-sm md:text-base text-white/90">{bullet}</span>
+                  <span className="text-sm md:text-base text-hero-foreground/90">{bullet}</span>
                 </li>
               ))}
             </ul>
 
             <Link
               to="/start"
-              className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full bg-white text-[#0a0f1c] font-bold text-base md:text-lg shadow-lg hover:shadow-xl transition-all"
+              className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full bg-primary text-primary-foreground font-bold text-base md:text-lg shadow-lg hover:shadow-xl transition-all"
             >
               Start My Free Trial
               <ArrowRight className="w-5 h-5" />
             </Link>
 
-            <p className="text-xs md:text-sm text-white/50 mt-4">
-              Card on file required · $1 hold, voided instantly · Cancel anytime.
+            <p className="text-xs md:text-sm text-hero-foreground/50 mt-4">
+              Card on file required · Temporary $1 authorization · Bank release times vary.
             </p>
           </div>
 

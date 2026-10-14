@@ -267,6 +267,11 @@ serve(async (req) => {
       success_url: successUrl,
       cancel_url: `${req.headers.get('origin') || 'https://tapaway.co'}/onboarding`,
       billing_address_collection: 'required',
+      custom_text: {
+        submit: { message: noTrial
+          ? 'Your subscription is billed now and renews at the selected interval until canceled. Review the full total above. Terms: https://tapaway.co/terms Privacy: https://tapaway.co/privacy Refunds: https://tapaway.co/refund'
+          : `After your ${config.trialDays}-day trial, the full ${isYearly ? 'annual' : 'monthly'} total shown above is billed and renews ${isYearly ? 'yearly' : 'monthly'} until canceled. Cancel before the trial ends to avoid the first subscription charge.${isYearly ? ' Cancellation stops future renewals, not a refund of the current annual term.' : ''} Card verification requests a temporary $1 authorization, then cancellation without capture. Bank release times vary. Advertising consent is separate. Terms: https://tapaway.co/terms Privacy: https://tapaway.co/privacy Refunds: https://tapaway.co/refund` },
+      },
       // Collect phone so we can text the client when their hub is ready.
       phone_number_collection: { enabled: true },
       shipping_address_collection: { allowed_countries: ['US', 'CA', 'MX'] },

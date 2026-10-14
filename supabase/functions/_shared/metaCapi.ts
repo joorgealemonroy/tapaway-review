@@ -20,6 +20,8 @@
  * so Meta counts the event once.
  */
 
+import { serverAdvertisingAllowed } from "./advertisingConsent.ts";
+
 export interface MetaCapiEvent {
   /** Standard Meta event name: Lead, Purchase, InitiateCheckout, StartTrial... */
   eventName: string;
@@ -46,6 +48,7 @@ async function sha256Hex(value: string): Promise<string> {
 export async function sendMetaCapiEvent(
   e: MetaCapiEvent,
 ): Promise<{ ok: boolean; skipped?: string; error?: string }> {
+  if (!serverAdvertisingAllowed()) return { ok: false, skipped: "No verifiable current advertising consent" };
   const pixelId = Deno.env.get("META_PIXEL_ID") || "";
   const token = Deno.env.get("META_CONVERSIONS_API_TOKEN") || "";
   if (!pixelId || !token) {
