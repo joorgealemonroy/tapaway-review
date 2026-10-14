@@ -10,6 +10,22 @@ serve(async (req) => {
   const stripe = getStripe();
   const db = admin();
   const body = await req.json().catch(() => ({}));
+  if (body.action === "cleanup_stripe") {
+    // Cancel/delete Stripe TEST objects for payment-first test intents only.
+    const { data: list } = await db.from("checkout_intents").select("stripe_customer_id").eq("stripe_livemode", false).like("email", "tap+pftest%");
+    const done: string[] = [];
+    for (const row of list ?? []) {
+      if (!row.stripe_customer_id) continue;
+      try {
+        const c = await stripe.customers.retrieve(row.stripe_customer_id) as unknown as { deleted?: boolean; test_clock?: string; livemode: boolean };
+        if (c.deleted || c.livemode) continue;
+        if (c.test_clock) await stripe.testHelpers.testClocks.del(c.test_clock);
+        else await stripe.customers.del(row.stripe_customer_id);
+        done.push(row.stripe_customer_id);
+      } catch (e) { done.push(`${row.stripe_customer_id}:err:${e instanceof Error ? e.message : e}`); }
+    }
+    return json({ ok: true, done });
+  }
   const { data: intent } = await db.from("checkout_intents").select("*").eq("stripe_checkout_session_id", String(body.sessionId || "")).maybeSingle();
   if (!intent || intent.stripe_livemode) return json({ error: "No test intent." }, 404);
   const { data: m } = await db.from("card_club_memberships").select("*").eq("checkout_intent_id", intent.id).maybeSingle();
