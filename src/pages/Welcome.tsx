@@ -83,7 +83,7 @@ export default function Welcome() {
         {phase === "sign_in" && <SignIn emailHint={emailHint} />}
         {phase === "flow" && step === "business" && <BusinessStep busy={busy} error={error} onSubmit={async (b) => { setBusy(true); const r = await refresh({ action: "business", ...b }); setBusy(false); if (r) track(b.notFound ? "business_not_found" : "business_selected", { hubKind: "site" }); }} />}
         {phase === "flow" && step === "logo" && <LogoStep busy={busy} error={error} onSubmit={async (logoUrl) => { setBusy(true); const r = await refresh({ action: "logo", logoUrl }); setBusy(false); if (r) track(logoUrl ? "logo_uploaded" : "logo_skipped", { hubKind: "site" }); }} />}
-        {phase === "flow" && step === "shipping" && <ShippingStep current={state?.session?.shipping_address ?? null} busy={busy} error={error} onSubmit={async (address) => { setBusy(true); const r = await refresh({ action: "shipping", address }); setBusy(false); if (r) track("onboarding_completed", { hubKind: "site" }); }} />}
+        {phase === "flow" && step === "shipping" && <ShippingStep current={state?.session?.shipping_address ?? null} busy={busy} error={error} onSubmit={async (address) => { setBusy(true); const r = await refresh({ action: "shipping", address }); setBusy(false); if (r) { track("shipping_confirmed", { hubKind: "site" }); track("onboarding_completed", { hubKind: "site" }); } }} />}
         {phase === "flow" && step === "done" && <DoneStep hasLogo={!!state?.session?.logo_url} onDashboard={() => { track("dashboard_opened", { hubKind: "site" }); navigate("/dashboard"); }} />}
       </main>
     </div>
