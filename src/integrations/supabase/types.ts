@@ -2824,6 +2824,24 @@ export type Database = {
           },
         ]
       }
+      payment_first_config: {
+        Row: {
+          id: number
+          test_access_key: string
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          test_access_key?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          test_access_key?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pending_otps: {
         Row: {
           code: string
@@ -3273,6 +3291,7 @@ export type Database = {
           legacy_allowance_source: string | null
           logo_bg_color: string | null
           logo_scale: string
+          onboarding_source: string | null
           payment_state: string
           pfp_position: string | null
           pipeline_status: string | null
@@ -3380,6 +3399,7 @@ export type Database = {
           legacy_allowance_source?: string | null
           logo_bg_color?: string | null
           logo_scale?: string
+          onboarding_source?: string | null
           payment_state?: string
           pfp_position?: string | null
           pipeline_status?: string | null
@@ -3487,6 +3507,7 @@ export type Database = {
           legacy_allowance_source?: string | null
           logo_bg_color?: string | null
           logo_scale?: string
+          onboarding_source?: string | null
           payment_state?: string
           pfp_position?: string | null
           pipeline_status?: string | null
