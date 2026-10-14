@@ -53,8 +53,9 @@ export default function Welcome() {
         if (data.emailHint) setEmailHint(data.emailHint);
         if (!tracked.current && data.status && data.status !== "not_paid") { tracked.current = true; track("purchase_completed", { hubKind: "site" }); }
         if (data.status === "ready" && data.token_hash) {
-          const { error: e } = await supabase.auth.verifyOtp({ token_hash: data.token_hash, type: "magiclink" });
+          const { error: e } = await supabase.auth.verifyOtp({ token_hash: data.token_hash, type: "email" });
           if (!e) { await refresh(); return; }
+          console.warn("welcome sign-in failed", e.message);
           setPhase("sign_in"); return;
         }
         if (data.status === "verify_email") { setPhase("verify_email"); return; }

@@ -355,7 +355,7 @@ const Onboarding = () => {
     track("checkout_clicked", { hubKind: "site", props: { plan: selectedPlan, interval: billingInterval, card_club: cardClub } });
     const saved = getOnboardingData();
     const { ok, data } = await callFunction<{ url?: string; error?: string }>("payment-first-checkout", {
-      plan: selectedPlan, interval: billingInterval, cardClub, source: "onboarding",
+      plan: selectedPlan, interval: billingInterval, cardClub, source: "onboarding", returnOrigin: window.location.origin,
       attribution: { ...(saved.campaign || {}), landing_path: window.location.pathname },
       trybeVisitorId: getTrybeVisitorId(),
     }).catch(() => ({ ok: false, data: {} as { url?: string; error?: string } }));

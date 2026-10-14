@@ -25,6 +25,9 @@ serve(async (req) => {
     for (const k of ATTR_KEYS) if (typeof raw[k] === "string" && raw[k]) attribution[k] = raw[k].slice(0, 250);
     const trybe = typeof body.trybeVisitorId === "string" && body.trybeVisitorId.length <= 128 ? body.trybeVisitorId : "";
 
+    // Test mode may return to the preview/localhost; live always returns to FRONTEND_URL.
+    const ro = typeof body.returnOrigin === "string" ? body.returnOrigin : "";
+    const origin = stripeMode() === "test" && /^(http:\/\/localhost:8080|https:\/\/[a-z0-9-]+\.(lovable\.app|lovableproject\.com))$/.test(ro) ? ro : frontendUrl();
     const stripe = getStripe();
     let main, club = null;
     try {
@@ -58,8 +61,8 @@ serve(async (req) => {
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       line_items: [{ price: main.id, quantity: 1 }],
-      success_url: `${frontendUrl()}/welcome?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${frontendUrl()}/onboarding?plan=${plan}&cycle=${interval}&canceled=1`,
+      success_url: `${origin}/welcome?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${origin}/onboarding?plan=${plan}&cycle=${interval}&canceled=1`,
       billing_address_collection: "required",
       shipping_address_collection: { allowed_countries: ["US"] },
       phone_number_collection: { enabled: true },
