@@ -70,6 +70,8 @@ export default function Welcome() {
   }, [sessionId, refresh]);
 
   const step = state?.session?.step;
+  const searchTracked = useRef(false);
+  useEffect(() => { if (step === "business" && !searchTracked.current) { searchTracked.current = true; track("business_search_started", { hubKind: "site" }); } }, [step]);
 
   return (
     <div className={shell}>
