@@ -131,6 +131,7 @@ serve(async (req) => {
       status: string | null;
       slug: string | null;
       legacyAllowance: boolean;
+      legacyKey: string | null;
       paymentFirst: boolean;
     };
 
@@ -139,7 +140,7 @@ serve(async (req) => {
     if (!personalProfileId) {
       let q = supabaseAdmin
         .from('restaurants')
-        .select('id, restaurant_name, owner_name, email, plan_type, subscription_status, custom_slug, legacy_allowance');
+        .select('id, restaurant_name, owner_name, email, plan_type, subscription_status, custom_slug, legacy_allowance, legacy_allowance_key');
       if (restaurantId) q = q.eq('id', restaurantId);
       if (!isAdmin) q = q.eq('owner_id', user.id);
       const { data: restaurant } = await q.maybeSingle();
@@ -153,6 +154,7 @@ serve(async (req) => {
           status: restaurant.subscription_status,
           slug: restaurant.custom_slug,
           legacyAllowance: restaurant.legacy_allowance === true,
+          legacyKey: restaurant.legacy_allowance_key ?? null,
           paymentFirst: false,
         };
       }
@@ -161,7 +163,7 @@ serve(async (req) => {
     if (!account) {
       let q = supabaseAdmin
         .from('personal_profiles')
-        .select('id, full_name, username, email, plan_type, subscription_status, legacy_allowance, onboarding_source');
+        .select('id, full_name, username, email, plan_type, subscription_status, legacy_allowance, legacy_allowance_key, onboarding_source');
       if (personalProfileId) q = q.eq('id', personalProfileId);
       if (!isAdmin) q = q.eq('user_id', user.id);
       const { data: profile } = await q.maybeSingle();
@@ -175,6 +177,7 @@ serve(async (req) => {
           status: profile.subscription_status,
           slug: profile.username,
           legacyAllowance: profile.legacy_allowance === true,
+          legacyKey: profile.legacy_allowance_key ?? null,
           paymentFirst: typeof profile.onboarding_source === 'string' && profile.onboarding_source.startsWith('payment_first'),
         };
       }
@@ -207,11 +210,23 @@ serve(async (req) => {
     }
 
     // ── Plan-based monthly allowance ───────────────────────────────────
-    const allowance = cardAllowanceForPlan(account.planType);
+    // Grandfathered accounts share ONE allowance per billing relationship
+    // (legacy_allowance_key = subscription/customer), never per page.
+    let allowance = cardAllowanceForPlan(account.planType);
     const monthStart = startOfMonthIso();
 
     let usedThisMonth = 0;
-    if (account.kind === 'restaurant') {
+    if (account.legacyAllowance && account.legacyKey) {
+      const { data: pooled, error: poolErr } = await supabaseAdmin
+        .rpc('legacy_allowance_status', { _key: account.legacyKey, _since: monthStart });
+      if (poolErr) {
+        console.error('[request-more-cards] pooled usage failed:', poolErr.message);
+        return json({ success: false, error: 'Could not check your card allowance. Please try again.' }, 500);
+      }
+      const row = Array.isArray(pooled) ? pooled[0] : pooled;
+      allowance = row?.allowance ?? allowance;
+      usedThisMonth = row?.used ?? 0;
+    } else if (account.kind === 'restaurant') {
       const { data: orders, error: usageErr } = await supabaseAdmin
         .from('fulfillment_orders')
         .select('quantity')
