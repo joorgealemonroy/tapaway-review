@@ -98,7 +98,6 @@ export const HeroSection = () => {
                 </p>
               </div>
 
-              <Link to="/examples" className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-hero-foreground underline underline-offset-4">View an example</Link>
             </div>
           </motion.div>
 
