@@ -69,7 +69,7 @@ const Dashboard = () => {
     if (authLoading || !user) return;
     
     const decide = async () => {
-      const [restaurantResult, personalResult] = await Promise.all([
+      const [restaurantResult, personalResult, onboardingResult] = await Promise.all([
         supabase
           .from("restaurants")
           .select("id, onboarding_completed, plan_type, subscription_status")
@@ -87,7 +87,6 @@ const Dashboard = () => {
           .limit(1)
           .maybeSingle(),
       ]);
-      const onboardingResult = await Promise.resolve(arguments.length ? null : null);
 
       // Legacy Business dashboard only for users with an active restaurant on
       // a legacy paid plan. Everyone else. Including all new signups 
@@ -99,7 +98,10 @@ const Dashboard = () => {
           ACTIVE_SUB_STATUSES.has(String(r.subscription_status ?? ''))
       );
 
-      if (hasLegacyBusiness) {
+      if (!restaurantResult.data?.length && !personalResult.data && onboardingResult.data) {
+        // Payment-first customer whose hub is still being built by the team.
+        setRouteDecision("building");
+      } else if (hasLegacyBusiness) {
         setRouteDecision("business");
       } else {
         setRouteDecision("lite");
@@ -115,6 +117,14 @@ const Dashboard = () => {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
+    );
+  }
+
+  if (routeDecision === "building") {
+    return (
+      <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
+        <BuildingDashboard />
+      </Suspense>
     );
   }
 
