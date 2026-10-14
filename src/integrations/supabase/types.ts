@@ -1300,6 +1300,7 @@ export type Database = {
           id: string
           main_price_id: string
           onboarding_version: string
+          paid_at: string | null
           plan: string
           review_reason: string | null
           status: string
@@ -1307,7 +1308,10 @@ export type Database = {
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
           updated_at: string
+          user_created_by_purchase: boolean
           user_id: string | null
+          verify_email_sent_at: string | null
+          welcome_session_issued_at: string | null
         }
         Insert: {
           attribution?: Json
@@ -1321,6 +1325,7 @@ export type Database = {
           id?: string
           main_price_id: string
           onboarding_version?: string
+          paid_at?: string | null
           plan: string
           review_reason?: string | null
           status?: string
@@ -1328,7 +1333,10 @@ export type Database = {
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           updated_at?: string
+          user_created_by_purchase?: boolean
           user_id?: string | null
+          verify_email_sent_at?: string | null
+          welcome_session_issued_at?: string | null
         }
         Update: {
           attribution?: Json
@@ -1342,6 +1350,7 @@ export type Database = {
           id?: string
           main_price_id?: string
           onboarding_version?: string
+          paid_at?: string | null
           plan?: string
           review_reason?: string | null
           status?: string
@@ -1349,7 +1358,10 @@ export type Database = {
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           updated_at?: string
+          user_created_by_purchase?: boolean
           user_id?: string | null
+          verify_email_sent_at?: string | null
+          welcome_session_issued_at?: string | null
         }
         Relationships: []
       }

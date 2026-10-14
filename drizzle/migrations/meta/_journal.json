@@ -85,6 +85,13 @@
       "when": 1791968948434,
       "tag": "0011_payment_first_onboarding_card_club",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1791969074644,
+      "tag": "0012_payment_first_intent_flags",
+      "breakpoints": true
     }
   ]
 }
