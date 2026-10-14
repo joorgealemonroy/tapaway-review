@@ -5,16 +5,9 @@
  * consent (see @/lib/consent). Without consent nothing from Meta is
  * fetched, so no data leaks before opt-in.
  *
- * Configuration: set VITE_META_PIXEL_ID in the hosting environment
- * (Lovable → Project Settings → Environment Variables). Until it is set,
- * every function below is a silent no-op and the site behaves exactly
- * as before.
- *
- * Server-side backup: purchases and leads are also sent via the Conversions
- * API (supabase/functions/_shared/metaCapi.ts) from verify-personal-checkout
- * (Lead/Purchase at signup) and stripe-webhook (Purchase on paid invoices),
- * so ad-blocked browsers still count. Server events use the Stripe session
- * or invoice id as event_id for dedup.
+ * The browser uses VITE_META_PIXEL_ID or the production fallback.
+ * Every optional event rechecks consent. Revocation uses Meta's consent API.
+ * Server CAPI remains fail-closed until current, revocable server evidence exists.
  */
 
 import { getConsent, onConsentChange } from "@/lib/consent";
@@ -88,7 +81,7 @@ export function trackMetaEvent(
   eventName: string,
   params?: Record<string, unknown>
 ): void {
-  if (!initialized || !window.fbq) return;
+  if (getConsent() !== "accepted" || !initialized || !window.fbq) return;
   try {
     if (params) window.fbq("track", eventName, params);
     else window.fbq("track", eventName);
@@ -115,7 +108,12 @@ export function trackMetaPageView(): void {
 export function watchConsentForPixel(): () => void {
   initMetaPixel();
   return onConsentChange((state) => {
-    if (state === "accepted") initMetaPixel();
+    if (state === "accepted") {
+      window.fbq?.("consent", "grant");
+      initMetaPixel();
+    } else if (initialized) {
+      window.fbq?.("consent", "revoke");
+    }
   });
 }
 

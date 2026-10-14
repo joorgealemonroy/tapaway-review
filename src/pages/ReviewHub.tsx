@@ -1,3 +1,4 @@
+import { Helmet } from "react-helmet-async";
 import { useEffect, useState } from "react";
 import { useParams, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -438,6 +439,12 @@ const ReviewHub = () => {
 
   return (
     <>
+      <Helmet>
+        <title>{restaurant.restaurant_name || restaurant.header_title || "Business hub"} | TapAway</title>
+        <meta name="description" content={restaurant.header_subtitle || `Explore ${restaurant.restaurant_name || "this business"}'s links.`} />
+        <meta property="og:title" content={`${restaurant.restaurant_name || restaurant.header_title || "Business hub"} | TapAway`} />
+        <meta property="og:description" content={restaurant.header_subtitle || "Explore this business hub."} />
+      </Helmet>
       <div style={{ 
         display: 'flex', 
         justifyContent: 'center', 
@@ -526,9 +533,9 @@ const ReviewHub = () => {
           )}
 
           {/* Header */}
-          <h2 style={{ margin: '0 0 8px', fontSize: '28px', lineHeight: '1.2', fontWeight: '800', color: getTextColor() }}>
-            {restaurant.header_title}
-          </h2>
+          <h1 style={{ margin: '0 0 8px', fontSize: '28px', lineHeight: '1.2', fontWeight: '800', color: getTextColor() }}>
+            {restaurant.header_title || restaurant.restaurant_name || "Business hub"}
+          </h1>
           <p style={{ margin: '0 0 22px', color: getMutedTextColor(), fontSize: '15px', lineHeight: '1.5' }}>
             {restaurant.header_subtitle}
           </p>

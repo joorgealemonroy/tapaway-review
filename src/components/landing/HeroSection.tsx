@@ -50,9 +50,9 @@ const clientFeedback = [
 export const HeroSection = () => {
   return (
     <>
-      <section className="relative min-h-[90vh] flex items-center overflow-x-clip bg-hero text-hero-foreground">
+      <section className="relative min-h-[80vh] flex items-center overflow-x-clip bg-hero text-hero-foreground">
         
-        <div className="relative w-full max-w-6xl mx-auto px-6 sm:px-8 py-8 pb-12 md:py-20 md:pb-24">
+        <div className="relative w-full max-w-6xl mx-auto px-6 sm:px-8 py-8 pb-12 md:py-12 md:pb-16">
           <div className="grid lg:grid-cols-[0.9fr_1.1fr] gap-7 lg:gap-10 items-center">
           {/* Left: Copy */}
           <motion.div
@@ -98,6 +98,7 @@ export const HeroSection = () => {
                 </p>
               </div>
 
+              <Link to="/examples" className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-hero-foreground underline underline-offset-4">View an example</Link>
             </div>
           </motion.div>
 
@@ -116,7 +117,7 @@ export const HeroSection = () => {
 
       <section
         aria-labelledby="client-feedback-heading"
-        className="border-t border-border bg-background py-16 md:py-24"
+        className="border-t border-border bg-background py-12 md:py-16"
       >
         <div className="max-w-6xl mx-auto px-6 sm:px-8">
           <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr] lg:gap-20 lg:items-end mb-10 md:mb-12">
@@ -131,7 +132,7 @@ export const HeroSection = () => {
               </p>
               <h2
                 id="client-feedback-heading"
-                className="max-w-3xl text-4xl sm:text-5xl lg:text-6xl font-black text-foreground leading-[1.08]"
+                className="max-w-3xl text-3xl sm:text-4xl lg:text-5xl font-black text-foreground leading-[1.08]"
               >
                 What local business owners say after the cards go live.
               </h2>

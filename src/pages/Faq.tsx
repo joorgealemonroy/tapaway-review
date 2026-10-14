@@ -6,51 +6,51 @@ import { Button } from "@/components/ui/button";
 const faqs = [
   {
     q: "What is TapAway?",
-    a: "TapAway gives your business a tap card that puts your whole business in your customer's pocket. One tap opens a custom mobile hub with your Instagram, menu, Google reviews, booking, directions, and contact info , everything in one place. You don't build anything. We do it all for you.",
+    a: "TapAway gives your business a tap card that puts your whole business in your customer's pocket. One tap opens a custom mobile hub with your Instagram, menu, Google reviews, booking, directions, and contact info, everything in one place. You don't build anything. We do it all for you.",
   },
   {
     q: "How do the NFC tap cards work?",
-    a: "Your customer holds their phone near the card and your hub opens instantly , no app, no scanning, no typing a web address. It uses NFC, the same tap technology as contactless payments. It's the fastest way to get a customer from standing at your counter to looking at your whole business on their phone.",
+    a: "We design your cards and set up your hub. Show customers how to tap with a compatible phone or scan the QR code to open your business links.",
   },
   {
     q: "Do the cards work with iPhones?",
-    a: "Yes. iPhone 7 and newer all support NFC tap , your customers just hold their phone near the card and it works. No app to download, nothing to set up on their end.",
+    a: "iPhone XS, XR, and newer generally read NFC links without a separate app when the phone is awake. iPhone 7, 8, and X can require an NFC reader or extra steps. Settings and cases can affect tapping. Every card includes a QR fallback.",
   },
   {
     q: "Do they work with Android?",
-    a: "Yes. Most Android phones have NFC built in, and the tap works the same way , hold the phone near the card and the hub opens. No app needed.",
+    a: "NFC-enabled Android phones can open the hub when NFC is enabled and the phone is unlocked. Device support varies. Use the QR code if tapping is unavailable.",
   },
   {
     q: "What's the difference between TapAway's cards and a QR code?",
-    a: "Speed and completion. A tap takes one second , your customer holds their phone near the card and they're in. A QR code means opening the camera, lining it up, and hoping it scans. In a busy moment, that friction is the difference between a customer who sees your whole business and one who gives up.",
+    a: "Your card includes both. NFC opens your hub on compatible phones; the QR code offers a camera-based alternative. Choose whichever works for your customer.",
   },
   {
     q: "How much does TapAway cost?",
-    a: "TapAway Solo is $20/month for single-location businesses, and TapAway Pro is $39/month for businesses that need more. Yearly plans save you two months: Solo is $199/year, Pro is $390/year. Every plan starts with a 14-day free trial.",
+    a: "Choose 4 cards or 15 cards, billed monthly or yearly. See the homepage pricing section for current verified prices and availability. The full yearly total, not the monthly equivalent, is billed after your 14-day trial.",
   },
   {
     q: "What's included in my subscription?",
-    a: "Everything, honestly. We build your custom hub for you, print and ship your tap cards, track every tap so you can see it's working, and handle any changes or questions along the way. You run your business , we handle the TapAway side.",
+    a: "Custom printed cards, a custom business hub, done-for-you setup, and dashboard access. Eligible card requests follow your plan allowance, not an unlimited replacement promise.",
   },
   {
     q: "How does the 14-day free trial work?",
-    a: "You get full access for 14 days , your hub built, your cards shipped, everything live. We ask for a card on file at signup so we can verify it, but if you cancel before day 14, you're never billed. No charges, no games.",
+    a: "After your 14-day trial, the selected monthly or full annual subscription amount is billed. See the pricing section for current available prices. Renews at your chosen interval until canceled. Cancel before your trial ends to avoid the first subscription charge.",
   },
   {
     q: "What is the $1 verification hold?",
-    a: "When you sign up, we place a temporary $1 authorization on your card to make sure it's valid. It's immediately voided , it drops off your statement on its own and you're never actually charged. It's just a check, not a fee.",
+    a: "Card verification uses a temporary $1 authorization with manual capture. We request cancellation without capturing it. Your bank controls when the pending authorization disappears.",
   },
   {
     q: 'What does "done-for-you setup" actually mean?',
-    a: "It means you lift no finger. Tell us about your business, send us your links and info, and we build your hub, print your cards, and ship them to you. When the box arrives, you're live. If something needs to change later , new menu, new hours, new Instagram , just tell us and we'll update it.",
+    a: "It means you lift no finger. Tell us about your business, send us your links and info, and we build your hub, print your cards, and ship them to you. When the box arrives, you're live. If something needs to change later, new menu, new hours, new Instagram, just tell us and we'll update it.",
   },
   {
     q: "How do my customers leave Google reviews with TapAway?",
-    a: "They tap your card, your hub opens, and they hit the review button that takes them straight to your Google review page. That one-tap path is why it works , Victor Ramirez picked up 44 new reviews in 30 days, Sonia Berumen added 33, and Amelia Zavala added 20. The connection is the whole product; more reviews are one of the biggest things that flow through it.",
+    a: "Customers open your hub and choose the Google review link. Invite honest feedback from customers without incentives or preferred ratings. Review activity and outcomes vary.",
   },
   {
     q: "What happens after the trial ends?",
-    a: "Your subscription starts automatically and your billing begins , that's it. There are no contracts, and you can cancel anytime. If TapAway isn't earning its keep, walk away. We'd rather earn the next month than lock you into this one.",
+    a: "After your 14-day trial, the selected monthly or full annual subscription amount is billed. See the pricing section for current available prices. Renews at your chosen interval until canceled. Cancel before your trial ends to avoid the first subscription charge.",
   },
 ];
 
@@ -82,7 +82,7 @@ const Faq = () => {
         <title>Frequently Asked Questions | TapAway</title>
         <meta
           name="description"
-          content="TapAway FAQ: how NFC tap cards work, pricing ($20-$39/mo), the 14-day free trial, iPhone & Android compatibility, and canceling anytime. Answered plainly."
+          content="TapAway FAQ: how NFC tap cards work, current pricing, the 14-day free trial, iPhone & Android compatibility, and canceling anytime. Answered plainly."
         />
         <meta property="og:title" content="Frequently Asked Questions | TapAway" />
         <meta

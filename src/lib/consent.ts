@@ -1,61 +1,59 @@
-/**
- * Tracking consent store (the "Phase 3" consent the analytics client was
- * waiting on). Single source of truth for whether marketing/analytics
- * tracking (Meta Pixel, visitor-id persistence) is allowed.
- *
- * States: "pending" (banner not answered yet), "accepted", "declined".
- * Persisted in localStorage under a versioned key so a future policy
- * change can re-prompt by bumping CONSENT_VERSION.
- */
-
+/** Explicit optional advertising/returning-visitor consent. No checkout implies acceptance. */
 export type ConsentState = "pending" | "accepted" | "declined";
+export const CONSENT_NOTICE_VERSION = "2026-10-14";
+export const CONSENT_NOTICE = "Allow Meta (Facebook and Instagram) and Trybe to receive page visits, device and referral information for advertising measurement, ad optimization, retargeting and creator attribution. Allow TapAway to remember a returning-visitor identifier for first-party analytics. Checkout contact information is not advertising consent. You can decline or change your choice in Cookie settings. Server advertising reports are disabled until revocable server consent records are available.";
+const STORAGE_KEY = "tapaway_tracking_consent_v2";
+const DENIED_FALLBACK = "tapaway_tracking_declined";
+type ConsentRecord = { state: "accepted" | "declined"; visitor: string; at: string; noticeVersion: string; notice: string; previousAcceptance?: { at: string; noticeVersion: string; notice: string } };
+const listeners = new Set<(state: ConsentState) => void>();
 
-const CONSENT_VERSION = 1;
-const STORAGE_KEY = `tapaway_tracking_consent_v${CONSENT_VERSION}`;
-
-type Listener = (state: ConsentState) => void;
-const listeners = new Set<Listener>();
-
-function readStored(): ConsentState {
+function readRecord(): ConsentRecord | null {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw === "accepted" || raw === "declined") return raw;
-  } catch {
-    /* storage unavailable. Treat as pending */
-  }
-  return "pending";
+    const record = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+    if (record?.noticeVersion === CONSENT_NOTICE_VERSION && typeof record.visitor === "string"
+      && typeof record.at === "string" && (record.state === "accepted" || record.state === "declined")) return record;
+  } catch { /* Unknown/storage-blocked consent fails closed. */ }
+  return null;
 }
-
-let current: ConsentState = readStored();
-
-export function getConsent(): ConsentState {
-  return current;
+function readState(): ConsentState {
+  if (typeof window !== "undefined" && window.name === DENIED_FALLBACK) return "declined";
+  return readRecord()?.state ?? "pending";
 }
-
-/** True only when the visitor explicitly accepted tracking. */
-export function consentAllowsTracking(): boolean {
-  return getConsent() === "accepted";
-}
+let current: ConsentState = readState();
+export function getConsent(): ConsentState { return current; }
+export function consentAllowsTracking(): boolean { return getConsent() === "accepted"; }
+function notify() { listeners.forEach((listener) => listener(current)); }
 
 export function setConsent(state: "accepted" | "declined"): void {
-  current = state;
+  const old = readRecord();
+  const previousAcceptance = old?.state === "accepted"
+    ? { at: old.at, noticeVersion: old.noticeVersion, notice: old.notice }
+    : old?.previousAcceptance;
+  const record: ConsentRecord = { state, visitor: old?.visitor || crypto.randomUUID(), at: new Date().toISOString(),
+    noticeVersion: CONSENT_NOTICE_VERSION, notice: CONSENT_NOTICE, ...(previousAcceptance ? { previousAcceptance } : {}) };
   try {
-    localStorage.setItem(STORAGE_KEY, state);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(record));
+    if (window.name === DENIED_FALLBACK) window.name = "";
+    current = state;
   } catch {
-    /* ignore. Consent just won't persist this session */
+    // Do not load SDKs without durable choice evidence. A denial survives SDK reload
+    // even if both browser storage mechanisms are blocked; this name contains no ID.
+    current = "declined";
+    window.name = DENIED_FALLBACK;
   }
-  listeners.forEach((l) => {
-    try {
-      l(state);
-    } catch {
-      /* listener errors must never break consent */
-    }
-  });
+  notify();
 }
-
-export function onConsentChange(listener: Listener): () => void {
+export function onConsentChange(listener: (state: ConsentState) => void): () => void {
   listeners.add(listener);
-  return () => {
-    listeners.delete(listener);
-  };
+  return () => { listeners.delete(listener); };
+}
+export function openConsentSettings(): void {
+  window.dispatchEvent(new Event("tapaway:open-consent-settings"));
+}
+if (typeof window !== "undefined") {
+  window.addEventListener("storage", (event) => {
+    if (event.key !== STORAGE_KEY && event.key !== null) return;
+    current = readState();
+    notify();
+  });
 }

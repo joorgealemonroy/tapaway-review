@@ -1,3 +1,5 @@
+import { Helmet } from "react-helmet-async";
+import { openConsentSettings } from "@/lib/consent";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Smartphone } from "lucide-react";
@@ -7,6 +9,7 @@ const Privacy = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <Helmet><title>Privacy Policy | TapAway</title><meta name="description" content="Privacy Policy for TapAway, including optional Meta and Trybe tracking and your cookie settings." /></Helmet>
       <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate("/")}>
@@ -24,7 +27,7 @@ const Privacy = () => {
 
       <div className="container mx-auto px-4 py-12 max-w-4xl">
         <h1 className="text-4xl font-bold mb-8">Privacy Policy</h1>
-        <p className="text-muted-foreground mb-8">Last Updated: February 21, 2026</p>
+        <p className="text-muted-foreground mb-8">Tracking description updated: October 14, 2026</p>
 
         {/* SMS / A2P 10DLC Carrier-required disclosure. Exact clause required by TCR */}
         <div className="border border-primary/30 bg-primary/5 p-4 rounded-lg mb-8">
@@ -75,9 +78,7 @@ const Privacy = () => {
               and your rights regarding your data.
             </p>
             <p className="text-muted-foreground">
-              <strong>BY USING TAPAWAY, YOU AUTOMATICALLY AGREE TO THIS PRIVACY POLICY.</strong> Continued use of 
-              the Service constitutes your acceptance. No checkbox or explicit confirmation is required. If you do 
-              not agree, you must immediately stop using TapAway.
+              This policy describes our data practices. Using the service or supplying checkout contact information is not consent to optional advertising. Accept or decline optional tracking in Cookie settings.
             </p>
           </section>
 
@@ -132,7 +133,7 @@ const Privacy = () => {
 
             <h3 className="text-xl font-semibold mb-2">Analytics & Usage Data</h3>
             <ul className="list-disc pl-6 text-muted-foreground space-y-1 mb-4">
-              <li>NFC tap events (anonymized device events)</li>
+              <li>NFC tap events and device/session information</li>
               <li>QR code scans</li>
               <li>Button clicks (Google, Yelp, Instagram, Directions, etc.)</li>
               <li>Menu views and interactions</li>
@@ -192,6 +193,7 @@ const Privacy = () => {
               <li>Detecting and preventing fraud, abuse, and security breaches</li>
               <li>Improving and developing new features</li>
               <li>Responding to support requests</li>
+              <li>Optional advertising measurement, retargeting, and creator attribution after explicit tracking acceptance</li>
               <li>Complying with legal obligations</li>
             </ul>
           </section>
@@ -213,22 +215,9 @@ const Privacy = () => {
 
           {/* 6. WE DO NOT SELL DATA */}
           <section>
-            <h2 className="text-2xl font-bold mb-4">6. We Do NOT Sell Your Data</h2>
-            <p className="text-muted-foreground mb-4">
-              <strong>TAPAWAY DOES NOT SELL, RENT, OR SHARE YOUR DATA WITH:</strong>
-            </p>
-            <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li>Data brokers</li>
-              <li>Advertisers</li>
-              <li>Marketing companies</li>
-              <li>Third-party resellers</li>
-              <li>Any entity for monetary compensation</li>
-            </ul>
-            <p className="text-muted-foreground mt-4">
-              Your data is used solely for operating the TapAway platform and providing our services to you. 
-              As defined under the California Consumer Privacy Act (CCPA), we do not "sell" or "share" personal 
-              information as those terms are defined in the statute.
-            </p>
+            <h2 className="text-2xl font-bold mb-4">6. Optional Advertising Disclosures</h2>
+            <p className="text-muted-foreground">With your explicit tracking acceptance, Meta and Trybe may receive browser page events, device information, and referral identifiers for advertising measurement, optimization, retargeting, and creator attribution. Do not interpret other policy wording as a promise that no third-party advertising disclosure occurs. These vendors process received information under their own policies.</p>
+            <p className="mt-4 text-muted-foreground">Server advertising reports are disabled in this source revision until current, revocable server consent evidence is available. Checkout contact information and prior visitor identifiers alone are insufficient permission. Billing and fulfillment continue independently.</p>
           </section>
 
           {/* 7. THIRD-PARTY SERVICES */}
@@ -250,7 +239,7 @@ const Privacy = () => {
             <h3 className="text-xl font-semibold mb-2">First-Party Analytics (Usage Tracking)</h3>
             <p className="text-muted-foreground mb-4">
               We use first-party analytics stored in our own database to track taps, clicks, and usage events. 
-              We do NOT use third-party analytics platforms (Google Analytics, Fathom, Hotjar, etc.). 
+              A returning-visitor identifier is optional and removed from this browser when tracking is declined. Separate optional Meta and Trybe integrations can receive browser events after explicit acceptance. 
               For details, see our <a href="/cookie-policy" className="text-primary hover:underline">Cookie & Analytics Policy</a>.
             </p>
 
@@ -300,8 +289,9 @@ const Privacy = () => {
               <li>Security and fraud prevention</li>
               <li>UI preferences (theme, sidebar state)</li>
             </ul>
+            <Button variant="outline" onClick={openConsentSettings}>Cookie settings</Button>
             <p className="text-muted-foreground mt-4">
-              We do not use advertising cookies, third-party tracking cookies, or marketing cookies. 
+              Optional Meta and Trybe scripts load only after tracking acceptance. Cookie settings allow you to decline after accepting; new Meta calls and Trybe identifiers stop, and a loaded Trybe SDK is stopped by reloading. Historical data already sent cannot be recalled here. Choice, timestamp, notice version, and notice text are saved locally; absent or blocked storage keeps optional advertising disabled. 
               For complete details, see our <a href="/cookie-policy" className="text-primary hover:underline">Cookie & Analytics Policy</a>.
             </p>
           </section>
@@ -336,7 +326,7 @@ const Privacy = () => {
               <li><strong>Right to Know:</strong> Request disclosure of what personal information we collect, use, and share</li>
               <li><strong>Right to Delete:</strong> Request deletion of your personal information</li>
               <li><strong>Right to Correct:</strong> Request correction of inaccurate personal information</li>
-              <li><strong>Right to Opt-Out:</strong> Opt out of the sale or sharing of personal information (we do NOT sell or share data as defined by the CCPA/CPRA)</li>
+              <li><strong>Right to Opt-Out:</strong> Opt out of optional advertising disclosures using Cookie settings, and contact us about other applicable privacy requests</li>
               <li><strong>Right to Non-Discrimination:</strong> We will not discriminate against you for exercising your rights</li>
               <li><strong>Right to Limit:</strong> Limit the use of sensitive personal information (we do not collect sensitive personal information as defined by the CPRA)</li>
             </ul>

@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 import { motion, useInView } from "framer-motion";
 import {
   Check,
@@ -106,7 +108,7 @@ export const DashboardControlSection = () => {
                       <span className="text-xs font-bold text-foreground">TapAway</span>
                       <span className="flex items-center gap-1 rounded-full bg-green-500/10 px-1.5 py-0.5 text-[8px] font-semibold text-green-500">
                         <span className="h-1 w-1 rounded-full bg-green-500" />
-                        Hub Live
+                        Example
                       </span>
                     </div>
 
@@ -117,15 +119,12 @@ export const DashboardControlSection = () => {
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-xs font-bold text-foreground">Sample Cafe</p>
-                        <p className="truncate text-[9px] text-muted-foreground">tapaway.co/samplecafe</p>
+                        <p className="truncate text-[9px] text-muted-foreground">Illustrative business hub</p>
                       </div>
-                      <button
-                        type="button"
-                        className="flex shrink-0 items-center gap-1 rounded-full border border-border bg-background px-2 py-0.5 text-[9px] font-medium text-foreground"
-                      >
+                      <Button asChild variant="outline" className="h-11 shrink-0 px-2 text-xs"><Link to="/examples" aria-label="View business hub examples">
                         <Eye className="h-2.5 w-2.5" />
                         View
-                      </button>
+                      </Link></Button>
                     </div>
 
                     {/* Hero stat card */}
@@ -134,7 +133,7 @@ export const DashboardControlSection = () => {
                         <p className="text-[8px] font-bold uppercase tracking-widest text-muted-foreground">
                           Taps this week
                         </p>
-                        <FeatureTag>Live stats</FeatureTag>
+                        <FeatureTag>Sample stats</FeatureTag>
                       </div>
                       <div className="mt-1 flex items-end gap-2">
                         <p className="text-3xl font-black leading-none text-foreground">312</p>
@@ -185,9 +184,9 @@ export const DashboardControlSection = () => {
 
                     {/* Plan row */}
                     <div className="mb-2 flex items-center justify-between rounded-lg border border-border bg-card px-2.5 py-2">
-                      <span className="text-[10px] font-bold text-foreground">TapAway Solo</span>
+                      <span className="text-[10px] font-bold text-foreground">4 cards</span>
                       <span className="rounded-full bg-green-500/10 px-1.5 py-0.5 text-[8px] font-semibold text-green-500">
-                        Hub Live
+                        Example
                       </span>
                     </div>
 
@@ -234,7 +233,7 @@ export const DashboardControlSection = () => {
             </div>
 
             <p className="mt-4 text-center text-xs font-medium text-muted-foreground">
-              Your TapAway dashboard
+              Illustrative dashboard. Sample metrics, not live customer results.
             </p>
           </motion.div>
 

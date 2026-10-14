@@ -25,6 +25,7 @@ import {
 import { track } from "@/lib/analytics";
 import { getAppSettings } from "@/lib/appSettings";
 import { Button } from "@/components/ui/button";
+import { formatCatalogPrice, useOnboardingCatalog } from "@/lib/onboardingCatalog";
 
 
 type Plan = "solo" | "venue";
@@ -32,12 +33,11 @@ type BillingInterval = "month" | "year";
 type Step = "plan" | "info";
 
 const PLAN_DETAILS = {
-  solo: { label: "TapAway Solo", price: 20, yearlyPrice: 199, cards: 4, trialDays: 14, totalTrialDays: 14 },
-  venue: { label: "TapAway Pro", price: 39, yearlyPrice: 390, cards: 15, trialDays: 14, totalTrialDays: 14 },
+  solo: { cards: 4 },
+  venue: { cards: 15 },
 };
 
-type CatalogItem = { plan: Plan; interval: BillingInterval; amount: number; currency: "usd"; trialDays: number; available: boolean };
-const CATALOG_CACHE_KEY = "tapaway_onboarding_catalog_v1";
+
 
 const slideVariants = {
   enter: (dir: number) => ({ x: dir > 0 ? 300 : -300, opacity: 0 }),
@@ -116,8 +116,7 @@ const Onboarding = () => {
   // Billing period: yearly is preselected and visually pushed as the best
   // value (Solo $199/yr = save $41; Venue $390/yr = 2 months free).
   const [billingInterval, setBillingInterval] = useState<BillingInterval>("year");
-  const [catalog, setCatalog] = useState<CatalogItem[]>([]);
-  const [catalogLoading, setCatalogLoading] = useState(true);
+  const { catalog, loading: catalogLoading, failed: catalogFailed, retry: retryCatalog } = useOnboardingCatalog();
   const [dashboardType, setDashboardType] = useState<"restaurant" | "personal" | null>(null);
 
   // Business info state
@@ -202,7 +201,12 @@ const Onboarding = () => {
       const savedData = getOnboardingData();
 
       if (savedData.businessName) setBusinessName(savedData.businessName);
-      if (savedData.planType) setSelectedPlan(savedData.planType as Plan);
+      const explicitPlan = searchParams.get("plan") || searchParams.get("plan_type");
+      const initialPlan = explicitPlan === "solo" || explicitPlan === "venue" ? explicitPlan : savedData.planType;
+      if (initialPlan === "solo" || initialPlan === "venue") {
+        setSelectedPlan(initialPlan);
+        saveOnboardingData({ planType: initialPlan });
+      }
       const explicitBilling = searchParams.get("billing") || searchParams.get("billing_interval");
       if (explicitBilling === "month" || explicitBilling === "year") {
         setBillingInterval(explicitBilling);
@@ -253,9 +257,6 @@ const Onboarding = () => {
             });
             if (error) throw error;
             console.log("[onboarding] Stripe checkout verified:", data);
-            if (data?.subscriptionStatus === "trialing") {
-              track("trial_start_confirmed", { hubKind: "site", props: { session_id: sessionId } });
-            }
 
             // CARD-CHECK: the $1 card verification failed. The trial was
             // canceled in Stripe. Show the plain-language message with a
@@ -268,6 +269,10 @@ const Onboarding = () => {
               );
               setInitialCheckDone(true);
               return;
+            }
+
+            if (data?.subscriptionStatus === "trialing" && !data?.cardCheckFailed) {
+              track("trial_start_confirmed", { hubKind: "site", props: { session_id: sessionId } });
             }
 
             // Mark onboarding complete
@@ -309,35 +314,7 @@ const Onboarding = () => {
   }, [navigate, searchParams]);
 
   useEffect(() => {
-    let cancelled = false;
-    const loadCatalog = async () => {
-      try {
-        const cached = sessionStorage.getItem(CATALOG_CACHE_KEY);
-        if (cached) {
-          const parsed = JSON.parse(cached) as { expiresAt: number; catalog: CatalogItem[] };
-          if (parsed.expiresAt > Date.now() && Array.isArray(parsed.catalog)) {
-            if (!cancelled) setCatalog(parsed.catalog);
-            if (!cancelled) setCatalogLoading(false);
-            return;
-          }
-        }
-        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/onboarding-plan-catalog`, {
-          headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
-        });
-        if (!response.ok) throw new Error("Catalog unavailable");
-        const data = await response.json();
-        const items = Array.isArray(data?.catalog) ? data.catalog as CatalogItem[] : [];
-        sessionStorage.setItem(CATALOG_CACHE_KEY, JSON.stringify({ expiresAt: Date.now() + 10 * 60 * 1000, catalog: items }));
-        if (!cancelled) setCatalog(items);
-      } catch (error) {
-        console.error("[onboarding] Plan catalog unavailable", error);
-      } finally {
-        if (!cancelled) setCatalogLoading(false);
-      }
-    };
-    loadCatalog();
     track("plan_view", { hubKind: "site", props: { default_interval: billingInterval } });
-    return () => { cancelled = true; };
   }, []);
 
   const selectBillingInterval = (interval: BillingInterval) => {
@@ -353,7 +330,7 @@ const Onboarding = () => {
   };
 
   const continueFromPlan = () => {
-    if (!selectedPlan) return;
+    if (!selectedPlan || catalogItem(selectedPlan, billingInterval)?.available !== true) return;
     saveOnboardingData({ planType: selectedPlan, billingInterval, billingSelectionExplicit: true, hasProtection: false });
     track("continue_click", { hubKind: "site", props: { plan: selectedPlan, interval: billingInterval } });
     goTo("info", 1);
@@ -391,7 +368,10 @@ const Onboarding = () => {
   }, []);
 
   // ── Navigation helpers ──
-  const goTo = (s: Step, dir: number) => { setDirection(dir); setStep(s); };
+  const goTo = (s: Step, dir: number) => {
+    saveOnboardingData({ businessName, websiteUrl, phone: ownerPhone });
+    setDirection(dir); setStep(s);
+  };
 
   // Autosave typed business info (debounced) so navigating back never loses it.
   useEffect(() => {
@@ -916,8 +896,8 @@ const Onboarding = () => {
     return (
       <div className="min-h-screen bg-[#0a0e1a] flex flex-col items-center justify-center gap-4">
         <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-        {verifyingCheckout && <p className="text-gray-400 text-sm">Verifying your payment…</p>}
-        {isCompletingSetup && <p className="text-gray-400 text-sm">Setting up your account…</p>}
+        {verifyingCheckout && <p className="text-muted-foreground text-sm">Verifying your payment…</p>}
+        {isCompletingSetup && <p className="text-muted-foreground text-sm">Setting up your account…</p>}
       </div>
     );
   }
@@ -932,7 +912,7 @@ const Onboarding = () => {
             <CreditCard className="w-7 h-7 text-red-400" />
           </div>
           <h1 className="text-2xl font-black">We couldn't verify your card</h1>
-          <p className="text-gray-400 text-sm leading-relaxed">{cardCheckError}</p>
+          <p className="text-muted-foreground text-sm leading-relaxed">{cardCheckError}</p>
           <button
             onClick={() => {
               setCardCheckError(null);
@@ -941,11 +921,11 @@ const Onboarding = () => {
               navigate("/onboarding", { replace: true });
               goTo("plan", -1);
             }}
-            className="w-full h-14 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-lg transition-colors flex items-center justify-center gap-2"
+            className="w-full h-14 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl text-lg transition-colors flex items-center justify-center gap-2"
           >
             Try a different card <ArrowRight className="w-5 h-5" />
           </button>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-muted-foreground">
             Your trial hasn't started and you haven't been charged. Checking out again starts a fresh trial once your card verifies.
           </p>
         </div>
@@ -1009,20 +989,21 @@ const Onboarding = () => {
               </header>
 
               <div className="inline-flex items-center gap-2 rounded-md border border-primary/25 bg-primary/10 px-3 py-2 text-sm font-bold text-primary">
-                <Clock3 className="h-4 w-4" />14 days free <span aria-hidden="true">·</span> $0 due today
+                <Clock3 className="h-4 w-4" />{catalog.some((item) => item.available && item.trialDays === 14) ? <>14 days free <span aria-hidden="true">·</span> $0 due today</> : "Choose your cards and billing interval"}
               </div>
 
+              {catalogFailed && <p role="status" className="text-muted-foreground">Prices are temporarily unavailable. <Button variant="link" onClick={retryCatalog}>Try again</Button></p>}
               <section aria-label="Card quantity and billing options">
                 <div className="mb-4 flex justify-start sm:justify-end">
                   <div className="grid grid-cols-2 rounded-md border border-hero-foreground/15 bg-secondary p-1 text-sm">
-                    <Button type="button" variant="ghost" size="sm" onClick={() => selectBillingInterval("year")} className={billingInterval === "year" ? "bg-primary text-primary-foreground hover:bg-primary/90" : "text-hero-foreground/65 hover:bg-hero-foreground/5 hover:text-hero-foreground"}>Yearly</Button>
-                    <Button type="button" variant="ghost" size="sm" onClick={() => selectBillingInterval("month")} className={billingInterval === "month" ? "bg-primary text-primary-foreground hover:bg-primary/90" : "text-hero-foreground/65 hover:bg-hero-foreground/5 hover:text-hero-foreground"}>Monthly</Button>
+                    <Button type="button" variant="ghost" size="sm" aria-pressed={billingInterval === "year"} onClick={() => selectBillingInterval("year")} className={billingInterval === "year" ? "bg-primary text-primary-foreground hover:bg-primary/90" : "text-hero-foreground/65 hover:bg-hero-foreground/5 hover:text-hero-foreground"}>Yearly</Button>
+                    <Button type="button" variant="ghost" size="sm" aria-pressed={billingInterval === "month"} onClick={() => selectBillingInterval("month")} className={billingInterval === "month" ? "bg-primary text-primary-foreground hover:bg-primary/90" : "text-hero-foreground/65 hover:bg-hero-foreground/5 hover:text-hero-foreground"}>Monthly</Button>
                   </div>
                 </div>
 
                 {billingInterval === "year" && !catalogLoading && catalog.filter((item) => item.interval === "year" && item.available).length < 2 && (
                   <div className="mb-4 rounded-md border border-hero-foreground/15 bg-secondary px-4 py-3 text-sm text-hero-foreground/75">
-                    Yearly is temporarily unavailable. <Button type="button" variant="link" className="h-auto p-0 font-bold" onClick={() => selectBillingInterval("month")}>Choose monthly</Button>
+                    Yearly is temporarily unavailable. <Button type="button" variant="link" className="h-auto p-0 font-bold" aria-pressed={billingInterval === "month"} onClick={() => selectBillingInterval("month")}>Choose monthly</Button>
                   </div>
                 )}
 
@@ -1031,11 +1012,11 @@ const Onboarding = () => {
                     const d = PLAN_DETAILS[plan];
                     const selected = selectedPlan === plan;
                     const item = catalogItem(plan, billingInterval);
-                    const unavailable = !catalogLoading && item?.available !== true;
+                    const unavailable = catalogLoading || item?.available !== true;
                     const monthlyItem = catalogItem(plan, "month");
                     const yearlyItem = catalogItem(plan, "year");
-                    const monthlyCatalogPrice = monthlyItem?.amount ? monthlyItem.amount / 100 : d.price;
-                    const yearlyCatalogPrice = yearlyItem?.amount ? yearlyItem.amount / 100 : d.yearlyPrice;
+                    const monthlyCatalogPrice = monthlyItem?.available ? monthlyItem.amount / 100 : 0;
+                    const yearlyCatalogPrice = yearlyItem?.available ? yearlyItem.amount / 100 : 0;
                     const monthlyEquivalent = yearlyCatalogPrice / 12;
                     const savings = monthlyCatalogPrice * 12 - yearlyCatalogPrice;
                     return (
@@ -1043,7 +1024,7 @@ const Onboarding = () => {
                         <span className="flex w-full flex-col justify-between gap-3">
                           <span className="flex items-center gap-4">
                             <span className="relative flex h-28 w-[4.4rem] shrink-0 items-center justify-center overflow-hidden rounded-md bg-hero shadow-lg">
-                              <img src="/tapaway-card-front-v2.svg" alt="TapAway custom NFC card" className="h-full w-full object-cover" />
+                              <img src="/tapaway-card-front-v2.svg" alt="TapAway custom NFC card" className="h-full w-full object-contain" />
                             </span>
                             <span className="min-w-0 flex-1">
                               <span className="flex items-start justify-between gap-2">
@@ -1051,16 +1032,16 @@ const Onboarding = () => {
                                 <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 ${selected ? "border-primary bg-primary text-primary-foreground" : "border-hero-foreground/35"}`}>{selected && <Check className="h-4 w-4" />}</span>
                               </span>
                               <span className="mt-2 block text-[14px] leading-snug text-hero-foreground">Your logo. Your business links.</span>
-                              <span className="block text-[14px] leading-snug text-hero-foreground/55">Ready to tap or scan.</span>
+                              <span className="block text-[14px] leading-snug text-hero-foreground/75">Ready to tap or scan.</span>
                             </span>
                           </span>
                           <span className="block h-px bg-hero-foreground/15" />
-                          <span className="flex items-end justify-between gap-3">
+                          <span className="flex flex-wrap items-end justify-between gap-3">
                             <span className="text-left">
-                              <strong className="block text-2xl text-hero-foreground">{billingInterval === "year" ? `$${monthlyEquivalent.toFixed(2)}/mo` : `$${monthlyCatalogPrice}/month`}</strong>
-                              <span className="mt-1 block text-xs text-hero-foreground/65">{billingInterval === "year" ? `$${yearlyCatalogPrice}/year` : "after 14-day trial"}</span>
+                              <strong className="block text-2xl text-hero-foreground">{catalogLoading ? "Checking…" : formatCatalogPrice(item)}</strong>
+                              <span className="mt-1 block text-xs text-hero-foreground/65">{item?.available ? (billingInterval === "year" ? `Equivalent to $${monthlyEquivalent.toFixed(2)}/month, billed yearly after your 14-day trial` : "after your 14-day trial") : "Temporarily unavailable"}</span>
                             </span>
-                            {billingInterval === "year" && <span className="rounded-md bg-primary/15 px-2 py-1 text-xs font-bold text-primary">Save ${savings}/year</span>}
+                            {billingInterval === "year" && monthlyItem?.available && yearlyItem?.available && <span className="rounded-md bg-primary/15 px-2 py-1 text-xs font-bold text-primary">Save ${savings}/year</span>}
                           </span>
                         </span>
                       </Button>
@@ -1077,7 +1058,7 @@ const Onboarding = () => {
 
               {selectedPlan && (
                 <div className="sticky bottom-0 z-40 -mx-4 border-t border-hero-foreground/10 bg-hero/95 px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4 backdrop-blur sm:-mx-6 sm:px-6 md:static md:mx-0 md:border-0 md:bg-transparent md:p-0">
-                  <Button onClick={continueFromPlan} disabled={catalogLoading || catalogItem(selectedPlan, billingInterval)?.available === false} className="h-14 w-full text-base font-bold">
+                  <Button onClick={continueFromPlan} disabled={catalogLoading || catalogItem(selectedPlan, billingInterval)?.available !== true} className="h-14 w-full text-base font-bold">
                     Continue with {PLAN_DETAILS[selectedPlan].cards} cards <ArrowRight className="h-5 w-5" />
                   </Button>
                 </div>
@@ -1085,7 +1066,7 @@ const Onboarding = () => {
 
               {selectedPlan && (
                 <div className="space-y-2 text-sm leading-relaxed text-hero-foreground/65">
-                  <p>14 days free, then {billingInterval === "year" ? `$${PLAN_DETAILS[selectedPlan].yearlyPrice}/year` : `$${PLAN_DETAILS[selectedPlan].price}/month`}. Renews {billingInterval === "year" ? "yearly" : "monthly"} until canceled.</p>
+                  <p>14 days free, then {formatCatalogPrice(catalogItem(selectedPlan, billingInterval))}. Renews {billingInterval === "year" ? "yearly" : "monthly"} until canceled.</p>
                   <p>Cancel before your trial ends to avoid the first subscription charge.</p>
                   {billingInterval === "year" && <p>Canceling stops the next renewal and does not refund the current annual term.</p>}
                   <div className="flex gap-4 pt-1 text-xs"><a href="/terms" className="underline underline-offset-4 hover:text-hero-foreground">Terms</a><a href="/refund" className="underline underline-offset-4 hover:text-hero-foreground">Refund Policy</a></div>
@@ -1099,7 +1080,7 @@ const Onboarding = () => {
             <motion.div key="info" custom={direction} variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.3 }} className="space-y-8">
               <div className="text-center">
                 <h1 className="text-2xl font-black mb-2">Let's brand your cards</h1>
-                <p className="text-gray-400 text-sm">Tell us about your business. We'll design your cards and build your digital profile for you.</p>
+                <p className="text-muted-foreground text-sm">Tell us about your business. We'll design your cards and build your digital profile for you.</p>
               </div>
 
               {/* Google Places Business Search OR Manual Entry */}
@@ -1128,23 +1109,25 @@ const Onboarding = () => {
                 ) : (
                   <div className="space-y-4">
                     <div>
-                      <Label className="text-gray-300 text-sm">Business Name</Label>
+                      <Label htmlFor="business-name" className="text-foreground text-sm">Business Name</Label>
                       <Input
+                        id="business-name" required autoComplete="organization"
                         value={businessName}
                         onChange={(e) => setBusinessName(e.target.value)}
                         placeholder="Your Business Name"
-                        className="mt-1 h-12 bg-[#111827] border-white/10 text-white placeholder:text-gray-600 rounded-xl focus:border-blue-500 focus:ring-blue-500/20"
+                        className="mt-1 h-12 bg-secondary border-border text-white placeholder:text-muted-foreground rounded-xl focus:border-blue-500 focus:ring-blue-500/20"
                       />
                     </div>
                     <div>
-                      <Label className="text-gray-300 text-sm">Website URL <span className="text-gray-500">(optional)</span></Label>
+                      <Label htmlFor="business-website" className="text-foreground text-sm">Website URL <span className="text-muted-foreground">(optional)</span></Label>
                       <Input
+                        id="business-website" type="url" autoComplete="url"
                         value={websiteUrl}
                         onChange={(e) => setWebsiteUrl(e.target.value)}
                         placeholder="https://yourbusiness.com"
-                        className="mt-1 h-12 bg-[#111827] border-white/10 text-white placeholder:text-gray-600 rounded-xl focus:border-blue-500 focus:ring-blue-500/20"
+                        className="mt-1 h-12 bg-secondary border-border text-white placeholder:text-muted-foreground rounded-xl focus:border-blue-500 focus:ring-blue-500/20"
                       />
-                      <p className="text-xs text-gray-500 mt-1">We'll use this to pull your branding and social links.</p>
+                      <p className="text-xs text-muted-foreground mt-1">We'll use this to pull your branding and social links.</p>
                     </div>
                     <button
                       type="button"
@@ -1159,47 +1142,51 @@ const Onboarding = () => {
 
               {/* Phone number. Required for concierge follow-up */}
               <div>
-                <Label className="text-gray-300 text-sm flex items-center gap-2">
+                <Label htmlFor="owner-phone" className="text-foreground text-sm flex items-center gap-2">
                   <Phone className="w-4 h-4" /> Phone Number
                 </Label>
                 <Input
+                  id="owner-phone" required aria-describedby="owner-phone-help"
                   type="tel"
                   inputMode="tel"
                   autoComplete="tel"
                   value={ownerPhone}
                   onChange={(e) => setOwnerPhone(e.target.value)}
                   placeholder="(555) 123-4567"
-                  className="mt-1 h-12 bg-[#111827] border-white/10 text-white placeholder:text-gray-600 rounded-xl focus:border-blue-500 focus:ring-blue-500/20"
+                  className="mt-1 h-12 bg-secondary border-border text-white placeholder:text-muted-foreground rounded-xl focus:border-blue-500 focus:ring-blue-500/20"
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p id="owner-phone-help" className="text-xs text-muted-foreground mt-1">
                   We'll text you to confirm details and finalize your design.
                 </p>
               </div>
 
               <div className="space-y-2">
-                <Label className="text-gray-300 text-sm">Your Logo</Label>
+                <Label htmlFor="business-logo" className="text-foreground text-sm">Your Logo (optional)</Label>
                 {logoUrl ? (
-                  <div className="flex items-center gap-3 p-3 bg-[#111827] border border-white/10 rounded-xl">
+                  <div className="flex items-center gap-3 p-3 bg-secondary border border-border rounded-xl">
                     <img src={logoUrl} alt="Logo preview" className="w-12 h-12 rounded-lg object-cover" />
-                    <span className="text-sm text-gray-300 flex-1 truncate">Logo uploaded</span>
-                    <button onClick={removeLogo} className="p-1.5 rounded-lg hover:bg-white/10 transition-colors">
-                      <X className="w-4 h-4 text-gray-400" />
+                    <span className="text-sm text-foreground flex-1 truncate">Logo uploaded</span>
+                    <button aria-label="Remove logo" onClick={removeLogo} className="p-1.5 rounded-lg hover:bg-white/10 transition-colors">
+                      <X className="w-4 h-4 text-muted-foreground" />
                     </button>
                   </div>
                 ) : (
                   <div
+                    role="button" tabIndex={0} aria-label="Upload business logo"
+                    onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); logoInputRef.current?.click(); } }}
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={handleLogoDrop}
                     onClick={() => logoInputRef.current?.click()}
-                    className="border-2 border-dashed border-white/10 hover:border-blue-500/40 rounded-xl p-6 flex flex-col items-center gap-2 cursor-pointer transition-colors bg-[#111827]/50"
+                    className="border-2 border-dashed border-border hover:border-blue-500/40 rounded-xl p-6 flex flex-col items-center gap-2 cursor-pointer transition-colors bg-secondary/50"
                   >
                     {logoUploading ? (
                       <Loader2 className="w-6 h-6 animate-spin text-blue-400" />
                     ) : (
-                      <CloudUpload className="w-6 h-6 text-gray-500" />
+                      <CloudUpload className="w-6 h-6 text-muted-foreground" />
                     )}
-                    <span className="text-sm text-gray-400">{logoUploading ? "Uploading..." : "Drag & drop or click to upload"}</span>
+                    <span className="text-sm text-muted-foreground">{logoUploading ? "Uploading..." : "Drag & drop or click to upload"}</span>
                     <input
+                      id="business-logo" aria-label="Upload business logo"
                       ref={logoInputRef}
                       type="file"
                       accept="image/*"
@@ -1212,67 +1199,73 @@ const Onboarding = () => {
                   <button
                     type="button"
                     onClick={() => setLogoSkipped(true)}
-                    className="w-full text-center text-xs text-gray-400 hover:text-gray-300 transition-colors underline"
+                    className="w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors underline"
                   >
                     Don't have it on your phone? Skip for now.
                   </button>
                 )}
                 {logoSkipped && !logoUrl && (
-                  <p className="text-center text-xs text-gray-500">
+                  <p className="text-center text-xs text-muted-foreground">
                     Skipped. You can upload your logo from your dashboard later.
                   </p>
                 )}
-                <p className="text-xs text-gray-500 italic">
+                <p className="text-xs text-muted-foreground italic">
                   Pro Tip: High-resolution PNGs work best. Our design team will manually optimize your logo for the best print quality.
                 </p>
               </div>
 
               {/* Due Today receipt */}
-              {selectedPlan && (
-                <div className="bg-slate-900/50 border border-white/10 rounded-xl p-5 space-y-1.5">
-                  <div className="flex justify-between text-sm text-gray-400">
-                    <span>{PLAN_DETAILS[selectedPlan].label}</span>
+              {selectedPlan && catalogItem(selectedPlan, billingInterval)?.available && catalogItem(selectedPlan, billingInterval)!.trialDays > 0 && (
+                <div className="bg-slate-900/50 border border-border rounded-xl p-5 space-y-1.5">
+                  <div className="flex justify-between text-sm text-muted-foreground">
+                    <span>{PLAN_DETAILS[selectedPlan].cards} cards · {billingInterval === "year" ? "Yearly" : "Monthly"}</span>
                     <span className="text-emerald-400 font-semibold">$0.00</span>
                   </div>
-                  <div className="flex justify-between text-sm text-gray-400">
+                  <div className="flex justify-between text-sm text-muted-foreground">
                     <span>Shipping</span>
                     <span className="text-emerald-400 font-semibold">$0.00</span>
                   </div>
-                  <div className="border-t border-white/10 mt-2 pt-2 flex justify-between font-bold">
+                  <div className="border-t border-border mt-2 pt-2 flex justify-between font-bold">
                     <span>Total Due Today</span>
                     <span className="text-emerald-400 text-lg">$0.00</span>
                   </div>
-                  <p className="text-xs text-gray-500 pt-2">
-                    After trial: {billingInterval === "year" ? `$${PLAN_DETAILS[selectedPlan].yearlyPrice}/year` : `$${PLAN_DETAILS[selectedPlan].price}/month`}
+                  <p className="text-xs text-muted-foreground pt-2">
+                    After trial: {formatCatalogPrice(catalogItem(selectedPlan, billingInterval))}
                   </p>
-                  <p className="text-xs text-gray-600">
-                    Your 14-day free trial starts after your card is verified. Cards ship free while you try it.
+                  <p className="text-xs text-muted-foreground">
+                    Your trial is confirmed only after checkout and card verification succeed. Renews until canceled. Cancel before your trial ends to avoid the first subscription charge.
                   </p>
                 </div>
               )}
 
+              <div className="text-sm leading-relaxed text-muted-foreground">
+                <p>Next, sign in or create your account, then review billing details at checkout.</p>
+                {billingInterval === "year" && <p className="mt-2">The full annual total is billed after your trial. Cancellation stops the next renewal, not a refund of the current annual term.</p>}
+                <p className="mt-2">By continuing, you agree to our <a href="/terms" className="underline">Terms</a>. Read our <a href="/privacy" className="underline">Privacy Policy</a> and <a href="/refund" className="underline">Refund Policy</a>. Advertising consent is optional and separate.</p>
+              </div>
               {/* Auth buttons OR Rep email input */}
               {(isRepMode && authUser) || !!promoTokenParam ? (
                 <div className="space-y-4">
                   <div>
-                    <Label className="text-gray-300 text-sm flex items-center gap-2">
+                    <Label htmlFor="client-email" className="text-foreground text-sm flex items-center gap-2">
                       <Mail className="w-4 h-4" /> Owner's Email Address
                     </Label>
                     <Input
+                      id="client-email" autoComplete="email" required
                       type="email"
                       value={clientEmail}
                       onChange={(e) => setClientEmail(e.target.value)}
                       placeholder="owner@business.com"
-                      className="mt-1 h-12 bg-[#111827] border-white/10 text-white placeholder:text-gray-600 rounded-xl focus:border-blue-500 focus:ring-blue-500/20"
+                      className="mt-1 h-12 bg-secondary border-border text-white placeholder:text-muted-foreground rounded-xl focus:border-blue-500 focus:ring-blue-500/20"
                     />
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-muted-foreground mt-1">
                       We'll send them a link to set up their password and access their dashboard.
                     </p>
                   </div>
                   <button
                     onClick={handleRepCheckout}
-                    disabled={repSubmitting || !clientEmail.trim()}
-                    className="w-full h-14 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                    disabled={repSubmitting || !clientEmail.trim() || catalogItem(selectedPlan || "venue", billingInterval)?.available !== true}
+                    className="w-full h-14 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl text-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                   >
                     {repSubmitting ? (
                       <Loader2 className="w-5 h-5 animate-spin" />
@@ -1285,7 +1278,7 @@ const Onboarding = () => {
                 <div className="space-y-3">
                   <button
                     onClick={() => handleOAuth("google")}
-                    disabled={isLoading}
+                    disabled={isLoading || catalogItem(selectedPlan || "venue", billingInterval)?.available !== true}
                     className="w-full h-14 bg-white text-gray-900 font-bold rounded-xl text-base transition-all hover:bg-gray-100 flex items-center justify-center gap-3 disabled:opacity-50"
                   >
                     {isLoading ? (
@@ -1293,25 +1286,25 @@ const Onboarding = () => {
                     ) : (
                       <>
                         <svg viewBox="0 0 24 24" className="w-5 h-5"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-                        Start My Free Trial
+                        Continue with Google
                       </>
                     )}
                   </button>
 
                   <button
                     onClick={() => handleOAuth("apple")}
-                    disabled={isLoading}
-                    className="w-full h-14 bg-white/5 border border-white/10 text-white font-bold rounded-xl text-base transition-all hover:bg-white/10 flex items-center justify-center gap-3 disabled:opacity-50"
+                    disabled={isLoading || catalogItem(selectedPlan || "venue", billingInterval)?.available !== true}
+                    className="w-full h-14 bg-white/5 border border-border text-white font-bold rounded-xl text-base transition-all hover:bg-white/10 flex items-center justify-center gap-3 disabled:opacity-50"
                   >
                     <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current"><path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>
-                    Start My Free Trial
+                    Continue with Apple
                   </button>
 
                   {/* Email signup option */}
                   {!showEmailInput ? (
                     <button
                       onClick={() => setShowEmailInput(true)}
-                      className="w-full text-center text-sm text-gray-500 hover:text-gray-300 transition-colors py-2 flex items-center justify-center gap-2"
+                      className="w-full text-center text-sm text-muted-foreground hover:text-foreground transition-colors py-2 flex items-center justify-center gap-2"
                     >
                       <Mail className="w-3.5 h-3.5" /> or continue with email
                     </button>
@@ -1322,32 +1315,37 @@ const Onboarding = () => {
                       transition={{ duration: 0.25 }}
                       className="space-y-3 overflow-hidden"
                     >
+                      <Label htmlFor="signup-email">Email address</Label>
                       <Input
+                        id="signup-email" autoComplete="email" required
                         type="email"
                         value={emailSignupAddress}
                         onChange={(e) => setEmailSignupAddress(e.target.value)}
                         placeholder="you@email.com"
-                        className="h-12 bg-[#111827] border-white/10 text-white placeholder:text-gray-600 rounded-xl focus:border-blue-500 focus:ring-blue-500/20"
+                        className="h-12 bg-secondary border-border text-white placeholder:text-muted-foreground rounded-xl focus:border-blue-500 focus:ring-blue-500/20"
                         onKeyDown={(e) => { if (e.key === "Enter") handleEmailSignup(); }}
                         autoFocus
                       />
+                      <Label htmlFor="signup-password">Password</Label>
                       <Input
+                        id="signup-password" autoComplete="new-password" minLength={8} required aria-describedby="password-help"
                         type="password"
                         value={emailSignupPassword}
                         onChange={(e) => setEmailSignupPassword(e.target.value)}
                         placeholder="Create a password (8+ characters)"
-                        className="h-12 bg-[#111827] border-white/10 text-white placeholder:text-gray-600 rounded-xl focus:border-blue-500 focus:ring-blue-500/20"
+                        className="h-12 bg-secondary border-border text-white placeholder:text-muted-foreground rounded-xl focus:border-blue-500 focus:ring-blue-500/20"
                         onKeyDown={(e) => { if (e.key === "Enter") handleEmailSignup(); }}
                       />
+                      <p id="password-help" className="text-sm text-muted-foreground">Use at least 8 characters.</p>
                       <button
                         onClick={handleEmailSignup}
-                        disabled={emailSubmitting || !emailSignupAddress.trim() || emailSignupPassword.length < 8}
-                        className="w-full h-14 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-base transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                        disabled={emailSubmitting || !emailSignupAddress.trim() || emailSignupPassword.length < 8 || catalogItem(selectedPlan || "venue", billingInterval)?.available !== true}
+                        className="w-full h-14 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl text-base transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                       >
                         {emailSubmitting ? (
                           <Loader2 className="w-5 h-5 animate-spin" />
                         ) : (
-                          <>Start My Free Trial <ArrowRight className="w-5 h-5" /></>
+                          <>Create account and continue <ArrowRight className="w-5 h-5" /></>
                         )}
                       </button>
                     </motion.div>
@@ -1358,13 +1356,13 @@ const Onboarding = () => {
               {/* Card-verification disclosure: card entry happens on Stripe's
                   hosted page, so the notice lives on our last screen before
                   the redirect. */}
-              <p className="text-center text-xs text-gray-500">
-                We'll place a temporary $1 hold to verify your card. It's released automatically. Never charged.
+              <p className="text-center text-xs text-muted-foreground">
+                After checkout, we request a temporary $1 authorization to verify your card and cancel it without capture. Your bank determines when the pending hold disappears.
               </p>
 
               <button
                 onClick={() => goTo("plan", -1)}
-                className="w-full text-center text-xs text-gray-600 hover:text-gray-400 transition-colors"
+                className="w-full text-center text-xs text-muted-foreground hover:text-muted-foreground transition-colors"
               >
                 ← Back
               </button>

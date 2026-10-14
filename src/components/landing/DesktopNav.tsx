@@ -1,5 +1,6 @@
+import { MARKETING_LINKS } from "@/lib/marketingLinks";
 import { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Sun, Moon } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useSalesRep } from "@/hooks/useSalesRep";
@@ -8,7 +9,6 @@ import { Button } from "@/components/ui/button";
 export const DesktopNav = () => {
   const { user } = useAuth();
   const { isSalesRep } = useSalesRep();
-  const location = useLocation();
   const [isDark, setIsDark] = useState(() => localStorage.getItem('tapaway_dashboard_theme') !== 'light');
 
   useEffect(() => {
@@ -31,11 +31,13 @@ export const DesktopNav = () => {
             </a>
             
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            {MARKETING_LINKS.map((item) => <a key={item.label} href={item.href} className="px-2 py-2 text-sm text-muted-foreground hover:text-foreground">{item.label}</a>)}
             <Button
               variant="ghost"
               size="icon"
-              className="h-9 w-9 rounded-full"
+              aria-label={isDark ? "Use light theme" : "Use dark theme"}
+              className="h-11 w-11 rounded-full"
               onClick={() => setIsDark(!isDark)}
             >
               {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}

@@ -83,6 +83,7 @@ const Terms = () => {
               <strong>CONTINUED USE OF TAPAWAY CONSTITUTES ACCEPTANCE.</strong> By simply accessing or using TapAway in any 
               capacity, you automatically agree to all terms, policies, and legal agreements. No checkbox, signature, or 
               explicit confirmation is required. Your use of the Service is your acceptance.
+              This contractual acceptance is not consent to optional advertising tracking. Meta and Trybe tracking requires a separate affirmative choice in Cookie settings, which can be changed later without affecting billing or service access.
             </p>
             <p className="text-muted-foreground">
               If you do not agree to these Terms in their entirety, you must immediately stop using TapAway and delete your 

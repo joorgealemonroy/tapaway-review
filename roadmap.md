@@ -1,5 +1,11 @@
 # Roadmap
 
+- [ ] Complete homepage pricing/navigation/theme and honest offer copy using the verified catalog.
+- [ ] Align onboarding summaries, accessible fields, selection persistence and final disclosures.
+- [ ] Implement consent revocation and fail-closed server advertising; document persistence blockers.
+- [ ] Correct public heading/metadata fallbacks without changing customer status.
+- [ ] Verify public flows, responsive layouts, tracking and source safeguards; prepare review, no deploy.
+
 - [x] Muse AI secure bridge: edge function with API key auth, read endpoints for whitelisted tables, restaurant update + create endpoints. Deployed; MUSE_AI_API_KEY saved by user.
 - [x] Match the Solo overview blocks to the provided reference while preserving the rest of the dashboard; remove the Solo “Your setup” section.
 - [x] Build real NFC card showcase and secure admin manager per approved plan

@@ -6,6 +6,8 @@
 // visitor id (required). email recommended (Trybe hashes it server-side).
 // apiKey stays server-side only. NEVER import this from frontend code.
 
+import { serverAdvertisingAllowed } from "./advertisingConsent.ts";
+
 const TRYBE_ORDERS_URL = "https://jointrybe.com/attribution/v1/orders";
 
 export interface TrybeOrderInput {
@@ -21,6 +23,7 @@ export interface TrybeOrderInput {
 export async function reportTrybeOrder(
   input: TrybeOrderInput,
 ): Promise<{ ok: boolean; reason?: string; status?: number }> {
+  if (!serverAdvertisingAllowed()) return { ok: false, reason: "unverified_advertising_consent" };
   const apiKey = Deno.env.get("TRYBE_ORDERS_API_KEY");
   if (!apiKey) {
     console.log("[trybe] TRYBE_ORDERS_API_KEY not set. Skipping");

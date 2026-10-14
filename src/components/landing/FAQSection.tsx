@@ -12,47 +12,47 @@ const faqs = [
   {
     question: "Do I need staff training?",
     answer:
-      "No. TapAway is completely done-for-you. We ship your cards, set up your review page, and handle everything. Just place the NFC card on your counter or hand it to happy guests, one tap and they're on your Google review page. No apps, no passwords, no explanation needed.",
+      "We design your cards and set up your hub. Show customers how to tap with a compatible phone or scan the QR code to open your business links.",
   },
   {
     question: "Is my logo printed on the cards?",
     answer:
-      "Yes! We include free custom logo printing on your NFC cards at no extra charge. Want something simpler? Unbranded cards are also available. Just let us know your preference during setup.",
+      "Yes. Custom printing with your logo is included. You can also choose unbranded cards during setup.",
   },
   {
     question: "Why NFC instead of QR codes?",
     answer:
-      "NFC has a much higher completion rate. With QR codes, customers have to open their camera, scan, wait for the link, then tap, multiple friction points. With TapAway, it's just one tap and they're instantly on your review page. No friction, more reviews.",
+      "Your card includes both. NFC opens your hub on compatible phones; the QR code offers a camera-based alternative. Choose whichever works for your customer.",
   },
   {
     question: "Does this violate Google policies?",
     answer:
-      "No. TapAway is 100% compliant with Google's review policies. We never offer incentives for reviews, we simply make it faster and easier for happy customers to leave honest feedback. Google encourages businesses to ask for reviews.",
+      "Ask customers for honest feedback without incentives, rating targets, or filtering based on satisfaction. Platform rules differ and can change. Google and Yelp determine their own review policies; TapAway does not certify compliance.",
   },
   {
     question: "What happens after 14 days?",
     answer:
-      "After your 14-day free trial, TapAway is just $20/month for Solo or $39/month for Venue. Or go yearly and save: $199/year for Solo (save $41) or $390/year for Venue (2 months free). You can cancel anytime before the trial ends and you won't be charged. If you love it (most do), your card on file will be billed automatically on day 15, no action needed.",
+      "After your 14-day trial, the selected monthly or full annual subscription amount is billed. See the pricing section for current available prices. Renews at your chosen interval until canceled. Cancel before your trial ends to avoid the first subscription charge.",
   },
   {
     question: "Will I be charged $1?",
     answer:
-      "No. Never. When you start a trial, we place a temporary $1 hold to verify your card. It's released automatically. Never charged.",
+      "Card verification uses a temporary $1 authorization with manual capture. We request cancellation without capturing it. Your bank controls when the pending authorization disappears.",
   },
   {
     question: "Can I add more locations later?",
     answer:
-      "Yes! You can add additional locations at any time. Each location gets its own set of NFC cards and a custom review page. Multi-location businesses get volume discounts.",
+      "Contact Support about your additional locations and available options. Your current subscription and card allowance remain unchanged until you choose an approved change.",
   },
   {
     question: "How fast do the cards ship?",
     answer:
-      "Cards ship within 1–2 business days. Most customers receive their TapAway cards within 5 business days of signing up.",
+      "We prepare your custom cards after setup. Shipping timing depends on design readiness and delivery conditions. Check your dashboard or contact Support for order updates.",
   },
   {
     question: "What if my cards get lost or damaged?",
     answer:
-      "We replace lost or damaged cards for free during your subscription. Just reach out to support and we'll ship new ones within 2 business days.",
+      "Eligible active or trialing accounts can request cards through their dashboard, up to the server-enforced calendar-month allowance: 4 for the 4-card plan or 15 for the 15-card plan. This is not an unlimited replacement guarantee. Shipping damage or defective NFC must be reported within 7 days for replacement review. Customer-input errors are not covered. See the Refund Policy for details.",
   },
 ];
 
@@ -61,13 +61,13 @@ export const FAQSection = () => {
   const isInView = useInView(ref, { once: true, margin: "-100px" });
 
   return (
-    <section ref={ref} className="py-20 px-4 bg-muted/30">
+    <section ref={ref} className="py-12 md:py-16 px-4 bg-muted/30">
       <div className="max-w-2xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.5 }}
-          className="text-center mb-12"
+          className="text-center mb-6"
         >
           <h2 className="text-3xl md:text-4xl font-black text-foreground mb-4">
             Questions? We've Got Answers.

@@ -1,5 +1,5 @@
 import { motion, useInView } from "framer-motion";
-import { Check, X } from "lucide-react";
+import { Check } from "lucide-react";
 import { useRef } from "react";
 
 const comparisonRows = [
@@ -11,12 +11,12 @@ const comparisonRows = [
     benefit: "We set it all up for you",
   },
   {
-    benefit: "Every tap + review tracked",
+    benefit: "Tap and link activity reporting",
   },
   {
     benefit: "Your whole business in one place",
-    plate: "reviews only",
-    qr: "one link",
+    plate: "depends on provider",
+    qr: "destination depends on setup",
   },
   {
     benefit: "A human when you need help",
@@ -31,10 +31,7 @@ const comparisonRows = [
 ];
 
 const NegativeCell = ({ detail }: { detail?: string }) => (
-  <div className="flex items-center gap-2 text-muted-foreground/70">
-    <X aria-hidden="true" className="h-5 w-5 shrink-0" strokeWidth={3} />
-    {detail && <span className="text-sm whitespace-nowrap">{detail}</span>}
-  </div>
+  <span className="text-sm text-muted-foreground">{detail || "Depends on provider and setup"}</span>
 );
 
 export const ComparisonSection = () => {
@@ -54,8 +51,7 @@ export const ComparisonSection = () => {
             Why businesses switch to TapAway
           </h2>
           <p className="mt-4 max-w-3xl text-base leading-relaxed text-muted-foreground md:text-lg">
-            A one-time plate is a sticker on your counter. A QR code is a chore for your customer.
-            Here&apos;s the honest side-by-side.
+            TapAway combines NFC and QR with a managed business hub. Other products vary by provider and setup.
           </p>
         </motion.div>
 
@@ -106,8 +102,7 @@ export const ComparisonSection = () => {
           transition={{ duration: 0.5, delay: 0.45 }}
           className="mx-auto mt-7 max-w-4xl text-center text-sm leading-relaxed text-muted-foreground md:text-base"
         >
-          NFC works on all iPhones (7+) and most Android phones. No app required. Every card
-          includes a QR backup.
+          iPhone XS, XR, and newer generally read NFC links without a separate app. Older iPhones may need a reader. Android requires an NFC-enabled device with NFC on. Settings and cases can affect tapping. Every card includes a QR fallback.
         </motion.p>
       </div>
     </section>

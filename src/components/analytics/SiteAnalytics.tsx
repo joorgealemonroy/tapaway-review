@@ -1,7 +1,8 @@
+import { consentAllowsTracking, onConsentChange } from "@/lib/consent";
 import { useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { track, setInternalActor } from "@/lib/analytics";
+import { track, setInternalActor, setVisitorIdAllowed } from "@/lib/analytics";
 import { trackMetaPageView } from "@/lib/metaPixel";
 
 /**
@@ -32,6 +33,11 @@ const SiteAnalytics = () => {
   const startedAt = useRef<number>(Date.now());
   const maxScroll = useRef(0);
   const lastPath = useRef<string | null>(null);
+
+  useEffect(() => {
+    setVisitorIdAllowed(consentAllowsTracking());
+    return onConsentChange((state) => setVisitorIdAllowed(state === "accepted"));
+  }, []);
 
   useEffect(() => {
     setInternalActor(!!user);

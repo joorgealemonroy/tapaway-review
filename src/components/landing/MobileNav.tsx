@@ -1,5 +1,6 @@
+import { MARKETING_LINKS } from "@/lib/marketingLinks";
 import { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Menu, X, User, LogOut, LayoutDashboard, UserPlus, Moon, Sun } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useSalesRep } from "@/hooks/useSalesRep";
@@ -8,12 +9,13 @@ import {
   Sheet,
   SheetContent,
   SheetTrigger,
+  SheetTitle,
+  SheetDescription,
 } from "@/components/ui/sheet";
 
 export const MobileNav = () => {
   const { user, signOut } = useAuth();
   const { isSalesRep } = useSalesRep();
-  const location = useLocation();
   const [open, setOpen] = useState(false);
   const [isDark, setIsDark] = useState(() => localStorage.getItem('tapaway_dashboard_theme') !== 'light');
   
@@ -53,11 +55,12 @@ export const MobileNav = () => {
             <div className="flex flex-col h-full">
               {/* Header */}
               <div className="flex items-center justify-between px-4 h-14 border-b border-border">
-                <span className="font-bold text-foreground">Menu</span>
+                <SheetTitle>Menu</SheetTitle><SheetDescription className="sr-only">TapAway navigation</SheetDescription>
               </div>
               
               {/* Menu Items */}
               <div className="flex-1 py-4 px-4 space-y-1">
+                {MARKETING_LINKS.map((item) => <a key={item.label} href={item.href} onClick={() => setOpen(false)} className="block rounded-md px-4 py-3 font-medium text-foreground hover:bg-muted">{item.label}</a>)}
                 {user ? (
                   <>
                     <Link
@@ -102,7 +105,7 @@ export const MobileNav = () => {
                 <div className="flex items-center gap-3 px-4 py-3 rounded-xl">
                   {isDark ? <Moon className="w-5 h-5 text-muted-foreground" /> : <Sun className="w-5 h-5 text-muted-foreground" />}
                   <span className="flex-1 font-medium text-foreground">Dark Mode</span>
-                  <Switch checked={isDark} onCheckedChange={setIsDark} />
+                  <Switch aria-label="Dark mode" checked={isDark} onCheckedChange={setIsDark} />
                 </div>
               </div>
 
