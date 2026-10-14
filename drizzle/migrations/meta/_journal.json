@@ -148,6 +148,13 @@
       "when": 1792017932165,
       "tag": "0020_legacy_allowance_atomic_claims",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1792018185262,
+      "tag": "0021_legacy_cutoff_auto_grant",
+      "breakpoints": true
     }
   ]
 }

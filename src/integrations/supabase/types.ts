@@ -2868,16 +2868,19 @@ export type Database = {
       payment_first_config: {
         Row: {
           id: number
+          payment_first_launch_at: string | null
           test_access_key: string
           updated_at: string
         }
         Insert: {
           id?: number
+          payment_first_launch_at?: string | null
           test_access_key?: string
           updated_at?: string
         }
         Update: {
           id?: number
+          payment_first_launch_at?: string | null
           test_access_key?: string
           updated_at?: string
         }
