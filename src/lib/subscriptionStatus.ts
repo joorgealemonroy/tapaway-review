@@ -46,6 +46,7 @@ export const PUBLIC_ROUTES = [
   '/auth',
   '/start',
   '/paywall',
+  '/welcome',
   '/onboarding-start',
   '/onboarding/start',
   '/terms',
