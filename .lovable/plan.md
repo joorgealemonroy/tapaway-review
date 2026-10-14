@@ -48,13 +48,21 @@ New tables (with grants and row-level security; owners can read their own rows, 
 - One central server function, `card_club_entitlement(membership)`, plus a setting `card_club_first_eligible_after_days` (default 30) and a configurable `reprint_price_cents` (blank until you approve a price; until then the UI says "Contact us for reprint pricing").
 - Webhook: `customer.subscription.updated/deleted` and `invoice.payment_failed` update membership status per subscription item. A main subscription that is not active makes Card Club ineligible.
 
-## Decisions I need from you
+## Approved decisions
 
-1. **Yearly + Card Club:** the $5 Card Club price is monthly, and a $199 or $390 plan is yearly. Stripe cannot put a yearly and a monthly price in one subscription through one Checkout. Pick one:
-   a) a separate monthly Card Club subscription created right after checkout using the saved card (both items are shown in Checkout as text), or
-   b) a yearly Card Club price ($60/yr) for yearly plans, which needs one new Stripe price.
-2. **Current monthly allowance:** today every subscriber can request 4 or 15 cards per month without Card Club. Should non-members lose that and pay for reprints (existing customers kept as they are), or keep it?
-3. **Trial:** should Card Club charges also wait until the 14-day trial ends?
-4. **Reprint price:** is there an approved price? If not, it stays configurable and blank.
+1. **Card Club stays $5/month. No $60/year price.**
+   - Today checkout runs on Stripe library 14.21.0 with API version `2023-10-16`. Monthly and yearly items in one subscription need Stripe's newer "flexible billing" mode, which this version doesn't have.
+   - Step 0 checks this in Stripe test mode only, with the new version set on the new public checkout function alone. That means: a yearly plan plus $5/mo Card Club in one Checkout, both shown with their intervals, the shared 14-day trial, and the webhook payloads parsed.
+   - If it works without touching the existing functions, use it: one checkout, one customer, one subscription.
+   - If not, the fallback is a separate $5/mo Card Club subscription on the same customer and saved card, created by the webhook. Its trial ends on the same date as the main plan. The customer opts in before Stripe, and the $5/month recurring charge is shown in our summary and in Checkout's disclosure text.
+   - I'll tell you which path was used and why.
+2. **Free monthly allowance:** existing customers keep it (flagged `legacy_allowance`). New-flow customers get only Card Club, or paid reprints. `request-more-cards` sends each request to either the legacy rule or `card_club_entitlement()`, and the two stay clearly separate.
+3. **Trial:** Card Club billing starts when the trial ends. The first free batch is available 30 days after Card Club is paid and active (about day 44).
+4. **Rolling 30 days:** next eligible = (first paid date, or last approved request) + 30 days. At most one batch is ever available, with no stacking, credits or cash value. This all lives in `card_club_entitlement()`.
+5. **Reprint price:** stays blank. The page shows "Contact us for reprint pricing".
+6. **Initial order** starts in `setup_pending` and moves to `cards_ready_to_print` (the print queue) only after an admin marks the page and artwork ready.
+7. **`/welcome` sign-in:** the server checks the session and gives a single-use sign-in that expires within minutes (through the existing magic-link token system) and is tied to that session. The link is not valid on its own after that. The emailed magic link is how they sign in later and returns them to their unfinished step. No password step.
+8. **Declined or cancelled Card Club is permanent.** There is no join or rejoin button for customers. Admins have an override.
+9. Everything else in the plan stays the same: existing claim/rep/van flows are untouched, and no new Stripe products unless I tell you first.
 
-Nothing will be published and no customer records will be changed without your approval. Testing will use only test-mode or fixture data.
+Order of work: Stripe test → database tables → checkout function → webhook → `/welcome` steps → dashboard and Card Club request → admin → analytics → test at 360px and 390px with test-mode or fixture data only. Nothing will be published or deployed to live, and no live customer records will be changed.
