@@ -91,7 +91,7 @@ export default function AdminNewOrders() {
                 <p>Place ID: {s?.google_place_id ?? (s?.step === "business" ? "waiting on customer" : "needs research")}</p>
                 <p>Logo: {s?.logo_url ? <a className="underline" href={s.logo_url} target="_blank" rel="noreferrer">received</a> : s?.logo_skipped ? "find it for them" : "—"}</p>
                 <p>Setup: {s?.setup_status ?? "—"} · Page: {s?.hub_status ?? "—"}</p>
-                <p>Order: {order?.status ?? "—"}{order?.tracking_number ? ` · tracking ${order.tracking_number}` : ""}</p>
+                <p>Print: {s?.setup_status === "cards_ready_to_print" ? "upload artwork in Print Queue" : order?.status ?? (s?.setup_status ?? "—")}</p>
                 <p className="md:col-span-2">Ship to: {a ? [a.name, a.line1, a.line2, a.city, a.state, a.postal_code].filter(Boolean).join(", ") : "—"}</p>
                 <p>Card Club: {m ? `${m.status}${m.declined_at ? ` (declined ${day(m.declined_at)})` : ""}` : "—"} · paid {day(m?.card_club_paid_at ?? null)}</p>
                 <p>Last approved: {day(m?.last_approved_at ?? null)} · Next eligible: {m?.card_club_paid_at ? day(next) : "—"} · Total: {m?.total_redemptions ?? 0}</p>
@@ -120,7 +120,7 @@ export default function AdminNewOrders() {
                 {m?.status === "activation_failed" && <Button size="sm" disabled={busy} onClick={() => retry(m.id)}>Retry Card Club setup</Button>}
                 {m && m.status !== "declined" && <Button size="sm" variant="ghost" disabled={busy} onClick={() => override(m.id)}>Card Club override</Button>}
                 {s?.personal_profile_id && <Button size="sm" variant="ghost" asChild><Link to={`/dashboard?admin_view_personal=${s.personal_profile_id}`}>Open customer</Link></Button>}
-                <Button size="sm" variant="ghost" asChild><Link to="/admin">Order history</Link></Button>
+                <Button size="sm" variant="ghost" asChild><Link to="/admin/print-queue">Print queue</Link></Button>
               </div>
             </div>
           );

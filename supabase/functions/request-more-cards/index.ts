@@ -175,7 +175,7 @@ serve(async (req) => {
           status: profile.subscription_status,
           slug: profile.username,
           legacyAllowance: profile.legacy_allowance === true,
-          paymentFirst: profile.onboarding_source === 'payment_first',
+          paymentFirst: typeof profile.onboarding_source === 'string' && profile.onboarding_source.startsWith('payment_first'),
         };
       }
     }

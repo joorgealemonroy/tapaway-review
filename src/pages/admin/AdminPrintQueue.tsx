@@ -155,6 +155,7 @@ const AdminPrintQueue = () => {
           "id, full_name, username, profile_photo_url, submitted_for_review_at, created_at, trial_ends_at, trial_extension_days, card_print_pdf_path, print_status, print_notes, sales_rep_id, is_approved, google_place_id, formatted_address, contact_address, place_city, place_state, place_zip, place_lat, place_lng"
         )
         .not("card_print_pdf_path", "is", null)
+        .or("onboarding_source.is.null,onboarding_source.neq.payment_first_test")
         .order("submitted_for_review_at", { ascending: true, nullsFirst: false });
       if (error) throw error;
 

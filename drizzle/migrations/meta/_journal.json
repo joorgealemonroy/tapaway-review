@@ -127,6 +127,13 @@
       "when": 1791971738840,
       "tag": "0017_payment_first_draft_profiles",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1791972097394,
+      "tag": "0018_payment_first_profile_order_model",
+      "breakpoints": true
     }
   ]
 }

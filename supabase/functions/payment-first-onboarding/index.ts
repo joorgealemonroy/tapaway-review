@@ -2,6 +2,7 @@
 // waiting for an existing account owner to confirm their email.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { admin, cors, json, userFromRequest } from "../_shared/paymentFirst.ts";
+import { ensureDraftProfile } from "../_shared/paymentFirstActivation.ts";
 
 const str = (v: unknown, max = 200) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 
@@ -25,7 +26,7 @@ serve(async (req) => {
       await db.from("checkout_intents").update({ status: "associated", user_id: user.id }).eq("id", p.id).eq("status", "pending_association");
       await db.from("onboarding_sessions").update({ user_id: user.id }).eq("checkout_intent_id", p.id);
       await db.from("card_club_memberships").update({ user_id: user.id }).eq("checkout_intent_id", p.id);
-      await db.from("fulfillment_orders").update({ user_id: user.id }).eq("checkout_intent_id", p.id);
+      await ensureDraftProfile(db, p.id, user.id);
     }
 
     const { data: session } = await db.from("onboarding_sessions").select("*").eq("user_id", user.id)
@@ -64,28 +65,11 @@ serve(async (req) => {
       patch = { shipping_address: shipping, shipping_confirmed_at: new Date().toISOString(), step: "done",
         completed_at: session.completed_at ?? new Date().toISOString() };
     }
-    // Draft hub: reuse the existing Solo/Pro hub model (personal_profiles), unapproved so it never shows publicly.
-    if (action === "business" && patch && !session.personal_profile_id && intent) {
-      const name = String(patch.business_name || "My Business");
-      const base = name.toLowerCase().replace(/[^a-z0-9]+/g, "").slice(0, 24) || "business";
-      let username = base;
-      for (let i = 0; i < 20; i++) {
-        const { data: ok } = await db.rpc("is_username_available", { check_username: username });
-        if (ok) break;
-        username = `${base}${Math.floor(1000 + Math.random() * 9000)}`;
-      }
-      const { data: prof, error: pErr } = await db.from("personal_profiles").insert({
-        user_id: user.id, username, full_name: name, email, onboarding_source: "payment_first",
-        plan_type: intent.billing_interval === "year" ? `${intent.plan}_yearly` : intent.plan,
-        subscription_status: "trialing", is_approved: false, pipeline_status: "draft",
-        stripe_customer_id: (await db.from("checkout_intents").select("stripe_customer_id").eq("id", session.checkout_intent_id).single()).data?.stripe_customer_id ?? null,
-        stripe_subscription_id: session.stripe_subscription_id, legacy_allowance: false,
-      }).select("id").single();
-      if (pErr) console.error("[payment-first-onboarding] draft hub failed", pErr.message);
-      if (prof) {
-        patch.personal_profile_id = prof.id;
-        patch.hub_status = "draft";
-        if (session.fulfillment_order_id) await db.from("fulfillment_orders").update({ personal_profile_id: prof.id }).eq("id", session.fulfillment_order_id);
+    if (action === "business" && patch) {
+      await ensureDraftProfile(db, session.checkout_intent_id, user.id, String(patch.business_name || ""));
+      if (patch.google_place_id) {
+        const { data: sp } = await db.from("onboarding_sessions").select("personal_profile_id").eq("id", session.id).single();
+        if (sp?.personal_profile_id) await db.from("personal_profiles").update({ google_place_id: patch.google_place_id, formatted_address: patch.business_address || null }).eq("id", sp.personal_profile_id).eq("is_approved", false);
       }
     }
     let current = session;
