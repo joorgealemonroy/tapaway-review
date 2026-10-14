@@ -1,5 +1,6 @@
 # Roadmap
 
+- [x] Temporarily hide every /examples entry point (desktop/mobile nav, hero, dashboard mock) while keeping the page reachable by direct URL.
 - [ ] Complete homepage pricing/navigation/theme and honest offer copy using the verified catalog.
 - [ ] Align onboarding summaries, accessible fields, selection persistence and final disclosures.
 - [ ] Implement consent revocation and fail-closed server advertising; document persistence blockers.
