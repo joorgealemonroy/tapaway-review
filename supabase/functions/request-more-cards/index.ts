@@ -130,6 +130,7 @@ serve(async (req) => {
       planType: string | null;
       status: string | null;
       slug: string | null;
+      legacyAllowance: boolean;
     };
 
     let account: Account | null = null;
