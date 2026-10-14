@@ -39,7 +39,9 @@ serve(async (req) => {
   }
 
   const db = admin();
-  const { data: claim } = await db.rpc("claim_stripe_event", { p_event_id: event.id, p_event_type: event.type });
+  // Namespaced so the legacy stripe-webhook (same table, same event ids) never dedups us or vice versa.
+  const claimId = `pf:${event.id}`;
+  const { data: claim } = await db.rpc("claim_stripe_event", { p_event_id: claimId, p_event_type: event.type });
   const row = Array.isArray(claim) ? claim[0] : claim;
   if (row && row.claimed === false) return new Response("duplicate", { status: 200 });
 
@@ -68,11 +70,11 @@ serve(async (req) => {
         for (const m of ms ?? []) await syncMembership(stripe, db, m);
       }
     }
-    await db.from("processed_stripe_events").update({ status: "processed" }).eq("event_id", event.id);
+    await db.from("processed_stripe_events").update({ status: "processed" }).eq("event_id", claimId);
     return new Response("ok", { status: 200 });
   } catch (e) {
     console.error("[payment-first-webhook] failed", event.type, e instanceof Error ? e.message : e);
-    await db.from("processed_stripe_events").delete().eq("event_id", event.id);
+    await db.from("processed_stripe_events").delete().eq("event_id", claimId);
     return new Response("retry", { status: 500 });
   }
 });
