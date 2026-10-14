@@ -7,3 +7,4 @@
 - Payment-first orders are represented by an unapproved draft personal_profiles row (Solo/Pro model), not fulfillment_orders, which is restaurant-only; the print queue is reached only via artwork upload.
 - payment-first-webhook verifies signature, then event livemode vs mode, and claims events as `pf:<id>` so it never collides with the legacy stripe-webhook in processed_stripe_events.
 - Card Club eligibility lives only in card_club_entitlement(): first = first paid invoice + interval, next = last admin approval + interval; one pending request at a time.
+- Legacy free monthly cards are reserved only via reserve_legacy_allowance() (row lock per legacy_allowance_key, one pool per paid subscription, never per page); accounts without paid Stripe billing never qualify, so pages cannot multiply the benefit.
