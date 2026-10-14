@@ -2272,6 +2272,27 @@ export type Database = {
           },
         ]
       }
+      legacy_allowance_entitlements: {
+        Row: {
+          granted_at: string
+          record_count: number
+          relationship_key: string
+          source: string
+        }
+        Insert: {
+          granted_at?: string
+          record_count?: number
+          relationship_key: string
+          source?: string
+        }
+        Update: {
+          granted_at?: string
+          record_count?: number
+          relationship_key?: string
+          source?: string
+        }
+        Relationships: []
+      }
       link_check_runs: {
         Row: {
           created_at: string
@@ -3193,6 +3214,9 @@ export type Database = {
           is_founding_user: boolean
           is_stripe_onboarded: boolean | null
           legacy_allowance: boolean
+          legacy_allowance_granted_at: string | null
+          legacy_allowance_key: string | null
+          legacy_allowance_source: string | null
           logo_bg_color: string | null
           logo_scale: string
           payment_state: string
@@ -3297,6 +3321,9 @@ export type Database = {
           is_founding_user?: boolean
           is_stripe_onboarded?: boolean | null
           legacy_allowance?: boolean
+          legacy_allowance_granted_at?: string | null
+          legacy_allowance_key?: string | null
+          legacy_allowance_source?: string | null
           logo_bg_color?: string | null
           logo_scale?: string
           payment_state?: string
@@ -3401,6 +3428,9 @@ export type Database = {
           is_founding_user?: boolean
           is_stripe_onboarded?: boolean | null
           legacy_allowance?: boolean
+          legacy_allowance_granted_at?: string | null
+          legacy_allowance_key?: string | null
+          legacy_allowance_source?: string | null
           logo_bg_color?: string | null
           logo_scale?: string
           payment_state?: string
@@ -4152,6 +4182,9 @@ export type Database = {
           is_legacy_user: boolean
           last_google_sync_at: string | null
           legacy_allowance: boolean
+          legacy_allowance_granted_at: string | null
+          legacy_allowance_key: string | null
+          legacy_allowance_source: string | null
           logo_url: string | null
           meal_order_url: string | null
           menu_image_url: string | null
@@ -4221,6 +4254,9 @@ export type Database = {
           is_legacy_user?: boolean
           last_google_sync_at?: string | null
           legacy_allowance?: boolean
+          legacy_allowance_granted_at?: string | null
+          legacy_allowance_key?: string | null
+          legacy_allowance_source?: string | null
           logo_url?: string | null
           meal_order_url?: string | null
           menu_image_url?: string | null
@@ -4290,6 +4326,9 @@ export type Database = {
           is_legacy_user?: boolean
           last_google_sync_at?: string | null
           legacy_allowance?: boolean
+          legacy_allowance_granted_at?: string | null
+          legacy_allowance_key?: string | null
+          legacy_allowance_source?: string | null
           logo_url?: string | null
           meal_order_url?: string | null
           menu_image_url?: string | null
