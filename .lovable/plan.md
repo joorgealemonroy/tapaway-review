@@ -65,4 +65,13 @@ New tables (with grants and row-level security; owners can read their own rows, 
 8. **Declined or cancelled Card Club is permanent.** There is no join or rejoin button for customers. Admins have an override.
 9. Everything else in the plan stays the same: existing claim/rep/van flows are untouched, and no new Stripe products unless I tell you first.
 
-Order of work: Stripe test → database tables → checkout function → webhook → `/welcome` steps → dashboard and Card Club request → admin → analytics → test at 360px and 390px with test-mode or fixture data only. Nothing will be published or deployed to live, and no live customer records will be changed.
+## Final safeguards
+
+1. **Existing email.** A checkout proves that a purchase happened. It does not prove someone owns an existing account.
+   - New email: the webhook creates the account, and `/welcome` can give a short-lived setup sign-in for that purchase only.
+   - Email that already has an account: no new user, and no automatic sign-in. The purchase is saved as `pending_association` on `checkout_intents` and the subscription is kept. A magic link goes to that email. Once they click it, the purchase is attached to the existing account and onboarding continues. `/welcome` shows "Check your email to continue".
+   - Any conflict (for example, a different account already owns that Stripe customer) is flagged for admin review. Nothing is dropped or duplicated.
+2. **Card Club start date.** `card_club_paid_at` is set only when a Card Club invoice is actually paid (the first paid invoice that includes the Card Club item or subscription). A failed charge on day 14 that succeeds on day 17 means the date is day 17. `card_club_entitlement()` counts only from this actual paid, active state.
+3. **Fallback failure.** If the separate Card Club subscription can't be created, the main plan stays active. Card Club is set to `activation_failed`, the opt-in is still recorded, and admin gets a flag. There are no free batches until Card Club billing is actually active. Creation uses a Stripe idempotency key based on the membership, and the membership is checked before any retry, so an admin or automatic retry can never make two Card Club subscriptions.
+
+Order of work: Stripe test, database tables, public checkout function, webhook, `/welcome`, post-purchase steps, dashboard and Card Club, admin, analytics, then mobile testing. Test mode and fixture data only. No publishing, no live deploys, no changes to live customers or live Stripe products and prices, and no changes to existing customers' behavior until I show you the test results.
