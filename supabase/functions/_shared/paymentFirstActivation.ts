@@ -28,7 +28,7 @@ export async function activateCheckout(stripe: Stripe, session: Stripe.Checkout.
 
   // Claim the intent once: only a 'created'/'checkout_started' row moves forward.
   const { data: claimed } = await db.from("checkout_intents")
-    .update({ status: "paid", email, stripe_customer_id: customer, stripe_subscription_id: mainSub, paid_at: new Date().toISOString() })
+    .update({ status: "paid", email, stripe_customer_id: customer, stripe_subscription_id: mainSub, paid_at: new Date().toISOString(), stripe_livemode: session.livemode === true })
     .eq("id", intent.id).in("status", ["created", "checkout_started"]).select("id");
   if (!claimed?.length) return { already: true };
 
@@ -58,17 +58,30 @@ export async function activateCheckout(stripe: Stripe, session: Stripe.Checkout.
     billing_address: addr(session.customer_details?.address, session.customer_details?.name),
   }, { onConflict: "checkout_intent_id", ignoreDuplicates: true });
 
+  // Initial order: created automatically, held at awaiting_onboarding (setup pending) until admin marks artwork ready.
+  const ship = addr(shipping?.address, shipping?.name);
+  const { data: order } = await db.from("fulfillment_orders").upsert({
+    checkout_intent_id: intent.id, user_id: userId, stripe_customer_id: customer, stripe_subscription_id: mainSub,
+    plan: intent.billing_interval === "year" ? `${intent.plan}_yearly` : intent.plan, quantity: intent.card_quantity,
+    status: "awaiting_onboarding", order_source: "payment_first", billing_interval: intent.billing_interval,
+    card_club_selected: intent.card_club_selected, attribution: intent.attribution ?? null, stripe_livemode: session.livemode === true,
+    shipping_name: ship?.name ?? null, shipping_address_line1: ship?.line1 ?? null, shipping_address_line2: ship?.line2 ?? null,
+    shipping_city: ship?.city ?? null, shipping_state: ship?.state ?? null, shipping_postal_code: ship?.postal_code ?? null, shipping_country: ship?.country ?? "US",
+  }, { onConflict: "checkout_intent_id", ignoreDuplicates: true }).select("id").maybeSingle();
+  const orderId = order?.id ?? (await db.from("fulfillment_orders").select("id").eq("checkout_intent_id", intent.id).maybeSingle()).data?.id;
+  if (orderId) await db.from("onboarding_sessions").update({ fulfillment_order_id: orderId }).eq("checkout_intent_id", intent.id);
+
   const plan = intent.plan as Plan;
   if (intent.card_club_selected) {
     const { data: m } = await db.from("card_club_memberships").upsert({
       checkout_intent_id: intent.id, user_id: userId, stripe_customer_id: customer, main_stripe_subscription_id: mainSub,
-      stripe_price_id: cardClubPriceId(), status: "pending_activation", plan, enrollment_date: new Date().toISOString(),
+      stripe_price_id: cardClubPriceId(), status: "pending_activation", plan, enrollment_date: new Date().toISOString(), stripe_livemode: session.livemode === true,
     }, { onConflict: "checkout_intent_id" }).select("*").single();
     if (m) await ensureCardClubSubscription(stripe, db, m.id);
   } else {
     await db.from("card_club_memberships").upsert({
       checkout_intent_id: intent.id, user_id: userId, stripe_customer_id: customer, main_stripe_subscription_id: mainSub,
-      status: "declined", plan, declined_at: new Date().toISOString(),
+      status: "declined", plan, declined_at: new Date().toISOString(), stripe_livemode: session.livemode === true,
     }, { onConflict: "checkout_intent_id", ignoreDuplicates: true });
   }
 
