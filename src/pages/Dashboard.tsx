@@ -41,11 +41,12 @@ import { useSalesRep } from "@/hooks/useSalesRep";
 import { isSubscriptionAllowed, LEGACY_BUSINESS_PLANS, ACTIVE_SUB_STATUSES } from "@/lib/subscriptionStatus";
 
 const PersonalDashboard = lazy(() => import("./personal/PersonalDashboard"));
+const BuildingDashboard = lazy(() => import("@/components/dashboard/BuildingDashboard"));
 
 const Dashboard = () => {
   const [searchParams] = useSearchParams();
   const { user, loading: authLoading } = useAuth();
-  const [routeDecision, setRouteDecision] = useState<"lite" | "business" | "checking">("checking");
+  const [routeDecision, setRouteDecision] = useState<"lite" | "business" | "building" | "checking">("checking");
   
   // Explicit lite params
   const isLiteParam = searchParams.get('type') === 'lite';
