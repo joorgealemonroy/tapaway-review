@@ -1,15 +1,17 @@
-// Payment-first onboarding switch. Off for real visitors until the owner approves go-live.
-// Turn on for testing with ?flow=payment_first (remembered for the browser tab).
-export const PAYMENT_FIRST_DEFAULT = false;
+// Payment-first onboarding switch. LIVE since go-live; ?flow=classic falls back to the old signup.
+// Rollback: set PAYMENT_FIRST_DEFAULT=false and backend PAYMENT_FIRST_ENABLED=false.
+export const PAYMENT_FIRST_DEFAULT = true;
 const KEY = "tapaway_payment_first";
+const CLASSIC_KEY = "tapaway_classic_flow";
 
 export function paymentFirstEnabled(): boolean {
   try {
     const flow = new URLSearchParams(window.location.search).get("flow");
-    if (flow === "payment_first") sessionStorage.setItem(KEY, "1");
+    if (flow === "payment_first") { sessionStorage.setItem(KEY, "1"); sessionStorage.removeItem(CLASSIC_KEY); }
     const k = new URLSearchParams(window.location.search).get("pf_key");
     if (k && /^[a-f0-9]{16,64}$/.test(k)) sessionStorage.setItem(KEY + "_key", k);
-    if (flow === "classic") sessionStorage.removeItem(KEY);
+    if (flow === "classic") { sessionStorage.removeItem(KEY); sessionStorage.setItem(CLASSIC_KEY, "1"); }
+    if (sessionStorage.getItem(CLASSIC_KEY) === "1") return false;
     return PAYMENT_FIRST_DEFAULT || sessionStorage.getItem(KEY) === "1";
   } catch {
     return PAYMENT_FIRST_DEFAULT;
