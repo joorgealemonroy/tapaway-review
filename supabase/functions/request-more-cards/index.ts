@@ -70,11 +70,6 @@ async function sendInternalEmail(options: {
   }
 }
 
-function startOfMonthIso(): string {
-  const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-}
-
 type ShippingRow = {
   shipping_name?: string | null;
   shipping_address_line1?: string | null;
@@ -196,86 +191,49 @@ serve(async (req) => {
       }, 400);
     }
 
-    // ── Legacy vs Card Club ───────────────────────────────────────────
-    // The free monthly allowance applies only to grandfathered accounts
-    // (legacy_allowance, set once before payment-first launch). Everyone else
-    // uses Card Club (card-club-request) or paid reprints.
-    // Behind the payment-first flag: only payment-first accounts lose the free monthly allowance.
-    if (!isAdmin && account.paymentFirst && !account.legacyAllowance) {
+    // ── Legacy allowance (paid grandfathered relationships only) ───────
+    // One shared monthly pool per legacy_allowance_key (subscription/customer),
+    // never per page. Complimentary/demo/payment-first accounts get no free
+    // monthly cards; admins can still create requests as a manual override.
+    if (!isAdmin && (!account.legacyAllowance || !account.legacyKey)) {
       return json({
         success: false,
         error: "Free monthly cards aren't part of this plan. Card Club members can request a fresh batch from the dashboard, or contact us for reprint pricing.",
         code: 'not_legacy_allowance',
       }, 403);
     }
-
-    // ── Plan-based monthly allowance ───────────────────────────────────
-    // Grandfathered accounts share ONE allowance per billing relationship
-    // (legacy_allowance_key = subscription/customer), never per page.
+    const rawIdem = typeof body?.idempotencyKey === 'string' ? body.idempotencyKey.slice(0, 100) : null;
+    let claimId: string | null = null;
     let allowance = cardAllowanceForPlan(account.planType);
-    const monthStart = startOfMonthIso();
-
     let usedThisMonth = 0;
-    if (account.legacyAllowance && account.legacyKey) {
-      const { data: pooled, error: poolErr } = await supabaseAdmin
-        .rpc('legacy_allowance_status', { _key: account.legacyKey, _since: monthStart });
-      if (poolErr) {
-        console.error('[request-more-cards] pooled usage failed:', poolErr.message);
+    if (!isAdmin) {
+      const { data: res, error: resErr } = await supabaseAdmin.rpc('reserve_legacy_allowance', {
+        _key: account.legacyKey, _quantity: quantity, _source_kind: account.kind, _source_id: account.id,
+        _idempotency_key: rawIdem ? `${account.legacyKey}:${rawIdem}` : null,
+      });
+      const r = Array.isArray(res) ? res[0] : res;
+      if (resErr || !r) {
+        console.error('[request-more-cards] reserve failed:', resErr?.message);
         return json({ success: false, error: 'Could not check your card allowance. Please try again.' }, 500);
       }
-      const row = Array.isArray(pooled) ? pooled[0] : pooled;
-      allowance = row?.allowance ?? allowance;
-      usedThisMonth = row?.used ?? 0;
-    } else if (account.kind === 'restaurant') {
-      const { data: orders, error: usageErr } = await supabaseAdmin
-        .from('fulfillment_orders')
-        .select('quantity')
-        .eq('restaurant_id', account.id)
-        .eq('plan', 'addon')
-        .gte('created_at', monthStart);
-      if (usageErr) console.error('[request-more-cards] usage lookup failed:', usageErr.message);
-      usedThisMonth = (orders || []).reduce((sum, o) => sum + (o.quantity || 0), 0);
-    } else {
-      const { data: reqs, error: usageErr } = await supabaseAdmin
-        .from('personal_card_requests')
-        .select('quantity')
-        .eq('profile_id', account.id)
-        .eq('is_addon', true)
-        .gte('created_at', monthStart);
-      if (usageErr) console.error('[request-more-cards] usage lookup failed:', usageErr.message);
-      usedThisMonth = (reqs || []).reduce((sum, r) => sum + (r.quantity || 0), 0);
+      if (r.reason === 'duplicate') return json({ success: true, duplicate: true });
+      if (!r.ok) {
+        const left = Math.max((r.allowance ?? 0) - (r.used ?? 0), 0);
+        return json({
+          success: false,
+          error: left > 0
+            ? `You can request ${left} more card${left === 1 ? '' : 's'} this month.`
+            : `You've already used this month's ${r.allowance} free cards for this subscription. Your allowance resets next month.`,
+          code: left > 0 ? 'over_allowance' : 'allowance_exhausted',
+          allowance: r.allowance, remaining: left,
+        }, 400);
+      }
+      claimId = r.claim_id;
+      allowance = r.allowance;
+      usedThisMonth = r.used - quantity;
     }
-
     const remaining = Math.max(allowance - usedThisMonth, 0);
-
-    console.log('[request-more-cards]', {
-      kind: account.kind,
-      plan: account.planType,
-      allowance,
-      usedThisMonth,
-      remaining,
-      quantity,
-    });
-
-    if (remaining <= 0) {
-      return json({
-        success: false,
-        error: `You've already requested ${allowance} card${allowance === 1 ? '' : 's'} this month on the ${cardPlanLabel(account.planType)} plan. Your allowance resets next month.`,
-        code: 'allowance_exhausted',
-        allowance,
-        remaining: 0,
-      }, 400);
-    }
-
-    if (quantity > remaining) {
-      return json({
-        success: false,
-        error: `You can request ${remaining} more card${remaining === 1 ? '' : 's'} this month.`,
-        code: 'over_allowance',
-        allowance,
-        remaining,
-      }, 400);
-    }
+    const releaseClaim = async () => { if (claimId) await supabaseAdmin.from('legacy_allowance_claims').delete().eq('id', claimId); };
 
     // ── Reuse the most recent shipping address ─────────────────────────
     let existing: ShippingRow | null = null;
@@ -328,6 +286,7 @@ serve(async (req) => {
         .single();
       if (insertError || !newOrder) {
         console.error('[request-more-cards] Insert error:', insertError);
+        await releaseClaim();
         return json({ success: false, error: 'Failed to create order' }, 500);
       }
       newId = newOrder.id;
@@ -346,6 +305,7 @@ serve(async (req) => {
         .single();
       if (insertError || !newReq) {
         console.error('[request-more-cards] Insert error:', insertError);
+        await releaseClaim();
         return json({ success: false, error: 'Failed to create request' }, 500);
       }
       newId = newReq.id;
