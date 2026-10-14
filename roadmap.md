@@ -24,10 +24,13 @@
 - [x] Refine onboarding into a dark quantity-first 4-card versus 15-card decision without changing checkout logic
 
 ## Payment-first finalization (approved 2026-10-14)
-- [ ] Grandfather legacy allowance per unique customer/subscription (dedupe; report raw vs unique)
-- [ ] Draft hub in correct existing model per plan/customer type
-- [ ] Payment-first functions gated behind flag until GO LIVE
-- [ ] Webhook signature + livemode check
-- [ ] Card Club approve-based timing, admin approve/reject
-- [ ] Auto setup-pending order, test/live flag
-- [ ] Analytics, deploys, test matrix, cleanup, readiness report
+- [x] Grandfather legacy allowance per unique customer/subscription (dedupe; report raw vs unique)
+- [x] Draft hub in correct existing model per plan/customer type
+- [x] Payment-first functions gated behind flag until GO LIVE
+- [x] Webhook signature + livemode check
+- [x] Card Club approve-based timing, admin approve/reject
+- [x] Auto setup-pending order, test/live flag
+- [x] Analytics, deploys, test matrix, cleanup, readiness report
+- [ ] Existing-email purchase: verify association after real email sign-in (needs a signed-in test)
+- [ ] Regression run of claim / rep / van flows
+- [ ] GO LIVE (owner approval): live webhook + secrets + flag
