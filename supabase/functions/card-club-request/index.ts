@@ -17,9 +17,11 @@ serve(async (req) => {
     const { data: s } = await db.from("onboarding_sessions").select("shipping_address").eq("checkout_intent_id", m.checkout_intent_id).maybeSingle();
     const note = typeof body.designNote === "string" ? body.designNote : "";
     const { data, error } = await db.rpc("card_club_redeem", { _membership_id: m.id, _address: s?.shipping_address ?? null, _design_note: note, _idempotency_key: `${user.id}-${key}` });
+    if (error?.code === "23505") return json({ error: "You already have a replacement request pending.", reason: "request_pending" }, 409);
     if (error) throw error;
     if (!data?.ok) {
-      const msg = data?.reason === "not_yet_eligible" ? "Your next batch isn't available yet."
+      const msg = data?.reason === "request_pending" ? "You already have a replacement request pending."
+        : data?.reason === "not_yet_eligible" ? "Your next batch isn't available yet."
         : data?.reason === "missing_address" ? "Add a shipping address first." : "Card Club isn't active right now.";
       return json({ error: msg, reason: data?.reason, nextEligibleAt: data?.next_eligible_at ?? null }, 409);
     }

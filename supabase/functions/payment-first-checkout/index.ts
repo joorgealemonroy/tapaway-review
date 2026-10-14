@@ -59,8 +59,17 @@ serve(async (req) => {
     const clubText = cardClub
       ? ` TapAway Card Club is a separate recurring charge of $5/month that also starts after your ${TRIAL_DAYS}-day trial and renews monthly until canceled.`
       : "";
+    // Test-only: attach a Stripe test clock so trial end can be simulated. Never used in live mode.
+    let customer: string | undefined;
+    if (stripeMode() === "test" && body.testClock === true && typeof body.testEmail === "string" && /^tap\+pftest[a-z0-9]+@tapaway\.co$/.test(body.testEmail)) {
+      const clock = await stripe.testHelpers.testClocks.create({ frozen_time: Math.floor(Date.now() / 1000), name: `pf ${intent.id}` });
+      const c = await stripe.customers.create({ email: body.testEmail, test_clock: clock.id, metadata: { payment_first_test: "true" } });
+      customer = c.id;
+      meta.test_clock_id = clock.id;
+    }
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
+      ...(customer ? { customer } : {}),
       line_items: [{ price: main.id, quantity: 1 }],
       success_url: `${origin}/welcome?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/onboarding?plan=${plan}&cycle=${interval}&canceled=1`,
