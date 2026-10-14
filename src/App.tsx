@@ -78,6 +78,7 @@ const RepApply = lazy(() => import("./pages/rep/RepApply"));
 const RepSetupPassword = lazy(() => import("./pages/rep/RepSetupPassword"));
 
 // Admin Rep Management - lazy loaded
+const AdminNewOrders = lazy(() => import("./pages/admin/AdminNewOrders"));
 const AdminReps = lazy(() => import("./pages/admin/AdminReps"));
 const AdminCommissions = lazy(() => import("./pages/admin/AdminCommissions"));
 const AdminCompSettings = lazy(() => import("./pages/admin/AdminCompSettings"));
@@ -218,6 +219,7 @@ const App = () => {
                 
                 {/* Admin Rep Management */}
                 <Route path="/admin/reps" element={<AdminReps />} />
+                <Route path="/admin/new-orders" element={<AdminNewOrders />} />
                 <Route path="/admin/commissions" element={<AdminCommissions />} />
                 <Route path="/admin/settings/comp" element={<AdminCompSettings />} />
                 <Route path="/admin/tax-review" element={<AdminTaxReview />} />
