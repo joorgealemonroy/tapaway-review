@@ -1106,6 +1106,7 @@ export type Database = {
           declined_at: string | null
           enrollment_date: string | null
           id: string
+          last_approved_at: string | null
           last_redemption_at: string | null
           main_stripe_subscription_id: string
           plan: string
@@ -1113,6 +1114,7 @@ export type Database = {
           review_reason: string | null
           status: string
           stripe_customer_id: string | null
+          stripe_livemode: boolean
           stripe_price_id: string | null
           total_redemptions: number
           updated_at: string
@@ -1129,6 +1131,7 @@ export type Database = {
           declined_at?: string | null
           enrollment_date?: string | null
           id?: string
+          last_approved_at?: string | null
           last_redemption_at?: string | null
           main_stripe_subscription_id: string
           plan: string
@@ -1136,6 +1139,7 @@ export type Database = {
           review_reason?: string | null
           status: string
           stripe_customer_id?: string | null
+          stripe_livemode?: boolean
           stripe_price_id?: string | null
           total_redemptions?: number
           updated_at?: string
@@ -1152,6 +1156,7 @@ export type Database = {
           declined_at?: string | null
           enrollment_date?: string | null
           id?: string
+          last_approved_at?: string | null
           last_redemption_at?: string | null
           main_stripe_subscription_id?: string
           plan?: string
@@ -1159,6 +1164,7 @@ export type Database = {
           review_reason?: string | null
           status?: string
           stripe_customer_id?: string | null
+          stripe_livemode?: boolean
           stripe_price_id?: string | null
           total_redemptions?: number
           updated_at?: string
@@ -1176,6 +1182,8 @@ export type Database = {
       }
       card_club_redemptions: {
         Row: {
+          approved_at: string | null
+          approved_by: string | null
           created_at: string
           design_update_note: string | null
           design_version: string
@@ -1186,6 +1194,8 @@ export type Database = {
           membership_id: string
           printed_at: string | null
           quantity: number
+          rejected_at: string | null
+          rejection_reason: string | null
           requested_at: string
           shipped_at: string | null
           shipping_address: Json
@@ -1195,6 +1205,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string
           design_update_note?: string | null
           design_version?: string
@@ -1205,6 +1217,8 @@ export type Database = {
           membership_id: string
           printed_at?: string | null
           quantity: number
+          rejected_at?: string | null
+          rejection_reason?: string | null
           requested_at?: string
           shipped_at?: string | null
           shipping_address: Json
@@ -1214,6 +1228,8 @@ export type Database = {
           user_id: string
         }
         Update: {
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string
           design_update_note?: string | null
           design_version?: string
@@ -1224,6 +1240,8 @@ export type Database = {
           membership_id?: string
           printed_at?: string | null
           quantity?: number
+          rejected_at?: string | null
+          rejection_reason?: string | null
           requested_at?: string
           shipped_at?: string | null
           shipping_address?: Json
@@ -1309,6 +1327,7 @@ export type Database = {
           status: string
           stripe_checkout_session_id: string | null
           stripe_customer_id: string | null
+          stripe_livemode: boolean
           stripe_subscription_id: string | null
           updated_at: string
           user_created_by_purchase: boolean
@@ -1334,6 +1353,7 @@ export type Database = {
           status?: string
           stripe_checkout_session_id?: string | null
           stripe_customer_id?: string | null
+          stripe_livemode?: boolean
           stripe_subscription_id?: string | null
           updated_at?: string
           user_created_by_purchase?: boolean
@@ -1359,6 +1379,7 @@ export type Database = {
           status?: string
           stripe_checkout_session_id?: string | null
           stripe_customer_id?: string | null
+          stripe_livemode?: boolean
           stripe_subscription_id?: string | null
           updated_at?: string
           user_created_by_purchase?: boolean
@@ -1874,8 +1895,14 @@ export type Database = {
       }
       fulfillment_orders: {
         Row: {
+          attribution: Json | null
+          billing_interval: string | null
+          card_club_selected: boolean | null
+          checkout_intent_id: string | null
           created_at: string
           id: string
+          order_source: string | null
+          personal_profile_id: string | null
           plan: string
           quantity: number
           restaurant_id: string
@@ -1888,14 +1915,22 @@ export type Database = {
           shipping_state: string | null
           status: string
           stripe_customer_id: string | null
+          stripe_livemode: boolean | null
           stripe_payment_intent_id: string | null
           stripe_subscription_id: string | null
+          tracking_number: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          attribution?: Json | null
+          billing_interval?: string | null
+          card_club_selected?: boolean | null
+          checkout_intent_id?: string | null
           created_at?: string
           id?: string
+          order_source?: string | null
+          personal_profile_id?: string | null
           plan: string
           quantity?: number
           restaurant_id: string
@@ -1908,14 +1943,22 @@ export type Database = {
           shipping_state?: string | null
           status?: string
           stripe_customer_id?: string | null
+          stripe_livemode?: boolean | null
           stripe_payment_intent_id?: string | null
           stripe_subscription_id?: string | null
+          tracking_number?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          attribution?: Json | null
+          billing_interval?: string | null
+          card_club_selected?: boolean | null
+          checkout_intent_id?: string | null
           created_at?: string
           id?: string
+          order_source?: string | null
+          personal_profile_id?: string | null
           plan?: string
           quantity?: number
           restaurant_id?: string
@@ -1928,8 +1971,10 @@ export type Database = {
           shipping_state?: string | null
           status?: string
           stripe_customer_id?: string | null
+          stripe_livemode?: boolean | null
           stripe_payment_intent_id?: string | null
           stripe_subscription_id?: string | null
+          tracking_number?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -2686,6 +2731,7 @@ export type Database = {
       }
       onboarding_sessions: {
         Row: {
+          artwork_ready_at: string | null
           billing_address: Json | null
           business_address: string | null
           business_city: string | null
@@ -2694,7 +2740,9 @@ export type Database = {
           checkout_intent_id: string
           completed_at: string | null
           created_at: string
+          fulfillment_order_id: string | null
           google_place_id: string | null
+          hub_status: string
           id: string
           logo_skipped: boolean
           logo_url: string | null
@@ -2711,6 +2759,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          artwork_ready_at?: string | null
           billing_address?: Json | null
           business_address?: string | null
           business_city?: string | null
@@ -2719,7 +2768,9 @@ export type Database = {
           checkout_intent_id: string
           completed_at?: string | null
           created_at?: string
+          fulfillment_order_id?: string | null
           google_place_id?: string | null
+          hub_status?: string
           id?: string
           logo_skipped?: boolean
           logo_url?: string | null
@@ -2736,6 +2787,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          artwork_ready_at?: string | null
           billing_address?: Json | null
           business_address?: string | null
           business_city?: string | null
@@ -2744,7 +2796,9 @@ export type Database = {
           checkout_intent_id?: string
           completed_at?: string | null
           created_at?: string
+          fulfillment_order_id?: string | null
           google_place_id?: string | null
+          hub_status?: string
           id?: string
           logo_skipped?: boolean
           logo_url?: string | null
@@ -5234,6 +5288,10 @@ export type Database = {
         Args: { _card_public_code: string; _profile_id: string }
         Returns: Json
       }
+      admin_card_club_decide: {
+        Args: { _approve: boolean; _reason?: string; _redemption_id: string }
+        Returns: Json
+      }
       admin_card_club_override: {
         Args: { _membership_id: string; _reason: string; _status: string }
         Returns: undefined
@@ -5253,6 +5311,10 @@ export type Database = {
       }
       admin_set_print_status: {
         Args: { _notes: string; _profile_id: string; _status: string }
+        Returns: undefined
+      }
+      admin_set_redemption_progress: {
+        Args: { _redemption_id: string; _status: string; _tracking?: string }
         Returns: undefined
       }
       admin_set_setup_status: {

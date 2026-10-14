@@ -113,6 +113,13 @@
       "when": 1791971624341,
       "tag": "0015_legacy_allowance_cohort",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1791971677251,
+      "tag": "0016_card_club_approval_timing_and_livemode",
+      "breakpoints": true
     }
   ]
 }
