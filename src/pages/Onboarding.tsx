@@ -24,6 +24,7 @@ import {
 } from "@/lib/onboardingData";
 import { track } from "@/lib/analytics";
 import { paymentFirstEnabled, callFunction } from "@/lib/paymentFirst";
+import { CheckoutOrder } from "@/components/onboarding/CheckoutOrder";
 import { CardClubStep } from "@/components/onboarding/CardClubStep";
 import { getAppSettings } from "@/lib/appSettings";
 import { Button } from "@/components/ui/button";
@@ -201,6 +202,8 @@ const Onboarding = () => {
     const init = async () => {
       setPendingSetup(true);
       const savedData = getOnboardingData();
+      const audience = searchParams.get("audience");
+      if (audience === "personal" || audience === "business") saveOnboardingData({ audience });
 
       if (savedData.businessName) setBusinessName(savedData.businessName);
       const explicitPlan = searchParams.get("plan") || searchParams.get("plan_type");
@@ -209,7 +212,7 @@ const Onboarding = () => {
         setSelectedPlan(initialPlan);
         saveOnboardingData({ planType: initialPlan });
       }
-      const explicitBilling = searchParams.get("billing") || searchParams.get("billing_interval");
+      const explicitBilling = searchParams.get("billing") || searchParams.get("billing_interval") || searchParams.get("cycle");
       if (explicitBilling === "month" || explicitBilling === "year") {
         setBillingInterval(explicitBilling);
         saveOnboardingData({ billingInterval: explicitBilling, billingSelectionExplicit: true });
@@ -348,9 +351,9 @@ const Onboarding = () => {
   const [pfBusy, setPfBusy] = useState(false);
   const [pfError, setPfError] = useState<string | null>(null);
   const startPaymentFirstCheckout = async (cardClub: boolean) => {
-    if (!selectedPlan || pfBusy) return;
+    if (!selectedPlan || pfBusy || catalogLoading || catalogItem(selectedPlan, billingInterval)?.available !== true) return;
     setPfBusy(true); setPfError(null);
-    saveOnboardingData({ planType: selectedPlan, billingInterval, billingSelectionExplicit: true, hasProtection: false });
+    saveOnboardingData({ planType: selectedPlan, billingInterval, billingSelectionExplicit: true, hasProtection: false, cardClubSelected: cardClub });
     track(cardClub ? "card_club_selected" : "card_club_declined", { hubKind: "site", props: { plan: selectedPlan, interval: billingInterval } });
     track("checkout_clicked", { hubKind: "site", props: { plan: selectedPlan, interval: billingInterval, card_club: cardClub } });
     const saved = getOnboardingData();
@@ -963,6 +966,12 @@ const Onboarding = () => {
         </div>
       </div>
     );
+  }
+
+  if (paymentFirst && !isRepMode && !promoTokenParam && step === "plan") {
+    return <CheckoutOrder plan={selectedPlan} interval={billingInterval} catalog={catalog} loading={catalogLoading}
+      failed={catalogFailed} busy={pfBusy} error={pfError} canceled={searchParams.has("canceled")}
+      onRetry={retryCatalog} onPlan={selectPlan} onInterval={selectBillingInterval} onCheckout={startPaymentFirstCheckout} />;
   }
 
   return (

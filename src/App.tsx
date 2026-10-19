@@ -27,6 +27,8 @@ const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const MagicLinkVerify = lazy(() => import("./pages/auth/MagicLinkVerify"));
 const SetPassword = lazy(() => import("./pages/auth/SetPassword"));
 
+const Personal = lazy(() => import("./pages/Personal"));
+
 // Personal TapAway - code split (Business Lite dashboard still used internally)
 const ImportProfile = lazy(() => import("./pages/personal/ImportProfile"));
 const PersonalDashboard = lazy(() => import("./pages/personal/PersonalDashboard"));
@@ -165,12 +167,12 @@ const App = () => {
 
               <Route path="/" element={<Index />} />
                 <Route path="/business" element={<Navigate to="/" replace />} />
-                {/* /personal/* routes redirect. Namespace deprecated */}
-                <Route path="/personal" element={<Navigate to="/" replace />} />
+                {/* Personal storefront; legacy account routes keep their redirects. */}
+                <Route path="/personal" element={<Personal />} />
                 <Route path="/personal/vibe" element={<Navigate to="/" replace />} />
                 <Route path="/personal/signup" element={<Navigate to="/" replace />} />
                 <Route path="/personal/signup/complete" element={<Navigate to="/" replace />} />
-                <Route path="/personal/pricing" element={<Navigate to="/" replace />} />
+                <Route path="/personal/pricing" element={<Navigate to="/personal#pricing" replace />} />
                 <Route path="/personal/order" element={<Navigate to="/" replace />} />
                 <Route path="/personal/dashboard" element={<Navigate to="/dashboard" replace />} />
                 <Route path="/import" element={<ImportProfile />} />

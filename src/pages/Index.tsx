@@ -1,82 +1,104 @@
-import { Button } from "@/components/ui/button";
-import { openConsentSettings } from "@/lib/consent";
-import { PricingSection } from "@/components/landing/PricingSection";
-import { HowItWorksSection } from "@/components/landing/HowItWorksSection";
 import { Helmet } from "react-helmet-async";
-import { HeroSection } from "@/components/landing/HeroSection";
-import { DoneForYouSection } from "@/components/landing/DoneForYouSection";
-import { ComparisonSection } from "@/components/landing/ComparisonSection";
-import { DashboardControlSection } from "@/components/landing/DashboardControlSection";
-
-import { RiskReversalSection } from "@/components/landing/RiskReversalSection";
-import { FAQSection } from "@/components/landing/FAQSection";
-import { FooterCTA } from "@/components/landing/FooterCTA";
-import { TrialBanner } from "@/components/TrialBanner";
+import { Link } from "react-router-dom";
+import { ArrowRight } from "lucide-react";
 import { LandingNav } from "@/components/landing/LandingNav";
+import { PricingSection } from "@/components/landing/PricingSection";
+import { FAQSection } from "@/components/landing/FAQSection";
+import {
+  TrustStrip,
+  ProductPaths,
+  HubDemo,
+  SetupSteps,
+  CustomerQuotes,
+  StorefrontFooter,
+  HelpLink,
+  FinalOffer,
+} from "@/components/landing/StorefrontSections";
+import { TrialBanner } from "@/components/TrialBanner";
+import { track } from "@/lib/analytics";
 
-
-const Index = () => {
+export default function Index() {
+  const description =
+    "Custom NFC and QR cards with your reviews, menu, bookings and social links in one hub. Done-for-you setup, free US shipping, and clear subscription pricing.";
   return (
-    <div className="min-h-screen bg-background">
+    <div className="storefront min-h-screen">
       <Helmet>
-        <title>TapAway | Custom NFC Cards & Business Hubs</title>
-        <meta name="description" content="Custom NFC and QR cards with your logo, menus, reviews, and business links. Done-for-you setup with a 14-day trial." />
-        <link rel="canonical" href="https://tapaway.co" />
-        <meta property="og:title" content="TapAway | Custom NFC Cards & Business Hubs" />
-        <meta property="og:description" content="Custom NFC and QR cards with your logo, menus, reviews, and business links. Done-for-you setup with a 14-day trial." />
-        <meta property="og:url" content="https://tapaway.co" />
+        <title>TapAway | Custom NFC Cards. More Customer Connections.</title>
+        <meta name="description" content={description} />
+        <link rel="canonical" href="https://tapaway.co/" />
+        <meta property="og:title" content="Tap into more customers | TapAway" />
+        <meta property="og:description" content={description} />
+        <meta property="og:url" content="https://tapaway.co/" />
         <meta property="og:image" content="https://tapaway.co/logo-og.png" />
-        <meta property="og:type" content="website" />
-        <meta name="twitter:title" content="TapAway | Custom NFC Cards & Business Hubs" />
-        <meta name="twitter:description" content="Get more 5-star Google reviews on autopilot with TapAway's NFC cards and smart review tools." />
-        <meta name="twitter:image" content="https://tapaway.co/logo-og.png" />
+        <meta name="twitter:description" content={description} />
       </Helmet>
-      
-      {/* Trial Resume Banner */}
       <TrialBanner />
-      
-      
-      {/* Navigation */}
       <LandingNav />
-
-
-      {/* Main Content */}
-      <HeroSection />
-      <HowItWorksSection />
-      <PricingSection />
-      <DoneForYouSection />
-      <ComparisonSection />
-      <DashboardControlSection />
-      
-      <RiskReversalSection />
-      <FAQSection />
-      <FooterCTA />
-
-      {/* Footer */}
-      <footer className="py-8 px-4 bg-hero text-hero-foreground/75 border-t border-border">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-sm">© {new Date().getFullYear()} TapAway. Your business, one tap away.</p>
-            <div className="flex items-center flex-wrap gap-x-4 gap-y-2 text-sm">
-              <a href="https://www.tiktok.com/@tapawayco" rel="me" target="_blank" className="hover:text-hero-foreground transition-colors">TikTok</a>
-              <a href="https://www.instagram.com/tapawayco" rel="me" target="_blank" className="hover:text-hero-foreground transition-colors">Instagram</a>
-              <a href="https://twitter.com/tapawayco" rel="me" target="_blank" className="hover:text-hero-foreground transition-colors">X</a>
-              <a href="https://www.youtube.com/@tapawayco" rel="me" target="_blank" className="hover:text-hero-foreground transition-colors">YouTube</a>
-              <span className="text-hero-foreground/50">|</span>
-              <a href="/support" className="hover:text-hero-foreground transition-colors">Support</a>
-               <Button variant="link" onClick={openConsentSettings} className="h-auto p-0 text-hero-foreground/75">Cookie settings</Button>
-               <a href="/terms" className="hover:text-hero-foreground transition-colors">Terms</a>
-              <a href="/privacy" className="hover:text-hero-foreground transition-colors">Privacy Policy</a>
-              <a href="/refund" className="hover:text-hero-foreground transition-colors">Refund</a>
-              <a href="/cookie-policy" className="hover:text-hero-foreground transition-colors">Cookies</a>
-              <a href="/rep/apply" className="hover:text-hero-foreground transition-colors">Sales Partners</a>
+      <main id="main-content">
+        <section className="sf-hero">
+          <div className="sf-container sf-hero-grid">
+            <div className="sf-hero-copy">
+              <span className="sf-eyebrow">
+                Custom NFC cards + digital hubs
+              </span>
+              <h1>
+                Tap into
+                <br />
+                more customers.
+              </h1>
+              <p>
+                Put your reviews, menu, bookings and socials one tap away.
+                Custom cards. A beautiful hub. All set up for you.
+              </p>
+              <div className="sf-hero-actions">
+                <a
+                  className="sf-button"
+                  href="#pricing"
+                  onClick={() =>
+                    track("landing_cta_clicked", {
+                      hubKind: "site",
+                      props: { placement: "hero_business" },
+                    })
+                  }
+                >
+                  Get TapAway for business <ArrowRight />
+                </a>
+                <Link className="sf-button secondary" to="/personal">
+                  Make it personal
+                </Link>
+              </div>
+              <p className="sf-hero-small">
+                4 or 15 custom cards · Free US shipping · Done-for-you setup
+              </p>
+              <a className="sf-text-link mt-5 text-xs" href="#examples">
+                See what happens when you tap <ArrowRight className="h-3 w-3" />
+              </a>
+            </div>
+            <div className="sf-hero-media">
+              <img
+                src="/done-for-you-mockup.png"
+                alt="TapAway custom printed card beside examples of branded mobile hubs"
+                width="1254"
+                height="1254"
+                fetchPriority="high"
+              />
+              <span className="sf-image-caption">
+                Custom cards. Your links. One tap.
+              </span>
             </div>
           </div>
-        </div>
-      </footer>
-
+        </section>
+        <TrustStrip />
+        <ProductPaths />
+        <HubDemo />
+        <SetupSteps />
+        <PricingSection />
+        <CustomerQuotes />
+        <FAQSection />
+        <FinalOffer />
+      </main>
+      <StorefrontFooter />
+      <HelpLink />
     </div>
   );
-};
-
-export default Index;
+}

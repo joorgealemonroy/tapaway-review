@@ -4,10 +4,9 @@ import { LandingNav } from "@/components/landing/LandingNav";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
-import { Phone, Star, MapPin, Instagram, Globe, Calendar, ChevronRight, Utensils, Loader2 } from "lucide-react";
+import { Phone, MessageCircle, Star, MapPin, Instagram, Globe, Calendar, ChevronRight, Utensils, Loader2 } from "lucide-react";
 
-const PHONE_NUMBER = "(858) 207-8106";
-const PHONE_TEL = "tel:+18582078106";
+const SUPPORT_URL = "/support#question";
 
 /* ── Feature callout bullet ── */
 const Callout = ({ title, desc }: { title: string; desc: string }) => (
@@ -134,7 +133,7 @@ const SmallBizFallback = () => (
 
 const Examples = () => {
   return (
-    <>
+    <div className="storefront min-h-screen">
       <Helmet>
         <title>TapAway Examples. See It in Action</title>
         <meta name="description" content="See how TapAway works for restaurants and small businesses. Interactive demos, real features, no app needed." />
@@ -142,6 +141,7 @@ const Examples = () => {
 
       <LandingNav />
 
+      <main id="main-content">
       {/* ── Hero ── */}
       <section className="pt-24 pb-10 px-4 text-center bg-gradient-to-b from-primary/5 to-background">
         <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">
@@ -219,9 +219,8 @@ const Examples = () => {
           <AccordionItem value="setup">
             <AccordionTrigger>We Set It Up For You</AccordionTrigger>
             <AccordionContent>
-              Not tech-savvy? No problem. Call us at{" "}
-              <a href={PHONE_TEL} className="font-semibold text-primary underline">{PHONE_NUMBER}</a>{" "}
-              and we'll set up everything for you. Free of charge.
+              Need a hand? <a href={SUPPORT_URL} className="font-semibold text-primary underline">Contact our team</a>.{" "}
+              We'll set up your hub for you. Design and setup are included in your plan.
             </AccordionContent>
           </AccordionItem>
         </Accordion>
@@ -235,11 +234,11 @@ const Examples = () => {
         </p>
         <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
           <Button size="lg" asChild>
-            <a href="/onboarding">Start Free Trial</a>
+            <a href="/#pricing">Choose my cards</a>
           </Button>
           <Button size="lg" variant="outline" asChild>
-            <a href={PHONE_TEL} className="flex items-center gap-2">
-              <Phone className="h-4 w-4" /> Call {PHONE_NUMBER}
+            <a href={SUPPORT_URL} className="flex items-center gap-2">
+              <MessageCircle className="h-4 w-4" /> Contact our team
             </a>
           </Button>
         </div>
@@ -247,15 +246,16 @@ const Examples = () => {
 
       {/* ── Footer spacer for sticky bar ── */}
       <div className="h-16 md:hidden" />
+      </main>
 
-      {/* ── Sticky mobile call bar ── */}
+      {/* ── Sticky mobile support bar ── */}
       <div className="fixed bottom-0 inset-x-0 z-50 md:hidden bg-primary text-primary-foreground px-4 py-3 flex items-center justify-between shadow-lg">
         <span className="text-sm font-medium">Prefer we set it up?</span>
-        <a href={PHONE_TEL} className="flex items-center gap-1.5 font-bold text-sm underline">
-          <Phone className="h-4 w-4" /> Call Us
+        <a href={SUPPORT_URL} className="flex items-center gap-1.5 font-bold text-sm underline">
+          <MessageCircle className="h-4 w-4" /> Ask us
         </a>
       </div>
-    </>
+    </div>
   );
 };
 

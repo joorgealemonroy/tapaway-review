@@ -8,6 +8,8 @@ const VERIFIED_KEY = 'tapaway_onboarding_verified';
 const PENDING_SETUP_KEY = 'tapaway_pending_setup';
 
 export interface OnboardingData {
+  audience?: 'business' | 'personal';
+  cardClubSelected?: boolean;
   email: string;
   businessName: string;
   city: string;

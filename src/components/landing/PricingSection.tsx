@@ -1,13 +1,26 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ArrowRight, Check } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { getAppSettings } from "@/lib/appSettings";
-import { getCampaignParams, getOnboardingData, saveOnboardingData } from "@/lib/onboardingData";
-import { CARD_QUANTITIES, formatCatalogPrice, useOnboardingCatalog, type BillingInterval, type OnboardingPlan } from "@/lib/onboardingCatalog";
+import { getOnboardingData, saveOnboardingData } from "@/lib/onboardingData";
+import {
+  CARD_QUANTITIES,
+  useOnboardingCatalog,
+  type BillingInterval,
+  type OnboardingPlan,
+} from "@/lib/onboardingCatalog";
+import {
+  selectStorefrontPlan,
+  type StorefrontAudience,
+} from "@/lib/storefront";
+import { track } from "@/lib/analytics";
 
-export function PricingSection() {
+export function PricingSection({
+  audience = "business",
+}: {
+  audience?: StorefrontAudience;
+}) {
   const { catalog, loading, failed, retry } = useOnboardingCatalog();
   const [interval, setInterval] = useState<BillingInterval>("year");
   const location = useLocation();
@@ -15,55 +28,223 @@ export function PricingSection() {
   useEffect(() => {
     let active = true;
     const params = new URLSearchParams(location.search);
-    const explicit = params.get("billing") || params.get("billing_interval");
+    const explicit =
+      params.get("billing") ||
+      params.get("billing_interval") ||
+      params.get("cycle");
     const saved = getOnboardingData();
     if (explicit === "year" || explicit === "month") setInterval(explicit);
     else if (saved.billingInterval) setInterval(saved.billingInterval);
-    else getAppSettings(supabase).then((settings) => { if (active) setInterval(settings.onboardingDefaultBilling); });
-    return () => { active = false; };
+    else
+      getAppSettings(supabase).then((settings) => {
+        if (active && !getOnboardingData().billingSelectionExplicit)
+          setInterval(settings.onboardingDefaultBilling);
+      });
+    return () => {
+      active = false;
+    };
   }, [location.search]);
   const choose = (plan: OnboardingPlan) => {
-    const item = catalog.find((value) => value.plan === plan && value.interval === interval);
-    if (!item?.available) return;
-    const saved = getOnboardingData();
-    saveOnboardingData({ planType: plan, billingInterval: interval, billingSelectionExplicit: true, hasProtection: false,
-      dashboardType: plan === "solo" ? "personal" : "restaurant", campaign: { ...saved.campaign, ...getCampaignParams() } });
-    const params = new URLSearchParams(location.search);
-    params.set("plan", plan);
-    params.set("billing", interval);
-    navigate(`/start?${params.toString()}`);
+    if (
+      loading ||
+      catalog.find(
+        (value) => value.plan === plan && value.interval === interval,
+      )?.available !== true
+    )
+      return;
+    track("landing_cta_clicked", {
+      hubKind: "site",
+      props: { placement: "pricing", plan, interval, audience },
+    });
+    navigate(selectStorefrontPlan(plan, interval, location.search, audience));
   };
+  const plans: OnboardingPlan[] =
+    audience === "personal" ? ["solo"] : ["solo", "venue"];
   return (
-    <section id="pricing" aria-labelledby="pricing-heading" className="scroll-mt-20 border-y border-border bg-background px-4 py-12 md:py-16">
-      <div className="mx-auto max-w-4xl">
-        <div className="mb-6 flex flex-wrap items-end justify-between gap-5">
-          <div><h2 id="pricing-heading" className="text-3xl font-black md:text-4xl">Choose your cards</h2><p className="mt-3 text-muted-foreground">Custom cards and a business hub, set up for you.</p></div>
-          <div className="flex gap-1 rounded-md border border-border bg-secondary p-1" aria-label="Pricing billing interval">
-            {(["year", "month"] as const).map((value) => <Button key={value} variant={interval === value ? "default" : "ghost"} aria-pressed={interval === value} onClick={() => { setInterval(value); saveOnboardingData({ billingInterval: value, billingSelectionExplicit: true }); }}>{value === "year" ? "Yearly" : "Monthly"}</Button>)}
-          </div>
+    <section
+      id="pricing"
+      aria-labelledby="pricing-heading"
+      className="sf-section sf-container"
+    >
+      <div className="sf-price-header">
+        <div>
+          <p className="sf-eyebrow">Simple plans. Setup included.</p>
+          <h2 id="pricing-heading" className="sf-title">
+            {audience === "personal"
+              ? "Your cards. Your hub. One plan."
+              : "Pick your cards. We'll do the rest."}
+          </h2>
+          <p className="sf-copy mt-4 text-sm">
+            {audience === "personal"
+              ? "Start with 4 custom cards and a personal hub. This is a subscription plan."
+              : "One hub for your business, with the number of cards you need."}
+          </p>
         </div>
-        {loading && <p role="status" className="mb-4 text-muted-foreground">Checking current prices…</p>}
-        {failed && <p role="status" className="mb-4 text-muted-foreground">Prices are temporarily unavailable. <Button variant="link" onClick={retry}>Try again</Button></p>}
-        {!loading && interval === "year" && catalog.some((item) => item.interval === "year" && !item.available) && <p className="mb-4 text-muted-foreground">Yearly is temporarily unavailable for some options. <Button variant="link" onClick={() => { setInterval("month"); saveOnboardingData({ billingInterval: "month", billingSelectionExplicit: true }); }}>Choose monthly</Button></p>}
-        <div className="grid gap-4 sm:grid-cols-2">
-          {(["solo", "venue"] as const).map((plan) => {
-            const item = catalog.find((value) => value.plan === plan && value.interval === interval);
-            const monthly = catalog.find((value) => value.plan === plan && value.interval === "month");
-            const annual = catalog.find((value) => value.plan === plan && value.interval === "year");
-            const savings = monthly?.available && annual?.available ? (monthly.amount * 12 - annual.amount) / 100 : null;
-            return <article key={plan} className="flex flex-col rounded-lg border border-border bg-secondary p-5">
-              <div className="flex items-center gap-4"><img src="/tapaway-card-front-v2.svg" alt="TapAway NFC and QR card" className="w-16 shrink-0 aspect-[53.98/85.6] object-contain" /><div><h3 className="text-3xl font-black">{CARD_QUANTITIES[plan]} cards</h3><p className="mt-2 text-sm text-foreground">Your logo. Your business links.</p><p className="text-sm text-muted-foreground">Ready to tap or scan.</p></div></div>
-              <div className="my-4 border-t border-border pt-4"><p className="text-3xl font-bold">{loading ? "Checking…" : formatCatalogPrice(item)}</p>
-                {item?.available && <><p className="mt-2 text-sm text-muted-foreground">Billed {interval === "year" ? "annually" : "monthly"} after your {item.trialDays}-day trial.</p>{interval === "year" && <p className="mt-1 text-sm text-muted-foreground">Equivalent to ${(item.amount / 1200).toFixed(2)}/month, billed yearly.</p>}{interval === "year" && savings !== null && savings > 0 && <p className="mt-2 font-semibold text-primary">Save ${savings}/year compared with monthly</p>}</>}
-              </div>
-              <Button className="mt-auto h-12" disabled={loading || item?.available !== true} onClick={() => choose(plan)}>Continue with {CARD_QUANTITIES[plan]} cards <ArrowRight className="h-4 w-4" /></Button>
-              {item?.available && <p className="mt-3 text-xs leading-relaxed text-muted-foreground">Renews {interval === "year" ? "yearly" : "monthly"} until canceled. Cancel before your trial ends to avoid the first subscription charge.</p>}
-            </article>;
-          })}
+        <div className="sf-billing" aria-label="Pricing billing interval">
+          {(["year", "month"] as const).map((value) => (
+            <button
+              key={value}
+              aria-pressed={interval === value}
+              onClick={() => {
+                setInterval(value);
+                saveOnboardingData({
+                  billingInterval: value,
+                  billingSelectionExplicit: true,
+                });
+              }}
+            >
+              {value === "year" ? "Yearly" : "Monthly"}
+            </button>
+          ))}
         </div>
-        <div className="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">{["Custom business hub", "Done-for-you setup", "Free US shipping"].map((benefit) => <span key={benefit} className="flex items-center gap-2"><Check className="h-4 w-4 text-primary" />{benefit}</span>)}</div>
-        <p className="mt-4 text-sm text-muted-foreground">Card on file required. Temporary $1 verification authorization, not a subscription charge. Bank release times vary.</p>
-        <div className="mt-3 flex gap-4 text-xs text-muted-foreground"><Link to="/terms" className="underline">Terms</Link><Link to="/refund" className="underline">Refund Policy</Link></div>
+      </div>
+      {loading && (
+        <p role="status" className="sf-status">
+          Checking current prices…
+        </p>
+      )}
+      {failed && (
+        <div role="status" className="sf-status">
+          We couldn't load current prices.
+          <button onClick={retry}>Try again</button> or{" "}
+          <Link to="/support#question" className="underline">
+            ask us for help
+          </Link>
+          .
+        </div>
+      )}
+      {!loading &&
+        !failed &&
+        plans.some(
+          (plan) =>
+            !catalog.find((i) => i.plan === plan && i.interval === interval)
+              ?.available,
+        ) && (
+          <p className="sf-status">
+            Some options are temporarily unavailable. Try the other billing
+            interval or contact us.
+          </p>
+        )}
+      <div className={`sf-price-grid ${plans.length === 1 ? "single" : ""}`}>
+        {plans.map((plan) => {
+          const item = catalog.find(
+            (value) => value.plan === plan && value.interval === interval,
+          );
+          const monthly = catalog.find(
+            (value) => value.plan === plan && value.interval === "month",
+          );
+          const annual = catalog.find(
+            (value) => value.plan === plan && value.interval === "year",
+          );
+          const savings =
+            monthly?.available && annual?.available
+              ? (monthly.amount * 12 - annual.amount) / 100
+              : 0;
+          return (
+            <article
+              key={plan}
+              className={`sf-price-card ${plan === "venue" ? "featured" : ""}`}
+            >
+              <h3>{CARD_QUANTITIES[plan]} custom cards</h3>
+              <p className="description">
+                {plan === "solo"
+                  ? "For your counter, kit or personal brand."
+                  : "For more tables, team members and touchpoints."}
+              </p>
+              <p className="sf-price-tag">
+                {loading ? (
+                  "Checking…"
+                ) : item?.available ? (
+                  <>
+                    {`$${(item.amount / 100).toLocaleString("en-US")}`}
+                    <small> / {interval === "year" ? "year" : "month"}</small>
+                  </>
+                ) : (
+                  "Unavailable"
+                )}
+              </p>
+              {item?.available && (
+                <>
+                  <p className="sf-price-note">
+                    {item.trialDays > 0
+                      ? `After your ${item.trialDays}-day free trial.`
+                      : "Billed at checkout."}{" "}
+                    {interval === "year"
+                      ? "Billed annually."
+                      : "Billed monthly."}
+                  </p>
+                  {interval === "year" && (
+                    <p className="sf-price-note">
+                      Equivalent to ${(item.amount / 1200).toFixed(2)}/month.
+                    </p>
+                  )}
+                  {interval === "year" && savings > 0 && (
+                    <p className="sf-saving">
+                      Save ${savings} a year compared with monthly
+                    </p>
+                  )}
+                </>
+              )}
+              <ul className="sf-checklist">
+                {[
+                  `${CARD_QUANTITIES[plan]} NFC + QR cards with your design`,
+                  "Your own customizable digital hub",
+                  "Done-for-you design and setup",
+                  "Tap and link activity in your dashboard",
+                  "Free standard US shipping",
+                  "Ongoing support from our team",
+                ].map((feature) => (
+                  <li key={feature}>
+                    <Check aria-hidden="true" />
+                    {feature}
+                  </li>
+                ))}
+              </ul>
+              <button
+                className="sf-button"
+                disabled={loading || item?.available !== true}
+                onClick={() => choose(plan)}
+              >
+                Get my {CARD_QUANTITIES[plan]} cards <ArrowRight />
+              </button>
+              {item?.available && (
+                <p className="terms">
+                  {item.trialDays > 0
+                    ? "Cancel before your trial ends to avoid the first subscription charge. "
+                    : ""}
+                  Renews {interval === "year" ? "yearly" : "monthly"} until
+                  canceled.{" "}
+                  {interval === "year"
+                    ? "The full annual amount is billed, not the monthly equivalent."
+                    : ""}
+                </p>
+              )}
+            </article>
+          );
+        })}
+      </div>
+      <div className="sf-pricing-foot">
+        <p>
+          Card on file required. A temporary $1 card-verification hold may
+          appear; your bank determines release timing.
+        </p>
+        <p>
+          Optional Card Club is offered at checkout. New plans do not include
+          free monthly replacement cards by default.
+        </p>
+        <p className="mt-2">
+          <Link to="/terms" className="underline">
+            Terms
+          </Link>{" "}
+          ·{" "}
+          <Link to="/refund" className="underline">
+            Refund policy
+          </Link>{" "}
+          ·{" "}
+          <Link to="/support#question" className="underline">
+            More locations or a custom order? Talk to us.
+          </Link>
+        </p>
       </div>
     </section>
   );

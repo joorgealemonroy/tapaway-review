@@ -1,4 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { LandingNav } from "@/components/landing/LandingNav";
+import { STOREFRONT_FAQS } from "@/lib/storefrontFaqs";
 import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -22,7 +25,6 @@ import {
 } from "lucide-react";
 import { RequestMoreCards } from "@/components/dashboard/RequestMoreCards";
 import {
-  cardAllowanceForPlan,
   cardPlanLabel,
   subscriptionLabel,
   canRequestCards,
@@ -48,6 +50,7 @@ const ISSUE_CHIPS = [
 
 const Support = () => {
   const { user, loading: authLoading } = useAuth();
+  const location = useLocation();
 
   const [account, setAccount] = useState<Account | null>(null);
   const [loadingAccount, setLoadingAccount] = useState(false);
@@ -60,7 +63,7 @@ const Support = () => {
   // General question (both states)
   const [gName, setGName] = useState("");
   const [gEmail, setGEmail] = useState("");
-  const [gMessage, setGMessage] = useState("");
+  const [gMessage, setGMessage] = useState(() => new URLSearchParams(window.location.search).get("topic") === "personal" ? "I have a personal card design in mind. Here is my idea: " : "");
   const [gSending, setGSending] = useState(false);
   const [gSent, setGSent] = useState(false);
 
@@ -148,7 +151,12 @@ const Support = () => {
     };
   }, [user]);
 
-  const allowance = useMemo(() => cardAllowanceForPlan(account?.planType), [account?.planType]);
+  useEffect(() => {
+    if (location.hash === "#question" && !authLoading && !loadingAccount) {
+      document.getElementById("question")?.scrollIntoView({ block: "start" });
+    }
+  }, [location.hash, authLoading, loadingAccount]);
+
 
   const submitRequest = async (
     requestType: "TECH_ISSUE" | "BILLING" | "OTHER",
@@ -156,6 +164,7 @@ const Support = () => {
     details?: Record<string, unknown>,
     override?: { name: string; email: string }
   ) => {
+    if (website) return; // Ignore the honeypot before writing a support request.
     const name = override?.name || account?.name || "";
     const email = override?.email || account?.email || user?.email || "";
     const { error } = await supabase.from("support_requests").insert([
@@ -189,13 +198,14 @@ const Support = () => {
     if (!accessEmail.trim()) return;
     setAccessSending(true);
     try {
-      await supabase.functions.invoke("request-dashboard-access", {
+      const { error } = await supabase.functions.invoke("request-dashboard-access", {
         body: { email: accessEmail.trim().toLowerCase() },
       });
+      if (error) throw error;
       setAccessSent(true);
     } catch (err) {
       console.error("[Support] access link failed:", err);
-      setAccessSent(true); // neutral either way
+      toast.error("We couldn't send the link. Try again or email tap@tapaway.co for help.");
     } finally {
       setAccessSending(false);
     }
@@ -273,7 +283,8 @@ const Support = () => {
   );
 
   return (
-    <div className="min-h-screen bg-muted/30 px-4 py-8 sm:py-12">
+    <div className="storefront min-h-screen bg-muted/30">
+      <LandingNav />
       <Helmet>
         <title>Support & Help | TapAway</title>
         <meta
@@ -283,15 +294,17 @@ const Support = () => {
         <link rel="canonical" href="https://tapaway.co/support" />
       </Helmet>
 
-      <div className="mx-auto w-full max-w-2xl space-y-6">
+      <main id="main-content" className="mx-auto w-full max-w-2xl space-y-6 px-5 py-10">
         <div className="text-center space-y-2">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
             <LifeBuoy className="h-6 w-6 text-primary" />
           </div>
           <h1 className="text-2xl font-bold sm:text-3xl">Support &amp; Help</h1>
-          <p className="text-sm text-muted-foreground">We usually reply the same day.</p>
+          <p className="text-sm text-muted-foreground">Questions before you buy? Help with an order? You're in the right place.</p>
+          <div className="flex flex-wrap justify-center gap-3 pt-4"><a href="#question" className="sf-button">Ask a question</a><a href="mailto:tap@tapaway.co" className="sf-button secondary">Email our team</a></div>
         </div>
 
+        <section className="rounded-xl border p-5" aria-labelledby="quick-answers"><h2 id="quick-answers" className="font-semibold mb-2">Quick answers</h2>{STOREFRONT_FAQS.filter((_,i) => [0,3,4,6,7].includes(i)).map(faq => <details key={faq.question} className="border-b last:border-0 py-3"><summary className="cursor-pointer text-sm font-medium">{faq.question}</summary><p className="mt-3 text-sm leading-7 text-muted-foreground">{faq.answer}</p></details>)}<Link to="/faq" className="sf-text-link text-xs mt-4">See all answers</Link></section>
         {authLoading || (user && loadingAccount) ? (
           <div className="flex justify-center py-12">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -304,10 +317,6 @@ const Support = () => {
                 <Badge variant="secondary" className="text-sm">
                   {cardPlanLabel(account.planType)}
                 </Badge>
-                <span className="text-sm text-muted-foreground">
-                  {allowance} cards per month
-                </span>
-                <span className="text-muted-foreground">·</span>
                 <span className="text-sm font-medium">{subscriptionLabel(account.status)}</span>
               </div>
               {account.businessName && (
@@ -323,15 +332,14 @@ const Support = () => {
               </div>
               <p className="text-sm text-muted-foreground">
                 {canRequestCards(account.status)
-                  ? `Your plan includes ${allowance} cards a month. Tell us how many you need and confirm where to send them.`
+                  ? "Open your dashboard to see Card Club eligibility, any existing card benefits, and paid reprint options."
                   : "Card requests need an active plan."}
               </p>
-              <RequestMoreCards
-                variant={account.kind === "personal" ? "personal" : "restaurant"}
-                restaurantId={account.kind === "restaurant" ? account.id : undefined}
-                personalProfileId={account.kind === "personal" ? account.id : undefined}
+              {account.kind === "personal" ? <Button asChild><Link to="/dashboard?tab=cards">View my card options</Link></Button> : <RequestMoreCards
+                variant="restaurant"
+                restaurantId={account.id}
                 trigger={<Button className="w-full sm:w-auto">Request cards</Button>}
-              />
+              />}
             </Card>
 
             {/* Something's not working */}
@@ -421,7 +429,7 @@ const Support = () => {
             <Card className="p-5 space-y-4">
               <div className="flex items-center gap-2">
                 <MessageCircle className="h-5 w-5 text-primary" />
-                <h2 className="font-semibold">General question or feedback</h2>
+                <h2 id="question" className="scroll-mt-24 font-semibold">Ask us a question</h2>
               </div>
               {gSent ? (
                 <Sent text="Thanks for writing in. We'll reply by email." />
@@ -469,7 +477,7 @@ const Support = () => {
                   We'll email you a secure link.
                 </p>
                 {accessSent ? (
-                  <Sent text="Check your inbox. We sent you a secure link." />
+                  <Sent text="If your email matches an account, a secure link is on its way. Check your inbox and spam folder." />
                 ) : (
                   <form className="flex flex-col gap-2 sm:flex-row" onSubmit={sendAccessLink}>
                     <Input
@@ -492,7 +500,7 @@ const Support = () => {
             <Card className="p-5 space-y-4">
               <div className="flex items-center gap-2">
                 <MessageCircle className="h-5 w-5 text-primary" />
-                <h2 className="font-semibold">General question or feedback</h2>
+                <h2 id="question" className="scroll-mt-24 font-semibold">Ask us a question</h2>
               </div>
               {gSent ? (
                 <Sent text="Thanks for writing in. We'll reply by email." />
@@ -544,7 +552,7 @@ const Support = () => {
             <Mail className="h-3.5 w-3.5" /> tap@tapaway.co
           </a>
         </p>
-      </div>
+      </main>
     </div>
   );
 };
