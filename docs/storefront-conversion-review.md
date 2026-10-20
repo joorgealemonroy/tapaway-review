@@ -1,62 +1,117 @@
-# TapAway storefront and purchase-flow review
+# TapAway storefront and commerce review
 
-Prepared October 19, 2026 against `00238c0fc10a4455f5651e42826827e290150d83`.
+Updated October 20, 2026 on `codex/storefront-conversion`, incorporating Lovable updates through `56bd1c337e190843f24200da240ec6af6a3df497`. Review in [draft PR #1](https://github.com/joorgealemonroy/tapaway-review/pull/1).
 
-## Goal and approach
+This is source prepared for review. No production deployment, migration, Stripe product creation, live charge, customer update, or real email send was performed.
 
-Make TapAway easier to understand, buy and get help with, using the supplied visual reference and the products and systems already in the repository. The design uses a light storefront, a product-led hero, business/personal panels, an interactive hub example, clear plan choices and accessible support. The hero artwork and customer quotes come from existing TapAway assets/components. Illustrative cards and hub examples are labeled; no invented review totals or conversion gains are presented as evidence.
+## Customer experience
 
-The positioning emphasizes custom cards plus a hub the team sets up, using the customer's existing menu, booking and social destinations. Official pages reviewed for market context: [Popl](https://popl.co), [Mobilo](https://mobilocard.com), [V1CE](https://v1ce.co), and [Tap Tag](https://taptag.shop). These cover lead capture, team cards and self-service review cards; this is a representative benchmark, not an exhaustive market ranking. No competitor price comparisons or superiority guarantees are published.
+| Area | Result |
+| --- | --- |
+| Try the Experience | Real Tutti Mangia, Sugar Bloom, Space Studios, Reborn Wraps, Julian, and Denzel hubs, with external-open links. Responsive iPhone 16 body proportions and a scaled 393 × 852 viewport. |
+| Testimonials | Existing quotes paired with their existing customer portraits. No invented reviews or ratings. |
+| Personal offer | $39 once for two independently designed NFC + QR cards; free US shipping; no personal trial or Card Club. Optional hosted hub and analytics are $5/month, unchecked by default. |
+| Personal gallery | Existing Julian/Denzel card art reused where available. Crossfading photo slots are ready for new owner-supplied photographs; illustrative fallbacks are labeled. |
+| Halloween | October 2026 banner and card template; banner ends November 1. No fabricated discount or countdown. |
+| Business purchase | Monthly first, yearly savings badge, verified 4/15-card offers, required business name/city, optional existing link, and a goal choice before payment. |
+| Card Club | One unchecked business add-on in the same checkout and subscription: +$5/month or +$60/year, matching the base plan. Existing legacy memberships retain their billing model. |
+| Help | Readable support page, AI answers capped at five questions per visitor per UTC day, and immediate team-message handoff with transcript. The team replies by email; this is not presented as staffed live chat. |
 
-## Customer journeys
+Public temporary $1-verification-hold copy has been removed. Stripe verification behavior remains unchanged; actual renewal and optional hosting charges remain visible.
 
-| Starting point | Next steps | Existing system retained |
-| --- | --- | --- |
-| Business landing page | Choose 4 or 15 cards and monthly/yearly billing → review order → Stripe checkout | Verified onboarding catalog and payment-first checkout function |
-| Personal landing page | Choose the existing 4-card subscription → review order → Stripe checkout | Same existing plan and fulfillment model; no new one-time SKU |
-| Checkout canceled | Restore Stripe's `cycle` and quantity plus the locally chosen Card Club preference → retry | Existing Stripe cancel URL and onboarding state |
-| Checkout completed | Confirm account access → business/name details → optional logo → shipping → dashboard | Existing welcome, onboarding, authentication and fulfillment endpoints |
-| Question before purchase | Quick answers → public question form or email | Existing support request and notification backend |
-| Existing customer's card question | Dashboard card options and eligibility | Existing server-enforced Card Club and legacy benefits |
+## Review in Lovable
 
-The standard public order screen replaces the additional Card Club step with an unchecked optional checkbox. Full annual totals, renewal timing, trial conditions and the possible temporary verification hold are visible. Checkout remains disabled when the verified catalog cannot supply an available price. Slow settings responses cannot overwrite an explicit billing choice. Card Club choices are saved at checkout so cancellation restores the choice actually submitted.
+Use the connected project's preview with `codex/storefront-conversion` selected. Do not publish while reviewing.
 
-Classic, representative and promotional onboarding branches remain available. The payment-first feature switches, Stripe products, webhook activation, customer data schemas, draft-profile model and artwork approval gates are unchanged. Public labels remain 4/15 cards; internal `solo`/`venue` identifiers are retained.
+- `/`: product explanation, six real hubs, portraits, monthly pricing, and help widget.
+- `/personal`: $39 pair, optional hosting, templates, real personal hubs, and Halloween banner.
+- `/personal/design`: customize both sides of both cards, review all four, download PDF, and purchase.
+- `/start?plan=solo&billing=month`: short business intake; try yearly and Card Club too.
+- `/support`: readable answers and email question form.
+- `/dashboard`: business Cards tab uses the actual included membership; personal hosting shows the one-time card path and $5/month billing.
+- `/admin/personal-card-orders`: admin-only paid artwork/fulfillment queue.
 
-## After-checkout and help behavior
+**UI preview does not deploy the new backend.** Before setup, personal checkout may show unavailable and AI offers email fallback. A business catalog without `checkoutVersion: 2` cannot enable the new checkout, preventing combined-billing promises against the old separate-Club backend.
 
-- Transport errors and incomplete confirmation lead to a retry/support screen; they do not claim payment succeeded or ask an already-paying customer to order again.
-- Setup saves preserve entered fields when a request fails.
-- Sign-in email failures remain retryable instead of showing a false sent state.
-- Personal visitors can enter a name/brand without a Google business listing. The same manual option remains available if local audience state is absent, such as on a different device.
-- Shared FAQ content aligns the homepage, help page and FAQ page. Support links no longer use conflicting call-to-action labels.
-- Existing analytics events and consent handling remain in use. `purchase_completed` is no longer emitted for the unconfirmed `processing` state. Optional advertising still depends on explicit consent.
+## Personal designer and order
 
-## Validation
+Templates cover networking, personal, Halloween, and a blank canvas. Customers can add text/images, drag or numerically position elements, change fonts/colors/sizes, reorder/delete layers, undo, copy a side to the second card, and give each card a different destination. IndexedDB retains local drafts and images for retry; a local save does not place an order.
 
-- Production Vite build passes.
-- Focused ESLint checks pass for the new components and changed storefront/support/welcome modules.
-- `scripts/check-storefront.cjs` supplies browser fixtures for all backend calls and blocks other external requests. It covers all four plan/interval combinations, default and selected Card Club, cancellation, checkout failure/retry, missing/unavailable catalog prices, personal routing, interactive examples, mobile menu, question-form recovery, access-email recovery, welcome recovery, and personal setup through shipping.
-- Responsive checks cover 360, 390, 768 and 1440 px on the homepage, personal page, order screen, support, examples and FAQ. Desktop and mobile screenshots are visually inspected.
-- Full TypeScript checking has six pre-existing Supabase typing errors in admin/dashboard/legacy-signup modules. Compare with the same base commit and installed dependencies; these errors are not introduced by this change.
-- The existing lockfile does not match `package.json`, so `npm ci` fails on the base as well. Dependencies were installed with `npm install --package-lock=false --no-audit --no-fund`; this change does not modify dependency declarations or lockfiles.
+Review shows all four sides and requires artwork approval. Images normalize orientation to PNG; resolution below 150 effective dpi blocks printing, while 150–299 dpi produces a warning against the 300 dpi target. Safe margins and the QR quiet zone are enforced; tiny text and QR overlap produce review warnings. Staff still review the paid artwork.
 
-### Run the browser checks
+Checkout contains either the $39 pair alone (`payment` mode), or that pair plus optional hosting (`subscription` mode: $44 initially, then $5/month). No personal trial. Stripe collects email and US shipping address without a separate account-creation step first. Hosted customers use the existing secure dashboard-access flow.
 
-Install Playwright outside the repository or use an existing installation with Chromium:
+The server verifies price amount, currency, activity, recurrence, and Stripe mode; stores private PDFs and source designs; preserves immutable artwork revisions; reuses retry sessions; and expires an old checkout before replacing artwork. A secret local draft token protects order edits. PDF import discards interactive annotations, forms, and document actions. Staff approval is required: dimension checks alone cannot establish that arbitrary uploaded art matches the source manifest.
+
+Paid hosting creates a server-assigned personal profile and submitted links. Test profiles remain unapproved and nonpublic. Printed hosted URLs use `/connect/<order-id>` and resolve only to paid, live, active, approved profiles; a username change does not break that URL. Ending hosting disables the hosted destination. Cards pointing directly to external URLs do not require a TapAway subscription.
+
+## Business follow-through
+
+The brief is stored with the checkout intent, seeds the existing onboarding draft, and is visible in the admin new-order screen. Customers can skip an optional logo and finish shipping after payment. The team can build from the submitted business name, city, link, and goal; this does not claim instant automated research or fulfillment.
+
+New Club memberships bind to the Club line item within the main subscription. Eligibility remains controlled by the existing server entitlement function, after a positive paid Club invoice line and its waiting period. Trial invoices and base-plan-only payments cannot start eligibility. Removing Club cannot cancel the base subscription. Dashboard requests are scoped to the selected profile and membership. Existing pooled free-card economics remain intact.
+
+## Backend setup before activation
+
+These are instructions for a later approved deployment, not actions performed by this PR. Keep public checkout gated during deployed-preview validation with Stripe test mode and the existing private test key.
+
+1. Apply `supabase/migrations/20261020090000_storefront_orders.sql` after existing migrations. It adds the business brief, atomic support quotas, private personal orders/artwork, and stable public-card lookup. A restrictive storage policy prevents existing broad policies from exposing this bucket.
+2. Configure mode-specific personal Stripe prices. The cards product represents **two physical cards**, quantity one; the recurring product is hosting only.
+
+   | Secret | Required Stripe price |
+   | --- | --- |
+   | `PERSONAL_CARDS_PRICE_ID_TEST` / `PERSONAL_CARDS_PRICE_ID_LIVE` | Active USD 3900 one-time price |
+   | `PERSONAL_HUB_PRICE_ID_TEST` / `PERSONAL_HUB_PRICE_ID_LIVE` | Active USD 500 monthly price, interval count 1 |
+
+3. Retain the existing verified business catalog and Club product. Yearly Club adds a $60 yearly line on that product. Configure Stripe's customer portal for the intended products/cancellation behavior.
+4. Deploy new functions: `personal-card-catalog`, `personal-card-order`, `personal-card-admin`, and `storefront-support`.
+5. Deploy changed functions/shared dependencies together: `onboarding-plan-catalog`, `payment-first-checkout`, `payment-first-onboarding`, `payment-first-webhook`, `stripe-webhook`, `card-club-request`, `create-card-order`, and `manage-personal-subscription`. Follow `supabase/config.toml`; the admin endpoint validates JWT and admin role internally.
+6. Retain Stripe test/live secret keys and signing secrets. Payment-first webhook events: checkout completion, invoice paid/payment failed, subscription updated/deleted, charge refunded, dispute created. Signature/mode verification and `pf:<event-id>` deduplication remain mandatory. Configure both existing webhook routes consistently; the legacy webhook skips the new personal commerce version.
+7. Configure `LOVABLE_API_KEY` for the existing Lovable AI gateway, transactional email credentials, and `EMAIL_INTERNAL` (default `tap@tapaway.co`). Saved support requests are the inbox source of truth if notifications fail. AI runtime usage is separate from Lovable editor usage and is not promised to be free.
+8. Keep `PAYMENT_FIRST_STRIPE_MODE=test` and existing payment-first switches/private-key restrictions for review. New personal purchases additionally need `PERSONAL_CARDS_ENABLED=true`, except the private-key test path. The frontend switch remains `PAYMENT_FIRST_DEFAULT`; no remote switch was changed here.
+9. Exercise deployed test-mode personal orders with/without hosting; business intervals with/without Club; cancellation/retry; webhook retries; hosting cancellation; team handoff; admin downloads; and the portal. Verify email delivery, shipping promises, and a physical test card before live activation.
+
+Initial-purchase refunds/disputes hold production for review; a later $5 hosting renewal refund does not mark the original physical-card order refunded. Staff resolve held orders. Purchase emails are transactional; billing and support requests never imply marketing consent.
+
+## AI knowledge and limits
+
+Update `supabase/functions/_shared/storefrontKnowledge.ts` for shared FAQs and reviewed AI knowledge, then redeploy `storefront-support`. The function adds current verified business prices with a two-minute cache; unavailable prices must not be guessed. The model receives no account credentials, customer records, or write tools.
+
+The database enforces five AI attempts per visitor per UTC day, plus 20/day per network to discourage clearing local storage. Team messages have a separate five/day network limit with direct email fallback. Failed model calls consume an attempt. Daily salted hashes avoid raw IP storage. These limits deter abuse; they are not identity verification. AI is labeled and human handoff remains available.
+
+## Evolis print workflow
+
+The PDF has four pages: **card 1 front, card 1 back, card 2 front, card 2 back**. Every page is exactly **85.6 × 53.98 mm (CR80)** without crop marks or preview guides. Print at **100% / actual size**, not fit-to-page. Art reaches the page edge; essential content stays within a 3 mm safe area.
+
+Images target 300 effective dpi, approximately 1011 × 638 pixels for a full card. Text uses the browser's matching font and renders at 600 dpi to preserve Unicode and editor appearance. QR modules are vector black with a white quiet zone. Raster text may require Evolis driver black-extraction settings; a PDF cannot force K-panel or overlay behavior.
+
+The stated ribbon is **R5F208A100**. Evolis' [compatibility chart](https://downloads.evolis.com/evolis/documents/consumables-compatibility-chart.pdf) lists the **R5F208 family for Primacy 2**, not original Primacy. Confirm the installed model and ribbon in Evolis Print Center before production. The [Primacy 2 specification](https://us.evolis.com/wp-content/uploads/2021/12/Specsheet-Primacy2-ENG.pdf) supports the CR80/300-dpi target.
+
+YMCKO supplies color, black, and protective overlay; two-sided color printing uses a panel set per side. Select correct ribbon/card type, duplex/manual-flip orientation, overlay, and black extraction. Print a sample on the actual NFC stock; check color, small text, edges, front/back orientation, QR scans, and NFC. Screen previews cannot guarantee exact dye-sublimation color matching.
+
+In the admin queue, download the PDF/source, verify destinations, approve, print, **encode/test NFC separately**, then mark printed. Shipping requires carrier/tracking. Test orders are visibly labeled and must not be fulfilled. PDF export neither configures the printer nor programs NFC.
+
+## Replace product photos
+
+Add approved photos to `public/personal-cards/` or the existing asset store and fill `src/data/personalCardPhotos.ts` with `src`, `alt`, and `caption` entries. The gallery handles transitions and layout without changes to checkout/templates. New card photos were not supplied; existing testimonial portraits were reused, not generated.
+
+## Verification
+
+- Production Vite build and frontend TypeScript checks pass.
+- Changed/new payment, personal-commerce, and support functions type-check against matching Stripe 14.21.0 / Supabase 2.39.7 npm definitions. Direct Deno remote-module resolution was unavailable; deployed Edge-runtime validation remains necessary.
+- Browser fixtures cover catalog gating, all four business prices/intervals, required intake, Club totals and dashboard scope, personal hosting, designer/PDF checkout, mobile widths, hubs/portraits, AI cap/handoff, and error recovery. All external customer/payment/email/analytics traffic is mocked or blocked.
+- Isolated commerce checks exercise actual handlers with mocked services: Stripe signature/mode verification, pricing, immutable retries, profile identity isolation, included Club billing/eligibility, quotas, admin authorization, and refunds.
+- The migration runs in isolated PostgreSQL (PGlite). Checks cover concurrent five-question limits, denied public order/artwork access, username redirects, canceled hosting, and test/live isolation.
+- A four-page PDF was dimension checked, rendered and visually reviewed, and both QR destinations decoded correctly. No physical printer was available.
 
 ```sh
-npm install --prefix /tmp/tapaway-browser-tools playwright
-node /tmp/tapaway-browser-tools/node_modules/playwright/cli.js install chromium
-PLAYWRIGHT_MODULE=/tmp/tapaway-browser-tools/node_modules/playwright node scripts/check-storefront.cjs
+npm run build
+npx tsc --noEmit -p tsconfig.app.json
+PLAYWRIGHT_MODULE=/path/to/playwright node scripts/check-storefront.cjs
+QA_MODULES=/path/to/qa/node_modules node scripts/check-personal-commerce.cjs
+QA_MODULES=/path/to/qa/node_modules node scripts/check-storefront-database.cjs
 ```
 
-The script starts the local Vite server itself and uses the project's public production environment configuration only to identify and intercept the backend origin. Optional `BROWSER_EXECUTABLE`, `BROWSER_ARGS` (a JSON array), and `QA_SCREENSHOTS` configure the local browser. No live checkout, support email, account activation or customer update is performed by these tests.
+Separate QA dependencies: Playwright/Chromium, Stripe 14.21.0, and `@electric-sql/pglite`. Optional `BROWSER_EXECUTABLE`, `BROWSER_ARGS` (JSON), `QA_ASSETS`, and `QA_SCREENSHOTS` configure browser checks. App additions are `pdf-lib`, `qrcode`, and QR typings; the lockfile also reconciles previously declared Lovable dependencies.
 
-## Release limits and measurement
-
-This is a source-review change, in accordance with `AGENTS.md`. No deployment, live charge, customer mutation or real email send is part of this pass. The Stripe-hosted payment form, actual email delivery and real fulfillment are not proven by fixture tests. Before an authorized launch, exercise the deployed preview with approved Stripe test configuration and confirm the operational shipping/design promises with the team.
-
-The new personal offer deliberately uses the existing 4-card subscription. A one-card, one-time purchase needs its own approved product economics and backend fulfillment work; this page does not pretend that product exists.
-
-After launch, compare the existing funnel events for landing CTA → checkout clicked → Stripe checkout started → confirmed checkout → completed setup, segmented by device and acquisition source. Review qualified support questions and abandonment points. This release creates a measurable conversion foundation; increased traffic, sales and market leadership require observed results and continued acquisition work.
+Real Stripe checkout pages, provider AI responses, email delivery, and physical fulfillment are not proven by isolated fixtures. Conversion gains and sales growth need measurement after release.

@@ -1,3 +1,4 @@
+import { getStripe, stripeMode } from "../_shared/paymentFirst.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 import { requireUser, adminClient, isAdmin, jsonResponse } from "../_shared/security.ts";
@@ -33,6 +34,29 @@ serve(async (req) => {
     if (profile.user_id !== auth.user.id && !callerIsAdmin) {
       console.warn("[manage-personal-subscription] Forbidden: profile owner mismatch");
       return jsonResponse({ error: "Forbidden" }, 403, corsHeaders);
+    }
+
+    if (profile.plan_type === "personal_hosted" || profile.onboarding_source?.startsWith("payment_first")) {
+      let order;
+      if (profile.plan_type === "personal_hosted") {
+        const result = await supabase.from("personal_card_orders").select("stripe_livemode, stripe_customer_id, stripe_subscription_id").eq("personal_profile_id", profile.id).eq("user_id", profile.user_id).single();
+        order = result.data;
+      } else {
+        const { data: setup } = await supabase.from("onboarding_sessions").select("checkout_intent_id").eq("personal_profile_id", profile.id).eq("user_id", profile.user_id).single();
+        const result = await supabase.from("checkout_intents").select("stripe_livemode, stripe_customer_id, stripe_subscription_id").eq("id", setup?.checkout_intent_id || "00000000-0000-0000-0000-000000000000").eq("user_id", profile.user_id).single();
+        order = result.data;
+      }
+      if (!order || order.stripe_livemode !== (stripeMode() === "live")) return jsonResponse({ error: "Billing is unavailable in this environment." }, 503, corsHeaders);
+      const personalStripe = getStripe();
+      if (action === "portal") {
+        const portal = await personalStripe.billingPortal.sessions.create({ customer: order.stripe_customer_id, return_url: "https://tapaway.co/dashboard" });
+        return jsonResponse({ url: portal.url }, 200, corsHeaders);
+      }
+      if (action === "downgrade") {
+        await personalStripe.subscriptions.update(order.stripe_subscription_id, { cancel_at_period_end: true });
+        return jsonResponse({ success: true, cancel_at_period_end: true }, 200, corsHeaders);
+      }
+      return jsonResponse({ error: "Unsupported personal hub billing action." }, 400, corsHeaders);
     }
 
     // Portal action

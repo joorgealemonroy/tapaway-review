@@ -11,8 +11,10 @@ serve(async (req) => {
     const key = typeof body.idempotencyKey === "string" && /^[A-Za-z0-9-]{8,80}$/.test(body.idempotencyKey) ? body.idempotencyKey : null;
     if (!key) return json({ error: "Invalid request." }, 400);
     const db = admin();
-    const { data: m } = await db.from("card_club_memberships").select("id, user_id, checkout_intent_id")
-      .eq("user_id", user.id).in("status", ["active", "past_due", "pending_activation"]).order("created_at", { ascending: false }).limit(1).maybeSingle();
+    let membershipQuery = db.from("card_club_memberships").select("id, user_id, checkout_intent_id")
+      .eq("user_id", user.id).in("status", ["active", "past_due", "pending_activation"]);
+    if (typeof body.membershipId === "string") membershipQuery = membershipQuery.eq("id", body.membershipId);
+    const { data: m } = await membershipQuery.order("created_at", { ascending: false }).limit(1).maybeSingle();
     if (!m) return json({ error: "Card Club isn't active on this account." }, 403);
     const { data: s } = await db.from("onboarding_sessions").select("shipping_address").eq("checkout_intent_id", m.checkout_intent_id).maybeSingle();
     const note = typeof body.designNote === "string" ? body.designNote : "";

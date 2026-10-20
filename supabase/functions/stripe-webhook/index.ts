@@ -145,6 +145,25 @@ serve(async (req) => {
       }
     }
 
+// New personal-card commerce is owned by payment-first-webhook. Never run legacy
+    // trial verification, business commissions, or plan downgrades on these orders.
+    const commerceObject = event.data.object as unknown as Record<string, any>;
+    let personalCommerce = commerceObject.metadata?.commerce_version === 'personal_cards_v1'
+      || commerceObject.subscription_details?.metadata?.commerce_version === 'personal_cards_v1'
+      || commerceObject.parent?.subscription_details?.metadata?.commerce_version === 'personal_cards_v1';
+    if (!personalCommerce && commerceObject.object === 'invoice') {
+      const personalSub = typeof commerceObject.subscription === 'string' ? commerceObject.subscription : commerceObject.parent?.subscription_details?.subscription;
+      if (personalSub && /^sub_[A-Za-z0-9]+$/.test(personalSub)) {
+        const { data: ownedOrder, error: commerceError } = await idempotencyAdmin.from('personal_card_orders').select('id').eq('stripe_subscription_id', personalSub).maybeSingle();
+        if (commerceError) throw commerceError;
+        personalCommerce = !!ownedOrder;
+      }
+    }
+    if (personalCommerce) {
+      if (ownsClaim) await markStripeEventProcessed();
+      return new Response(JSON.stringify({ received: true, skipped: 'personal_cards' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
 if (event.type === 'checkout.session.completed') {
       const session = event.data.object as Stripe.Checkout.Session;
       // Payment-first purchases are activated only by payment-first-webhook.

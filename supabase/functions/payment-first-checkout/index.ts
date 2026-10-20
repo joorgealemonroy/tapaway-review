@@ -15,12 +15,27 @@ serve(async (req) => {
   if (!checkRateLimit(getRateLimitKey(req, "payment-first-checkout"), 20, 60 * 60 * 1000)) return rateLimitResponse(cors);
   try {
     const body = await req.json().catch(() => ({}));
+    if (body.checkoutVersion !== 2) return json({ error: "Checkout has been updated. Refresh the page and try again." }, 409);
     const plan = body.plan as Plan;
     const interval = body.interval as Interval;
     if (plan !== "solo" && plan !== "venue") return json({ error: "Invalid plan selection." }, 400);
     if (interval !== "month" && interval !== "year") return json({ error: "Invalid billing selection." }, 400);
     if (typeof body.cardClub !== "boolean") return json({ error: "Please choose whether to add Card Club." }, 400);
     const cardClub = body.cardClub as boolean;
+    // The public storefront collects this short brief before Stripe. Older callers may omit it.
+    const brief = body.business;
+    const clean = (value: unknown, max: number) => typeof value === "string" ? value.trim().slice(0, max) : "";
+    const business = brief && typeof brief === "object" ? {
+      name: clean(brief.name, 120), city: clean(brief.city, 120), link: clean(brief.link, 300), goal: clean(brief.goal, 120),
+    } : null;
+    if (brief && (!business || business.name.length < 2 || business.city.length < 2)) return json({ error: "Add your business name and city so we can build your hub." }, 400);
+    if (business?.link) {
+      try {
+        const url = new URL(/^https?:\/\//i.test(business.link) ? business.link : `https://${business.link}`);
+        if (!["http:", "https:"].includes(url.protocol) || !url.hostname.includes(".") || url.username || url.password) throw new Error();
+        business.link = url.href;
+      } catch { return json({ error: "Use a website or social link, or leave that field blank." }, 400); }
+    }
     const raw = body.attribution && typeof body.attribution === "object" ? body.attribution : {};
     const attribution: Record<string, string> = {};
     for (const k of ATTR_KEYS) if (typeof raw[k] === "string" && raw[k]) attribution[k] = raw[k].slice(0, 250);
@@ -43,7 +58,7 @@ serve(async (req) => {
     const { data: intent, error } = await db.from("checkout_intents").insert({
       plan, billing_interval: interval, card_quantity: CARD_QUANTITY[plan], main_price_id: main.id,
       card_club_selected: cardClub, card_club_price_id: club?.id ?? null, onboarding_version: ONBOARDING_VERSION,
-      checkout_source: typeof body.source === "string" ? body.source.slice(0, 60) : "onboarding", attribution,
+      business_details: business, checkout_source: typeof body.source === "string" ? body.source.slice(0, 60) : "onboarding", attribution,
     }).select("id").single();
     if (error || !intent) throw new Error(`intent insert failed: ${error?.message}`);
 
@@ -51,13 +66,13 @@ serve(async (req) => {
       checkout_intent_id: intent.id, onboarding_version: ONBOARDING_VERSION, onboarding_catalog: "true",
       selected_plan: plan, plan_type: interval === "year" ? `${plan}_yearly` : plan, card_quantity: String(CARD_QUANTITY[plan]),
       billing_cycle: interval, billing_interval: interval, main_price_id: main.id,
-      card_club_selected: String(cardClub), card_club_price_id: club?.id ?? "", checkout_source: "payment_first",
+      card_club_billing: "included", card_club_product_id: club?.product ?? "", card_club_selected: String(cardClub), card_club_price_id: club?.id ?? "", checkout_source: "payment_first",
       ...(trybe ? { trybe_visitor_id: trybe } : {}), ...attribution,
     };
     const qty = CARD_QUANTITY[plan];
-    const total = `$${main.amount / 100}/${interval}`;
+    const total = `$${(main.amount + (cardClub ? interval === "year" ? 6000 : 500 : 0)) / 100}/${interval}`;
     const clubText = cardClub
-      ? ` TapAway Card Club is a separate recurring charge of $5/month that also starts after your ${TRIAL_DAYS}-day trial and renews monthly until canceled.`
+      ? ` This total includes Card Club (${interval === "year" ? "$60/year" : "$5/month"}) on the same subscription and invoice.`
       : "";
     // Test-only: attach a Stripe test clock so trial end can be simulated. Never used in live mode.
     let customer: string | undefined;
@@ -70,12 +85,18 @@ serve(async (req) => {
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       ...(customer ? { customer } : {}),
-      line_items: [{ price: main.id, quantity: 1 }],
+      line_items: [
+        { price: main.id, quantity: 1 },
+        ...(club ? interval === "month"
+          ? [{ price: club.id, quantity: 1 }]
+          : [{ price_data: { currency: "usd", product: club.product, unit_amount: 6000, recurring: { interval: "year" as const } }, quantity: 1 }]
+          : []),
+      ],
       success_url: `${origin}/welcome?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/onboarding?plan=${plan}&cycle=${interval}&canceled=1`,
       billing_address_collection: "required",
       shipping_address_collection: { allowed_countries: ["US"] },
-      phone_number_collection: { enabled: true },
+      phone_number_collection: { enabled: false },
       payment_method_collection: "always",
       allow_promotion_codes: false,
       subscription_data: { trial_period_days: TRIAL_DAYS, metadata: meta, description: `TapAway ${qty} Cards` },

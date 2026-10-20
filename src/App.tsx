@@ -27,6 +27,10 @@ const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const MagicLinkVerify = lazy(() => import("./pages/auth/MagicLinkVerify"));
 const SetPassword = lazy(() => import("./pages/auth/SetPassword"));
 
+const PersonalCardLink = lazy(() => import("./pages/PersonalCardLink"));
+const PersonalDesigner = lazy(() => import("./pages/PersonalDesigner"));
+const PersonalOrder = lazy(() => import("./pages/PersonalOrder"));
+const AdminPersonalCardOrders = lazy(() => import("./pages/admin/AdminPersonalCardOrders"));
 const Personal = lazy(() => import("./pages/Personal"));
 
 // Personal TapAway - code split (Business Lite dashboard still used internally)
@@ -173,7 +177,9 @@ const App = () => {
                 <Route path="/personal/signup" element={<Navigate to="/" replace />} />
                 <Route path="/personal/signup/complete" element={<Navigate to="/" replace />} />
                 <Route path="/personal/pricing" element={<Navigate to="/personal#pricing" replace />} />
-                <Route path="/personal/order" element={<Navigate to="/" replace />} />
+                <Route path="/personal/order" element={<PersonalOrder />} />
+                <Route path="/personal/design" element={<PersonalDesigner />} />
+                <Route path="/connect/:cardId" element={<PersonalCardLink />} />
                 <Route path="/personal/dashboard" element={<Navigate to="/dashboard" replace />} />
                 <Route path="/import" element={<ImportProfile />} />
                 <Route path="/demo" element={<Demo />} />
@@ -230,6 +236,7 @@ const App = () => {
                 <Route path="/admin/personal-accounts" element={<AdminPersonalAccounts />} />
                 <Route path="/admin/affiliates" element={<AdminAffiliates />} />
                 <Route path="/admin/cards" element={<AdminCards />} />
+                <Route path="/admin/personal-card-orders" element={<AdminPersonalCardOrders />} />
                 <Route path="/admin/founders" element={<AdminFounders />} />
                 <Route path="/admin/sms-subscribers" element={<AdminSmsSubscribers />} />
                 <Route path="/admin/hub-health" element={<AdminHubHealth />} />

@@ -17,7 +17,7 @@ Deno.serve(async (req) => {
     if (!stripeKey) throw new Error("Stripe catalog is not configured");
     const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
     const catalog = await getPublicOnboardingCatalog(stripe);
-    return new Response(JSON.stringify({ catalog, cachedForSeconds: 600 }), {
+    return new Response(JSON.stringify({ catalog: catalog.map(item => ({ ...item, checkoutVersion: 2 })), cachedForSeconds: 600 }), {
       headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "public, max-age=300, stale-while-revalidate=600" },
     });
   } catch (error) {

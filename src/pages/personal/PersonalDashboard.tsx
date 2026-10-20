@@ -59,6 +59,7 @@ import { AdminViewBanner } from "@/components/admin/AdminViewBanner";
 
 
 interface PersonalProfile {
+  onboarding_source?: string | null;
   id: string;
   user_id: string;
   username: string;
@@ -469,7 +470,7 @@ const PersonalDashboard = () => {
   // One-time Card Club offer for signups that selected it at checkout.
   // This is the only way to join Card Club. No self-serve subscribe exists.
   useEffect(() => {
-    if (profile && localStorage.getItem(PENDING_CARD_CLUB_KEY) && !profile.has_card_addon) {
+    if (profile && !profile.onboarding_source?.startsWith("payment_first") && profile.plan_type !== "personal_hosted" && localStorage.getItem(PENDING_CARD_CLUB_KEY) && !profile.has_card_addon) {
       setShowCardClubOffer(true);
     }
   }, [profile]);
@@ -1486,6 +1487,7 @@ const PersonalDashboard = () => {
                 id: profile.id,
                 plan_type: profile.plan_type,
                 subscription_status: profile.subscription_status,
+                onboarding_source: profile.onboarding_source,
                 stripe_customer_id: profile.stripe_customer_id,
                 stripe_subscription_id: profile.stripe_subscription_id,
                 trial_ends_at: profile.trial_ends_at,
@@ -1500,6 +1502,7 @@ const PersonalDashboard = () => {
           {/* Cards Tab */}
           <TabsContent value="cards" className="space-y-4">
             <CardsTab
+              paymentFirst={profile.onboarding_source?.startsWith("payment_first") || false}
               profileId={profile.id}
               userId={profile.user_id}
               hasCardAddon={profile.has_card_addon || false}
@@ -1563,7 +1566,7 @@ const PersonalDashboard = () => {
       />
 
       {/* One-time Card Club offer (signup selection) */}
-      {showCardClubOffer && (
+      {showCardClubOffer && !profile.onboarding_source?.startsWith("payment_first") && profile.plan_type !== "personal_hosted" && (
         <CardClubWelcomeOffer
           profileId={profile.id}
           onDone={() => setShowCardClubOffer(false)}

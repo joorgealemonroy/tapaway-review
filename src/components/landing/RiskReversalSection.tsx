@@ -53,7 +53,7 @@ export const RiskReversalSection = () => {
             </Link>
 
             <p className="text-xs md:text-sm text-hero-foreground/50 mt-4">
-              Card on file required · Temporary $1 authorization · Bank release times vary.
+              Secure payment processing by Stripe.
             </p>
           </div>
 

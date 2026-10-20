@@ -146,3 +146,15 @@ verify_jwt = false
 
 [functions.verify-trial-card]
 verify_jwt = false
+
+[functions.storefront-support]
+verify_jwt = false
+
+[functions.personal-card-catalog]
+verify_jwt = false
+
+[functions.personal-card-order]
+verify_jwt = false
+
+[functions.personal-card-admin]
+verify_jwt = false

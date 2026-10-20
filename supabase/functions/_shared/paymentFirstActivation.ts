@@ -56,6 +56,11 @@ export async function activateCheckout(stripe: Stripe, session: Stripe.Checkout.
     checkout_intent_id: intent.id, user_id: userId, stripe_subscription_id: mainSub,
     shipping_address: addr(shipping?.address, shipping?.name),
     billing_address: addr(session.customer_details?.address, session.customer_details?.name),
+    ...(intent.business_details?.name ? {
+      business_name: intent.business_details.name, business_city: intent.business_details.city,
+      business_link: intent.business_details.link || null, needs_research: true,
+      setup_status: "needs_business_research", step: "logo",
+    } : {}),
   }, { onConflict: "checkout_intent_id", ignoreDuplicates: true });
 
   // Initial order = draft Solo/Pro hub (existing model). Unapproved and without print artwork,
@@ -85,12 +90,25 @@ export async function activateCheckout(stripe: Stripe, session: Stripe.Checkout.
   return { status, userId };
 }
 
-/** Creates the separate $5/mo Card Club subscription at most once. Safe to retry. */
+/** New orders use an item on the main subscription. Legacy orders retain their original billing. */
 export async function ensureCardClubSubscription(stripe: Stripe, db: Db, membershipId: string) {
   const { data: m } = await db.from("card_club_memberships").select("*").eq("id", membershipId).single();
   if (!m || m.card_club_stripe_subscription_id || !["pending_activation", "activation_failed"].includes(m.status)) return m;
   try {
     const main = await stripe.subscriptions.retrieve(m.main_stripe_subscription_id);
+    if (main.metadata.card_club_billing === "included") {
+      const item = main.items.data.find(i => {
+        const product = typeof i.price.product === "string" ? i.price.product : i.price.product.id;
+        return product === main.metadata.card_club_product_id && i.price.id !== main.metadata.main_price_id;
+      });
+      if (!item) throw new Error("Card Club item missing from the main subscription");
+      const { error } = await db.from("card_club_memberships").update({
+        card_club_stripe_subscription_id: main.id, card_club_stripe_subscription_item_id: item.id,
+        stripe_price_id: item.price.id, status: "pending_activation", review_reason: null,
+      }).eq("id", m.id);
+      if (error) throw error;
+      return m;
+    }
     const pm = typeof main.default_payment_method === "string" ? main.default_payment_method : main.default_payment_method?.id;
     const nowSec = Math.floor(Date.now() / 1000);
     const trialEnd = main.trial_end && main.trial_end > nowSec + 60 ? main.trial_end : undefined;
@@ -121,14 +139,19 @@ export async function syncMembership(stripe: Stripe, db: Db, m: Record<string, a
     stripe.subscriptions.retrieve(m.card_club_stripe_subscription_id),
     stripe.subscriptions.retrieve(m.main_stripe_subscription_id),
   ]);
+  const included = cc.id === main.id;
+  if (included && !main.items.data.some(i => i.id === m.card_club_stripe_subscription_item_id)) {
+    await db.from("card_club_memberships").update({ status: "cancelled", cancellation_date: new Date().toISOString() }).eq("id", m.id);
+    return; // Removing the add-on must never cancel the business plan.
+  }
   const mainOk = ["active", "trialing"].includes(main.status);
   if (cc.status === "canceled" || main.status === "canceled") {
-    if (cc.status !== "canceled") await stripe.subscriptions.cancel(cc.id).catch(() => null);
+    if (!included && cc.status !== "canceled") await stripe.subscriptions.cancel(cc.id).catch(() => null);
     await db.from("card_club_memberships").update({ status: "cancelled", cancellation_date: new Date().toISOString() }).eq("id", m.id);
     return;
   }
   // Plan follows the current main subscription (upgrade never resets the timer).
-  const mainPrice = main.items.data[0]?.price;
+  const mainPrice = main.items.data.find(i => i.id !== m.card_club_stripe_subscription_item_id)?.price ?? main.items.data[0]?.price;
   const plan = mainPrice?.unit_amount === 3900 || mainPrice?.unit_amount === 39000 ? "venue" : mainPrice ? "solo" : m.plan;
   const next = cc.status === "active" && mainOk && m.card_club_paid_at ? "active"
     : ["past_due", "unpaid", "incomplete", "incomplete_expired"].includes(cc.status) || (m.card_club_paid_at && !mainOk) ? "past_due"
@@ -145,10 +168,10 @@ export async function ensureDraftProfile(db: Db, intentId: string, userId: strin
     if (businessName) await db.from("personal_profiles").update({ full_name: businessName }).eq("id", sess.personal_profile_id).eq("is_approved", false);
     return sess.personal_profile_id as string;
   }
-  const { data: intent } = await db.from("checkout_intents").select("plan, billing_interval, email, stripe_customer_id, stripe_livemode").eq("id", intentId).single();
+  const { data: intent } = await db.from("checkout_intents").select("plan, billing_interval, email, stripe_customer_id, stripe_livemode, business_details").eq("id", intentId).single();
   if (!intent) return null;
-  const name = businessName || "New TapAway business";
-  const base = (businessName || "tapaway").toLowerCase().replace(/[^a-z0-9]+/g, "").slice(0, 24) || "tapaway";
+  const name = businessName || intent.business_details?.name || "New TapAway business";
+  const base = name.toLowerCase().replace(/[^a-z0-9]+/g, "").slice(0, 24) || "tapaway";
   let username = `${base}${Math.floor(1000 + Math.random() * 9000)}`;
   for (let i = 0; i < 20; i++) {
     const { data: ok } = await db.rpc("is_username_available", { check_username: username });
@@ -162,7 +185,7 @@ export async function ensureDraftProfile(db: Db, intentId: string, userId: strin
     plan_type: intent.billing_interval === "year" ? `${intent.plan}_yearly` : intent.plan,
     subscription_status: "trialing", is_approved: false, pipeline_status: "draft", legacy_allowance: false,
     stripe_customer_id: intent.stripe_customer_id, stripe_subscription_id: sess.stripe_subscription_id,
-    place_city: a.city ?? null, place_state: a.state ?? null, place_zip: a.postal_code ?? null,
+    place_city: intent.business_details?.city || a.city || null, place_state: a.state ?? null, place_zip: a.postal_code ?? null,
   }).select("id").single();
   if (error || !prof) { console.error("[activation] draft hub failed", error?.message); return null; }
   await db.from("onboarding_sessions").update({ personal_profile_id: prof.id, hub_status: "draft" }).eq("id", sess.id).is("personal_profile_id", null);

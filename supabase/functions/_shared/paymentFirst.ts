@@ -50,7 +50,7 @@ export async function verifiedPrice(stripe: Stripe, key: `${Plan}_${Interval}` |
   if (!price.active || price.currency !== "usd" || price.unit_amount !== rule.amount || price.recurring?.interval !== rule.interval) {
     throw new Error(`Price mapping invalid for ${key}`);
   }
-  return { id: price.id, amount: rule.amount, interval: rule.interval };
+  return { id: price.id, amount: rule.amount, interval: rule.interval, product: typeof price.product === "string" ? price.product : price.product.id };
 }
 
 export function cardClubPriceId() {
@@ -76,7 +76,7 @@ export async function sendEmail(to: string, subject: string, html: string, text:
   const key = Deno.env.get("RESEND_API_KEY");
   if (!key) { console.error("[paymentFirst] RESEND_API_KEY missing"); return false; }
   const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
+    method: "POST", signal: AbortSignal.timeout(10000),
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
     body: JSON.stringify({ from: Deno.env.get("EMAIL_FROM") || "TapAway <no-reply@tapaway.co>", to: [to], subject, html, text, reply_to: "tap@tapaway.co" }),
   });

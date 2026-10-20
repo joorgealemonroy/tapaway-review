@@ -1592,7 +1592,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
             page, so the notice lives on our last screen before the redirect. */}
         {PERSONAL_PAYMENTS_ENABLED && !isFreePlan && (
           <p className="text-xs text-muted-foreground">
-            We'll place a temporary $1 hold to verify your card. It's released automatically. Never charged.
+            Secure payment processing by Stripe.
           </p>
         )}
       </div>

@@ -67,10 +67,10 @@ export function LandingNav() {
             {user ? "Dashboard" : "Log in"}
           </Link>
           <a
-            href={pathname === "/personal" ? "#pricing" : "/#pricing"}
+            href={pathname.startsWith("/personal") ? "/personal/design" : "/#pricing"}
             className="sf-button"
           >
-            Get started <ArrowRight aria-hidden="true" />
+            {pathname.startsWith("/personal") ? "Design cards" : "Get started"} <ArrowRight aria-hidden="true" />
           </a>
           <button
             className="sf-menu-toggle"

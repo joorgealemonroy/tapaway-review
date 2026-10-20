@@ -116,6 +116,7 @@ const REP_CARDS = [
 ];
 
 const SYSTEM_LINKS = [
+  { label: "Personal Card Orders", desc: "Review artwork and fulfill paid two-card orders", icon: GalleryVerticalEnd, path: "/admin/personal-card-orders" },
   { label: "Card Showcase", desc: "Manage the printed cards shown on the homepage", icon: GalleryVerticalEnd, path: "/admin/card-showcase" },
   { label: "Analytics", desc: "Validated traffic, quality & conversions", icon: Activity, path: "/admin/analytics" },
   { label: "Locations", desc: "Classified location map data & field ops", icon: MapPin, path: "/admin/locations" },

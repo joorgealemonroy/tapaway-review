@@ -18,6 +18,11 @@ import {
   type OnboardingPlan,
 } from "@/lib/onboardingCatalog";
 import { getOnboardingData, saveOnboardingData } from "@/lib/onboardingData";
+import {
+  readBusinessBrief,
+  saveBusinessBrief,
+  type BusinessBrief,
+} from "@/lib/businessBrief";
 import "@/components/landing/storefront.css";
 
 type Props = {
@@ -32,7 +37,7 @@ type Props = {
   onRetry: () => void;
   onPlan: (p: OnboardingPlan) => void;
   onInterval: (i: BillingInterval) => void;
-  onCheckout: (club: boolean) => void;
+  onCheckout: (club: boolean, business?: BusinessBrief) => void;
 };
 export function CheckoutOrder({
   plan,
@@ -51,14 +56,26 @@ export function CheckoutOrder({
   const [club, setClub] = useState(
     () => canceled && getOnboardingData().cardClubSelected === true,
   );
+  const [brief, setBrief] = useState(readBusinessBrief);
   const item = catalog.find((i) => i.plan === plan && i.interval === interval);
-  const canCheckout = !loading && !failed && item?.available === true;
+  const canCheckout =
+    !loading &&
+    !failed &&
+    item?.available === true &&
+    item.checkoutVersion === 2;
   const trial = item?.trialDays ?? 0;
-  const savedAudience = getOnboardingData().audience;
+  const clubAmount = interval === "year" ? 6000 : 500;
+  const total = (item?.amount ?? 0) + (club ? clubAmount : 0);
+  const money = (cents: number) => `$${(cents / 100).toLocaleString("en-US")}`;
+  const change = (key: keyof BusinessBrief, value: string) => {
+    const next = { ...brief, [key]: value };
+    setBrief(next);
+    saveBusinessBrief(next);
+  };
   return (
     <div className="checkout-surface min-h-screen">
       <Helmet>
-        <title>Your TapAway order | Custom Cards & Digital Hub</title>
+        <title>Start your business trial | TapAway</title>
         <meta name="robots" content="noindex" />
       </Helmet>
       <header className="co-header">
@@ -70,68 +87,130 @@ export function CheckoutOrder({
           </Link>
         </div>
       </header>
-      <main className="sf-container co-layout" id="main-content">
+      <form
+        className="sf-container co-layout"
+        id="main-content"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (!canCheckout || busy) return;
+          onCheckout(club, {
+            ...brief,
+            name: brief.name.trim(),
+            city: brief.city.trim(),
+            link: brief.link.trim(),
+          });
+        }}
+      >
         <section>
-          <Link
-            to={
-              savedAudience === "personal" ? "/personal#pricing" : "/#pricing"
-            }
-            className="sf-text-link text-xs text-[#697360]"
-          >
+          <Link to="/#pricing" className="sf-text-link text-xs">
             <ArrowLeft className="h-4 w-4" />
             Back to plans
           </Link>
           <p className="sf-eyebrow block mt-8">
-            Your cards. Your hub. All set up.
+            A few details. We handle the rest.
           </p>
           <h1>
             Let's get your
             <br />
-            TapAway started.
+            business connected.
           </h1>
           <p className="sf-copy text-sm">
-            Choose your cards and billing. After checkout, we'll collect your
-            details and take care of the setup.
+            Tell us where to find you. We'll build your hub, gather your links,
+            and prepare your cards.
           </p>
           {canceled && (
             <p className="sf-status" role="status">
-              You left checkout before finishing. Review your selection and
-              continue when you're ready. Your trial starts only after checkout
-              is confirmed.
+              Your selection is saved. Your trial starts when checkout is
+              confirmed.
             </p>
           )}
+          <fieldset disabled={busy} className="co-intake">
+            <legend>1. Your business</legend>
+            <label>
+              Business name
+              <input
+                name="businessName"
+                autoComplete="organization"
+                required
+                minLength={2}
+                maxLength={120}
+                value={brief.name}
+                onChange={(e) => change("name", e.target.value)}
+                placeholder="The name your customers know"
+              />
+            </label>
+            <label>
+              City & state
+              <input
+                name="businessCity"
+                required
+                minLength={2}
+                maxLength={120}
+                value={brief.city}
+                onChange={(e) => change("city", e.target.value)}
+                placeholder="e.g. Claremont, CA"
+              />
+            </label>
+            <label className="co-wide">
+              Website, social, or Google listing <span>(optional)</span>
+              <input
+                name="businessLink"
+                maxLength={300}
+                value={brief.link}
+                onChange={(e) => change("link", e.target.value)}
+                placeholder="Paste a link to help us find you"
+              />
+            </label>
+            <label className="co-wide">
+              What should your hub help with?
+              <select
+                value={brief.goal}
+                onChange={(e) => change("goal", e.target.value)}
+              >
+                <option>Reviews & customer connections</option>
+                <option>Bookings & appointments</option>
+                <option>Menu & orders</option>
+                <option>Portfolio & social links</option>
+                <option>A bit of everything</option>
+              </select>
+            </label>
+          </fieldset>
           {loading && (
-            <p className="sf-status" role="status">
+            <p role="status" className="sf-status">
               Checking current prices…
             </p>
           )}
           {failed && (
-            <div className="sf-status" role="alert">
-              We couldn't load prices. Your checkout is paused.
-              <button onClick={onRetry}>Try again</button>
+            <div role="alert" className="sf-status">
+              We couldn't load prices.{" "}
+              <button type="button" onClick={onRetry}>
+                Try again
+              </button>
             </div>
           )}
           <fieldset disabled={busy} className="mt-7">
             <legend className="text-sm font-semibold mb-3">
-              1. Choose billing
+              2. Your cards & billing
             </legend>
             <div className="sf-billing">
-              {(["year", "month"] as const).map((i) => (
+              {(["month", "year"] as const).map((i) => (
                 <button
                   key={i}
                   type="button"
                   aria-pressed={interval === i}
                   onClick={() => onInterval(i)}
                 >
-                  {i === "year" ? "Yearly" : "Monthly"}
+                  {i === "month" ? (
+                    "Monthly"
+                  ) : (
+                    <>
+                      Yearly{" "}
+                      <span className="sf-save-pill">Save with yearly</span>
+                    </>
+                  )}
                 </button>
               ))}
             </div>
-          </fieldset>
-          <fieldset disabled={busy} className="mt-7">
-            <legend className="text-sm font-semibold">
-              2. Choose your cards
-            </legend>
             <div className="co-options">
               {(["solo", "venue"] as const).map((p) => {
                 const price = catalog.find(
@@ -155,7 +234,7 @@ export function CheckoutOrder({
                         ? price.trialDays > 0
                           ? `After ${price.trialDays} days free`
                           : "Billed at checkout"
-                        : "Try another billing interval"}
+                        : "Currently unavailable"}
                     </small>
                   </button>
                 );
@@ -165,9 +244,9 @@ export function CheckoutOrder({
           <ul className="sf-checklist">
             {[
               "Custom NFC + QR cards",
-              "Your hub, designed and set up for you",
+              "Your business hub, designed and set up for you",
               "Free standard US shipping",
-              "Dashboard access and ongoing support",
+              "Dashboard, analytics, and ongoing support",
             ].map((t) => (
               <li key={t}>
                 <Check />
@@ -187,25 +266,27 @@ export function CheckoutOrder({
             />
             <span>
               <strong>
-                Add Card Club · $5/month{" "}
+                Add business Card Club · {money(clubAmount)}/{interval}{" "}
                 <span className="font-normal">(optional)</span>
               </strong>
               <small>
-                Request up to{" "}
-                {plan ? CARD_QUANTITIES[plan] : "your plan's quantity of"}{" "}
-                replacement cards when eligible, with standard shipping
-                included. First eligibility follows your first paid invoice and
-                waiting period; timing appears in your dashboard.
+                Replacement cards for your business, with standard shipping
+                included. Up to{" "}
+                {plan ? CARD_QUANTITIES[plan] : "your plan's quantity of"} cards
+                per eligible request. Your first paid invoice starts the waiting
+                period; your dashboard shows when you can request. No rollover.
               </small>
               <small>
-                Only offered with your first order. Billed separately each month
-                after the trial, even with yearly billing. No rollover.
+                Included in this order and the same renewal. One checkout.{" "}
+                {interval === "year"
+                  ? "$60 billed yearly with your plan."
+                  : "$5 billed monthly with your plan."}
               </small>
             </span>
           </label>
         </section>
         <aside className="co-summary" aria-label="Order summary">
-          <h2>Your order</h2>
+          <h2>Your business order</h2>
           <p className="sf-price-note mt-2">
             {plan
               ? `${CARD_QUANTITIES[plan]} custom cards + your digital hub`
@@ -220,61 +301,62 @@ export function CheckoutOrder({
             <strong>Free</strong>
           </div>
           <div className="co-row">
-            <span>Subscription{trial > 0 ? " after trial" : ""}</span>
+            <span>Business plan</span>
             <strong>
-              {canCheckout
-                ? formatCatalogPrice(item)
-                : "Select an available plan"}
+              {canCheckout ? formatCatalogPrice(item) : "Choose a plan"}
             </strong>
           </div>
           {club && (
             <div className="co-row">
-              <span>Card Club{trial > 0 ? " after trial" : ""}</span>
-              <strong>+$5/month</strong>
+              <span>Card Club</span>
+              <strong>
+                +{money(clubAmount)}/{interval}
+              </strong>
             </div>
           )}
           <div className="co-row co-total">
             <div>
-              <span>
-                {trial > 0 ? "Subscription due today" : "Subscription"}
-              </span>
+              <span>Due today</span>
               {trial > 0 && (
-                <p className="sf-price-note">{trial}-day free trial</p>
+                <p className="sf-price-note">{trial}-day business trial</p>
               )}
             </div>
             <strong>
-              {canCheckout
-                ? trial > 0
-                  ? "$0"
-                  : formatCatalogPrice(item)
-                : "—"}
+              {canCheckout ? (trial > 0 ? "$0" : money(total)) : "—"}
             </strong>
           </div>
           {canCheckout && (
             <p className="sf-price-note mt-3">
+              {trial > 0
+                ? `Then ${money(total)}/${interval}`
+                : `${money(total)}/${interval}`}
+              {club ? ", including Card Club" : ""}.{" "}
               {interval === "year"
-                ? `The full $${(item!.amount / 100).toLocaleString("en-US")} annual total is billed ${trial > 0 ? "after your trial" : "at checkout"}. `
-                : ""}
-              {club && interval === "month"
-                ? `With Card Club: $${((item!.amount + 500) / 100).toFixed(2)}/month after the trial. `
-                : ""}
-              {club && interval === "year"
-                ? "Card Club adds a separate $5 monthly renewal. "
+                ? "The full annual amount is billed at renewal. "
                 : ""}
               Renews until canceled.{" "}
               {trial > 0
-                ? "Cancel before your trial ends to avoid the first subscription charge."
+                ? "Cancel before your trial ends to avoid the first charge."
                 : ""}
             </p>
           )}
-          <p className="sf-price-note mt-3">
-            Card on file required. A temporary $1 verification hold may appear.
-            Your bank determines when it clears.
-          </p>
+          {!loading &&
+            !failed &&
+            item?.available &&
+            item.checkoutVersion !== 2 && (
+              <div className="sf-status" role="status">
+                This checkout is being updated. Please{" "}
+                <button type="button" onClick={onRetry}>
+                  try again
+                </button>{" "}
+                shortly, or <Link to="/support#question">contact our team</Link>
+                .
+              </div>
+            )}
           {error && (
             <div className="sf-status" role="alert">
               {error}{" "}
-              <Link to="/support#question" className="underline">
+              <Link className="underline" to="/support#question">
                 Get help
               </Link>
             </div>
@@ -282,7 +364,7 @@ export function CheckoutOrder({
           <button
             className="sf-button w-full mt-6"
             disabled={!canCheckout || busy}
-            onClick={() => onCheckout(club)}
+            type="submit"
           >
             {busy ? (
               <>
@@ -291,15 +373,15 @@ export function CheckoutOrder({
               </>
             ) : (
               <>
-                Continue to secure checkout <ArrowRight />
+                Start my business trial <ArrowRight />
               </>
             )}
           </button>
-          <p className="mt-3 text-center text-[11px] text-[#68745f] flex items-center justify-center gap-2">
+          <p className="mt-3 text-center text-xs flex items-center justify-center gap-2">
             <LockKeyhole className="h-3 w-3" />
-            Powered by Stripe · No account needed first
+            Secure Stripe checkout · No password first
           </p>
-          <p className="sf-price-note mt-6 text-[11px]">
+          <p className="sf-price-note mt-6">
             By continuing, you agree to the{" "}
             <Link to="/terms" className="underline">
               Terms
@@ -308,24 +390,21 @@ export function CheckoutOrder({
             <Link to="/privacy" className="underline">
               Privacy Policy
             </Link>
-            . See our{" "}
+            .{" "}
             <Link to="/refund" className="underline">
-              Refund Policy
+              Refund policy
             </Link>
-            . Canceling stops the next renewal; it does not automatically refund
-            the current term.
+            . Canceling stops your next renewal.
           </p>
           <div className="border-t border-[#dce4d3] mt-6 pt-5">
-            <h3 className="text-sm font-semibold">What happens next?</h3>
+            <h3 className="text-sm font-semibold">You're nearly done.</h3>
             <p className="sf-price-note mt-2">
-              Secure checkout → confirm your{" "}
-              {savedAudience === "personal" ? "name or brand" : "business"} and
-              shipping → we prepare your hub and cards. Access your dashboard
-              using your checkout email.
+              Enter payment and shipping once. We'll send your access link by
+              email. You can add a logo afterward.
             </p>
           </div>
         </aside>
-      </main>
+      </form>
     </div>
   );
 }

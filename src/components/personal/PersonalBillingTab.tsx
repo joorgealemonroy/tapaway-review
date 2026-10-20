@@ -1,3 +1,6 @@
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +23,7 @@ const maskEmail = (email: string): string => {
 interface PersonalBillingTabProps {
   profile: {
     id: string;
+    onboarding_source?: string | null;
     plan_type: string | null;
     subscription_status: string | null;
     stripe_customer_id: string | null;
@@ -33,6 +37,16 @@ interface PersonalBillingTabProps {
 }
 
 export function PersonalBillingTab({ profile, onUpgrade }: PersonalBillingTabProps) {
+  const [opening, setOpening] = useState(false);
+  const paymentFirst = profile.onboarding_source?.startsWith("payment_first") || false;
+  const personalHosted = profile.plan_type === "personal_hosted";
+  const openBilling = async () => {
+    if (!personalHosted && !paymentFirst) { window.open(STRIPE_PORTAL_URL, "_blank", "noopener,noreferrer"); return; }
+    setOpening(true);
+    try { const { data, error } = await supabase.functions.invoke("manage-personal-subscription", { body: { action: "portal", profileId: profile.id } }); if (error || !data?.url) throw new Error(); window.location.assign(data.url); }
+    catch { toast.error("Couldn't open billing. Try again or contact tap@tapaway.co."); }
+    finally { setOpening(false); }
+  };
   const isGrandfathered = profile.plan_type === 'vip' || profile.plan_type === 'founding_pro';
   const isAnnual = profile.plan_type === 'yearly';
   const isTrialing = profile.subscription_status === 'trialing' && !!profile.trial_ends_at;
@@ -43,6 +57,7 @@ export function PersonalBillingTab({ profile, onUpgrade }: PersonalBillingTabPro
   const billingEmail = profile.stripe_billing_email || profile.email;
 
   const getPriceDisplay = () => {
+    if (personalHosted) return { price: "$5", interval: "/month" };
     if (isAnnual) return { price: "$199", interval: "/year" };
     if (profile.plan_type === 'plus_monthly') return { price: "$25", interval: "/month" };
     return { price: "$20", interval: "/month" };
@@ -64,16 +79,16 @@ export function PersonalBillingTab({ profile, onUpgrade }: PersonalBillingTabPro
                   ? "You have lifetime access to all premium features"
                   : isTrialing
                     ? "Your trial is active"
-                    : "You have access to all premium features"}
+                    : personalHosted ? "Your optional personal hub and analytics. Your cards were a separate one-time purchase." : "You have access to all premium features"}
               </CardDescription>
             </div>
             <Badge variant="default" className={isGrandfathered ? "bg-emerald-500" : isTrialing ? "bg-blue-500" : "bg-amber-500"}>
-              {isGrandfathered ? "VIP Access" : isTrialing ? "Pro Trial" : "Business"}
+              {personalHosted ? "Personal hub" : isGrandfathered ? "VIP Access" : isTrialing ? "Pro Trial" : "Business"}
             </Badge>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {isTrialing ? (
+          {paymentFirst ? <div><p className="text-xl font-semibold">{profile.subscription_status === "trialing" ? "Your business trial is active" : "Your business subscription"}</p><p className="text-sm text-muted-foreground mt-2">Open billing for your exact renewal total, trial end date, and invoices. Your Cards tab shows your Card Club selection and eligibility.</p></div> : isTrialing ? (
             <div>
               <div className="flex items-baseline gap-1">
                 <span className="text-3xl font-bold">Free Trial</span>
@@ -107,7 +122,7 @@ export function PersonalBillingTab({ profile, onUpgrade }: PersonalBillingTabPro
                   <Button
                     variant="outline"
                     className="min-h-[44px]"
-                    onClick={() => window.open(STRIPE_PORTAL_URL, "_blank")}
+                    disabled={opening} onClick={openBilling}
                   >
                     <CreditCard className="h-4 w-4 mr-2" />
                     Manage Subscription

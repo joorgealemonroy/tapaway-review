@@ -2,9 +2,9 @@ import { useEffect, useState } from "react";
 
 export type OnboardingPlan = "solo" | "venue";
 export type BillingInterval = "month" | "year";
-export type CatalogItem = { plan: OnboardingPlan; interval: BillingInterval; amount: number; currency: "usd"; trialDays: number; available: boolean };
+export type CatalogItem = { plan: OnboardingPlan; interval: BillingInterval; amount: number; currency: "usd"; trialDays: number; available: boolean; checkoutVersion?: number };
 export const CARD_QUANTITIES = { solo: 4, venue: 15 } as const;
-const CACHE_KEY = "tapaway_onboarding_catalog_v1";
+const CACHE_KEY = "tapaway_onboarding_catalog_v2";
 let pending: Promise<CatalogItem[]> | null = null;
 
 function validCatalog(value: unknown): value is CatalogItem[] {

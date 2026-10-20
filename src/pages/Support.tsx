@@ -283,7 +283,7 @@ const Support = () => {
   );
 
   return (
-    <div className="storefront min-h-screen bg-muted/30">
+    <div className="storefront sf-support min-h-screen">
       <LandingNav />
       <Helmet>
         <title>Support & Help | TapAway</title>

@@ -4,14 +4,14 @@
  * Optional: BROWSER_EXECUTABLE, BROWSER_ARGS (JSON array), QA_SCREENSHOTS.
  */
 const assert = require('node:assert/strict');
-const { mkdirSync } = require('node:fs');
+const { mkdirSync, readFileSync, existsSync } = require('node:fs');
 const path = require('node:path');
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const { expect } = require((process.env.PLAYWRIGHT_MODULE || 'playwright') + '/test');
 const root = path.resolve(__dirname, '..');
 const catalog = ['solo', 'venue'].flatMap(plan => ['month', 'year'].map(interval => ({
   plan, interval, amount: plan === 'solo' ? (interval === 'month' ? 2000 : 19900) : (interval === 'month' ? 3900 : 39000),
-  currency: 'usd', trialDays: 14, available: true,
+  currency: 'usd', trialDays: 14, available: true, checkoutVersion:2,
 })));
 const fakeUser = { id: '11111111-1111-4111-8111-111111111111', aud: 'authenticated', role: 'authenticated', email: 'shopper@example.invalid', app_metadata: {provider:'email'}, user_metadata: {}, created_at: '2026-01-01T00:00:00Z' };
 let browser, server, base, backendHost;
@@ -21,7 +21,7 @@ const test = (name, run) => cases.push({ name, run });
 
 async function scenario(options = {}) {
   const context = await browser.newContext({viewport:{width:1440,height:1000},serviceWorkers:'block'});
-  const state = { catalog: structuredClone(catalog), checkout: [], support: [], notifications: 0, errors: [], welcome:'sign_in', setup:{step:'business',business_name:null,business_address:null,shipping_address:null,logo_url:null}, setupWrites:[], ...options };
+  const state = { catalog: structuredClone(catalog), checkout: [], support: [], chat: [], personalOrders: [], aiCount: 0, notifications: 0, errors: [], welcome:'sign_in', setup:{step:'business',business_name:null,business_address:null,shipping_address:null,logo_url:null}, setupWrites:[], setupReads:[], clubRequests:[], billingRequests:[], ...options };
   await context.addInitScript(({saved,authenticated,backendHost,fakeUser}) => {
     localStorage.setItem('tapaway_tracking_consent_v2',JSON.stringify({state:'declined',visitor:'qa',at:new Date().toISOString(),noticeVersion:'2026-10-14'}));
     if(saved) localStorage.setItem('tapaway_onboarding_data',JSON.stringify(saved));
@@ -36,12 +36,17 @@ async function scenario(options = {}) {
     const url = new URL(request.url());
     const reply = (data,status=200) => route.fulfill({status,contentType:'application/json',body:JSON.stringify(data)});
     if(url.origin===base) {
+      if(url.pathname.startsWith('/__l5e/assets-v1/')) { const photo=path.join(process.env.QA_ASSETS||'/nonexistent',url.pathname.split('/').pop()); if(existsSync(photo))return route.fulfill({contentType:'image/jpeg',body:readFileSync(photo)}); }
       if(url.pathname==='/qa-checkout')return route.fulfill({contentType:'text/html',body:'<h1>Fixture checkout reached</h1>'});
       return route.continue();
     }
     // Nothing may escape this fixture boundary, including analytics and email.
+    if(url.hostname==='tapaway.co')return route.fulfill({contentType:'text/html',body:'<html><body style="font-family:Arial;padding:70px 20px"><h1>Customer hub fixture</h1><p>External hub traffic is blocked in automated checks.</p></body></html>'});
     if(url.hostname!==backendHost)return route.abort();
     if(url.pathname.endsWith('/onboarding-plan-catalog'))return state.catalogFailure ? reply({error:'Fixture unavailable'},503) : reply({catalog:state.catalog});
+    if(url.pathname.endsWith('/personal-card-catalog'))return reply({available:!state.personalUnavailable,hubAvailable:!state.hubUnavailable,amount:3900,hubAmount:500,currency:'usd'});
+    if(url.pathname.endsWith('/personal-card-order')) { const data=request.postDataJSON(); if(data.action==='status')return reply({orderId:'11111111-1111-4111-8111-111111111111',paid:!state.personalPending,hosted:true,productionStatus:'needs_review',status:state.personalPending?'checkout_started':'paid'});state.personalOrders.push(data); return reply({url:base+'/qa-checkout'}); }
+    if(url.pathname.endsWith('/storefront-support')) { const data=request.postDataJSON(); state.chat.push(data); if(data.mode==='team')return reply({sent:true});state.aiCount++;return state.aiCount>5 ? reply({error:'Five questions used',remaining:0},429) : reply({answer:'Personal cards are $39 for two, with optional hosting at $5/month.',remaining:5-state.aiCount}); }
     if(url.pathname.endsWith('/app_settings'))return reply({paywall_enabled:true,onboarding_default_billing:'year'});
     if(url.pathname.endsWith('/payment-first-checkout')) {
       state.checkout.push(request.postDataJSON());
@@ -56,12 +61,15 @@ async function scenario(options = {}) {
     if(url.pathname.endsWith('/payment-first-onboarding')) {
       const data=request.postDataJSON();
       if(data.action!=='state')state.setupWrites.push(data);
+      else state.setupReads.push(data);
       if(state.setupFailure)return reply({error:"We couldn't save that. Please try again."},503);
       if(data.action==='business')Object.assign(state.setup,{business_name:data.businessName,step:'logo'});
       if(data.action==='logo')Object.assign(state.setup,{logo_url:data.logoUrl||null,step:'shipping'});
       if(data.action==='shipping')Object.assign(state.setup,{shipping_address:data.address,step:'done'});
-      return reply({session:state.setup});
+      return reply({session:state.setup,...state.membership});
     }
+    if(url.pathname.endsWith('/card-club-request')) { state.clubRequests.push(request.postDataJSON()); return reply({ok:true}); }
+    if(url.pathname.endsWith('/manage-personal-subscription')) { state.billingRequests.push(request.postDataJSON()); return reply({url:base+'/qa-checkout'}); }
     if(url.pathname.endsWith('/support_requests')) {
       state.support.push(request.postDataJSON());
       return state.supportFailure ? reply({message:'Fixture unavailable'},503) : reply(null,201);
@@ -69,6 +77,8 @@ async function scenario(options = {}) {
     if(url.pathname.endsWith('/support-notification')) { state.notifications++;return reply({ok:true}); }
     if(url.pathname.endsWith('/request-dashboard-access'))return state.sendLinkFailure ? reply({error:'Fixture unavailable'},503) : reply({ok:true});
     if(url.pathname.endsWith('/auth/v1/user'))return reply(fakeUser);
+    if(url.pathname.endsWith('/rpc/is_admin'))return reply(false);
+    if(url.pathname.endsWith('/personal_profiles') && state.profile) return reply(request.headers()['accept']?.includes('vnd.pgrst.object') ? state.profile : [state.profile]);
     if(url.pathname.includes('/rest/v1/')) {
       return reply(request.headers()['accept']?.includes('vnd.pgrst.object') ? null : []);
     }
@@ -86,15 +96,17 @@ for(const plan of ['solo','venue'])for(const interval of ['year','month']) test(
   const {page,state,go,close}=await scenario();
   await go('/?utm_source=qa&utm_campaign=storefront');
   const price=page.locator('#pricing');
-  await price.getByRole('button',{name:interval==='year'?'Yearly':'Monthly',exact:true}).click();
+  await price.getByRole('button',{name:interval==='year'?/^Yearly/:/^Monthly$/}).click();
   await price.getByRole('button',{name:`Get my ${plan==='solo'?4:15} cards`,exact:true}).click();
-  await expect(page.getByRole('heading',{name:'Your order',exact:true})).toBeVisible();
-  await expect(page.getByRole('button',{name:interval==='year'?'Yearly':'Monthly',exact:true})).toHaveAttribute('aria-pressed','true');
+  await expect(page.getByRole('heading',{name:'Your business order',exact:true})).toBeVisible();
+  await expect(page.getByRole('button',{name:interval==='year'?/^Yearly/:/^Monthly$/})).toHaveAttribute('aria-pressed','true');
   await expect(page.getByRole('button',{name:new RegExp(`^${plan==='solo'?4:15} cards`)})).toHaveAttribute('aria-pressed','true');
   await expect(page.getByRole('checkbox')).not.toBeChecked();
   const item=catalog.find(i=>i.plan===plan&&i.interval===interval);
   await expect(page.getByRole('complementary')).toContainText(`$${item.amount/100}/${interval==='year'?'year':'month'}`);
-  await page.getByRole('button',{name:'Continue to secure checkout'}).click();
+  await page.getByRole('textbox',{name:'Business name',exact:true}).fill('QA Pizza');
+  await page.getByRole('textbox',{name:'City & state',exact:true}).fill('Claremont, CA');
+  await page.getByRole('button',{name:'Start my business trial'}).click();
   await expect(page.getByRole('heading',{name:'Fixture checkout reached'})).toBeVisible();
   assert.equal(state.checkout.length,1);assert.equal(state.checkout[0].plan,plan);assert.equal(state.checkout[0].interval,interval);assert.equal(state.checkout[0].cardClub,false);assert.equal(state.checkout[0].attribution.utm_source,'qa');
   await close();
@@ -105,12 +117,16 @@ test('Canceled checkout restores Stripe cycle, quantity and chosen Card Club; er
   await go('/onboarding?plan=venue&cycle=month&canceled=1');
   await expect(page.getByRole('button',{name:'Monthly',exact:true})).toHaveAttribute('aria-pressed','true');
   await expect(page.getByRole('checkbox')).toBeChecked();
-  await expect(page.getByRole('complementary')).toContainText('With Card Club: $44.00/month');
-  await page.getByRole('button',{name:'Continue to secure checkout'}).click();
+  await expect(page.getByRole('complementary')).toContainText('Then $44/month, including Card Club');
+  await page.getByRole('textbox',{name:'Business name',exact:true}).fill('QA Pizza');
+  await page.getByRole('textbox',{name:'City & state',exact:true}).fill('Claremont, CA');
+  await page.getByRole('button',{name:'Start my business trial'}).click();
   await expect(page.getByRole('alert')).toContainText('Checkout is temporarily unavailable');
   assert.equal(state.checkout[0].cardClub,true);
   state.checkoutFailure=false;
-  await page.getByRole('button',{name:'Continue to secure checkout'}).click();
+  await page.getByRole('textbox',{name:'Business name',exact:true}).fill('QA Pizza');
+  await page.getByRole('textbox',{name:'City & state',exact:true}).fill('Claremont, CA');
+  await page.getByRole('button',{name:'Start my business trial'}).click();
   await expect(page.getByRole('heading',{name:'Fixture checkout reached'})).toBeVisible();
   await close();
 });
@@ -120,11 +136,11 @@ test('Catalog failure pauses both storefront and checkout; retry recovers',async
   await go('/');
   await expect(page.getByRole('button',{name:'Get my 4 cards',exact:true})).toBeDisabled();
   await go('/onboarding?plan=solo&billing=year');
-  await expect(page.getByRole('button',{name:'Continue to secure checkout'})).toBeDisabled();
+  await expect(page.getByRole('button',{name:'Start my business trial'})).toBeDisabled();
   await expect(page.getByRole('alert')).toContainText("We couldn't load prices");
   state.catalogFailure=false;
   await page.getByRole('button',{name:'Try again',exact:true}).click();
-  await expect(page.getByRole('button',{name:'Continue to secure checkout'})).toBeEnabled();
+  await expect(page.getByRole('button',{name:'Start my business trial'})).toBeEnabled();
   assert.equal(state.checkout.length,0);
   await close();
 });
@@ -132,50 +148,102 @@ test('Catalog failure pauses both storefront and checkout; retry recovers',async
 test('Missing/unavailable prices cannot enable checkout; a valid interval can',async()=>{
   const {page,go,close}=await scenario({catalog:catalog.filter(i=>!(i.plan==='venue'&&i.interval==='year')).map(i=>({...i,available:i.interval==='month'}))});
   await go('/onboarding?plan=solo&billing=year');
-  await expect(page.getByRole('button',{name:'Continue to secure checkout'})).toBeDisabled();
+  await expect(page.getByRole('button',{name:'Start my business trial'})).toBeDisabled();
   await go('/onboarding?plan=venue&billing=year');
-  await expect(page.getByRole('button',{name:'Continue to secure checkout'})).toBeDisabled();
+  await expect(page.getByRole('button',{name:'Start my business trial'})).toBeDisabled();
   await page.getByRole('button',{name:'Monthly',exact:true}).click();
-  await expect(page.getByRole('button',{name:'Continue to secure checkout'})).toBeEnabled();
+  await expect(page.getByRole('button',{name:'Start my business trial'})).toBeEnabled();
   await close();
 });
 
-test('Personal route keeps its audience and subscription disclosure',async()=>{
-  const {page,go,close}=await scenario();
-  await go('/personal');
-  await expect(page.locator('#pricing')).toContainText('This is a subscription plan.');
-  await expect(page.getByRole('button',{name:'Get my 15 cards'})).toHaveCount(0);
-  await screenshot(page,'personal-desktop');
-  await page.getByRole('button',{name:'Get my 4 cards',exact:true}).click();
-  await expect(page.getByRole('heading',{name:'Your order',exact:true})).toBeVisible();
-  assert.equal(new URL(page.url()).searchParams.get('audience'),'personal');
-  await expect(page.getByRole('link',{name:'Back to plans'})).toHaveAttribute('href','/personal#pricing');
-  await close();
+test('Personal offer is a two-card one-time purchase with optional hosting',async()=>{
+  const {page,go,close}=await scenario(); await go('/personal');
+  await expect(page.locator('#pricing')).toContainText('$39');
+  await expect(page.locator('#pricing')).toContainText('No personal free trial. No required subscription.');
+  await expect(page.getByRole('link',{name:'Design my two cards · $39'})).toHaveAttribute('href','/personal/design');
+  await screenshot(page,'personal-desktop'); await close();
 });
-
-test('Interactive demo, mobile menu, and responsive pages work without overflow',async()=>{
-  const {page,go,close}=await scenario();
-  await go('/');
-  await page.getByRole('button',{name:'Barber',exact:true}).click();
-  await expect(page.getByRole('button',{name:'Book your next cut'})).toBeVisible();
-  await page.getByRole('button',{name:'Visit website',exact:true}).click();
-  await expect(page.getByRole('heading',{name:'One hub. The links you choose.'})).toBeVisible();
+test('An old backend catalog cannot start the new combined business checkout',async()=>{
+  const {page,state,go,close}=await scenario({catalog:catalog.map(({checkoutVersion,...item})=>item)});
+  await go('/start?plan=solo&billing=month');
+  await expect(page.getByText(/This checkout is being updated/)).toBeVisible();
+  await expect(page.getByRole('button',{name:'Start my business trial'})).toBeDisabled();assert.equal(state.checkout.length,0);await close();
+});
+test('Business dashboard uses the included yearly membership and scopes replacement requests',async()=>{
+  const profile={id:'22222222-2222-4222-8222-222222222222',user_id:fakeUser.id,username:'qa',full_name:'QA Business',email:fakeUser.email,plan_type:'yearly',subscription_status:'active',onboarding_source:'payment_first_v1',stripe_customer_id:'cus_fixture',stripe_subscription_id:'sub_fixture',is_approved:true,created_at:'2025-01-01T00:00:00Z'};
+  const {page,state,go,close}=await scenario({authenticated:true,profile,setup:{step:'done',setup_status:'shipped'},membership:{club:{id:'club_fixture',status:'active',billingInterval:'year',billingWithPlan:true},entitlement:{eligible:true,quantity:4,next_eligible_at:null},intent:{card_quantity:4}}});
+  await go('/dashboard?type=lite');await page.getByRole('tab',{name:'Cards',exact:true}).click();
+  await expect(page.getByText('Active · $60/year')).toBeVisible();await expect(page.getByText(/Included in your business subscription/)).toBeVisible();
+  assert.equal(state.setupReads.at(-1).profileId,profile.id);await page.getByRole('button',{name:'Request Fresh Cards',exact:true}).click();await page.getByRole('button',{name:'Request My Cards',exact:true}).click();await expect(page.getByText("Request received. We'll print and ship your fresh cards.")).toBeVisible();assert.equal(state.clubRequests.at(-1).membershipId,'club_fixture');
+  await page.getByRole('tab',{name:'Plan',exact:true}).click();await expect(page.getByText('Your business subscription',{exact:true})).toBeVisible();await page.getByRole('button',{name:'Manage Subscription',exact:true}).click();await expect(page.getByRole('heading',{name:'Fixture checkout reached'})).toBeVisible();assert.equal(state.billingRequests.at(-1).profileId,profile.id);await close();
+});
+test('Personal hub dashboard keeps cards one-time and billing at $5/month',async()=>{
+  const profile={id:'22222222-2222-4222-8222-222222222222',user_id:fakeUser.id,username:'qa',full_name:'QA Personal',email:fakeUser.email,plan_type:'personal_hosted',subscription_status:'active',onboarding_source:'personal_cards_v1',stripe_customer_id:'cus_fixture',stripe_subscription_id:'sub_fixture',is_approved:true,created_at:'2025-01-01T00:00:00Z'};
+  const {page,state,go,close}=await scenario({authenticated:true,profile});await go('/dashboard?type=lite');await page.getByRole('tab',{name:'Cards',exact:true}).click();
+  await expect(page.getByRole('link',{name:'Design two more cards · $39'})).toBeVisible();await expect(page.getByRole('button',{name:/subscribe/i})).toHaveCount(0);assert.equal(state.setupReads.length,0);
+  await page.getByRole('tab',{name:'Plan',exact:true}).click();await expect(page.getByRole('tabpanel')).toContainText('$5');await expect(page.getByRole('tabpanel')).toContainText('/month');await close();
+});
+test('Monthly default, real hubs, testimonial images, and responsive pages',async()=>{
+  const {page,go,close}=await scenario({saved:{billingInterval:'year'}}); await go('/');
+  await expect(page.locator('#pricing').getByRole('button',{name:'Monthly',exact:true})).toHaveAttribute('aria-pressed','true');
+  for(const [name,slug] of [['Restaurant','tuttimangiaitalianchophouse'],['Cakery & coffee','sugarbloomcakery'],['Barber studio','spacestudios'],['Car wraps','rebornwraps'],['Julian','julian'],['Denzel','denzel']]) {
+    await page.getByRole('button',{name,exact:true}).click(); await expect(page.locator('.sf-iphone iframe')).toHaveAttribute('src','https://tapaway.co/'+slug);
+  }
+  await expect(page.locator('.sf-customer-photo')).toHaveCount(3);
   for(const width of [1440,768,390,360]) {
     await page.setViewportSize({width,height:900});
-    for(const route of ['/','/personal','/onboarding?plan=solo&billing=year','/support','/examples','/faq']){
-      await go(route);
-      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`${route} overflows at ${width}`);
-      if(width===1440&&route==='/')await screenshot(page,'home-desktop');
-      if(width===390&&route==='/')await screenshot(page,'home-mobile');
-      if(width===390&&route.startsWith('/onboarding'))await screenshot(page,'order-mobile',true);
+    for(const route of ['/','/personal','/personal/design','/onboarding?plan=solo&billing=month','/support']) {
+      await go(route); assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`${route} overflows at ${width}`);
+      if(width===1440&&route==='/')await screenshot(page,'home-desktop',true);
+      if(width===390)await screenshot(page,route.replaceAll('/','-')+'-mobile',true);
     }
   }
-  await go('/');
-  await page.getByRole('button',{name:'Open menu'}).click();
-  await expect(page.getByRole('navigation',{name:'Mobile navigation'})).toBeVisible();
-  await page.keyboard.press('Escape');
-  await expect(page.getByRole('navigation',{name:'Mobile navigation'})).toHaveCount(0);
-  await close();
+  await go('/'); await page.getByRole('button',{name:'Open menu'}).click(); await expect(page.getByRole('navigation',{name:'Mobile navigation'})).toBeVisible(); await page.keyboard.press('Escape'); await expect(page.getByRole('navigation',{name:'Mobile navigation'})).toHaveCount(0); await close();
+});
+test('Business intake is required before checkout; yearly Club is one total',async()=>{
+  const {page,state,go,close}=await scenario(); await go('/start?plan=solo&billing=year');
+  await page.getByRole('button',{name:'Start my business trial'}).click(); assert.equal(state.checkout.length,0);
+  await page.getByRole('textbox',{name:'Business name',exact:true}).fill('QA Pizza'); await page.getByRole('textbox',{name:'City & state'}).fill('Claremont, CA');
+  await page.getByRole('checkbox').check(); await expect(page.getByRole('complementary')).toContainText('Then $259/year, including Card Club');
+  await page.getByRole('button',{name:'Start my business trial'}).click(); await expect(page.getByRole('heading',{name:'Fixture checkout reached'})).toBeVisible();
+  assert.equal(state.checkout[0].business.name,'QA Pizza'); assert.equal(state.checkout[0].cardClub,true); await close();
+});
+test('Designer exports four pages and checks out two cards without a subscription',async()=>{
+  const {page,state,go,close}=await scenario(); await go('/personal/design');
+  await page.getByLabel('Card 1 destination',{exact:true}).fill('https://example.com/work'); await page.getByLabel('Card 2 destination',{exact:true}).fill('https://example.com/social');
+  await page.getByRole('button',{name:'Review my cards'}).click(); await expect(page.getByRole('heading',{name:'One last look.'})).toBeVisible();
+  const download=page.waitForEvent('download'); await page.getByRole('button',{name:'Download print PDF'}).click(); const file=await download;
+  if(process.env.QA_SCREENSHOTS)await file.saveAs(path.join(process.env.QA_SCREENSHOTS,'two-cards-print.pdf'));
+  await expect(page.getByRole('button',{name:'Buy my two cards'})).toBeDisabled(); await page.getByRole('checkbox').check();
+  await page.getByRole('button',{name:'Buy my two cards'}).click(); await expect(page.getByRole('heading',{name:'Fixture checkout reached'})).toBeVisible();
+  assert.equal(state.personalOrders.length,1); assert.equal(state.personalOrders[0].draft.hosted,false); assert.equal(state.personalOrders[0].draft.cards.length,2); assert.ok(state.personalOrders[0].pdf.startsWith('JVBER')); await close();
+});
+test('Optional hub is explicit, uses a stable link, and adds $5 in the same personal order',async()=>{
+  const {page,state,go,close}=await scenario(); await go('/personal/design'); await page.getByLabel(/Add my own TapAway hub/).check();
+  await page.getByLabel('Name on your hub').fill('QA Personal'); await page.getByLabel(/Links to include/).fill('https://example.com/portfolio');
+  await page.getByRole('button',{name:'Review my cards'}).click(); await expect(page.locator('.cd-checkout')).toContainText('$44'); await expect(page.locator('.cd-checkout')).toContainText('Then $5/month until canceled');
+  await page.getByRole('checkbox').check(); await page.getByRole('button',{name:'Buy my two cards'}).click(); await expect(page.getByRole('heading',{name:'Fixture checkout reached'})).toBeVisible();
+  assert.equal(state.personalOrders[0].draft.hosted,true); assert.equal(state.personalOrders[0].draft.hubName,'QA Personal'); await close();
+});
+test('Low-resolution images block printing; an unavailable catalog blocks purchase only',async()=>{
+  const {page,go,close}=await scenario({personalUnavailable:true}); await go('/personal/design');
+  await page.getByLabel('Card 1 destination',{exact:true}).fill('example.com/a'); await page.getByLabel('Card 2 destination',{exact:true}).fill('example.com/b');
+  const tiny=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=20;c.height=20;const x=c.getContext('2d');x.fillStyle='red';x.fillRect(0,0,20,20);return c.toDataURL('image/png').split(',')[1];});
+  await page.locator('input[type=file]').setInputFiles({name:'tiny.png',mimeType:'image/png',buffer:Buffer.from(tiny,'base64')});
+  await expect(page.locator('.cd-preflight')).toContainText('Make it smaller or upload a larger image'); await page.getByRole('button',{name:'Review my cards'}).click();
+  await expect(page.getByRole('button',{name:'Download print PDF'})).toBeDisabled(); await expect(page.getByRole('button',{name:'Buy my two cards'})).toBeDisabled(); await expect(page.locator('.cd-checkout')).toContainText('Checkout is temporarily unavailable'); await close();
+});
+test('Five-question AI cap and direct human handoff retain the conversation',async()=>{
+  const {page,state,go,close}=await scenario(); await go('/'); await page.getByRole('button',{name:'Have a question?'}).click();
+  for(let i=0;i<5;i++) { await page.getByLabel('Your question',{exact:true}).fill('How do the cards work?'); await page.getByRole('button',{name:'Ask AI',exact:true}).click(); await expect(page.getByText(`${4-i} of 5 AI questions available today. AI can make mistakes.`)).toBeVisible(); }
+  await expect(page.getByRole('button',{name:'Ask AI',exact:true})).toBeDisabled(); await page.getByRole('button',{name:'Talk to our team',exact:true}).click();
+  await page.getByLabel('Your name',{exact:true}).fill('QA Shopper'); await page.getByLabel('Email for our reply').fill('shopper@example.invalid'); await page.getByLabel('How can we help?').fill('Can you help me with artwork?'); await page.getByRole('button',{name:'Send to our team',exact:true}).click();
+  await expect(page.getByText("Message received. We'll reply to shopper@example.invalid.")).toBeVisible(); assert.equal(state.chat.at(-1).history.length,10); assert.equal(state.chat.at(-1).mode,'team'); await close();
+});
+test('Personal confirmation distinguishes pending payment from confirmed purchase',async()=>{
+  const {page,state,go,close}=await scenario({personalPending:true}); await go('/personal/order?session_id=cs_test_fixture');
+  await expect(page.getByText(/Payment confirmation is still pending/)).toBeVisible(); await expect(page.getByRole('heading',{name:'Your cards are in the works.'})).toHaveCount(0);
+  state.personalPending=false; await page.getByRole('button',{name:'Check again'}).click(); await expect(page.getByRole('heading',{name:'Your cards are in the works.'})).toBeVisible(); assert.equal(state.personalOrders.length,0); await close();
 });
 
 test('Public question form saves one request and recovers from a failed save',async()=>{
@@ -266,7 +334,7 @@ test('Personal post-checkout setup collects name, optional artwork and shipping 
   process.chdir(root);
   const {createServer,loadEnv}=await import('vite');
   backendHost=new URL(loadEnv('production',root,'VITE_').VITE_SUPABASE_URL).hostname;
-  server=await createServer({root,mode:'production',server:{host:'127.0.0.1',port:4173,strictPort:true}});
+  server=await createServer({root,mode:'production',cacheDir:path.join(process.env.QA_SCREENSHOTS||root,'.vite-fixture'),optimizeDeps:{force:true},server:{host:'127.0.0.1',port:4173,strictPort:true}});
   await server.listen();base='http://127.0.0.1:4173';
   browser=await chromium.launch({headless:true,...(process.env.BROWSER_EXECUTABLE?{executablePath:process.env.BROWSER_EXECUTABLE}:{}),args:JSON.parse(process.env.BROWSER_ARGS||'[]')});
   for(const {name,run} of cases){await run();passed++;console.log(`PASS ${name}`);}

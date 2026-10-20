@@ -1,9 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ArrowRight, Check } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { getAppSettings } from "@/lib/appSettings";
-import { getOnboardingData, saveOnboardingData } from "@/lib/onboardingData";
+import { saveOnboardingData } from "@/lib/onboardingData";
 import {
   CARD_QUANTITIES,
   useOnboardingCatalog,
@@ -22,27 +20,13 @@ export function PricingSection({
   audience?: StorefrontAudience;
 }) {
   const { catalog, loading, failed, retry } = useOnboardingCatalog();
-  const [interval, setInterval] = useState<BillingInterval>("year");
+  const [interval, setInterval] = useState<BillingInterval>("month");
   const location = useLocation();
   const navigate = useNavigate();
   useEffect(() => {
-    let active = true;
     const params = new URLSearchParams(location.search);
-    const explicit =
-      params.get("billing") ||
-      params.get("billing_interval") ||
-      params.get("cycle");
-    const saved = getOnboardingData();
-    if (explicit === "year" || explicit === "month") setInterval(explicit);
-    else if (saved.billingInterval) setInterval(saved.billingInterval);
-    else
-      getAppSettings(supabase).then((settings) => {
-        if (active && !getOnboardingData().billingSelectionExplicit)
-          setInterval(settings.onboardingDefaultBilling);
-      });
-    return () => {
-      active = false;
-    };
+    const explicit = params.get("billing") || params.get("billing_interval") || params.get("cycle");
+    setInterval(explicit === "year" ? "year" : "month");
   }, [location.search]);
   const choose = (plan: OnboardingPlan) => {
     if (
@@ -81,7 +65,7 @@ export function PricingSection({
           </p>
         </div>
         <div className="sf-billing" aria-label="Pricing billing interval">
-          {(["year", "month"] as const).map((value) => (
+          {(["month", "year"] as const).map((value) => (
             <button
               key={value}
               aria-pressed={interval === value}
@@ -93,7 +77,7 @@ export function PricingSection({
                 });
               }}
             >
-              {value === "year" ? "Yearly" : "Monthly"}
+              {value === "year" ? <>Yearly <span className="sf-save-pill">Save with yearly</span></> : "Monthly"}
             </button>
           ))}
         </div>
@@ -225,11 +209,7 @@ export function PricingSection({
       </div>
       <div className="sf-pricing-foot">
         <p>
-          Card on file required. A temporary $1 card-verification hold may
-          appear; your bank determines release timing.
-        </p>
-        <p>
-          Optional Card Club is offered at checkout. New plans do not include
+          Optional business Card Club is included in the same checkout and renewal. New plans do not include
           free monthly replacement cards by default.
         </p>
         <p className="mt-2">

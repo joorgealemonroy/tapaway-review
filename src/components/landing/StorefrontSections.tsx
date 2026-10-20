@@ -1,16 +1,12 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowRight,
   BarChart3,
-  CalendarDays,
   Check,
-  ChevronRight,
   Headphones,
   Instagram,
   Link2,
   MapPin,
-  MessageCircle,
   PackageCheck,
   Star,
   Truck,
@@ -19,7 +15,11 @@ import {
 } from "lucide-react";
 import { Brand } from "./LandingNav";
 import { openConsentSettings } from "@/lib/consent";
-import { track } from "@/lib/analytics";
+import { SupportChat } from "./SupportChat";
+import victor from "@/assets/victor-ramirez.jpg.asset.json";
+import sonia from "@/assets/sonia-berumen.jpg.asset.json";
+import manuel from "@/assets/manuel-monroy.jpg.asset.json";
+export { RealHubDemo as HubDemo } from "./RealHubDemo";
 
 export function MiniCard({
   name,
@@ -104,11 +104,11 @@ export function ProductPaths() {
             <br />A lot of you.
           </h3>
           <p>
-            Your personal brand, side project or favorite links. A custom card
-            with a hub that feels like you.
+            Two custom cards for your work, socials, or whatever you love.
+            $39 once. Free US shipping. Tap or scan to open your link.
           </p>
           <Link className="sf-button" to="/personal">
-            Explore personal <ArrowRight />
+            Get two cards · $39 <ArrowRight />
           </Link>
           <div
             className="sf-product-art"
@@ -154,140 +154,6 @@ export function ProductPaths() {
   );
 }
 
-const examples = [
-  {
-    category: "Restaurant",
-    name: "The Local",
-    initials: "the\nlocal",
-    subtitle: "Good food. Better company.",
-    action: "View our menu",
-    icon: Utensils,
-    detail: "Your menu, right there.",
-    copy: "Open your existing menu link, so guests can browse without searching or downloading an app.",
-  },
-  {
-    category: "Barber",
-    name: "Studio North",
-    initials: "SN",
-    subtitle: "Good cuts. Good conversation.",
-    action: "Book your next cut",
-    icon: CalendarDays,
-    detail: "Make the next visit easy.",
-    copy: "Send clients to the booking tool you already use. Keep your portfolio and socials beside it.",
-  },
-  {
-    category: "Creator",
-    name: "Alex Rivera",
-    initials: "AR",
-    subtitle: "Creative work. Real connections.",
-    action: "See my work",
-    icon: Link2,
-    detail: "Your work, in their hands.",
-    copy: "Share a portfolio, shop or project with a tap. Update your hub links as your work grows.",
-  },
-];
-const actionDetails = [
-  [
-    "Make feedback easy.",
-    "A review button opens your review destination. Invite honest feedback from all customers; TapAway does not guarantee ratings or review counts.",
-  ],
-  ["", ""],
-  [
-    "Keep the connection going.",
-    "Open your social profile so visitors can follow you, browse your work and stay in touch.",
-  ],
-  [
-    "One hub. The links you choose.",
-    "Bring your website and other useful destinations together. You can change links in your dashboard without reprinting your cards.",
-  ],
-];
-export function HubDemo() {
-  const [example, setExample] = useState(0);
-  const [action, setAction] = useState(1);
-  const current = examples[example];
-  const options = [
-    [Star, "Leave a Google review"],
-    [current.icon, current.action],
-    [Instagram, "Follow on Instagram"],
-    [Link2, "Visit website"],
-  ] as const;
-  const detail =
-    action === 1 ? [current.detail, current.copy] : actionDetails[action];
-  return (
-    <section
-      className="sf-section sf-demo"
-      id="examples"
-      aria-labelledby="demo-title"
-    >
-      <div className="sf-container sf-demo-grid">
-        <div>
-          <p className="sf-eyebrow">Try the experience</p>
-          <h2 id="demo-title" className="sf-title">
-            One tap opens
-            <br />
-            your whole world.
-          </h2>
-          <p className="sf-copy mt-5">
-            Pick an example. Tap a button. See how simple the next step feels
-            for your customer.
-          </p>
-          <div className="sf-demo-options" aria-label="Choose a sample hub">
-            {examples.map((e, i) => (
-              <button
-                key={e.category}
-                aria-pressed={example === i}
-                onClick={() => {
-                  setExample(i);
-                  setAction(1);
-                  track("cta_click", {
-                    hubKind: "site",
-                    props: { placement: "hub_demo", example: e.category },
-                  });
-                }}
-              >
-                {e.category}
-              </button>
-            ))}
-          </div>
-          <div className="sf-demo-note" aria-live="polite">
-            <h3>{detail[0]}</h3>
-            <p>{detail[1]}</p>
-          </div>
-          <Link to="/examples" className="sf-text-link">
-            Explore customer hubs <ArrowRight className="h-4 w-4" />
-          </Link>
-        </div>
-        <div>
-          <div className="sf-phone">
-            <div className="sf-phone-notch" />
-            <div className="sf-phone-avatar whitespace-pre-line">
-              {current.initials}
-            </div>
-            <h3>{current.name}</h3>
-            <p className="sf-phone-subtitle">{current.subtitle}</p>
-            {options.map(([Icon, label], i) => (
-              <button
-                key={label}
-                className="sf-phone-action"
-                aria-pressed={action === i}
-                onClick={() => setAction(i)}
-              >
-                <Icon />
-                <span>{label}</span>
-                <ChevronRight />
-              </button>
-            ))}
-            <p className="sf-phone-footer">Your world, one TapAway.</p>
-          </div>
-          <p className="mt-5 text-center text-[10px] text-[#737c6c]">
-            Interactive example. Illustrative names and content.
-          </p>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 export function SetupSteps() {
   return (
     <section className="sf-section sf-container" id="how-it-works">
@@ -324,18 +190,18 @@ export function CustomerQuotes() {
   const quotes = [
     [
       "Victor Ramirez",
-      "VR",
+      victor.url,
       "TapAway makes it easy for customers to find everything about our business in one place. Simple, professional, and convenient.",
     ],
     [
       "Sonia Berumen",
-      "SB",
+      sonia.url,
       "My favorite part is that they handle the setup. As a business owner, having one less thing to figure out means a lot.",
     ],
     [
-      "Amelia Zavala",
-      "AZ",
-      "I love how TapAway brings our links together in a way that feels organized and professional. It’s such a nice touch for our business.",
+      "Manuel Monroy",
+      manuel.url,
+      "TapAway makes it easy to stay connected with our customers. We can send a quick text with a special or reminder and give them a reason to come back through the door.",
     ],
   ];
   return (
@@ -348,11 +214,11 @@ export function CustomerQuotes() {
           More time for your business.
         </h2>
         <div className="sf-quotes">
-          {quotes.map(([name, initials, quote]) => (
+          {quotes.map(([name, photo, quote]) => (
             <article className="sf-quote" key={name}>
               <blockquote>“{quote}”</blockquote>
               <footer>
-                <span className="sf-initials">{initials}</span>
+                <img className="sf-customer-photo" src={photo} alt={name} loading="lazy" width="56" height="56" />
                 <div>
                   <strong>{name}</strong>
                   <small>TapAway customer</small>
@@ -404,20 +270,7 @@ export function StorefrontFooter() {
     </footer>
   );
 }
-export function HelpLink() {
-  return (
-    <Link
-      to="/support#question"
-      className="sf-help"
-      onClick={() =>
-        track("cta_click", { hubKind: "site", props: { placement: "help" } })
-      }
-    >
-      <MessageCircle />
-      Have a question?
-    </Link>
-  );
-}
+export function HelpLink() { return <SupportChat />; }
 
 export function FinalOffer() {
   return (

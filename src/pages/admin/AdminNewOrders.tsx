@@ -11,7 +11,7 @@ const STATUSES = ["purchase_complete", "business_identified", "needs_business_re
 
 type Redemption = { id: string; status: string; requested_at: string; approved_at: string | null; quantity: number; design_update_note: string | null; tracking_number: string | null };
 type Row = {
-  id: string; email: string | null; plan: string; billing_interval: string; card_quantity: number; status: string; review_reason: string | null;
+  id: string; business_details?: { name: string; city: string; link: string; goal: string }; email: string | null; plan: string; billing_interval: string; card_quantity: number; status: string; review_reason: string | null;
   stripe_customer_id: string | null; stripe_subscription_id: string | null; created_at: string; stripe_livemode: boolean;
   onboarding_sessions: { id: string; setup_status: string; hub_status: string; business_name: string | null; google_place_id: string | null; logo_url: string | null; logo_skipped: boolean; step: string; personal_profile_id: string | null; fulfillment_order_id: string | null; shipping_address: Record<string, string | null> | null }[];
   card_club_memberships: { id: string; status: string; declined_at: string | null; card_club_paid_at: string | null; last_approved_at: string | null; total_redemptions: number; replacement_interval_days: number; review_reason: string | null; card_club_redemptions: Redemption[] }[];
@@ -30,7 +30,7 @@ export default function AdminNewOrders() {
 
   const load = useCallback(async () => {
     let q = supabase.from("checkout_intents")
-      .select("id,email,plan,billing_interval,card_quantity,status,review_reason,stripe_customer_id,stripe_subscription_id,created_at,stripe_livemode,onboarding_sessions(id,setup_status,hub_status,business_name,google_place_id,logo_url,logo_skipped,step,personal_profile_id,fulfillment_order_id,shipping_address),card_club_memberships(id,status,declined_at,card_club_paid_at,last_approved_at,total_redemptions,replacement_interval_days,review_reason,card_club_redemptions(id,status,requested_at,approved_at,quantity,design_update_note,tracking_number))")
+      .select("id,business_details,email,plan,billing_interval,card_quantity,status,review_reason,stripe_customer_id,stripe_subscription_id,created_at,stripe_livemode,onboarding_sessions(id,setup_status,hub_status,business_name,google_place_id,logo_url,logo_skipped,step,personal_profile_id,fulfillment_order_id,shipping_address),card_club_memberships(id,status,declined_at,card_club_paid_at,last_approved_at,total_redemptions,replacement_interval_days,review_reason,card_club_redemptions(id,status,requested_at,approved_at,quantity,design_update_note,tracking_number))")
       .not("status", "in", "(created,checkout_started)").order("created_at", { ascending: false }).limit(200);
     if (!showTest) q = q.eq("stripe_livemode", true);
     const { data } = await q;
@@ -88,6 +88,7 @@ export default function AdminNewOrders() {
               {r.review_reason && <p className="mt-1 text-destructive">Review: {r.review_reason}</p>}
               <div className="mt-2 grid gap-1 text-muted-foreground md:grid-cols-2">
                 <p>Stripe customer: {r.stripe_customer_id ?? "—"}</p><p>Subscription: {r.stripe_subscription_id ?? "—"}</p>
+                {r.business_details && <><p>Business location: {r.business_details.city}</p><p>Goal: {r.business_details.goal || "—"}</p>{r.business_details.link && <p className="md:col-span-2">Find them online: <a className="underline" href={r.business_details.link} target="_blank" rel="noopener noreferrer">{r.business_details.link}</a></p>}</>}
                 <p>Place ID: {s?.google_place_id ?? (s?.step === "business" ? "waiting on customer" : "needs research")}</p>
                 <p>Logo: {s?.logo_url ? <a className="underline" href={s.logo_url} target="_blank" rel="noreferrer">received</a> : s?.logo_skipped ? "find it for them" : "—"}</p>
                 <p>Setup: {s?.setup_status ?? "—"} · Page: {s?.hub_status ?? "—"}</p>
