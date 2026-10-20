@@ -179,6 +179,16 @@ serve(async (req) => {
         },
         429,
       );
+    // Keep the physical-card designer distinct from post-payment online hub setup.
+    if (
+      /design|customi[sz]e|edit/i.test(message) &&
+      /cards?|both sides|front|back/i.test(message)
+    )
+      return json({
+        answer: STOREFRONT_FAQS[3].answer,
+        remaining: 5 - used,
+        source: "reviewed_faq",
+      });
     const pricing = await currentBusinessPrices();
     const fallback = () => {
       const answer = reviewedAnswer(message, pricing);

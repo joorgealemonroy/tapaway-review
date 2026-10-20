@@ -178,6 +178,7 @@ async function main(){
     s.context.fetch=async()=>new Response(JSON.stringify({choices:[{finish_reason:'length',message:{content:'Your hub includes:'}}]}));
     const c=await h(request({mode:'ai',visitor,message:'What does the $5 personal hub include?'}));assert.equal(c.status,200);const d=await c.json();assert.match(d.answer,/dashboard, analytics/);assert.equal(d.source,'reviewed_faq');assert.equal(d.remaining,3);
     const e=await h(request({mode:'ai',visitor,message:'What is the tracking number for my order?'}));assert.equal(e.status,503);assert.equal((await e.json()).remaining,2);
+    const f=await h(request({mode:'ai',visitor,message:'How do I design both sides of my cards?'}));assert.equal(f.status,200);const g=await f.json();assert.match(g.answer,/BEFORE you pay/);assert.match(g.answer,/online hub.*after payment/);assert.equal(g.remaining,1);
   });
   await pass('private artwork/admin mutations require a verified admin role',async()=>{
     const s=environment(),h=await load('supabase/functions/personal-card-admin/index.ts',s);assert.equal((await h(request({action:'list'}))).status,403);s.context.__user={id:'regular_user'};assert.equal((await h(request({action:'download',orderId:randomUUID(),file:'pdf'}))).status,403);assert.equal(s.db.tables.size,0);

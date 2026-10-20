@@ -1,8 +1,8 @@
 # TapAway storefront and commerce review
 
-Updated October 20, 2026 on `codex/storefront-conversion`, incorporating Lovable updates through `56bd1c337e190843f24200da240ec6af6a3df497`. Review in [draft PR #1](https://github.com/joorgealemonroy/tapaway-review/pull/1).
+Updated October 20, 2026 on `codex/storefront-conversion`. Review in [draft PR #1](https://github.com/joorgealemonroy/tapaway-review/pull/1).
 
-This is source prepared for review. No production deployment, migration, Stripe product creation, live charge, customer update, or real email send was performed. Automatic approval review rejected the connected-database migration because review-before-live does not authorize production schema, permissions, and storage changes. The migration remains staged for explicit approval.
+The owner explicitly approved production schema, permissions, and provider setup. The migration and backend functions are now deployed through the existing Lovable Cloud connection. Stripe live products/prices, the personal hosting billing portal, and webhook events are configured. The updated frontend has **not** been published. Personal purchasing remains disabled while paid end-to-end validation is outstanding. Existing live business mode and customer subscriptions were preserved.
 
 ## Customer experience
 
@@ -31,7 +31,7 @@ Use the connected project's preview with `codex/storefront-conversion` selected.
 - `/dashboard`: business Cards tab uses the actual included membership; personal hosting shows the one-time card path and $5/month billing.
 - `/admin/personal-card-orders`: admin-only paid artwork/fulfillment queue.
 
-**UI preview does not deploy the new backend.** Before setup, personal checkout may show unavailable and AI offers email fallback. A personal catalog without `designerVersion: 2` cannot enable portrait-aware checkout. A business catalog without `checkoutVersion: 2` cannot enable the new checkout, preventing combined-billing promises against the old separate-Club backend.
+**Backend deployment is separate from frontend publication.** The backend is deployed; personal checkout currently shows unavailable because its purchase switch remains off. AI is connected and the five-question limit has been exercised against the deployed function. A personal catalog without `designerVersion: 2` cannot enable portrait-aware checkout. A business catalog without `checkoutVersion: 2` cannot enable the new checkout, preventing combined-billing promises against the old separate-Club backend.
 
 ## Personal designer and order
 
@@ -51,31 +51,35 @@ The selected Google listing or manual brief is stored with the checkout intent, 
 
 New Club memberships bind to the Club line item within the main subscription. Eligibility remains controlled by the existing server entitlement function, after a positive paid Club invoice line and its waiting period. Trial invoices and base-plan-only payments cannot start eligibility. Removing Club cannot cancel the base subscription. Dashboard requests are scoped to the selected profile and membership. Existing pooled free-card economics remain intact.
 
-## Backend setup before activation
+## Approved production setup
 
-These are the remaining actions for an explicitly approved backend deployment, not actions performed by this PR. Read-only checks on October 20 confirmed the new order/quota tables and migration record are absent; `personal-card-catalog`, `personal-card-order`, `personal-card-admin`, and `storefront-support` return 404. The existing business catalog returns four available offers but no `checkoutVersion`. The Stripe plugin was installed during this session, but no Stripe tools became callable before completion; Supabase remained uninstalled. Provider configuration and deployed test transactions remain unverified. Keep public checkout gated during deployed-preview validation with Stripe test mode and the existing private test key.
+- Applied and recorded `20261020090000_storefront_orders.sql`. Verified order-table RLS, denied anonymous order reads and user writes, service-only quota access, a private artwork bucket, and its restrictive policy. No existing customer rows were changed.
+- Deployed 15 functions: `personal-card-catalog`, `personal-card-order`, `personal-card-admin`, `storefront-support`, `lookup-place-id`, `onboarding-plan-catalog`, `payment-first-checkout`, `payment-first-onboarding`, `payment-first-webhook`, `stripe-webhook`, `card-club-request`, `create-card-order`, `manage-personal-subscription`, `payment-first-welcome`, and `payment-first-admin`. Redeployed affected consumers after provider compatibility fixes.
+- The four business offers return available with `checkoutVersion: 2`. Unversioned requests from the currently published business page retain their existing separate-Club contract; version 2 uses the combined subscription. Unknown explicit versions reject before Stripe.
+- Live Stripe account: `acct_1SGoTmDg8DaTuVNZ`. Existing business and Club products/prices were reused without altering current subscriptions.
 
-1. Apply `supabase/migrations/20261020090000_storefront_orders.sql` after existing migrations. It adds the business brief, atomic support quotas, private personal orders/artwork, and stable public-card lookup. A restrictive storage policy prevents existing broad policies from exposing this bucket.
-2. Configure mode-specific personal Stripe prices. The cards product represents **two physical cards**, quantity one; the recurring product is hosting only.
+| Personal item | Live Stripe configuration |
+| --- | --- |
+| Two physical custom cards, $39 once | Product `tapaway_personal_cards_v1`; price `price_1USlnhDg8DaTuVNZvpuFiScC` |
+| Optional hub, $5/month, no trial | Product `tapaway_personal_hub_v1`; price `price_1USlnpDg8DaTuVNZebiRWrPS` |
+| Personal hub billing portal | `bpc_1USlo1Dg8DaTuVNZovODPDXA`; invoices, payment details, and cancellation at period end; price switching disabled |
 
-   | Secret | Required Stripe price |
-   | --- | --- |
-   | `PERSONAL_CARDS_PRICE_ID_TEST` / `PERSONAL_CARDS_PRICE_ID_LIVE` | Active USD 3900 one-time price |
-   | `PERSONAL_HUB_PRICE_ID_TEST` / `PERSONAL_HUB_PRICE_ID_LIVE` | Active USD 500 monthly price, interval count 1 |
+The public live identifiers are backend defaults with environment overrides. Verified test prices are `price_1USm78Dg8DaTuVNZx9vtwzM6` (cards) and `price_1USm79Dg8DaTuVNZd7oJM6G8` (hub); use them only as `PERSONAL_CARDS_PRICE_ID_TEST` and `PERSONAL_HUB_PRICE_ID_TEST` in a separate test runtime. The dedicated personal portal does not replace the existing default business portal.
 
-3. Retain the existing verified business catalog and Club product. Yearly Club adds a $60 yearly line on that product. Configure Stripe's customer portal for the intended products/cancellation behavior.
-4. Deploy new functions: `personal-card-catalog`, `personal-card-order`, `personal-card-admin`, and `storefront-support`.
-5. Deploy changed functions/shared dependencies together: `lookup-place-id`, `onboarding-plan-catalog`, `payment-first-checkout`, `payment-first-onboarding`, `payment-first-webhook`, `stripe-webhook`, `card-club-request`, `create-card-order`, and `manage-personal-subscription`. Follow `supabase/config.toml`; the admin endpoint validates JWT and admin role internally.
-6. Retain Stripe test/live secret keys and signing secrets. Payment-first webhook events: checkout completion, invoice paid/payment failed, subscription updated/deleted, charge refunded, dispute created. Signature/mode verification and `pf:<event-id>` deduplication remain mandatory. Configure both existing webhook routes consistently; the legacy webhook skips the new personal commerce version.
-7. Configure `LOVABLE_API_KEY` for the existing Lovable AI gateway, transactional email credentials, and `EMAIL_INTERNAL` (default `tap@tapaway.co`). Saved support requests are the inbox source of truth if notifications fail. AI runtime usage is separate from Lovable editor usage and is not promised to be free.
-8. Keep `PAYMENT_FIRST_STRIPE_MODE=test` and existing payment-first switches/private-key restrictions for review. New personal purchases additionally need `PERSONAL_CARDS_ENABLED=true`, except the private-key test path. The frontend switch remains `PAYMENT_FIRST_DEFAULT`; no remote switch was changed here.
-9. Exercise deployed test-mode personal orders with/without hosting; business intervals with/without Club; cancellation/retry; webhook retries; hosting cancellation; team handoff; admin downloads; and the portal. Verify email delivery, shipping promises, and a physical test card before live activation.
+Payment-first webhook `we_1UQbMgDg8DaTuVNZKENOthlU` now receives checkout completion, delayed payment success, invoice paid/payment failed, subscription updated/deleted, charge refunded, and dispute created. Signature/mode verification and `pf:<event-id>` deduplication remain. Handlers accept the current Clover nested shipping and invoice-line fields as well as the pinned SDK shape. Unpaid delayed checkouts cannot release artwork for printing. Initial-purchase refunds/disputes hold production; a later hosting renewal refund does not refund the original cards.
 
-Initial-purchase refunds/disputes hold production for review; a later $5 hosting renewal refund does not mark the original physical-card order refunded. Staff resolve held orders. Purchase emails are transactional; billing and support requests never imply marketing consent.
+Lovable verified the presence of live/test Stripe keys and signing secrets, the existing AI gateway key, and email credentials/sender/internal address without revealing their values. Production remains in live business mode. `PERSONAL_CARDS_ENABLED` remains unset. Never flip this shared production backend into test mode for a preview check.
+
+## Remaining launch checks
+
+- Complete a paid **Stripe test-mode** purchase through a separate test runtime, including signed webhook delivery, account handoff, and the admin download. The existing preview and published site share the production backend; current mode selection is global.
+- The isolated real-Stripe checkout runner passed all 10 requests without touching the production database, auth, email, or mode. Every session was expired unpaid. This is distinct from a paid end-to-end purchase.
+- Verify actual transactional email delivery and a physical sample from the installed printer/ribbon/NFC stock. No real email or customer charge was sent during this pass.
+- Enable personal purchasing and publish the reviewed frontend only when those checks and owner review are complete. Do not merge/publish just to view the changes.
 
 ## AI knowledge and limits
 
-Update `supabase/functions/_shared/storefrontKnowledge.ts` for shared FAQs and reviewed AI knowledge, then redeploy `storefront-support`. The function adds current verified business prices with a two-minute cache; unavailable prices must not be guessed. The model receives no account credentials, customer records, or write tools.
+Update `supabase/functions/_shared/storefrontKnowledge.ts` for shared FAQs and reviewed AI knowledge, then redeploy `storefront-support`. The deployed function uses the existing Lovable AI gateway with `google/gemini-3.1-flash-lite`, a 1,200-token output budget and a 20-second timeout. Truncated responses are not displayed; common questions fall back to reviewed facts. Physical-card design questions use the reviewed pre-payment instructions directly, so they cannot be confused with post-payment hub setup. The function adds current verified business prices with a two-minute cache; unavailable prices must not be guessed. The model receives no account credentials, customer records, or write tools.
 
 The database enforces five AI attempts per visitor per UTC day, plus 20/day per network to discourage clearing local storage. Team messages have a separate five/day network limit with direct email fallback. Failed model calls consume an attempt. Daily salted hashes avoid raw IP storage. These limits deter abuse; they are not identity verification. AI is labeled and human handoff remains available.
 
@@ -93,14 +97,17 @@ In the admin queue, download the PDF/source, verify destinations, approve, print
 
 ## Replace product photos
 
-Add approved photos to `public/personal-cards/` or the existing asset store and fill `src/data/personalCardPhotos.ts` with `src`, `alt`, and `caption` entries. The gallery handles transitions and layout without changes to checkout/templates. New card photos were not supplied; existing testimonial portraits were reused, not generated.
+Add approved photos to `public/personal-cards/` or the existing asset store and fill `src/data/personalCardPhotos.ts` with `src`, `alt`, and `caption` entries. The gallery handles transitions and layout without changes to checkout/templates. The owner-supplied two-hands photo now appears in the homepage business section, and the networking/meme-card photo appears in the personal section. They are stored as pixel-identical lossless WebP files under `public/product-photos/`; full card proportions are retained. Desktop, tablet, and phone layouts were visually reviewed. Existing testimonial portraits were reused, not generated.
 
 ## Verification
 
+- **Real Stripe test API:** all 10 actual-handler checkout requests passed. Personal was $39 one-time or $44 initially with $5/month hosting. Business was $0 at checkout during its trial, with renewal line items $20/$25 monthly, $199/$259 yearly, $39/$44 monthly, and $390/$450 yearly. All sessions were expired unpaid, with zero left open. Database/storage/auth/email were isolated fixtures; no paid webhook, login email, or portal navigation was claimed.
+- **Deployed AI:** five complete answers returned HTTP 200 with remaining counts 4, 3, 2, 1, 0; the sixth returned HTTP 429. Typical tested responses took 4.6–5.5 seconds after the first call. A discovered card-design/hub-setup ambiguity was corrected with direct reviewed card-design instructions.
+- **Deployed access/provider checks:** Google business lookup returned a listing; all four business prices were verified; unsigned webhooks and signed-out personal-admin access were denied. Personal catalog version 2 reports unavailable while its gate is off.
 - Production Vite build and frontend TypeScript checks pass.
-- Changed/new payment, personal-commerce, and support functions type-check against matching Stripe 14.21.0 / Supabase 2.39.7 npm definitions. Direct Deno remote-module resolution was unavailable; deployed Edge-runtime validation remains necessary.
-- All 26 browser fixture scenarios pass. They cover all 20 templates in both orientations, drag/resize/undo, visual QR controls, empty hosted setup, username availability and stable-card editing, Google selection and manual fallback, plus catalog gating, all four business prices/intervals, required intake, Club totals and dashboard scope, personal hosting, designer/PDF checkout, mobile widths, hubs/portraits, AI cap/handoff, and error recovery. All external customer/payment/email/analytics traffic is mocked or blocked.
-- All 19 isolated commerce checks pass. They exercise actual handlers with mocked services: Stripe signature/mode verification, pricing, immutable retries, profile identity isolation, included Club billing/eligibility, quotas, admin authorization, and refunds.
+- Changed/new payment, personal-commerce, and support functions type-check against matching Stripe 14.21.0 / Supabase 2.39.7 npm definitions. The affected functions were then deployed successfully to Lovable Cloud; live public catalog, Google search, AI and access-denial responses were checked.
+- The earlier full run passed all 26 browser fixture scenarios; after the photo replacement, the responsive scenario was rerun successfully at 360, 390, 768 and 1440 pixels. They cover all 20 templates in both orientations, drag/resize/undo, visual QR controls, empty hosted setup, username availability and stable-card editing, Google selection and manual fallback, plus catalog gating, all four business prices/intervals, required intake, Club totals and dashboard scope, personal hosting, designer/PDF checkout, mobile widths, hubs/portraits, AI cap/handoff, and error recovery. All external customer/payment/email/analytics traffic is mocked or blocked.
+- All 24 isolated commerce checks pass. They exercise actual handlers with mocked services: Stripe signature/mode verification, pricing, immutable retries, profile identity isolation, included Club billing/eligibility, quotas, admin authorization, and refunds.
 - The migration runs twice successfully in isolated PostgreSQL (PGlite), proving safe reapplication. Checks cover concurrent five-question limits, denied public order/artwork access, username redirects, canceled hosting, and test/live isolation.
 - A mixed-orientation four-page PDF passed exact dimension checks and visual review. Both QR destinations decoded correctly. No physical printer was available.
 
@@ -110,6 +117,8 @@ npx tsc --noEmit -p tsconfig.app.json
 PLAYWRIGHT_MODULE=/path/to/playwright node scripts/check-storefront.cjs
 QA_MODULES=/path/to/qa/node_modules node scripts/check-personal-commerce.cjs
 QA_MODULES=/path/to/qa/node_modules node scripts/check-storefront-database.cjs
+# Uses an existing TEST key, refuses live keys, isolates all non-Stripe side effects:
+QA_MODULES=/path/to/qa/node_modules node scripts/check-stripe-checkout-integration.cjs
 ```
 
 Separate QA dependencies: Playwright/Chromium, Stripe 14.21.0, and `@electric-sql/pglite`. Optional `BROWSER_EXECUTABLE`, `BROWSER_ARGS` (JSON), `QA_ASSETS`, and `QA_SCREENSHOTS` configure browser checks. App additions are `pdf-lib`, `qrcode`, and QR typings; the lockfile also reconciles previously declared Lovable dependencies.
