@@ -27,8 +27,11 @@ serve(async (req) => {
     const clean = (value: unknown, max: number) => typeof value === "string" ? value.trim().slice(0, max) : "";
     const business = brief && typeof brief === "object" ? {
       name: clean(brief.name, 120), city: clean(brief.city, 120), link: clean(brief.link, 300), goal: clean(brief.goal, 120),
+      googlePlaceId: clean(brief.googlePlaceId,300), address: clean(brief.address,300), state: clean(brief.state,80), postalCode:clean(brief.postalCode,20), phone:clean(brief.phone,50), googleMapsUri:clean(brief.googleMapsUri,300),
+      lat: typeof brief.lat === "number" && Number.isFinite(brief.lat) && Math.abs(brief.lat)<=90 ? brief.lat : null,
+      lng: typeof brief.lng === "number" && Number.isFinite(brief.lng) && Math.abs(brief.lng)<=180 ? brief.lng : null,
     } : null;
-    if (brief && (!business || business.name.length < 2 || business.city.length < 2)) return json({ error: "Add your business name and city so we can build your hub." }, 400);
+    if (brief && (!business || business.name.length < 2 || (!(business.googlePlaceId && business.address) && business.city.length < 2))) return json({ error: "Add your business name and city so we can build your hub." }, 400);
     if (business?.link) {
       try {
         const url = new URL(/^https?:\/\//i.test(business.link) ? business.link : `https://${business.link}`);

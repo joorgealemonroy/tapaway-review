@@ -157,16 +157,20 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
     }
 
     setUsernameError(null);
+    setUsernameStatus("checking");
+    let current = true;
     const timer = setTimeout(async () => {
       setUsernameStatus("checking");
       try {
         const { data, error } = await supabase.rpc("is_username_available", {
           check_username: newPublicUsername,
         });
+        if (!current) return;
         if (error) throw error;
         setUsernameStatus(data ? "available" : "taken");
         if (!data) setUsernameError("This username is already taken");
       } catch (err) {
+        if (!current) return;
         console.error("Error checking username:", err);
         // Don't silently reset. The check genuinely failed (offline, etc.)
         // and the user would otherwise hit a confusing save error.
@@ -175,7 +179,7 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
       }
     }, 500);
 
-    return () => clearTimeout(timer);
+    return () => { current = false; clearTimeout(timer); };
   }, [usernameInput, username, isFree, planType, usernameLocked]);
 
   const handleSave = useCallback(async () => {
@@ -214,7 +218,7 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
     // If username changed, sync NFC cards
     if (usernameChanged) {
       const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
+      if (user && planType !== "personal_hosted") {
         const { error: nfcError } = await supabase
           .from("nfc_cards")
           .update({ destination_value: newPublicUsername })
@@ -280,12 +284,12 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
 
   const usernameChanged = getPublicUsername(isFree ? "free" : (planType as any) || "free", usernameInput) !== username;
 
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(planType === "personal_hosted");
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <CollapsibleTrigger className="flex items-center justify-between w-full min-h-[44px] py-2">
-        <Label className="text-sm font-medium text-foreground pointer-events-none">Hero Identity</Label>
+        <Label className="text-sm font-medium text-foreground pointer-events-none">{planType === "personal_hosted" ? "Your name & tapaway.co address" : "Hero Identity"}</Label>
         <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform duration-200", isOpen && "rotate-180")} />
       </CollapsibleTrigger>
       <CollapsibleContent className="space-y-4 pt-2">
@@ -311,6 +315,7 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
               value={usernameInput}
               onChange={(e) => setUsernameInput(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
               placeholder="yourname"
+              aria-label="Your TapAway address"
               disabled={usernameLocked}
               className={cn(
                 `h-11 ${isFree ? "pl-[120px]" : "pl-[100px]"} pr-10`,
@@ -337,7 +342,7 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
               {usernameChanged && usernameStatus === "available" && (
                 <div className="flex items-start gap-1.5 text-xs text-amber-600">
                   <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-                  <span>Changing your username will update your profile URL and all linked cards</span>
+                  <span>{planType === "personal_hosted" ? "Your printed TapAway cards keep working when you change this address." : "Changing your username will update your profile URL and all linked cards"}</span>
                 </div>
               )}
             </>

@@ -1,4 +1,4 @@
--- New storefront source only. Apply with the matching edge functions before enabling checkout.
+-- Apply with the matching edge functions before enabling checkout. Safe to reapply.
 ALTER TABLE public.checkout_intents ADD COLUMN IF NOT EXISTS business_details jsonb;
 CREATE TABLE IF NOT EXISTS public.storefront_quotas (
   quota_key text NOT NULL, day date NOT NULL DEFAULT current_date, uses integer NOT NULL DEFAULT 0,
@@ -73,7 +73,11 @@ REVOKE ALL ON FUNCTION public.personal_card_hub_destination(uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.personal_card_hub_destination(uuid) TO anon, authenticated, service_role;
 
 -- Block permissive policies on other storage buckets from exposing private artwork.
+DO $$ BEGIN
+IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'storage' AND tablename = 'objects' AND policyname = 'Private personal card artwork') THEN
 CREATE POLICY "Private personal card artwork" ON storage.objects AS RESTRICTIVE
   FOR ALL TO anon, authenticated
   USING (bucket_id <> 'personal-card-artwork')
   WITH CHECK (bucket_id <> 'personal-card-artwork');
+END IF;
+END; $$;

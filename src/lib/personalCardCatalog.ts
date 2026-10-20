@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { callFunction } from "./paymentFirst";
 export type PersonalCatalog = {
+  designerVersion: number;
   available: boolean;
   hubAvailable: boolean;
   amount: number;
@@ -19,6 +20,7 @@ export function usePersonalCardCatalog() {
       );
       if (
         !ok ||
+        data.designerVersion !== 2 ||
         data.currency !== "usd" ||
         data.amount !== 3900 ||
         data.hubAmount !== 500

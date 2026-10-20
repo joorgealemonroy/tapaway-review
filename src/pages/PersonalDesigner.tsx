@@ -9,7 +9,6 @@ import {
   Download,
   ImagePlus,
   Plus,
-  Trash2,
   Undo2,
 } from "lucide-react";
 import { LandingNav } from "@/components/landing/LandingNav";
@@ -17,9 +16,12 @@ import {
   HelpLink,
   StorefrontFooter,
 } from "@/components/landing/StorefrontSections";
+import { DesignerControls } from "@/components/card-designer/DesignerControls";
+import { CardDestinations } from "@/components/card-designer/CardDestinations";
 import { CardCanvas } from "@/components/card-designer/CardCanvas";
 import {
-  CARD_MM,
+  cardSize,
+  reorientCard,
   DESIGN_TEMPLATES,
   cardDestination,
   checkDesign,
@@ -29,8 +31,6 @@ import {
   saveCardDraft,
   templateCard,
   type CardDraft,
-  type CardFont,
-  type ImageLayer,
   type Layer,
 } from "@/lib/cardDesign";
 import { createCardPdf, downloadCardPdf } from "@/lib/cardPrint";
@@ -48,6 +48,7 @@ export default function PersonalDesigner() {
   const [card, setCard] = useState(0),
     [side, setSide] = useState<"front" | "back">("front");
   const [selected, setSelected] = useState<string | null>(null);
+  const [category, setCategory] = useState("Networking");
   const [stage, setStage] = useState<"design" | "review">("design");
   const [busy, setBusy] = useState(false),
     [error, setError] = useState("");
@@ -58,8 +59,8 @@ export default function PersonalDesigner() {
   const upload = useRef<HTMLInputElement>(null);
   const { catalog, loading, retry } = usePersonalCardCatalog();
   const current = draft.cards[card],
-    face = current[side],
-    layer = face.layers.find((x) => x.id === selected);
+    face = current[side];
+  const dimensions = cardSize(current);
   const issues = checkDesign(draft),
     errors = issues.filter((x) => x.level === "error");
   const visibleIssues =
@@ -138,7 +139,11 @@ export default function PersonalDesigner() {
     updateCard({ [side]: { ...face, layers: [...face.layers, newLayer] } });
     setSelected(newLayer.id);
   };
-  const move = (id: string, x: number, y: number, commit: boolean) => {
+  const transform = (
+    id: string,
+    patch: Partial<Layer> | Partial<typeof current.qr>,
+    commit: boolean,
+  ) => {
     if (!dragBefore.current) dragBefore.current = draft;
     if (commit) {
       history.current = [...history.current.slice(-11), dragBefore.current];
@@ -150,18 +155,53 @@ export default function PersonalDesigner() {
         cards: draft.cards.map((c, i) =>
           i !== card
             ? c
-            : {
-                ...c,
-                [side]: {
-                  ...c[side],
-                  layers: c[side].layers.map((l) =>
-                    l.id === id ? { ...l, x, y } : l,
-                  ),
+            : id === "__qr"
+              ? { ...c, qr: { ...c.qr, ...patch } }
+              : {
+                  ...c,
+                  [side]: {
+                    ...c[side],
+                    layers: c[side].layers.map((l) =>
+                      l.id === id ? { ...l, ...patch } : l,
+                    ),
+                  },
                 },
-              },
         ) as CardDraft["cards"],
       },
       false,
+    );
+  };
+  const move = (id: string, x: number, y: number, commit: boolean) =>
+    transform(id, { x, y }, commit);
+  const resize = (id: string, scale: number, commit: boolean) => {
+    if (id === "__qr") {
+      transform(
+        id,
+        {
+          size: Math.max(
+            22,
+            Math.min(
+              dimensions.width - current.qr.x - 3,
+              dimensions.height - current.qr.y - 3,
+              current.qr.size * scale,
+            ),
+          ),
+        },
+        commit,
+      );
+      return;
+    }
+    const element = face.layers.find((l) => l.id === id);
+    if (!element) return;
+    transform(
+      id,
+      element.kind === "text"
+        ? { size: Math.max(2.5, Math.min(30, element.size * scale)) }
+        : {
+            width: Math.max(2, element.width * scale),
+            height: Math.max(2, element.height * scale),
+          },
+      commit,
     );
   };
   const exportPdf = async () => {
@@ -266,31 +306,64 @@ export default function PersonalDesigner() {
           <fieldset disabled={busy} className="cd-workspace">
             {stage === "design" ? (
               <>
-                <div className="cd-template-list" aria-label="Design templates">
-                  {DESIGN_TEMPLATES.map((t) => (
-                    <button
-                      key={t.id}
-                      onClick={() => {
-                        const next = templateCard(t.id);
-                        updateCard({
-                          ...next,
-                          destination: current.destination,
-                        });
-                        setSelected(null);
-                      }}
-                    >
-                      <span style={{ background: t.color, color: t.ink }}>
-                        {t.id === "blank"
-                          ? "+"
-                          : t.id === "halloween"
-                            ? "BOO."
-                            : "Hello."}
-                      </span>
-                      <strong>{t.name}</strong>
-                      <small>{t.category}</small>
-                    </button>
-                  ))}
-                </div>
+                <section
+                  className="cd-template-picker"
+                  aria-label="Design templates"
+                >
+                  <div className="cd-template-heading">
+                    <h2>Pick a vibe. Make it yours.</h2>
+                    <p>Every word, color, and photo is yours to change.</p>
+                  </div>
+                  <div
+                    className="cd-template-categories"
+                    aria-label="Template categories"
+                  >
+                    {[...new Set(DESIGN_TEMPLATES.map((t) => t.category))].map(
+                      (value) => (
+                        <button
+                          key={value}
+                          aria-pressed={category === value}
+                          onClick={() => setCategory(value)}
+                        >
+                          {value}
+                        </button>
+                      ),
+                    )}
+                  </div>
+                  <div className="cd-template-list">
+                    {DESIGN_TEMPLATES.filter(
+                      (t) => t.category === category,
+                    ).map((t) => {
+                      const sample = templateCard(
+                        t.id,
+                        current.orientation || "landscape",
+                      );
+                      return (
+                        <button
+                          key={t.id}
+                          aria-label={`Use ${t.name} template`}
+                          onClick={() => {
+                            updateCard({
+                              ...sample,
+                              destination: current.destination,
+                            });
+                            setSelected(null);
+                          }}
+                        >
+                          <div className="cd-template-proof">
+                            <CardCanvas
+                              draft={{ ...draft, cards: [sample, sample] }}
+                              card={0}
+                              side="front"
+                            />
+                          </div>
+                          <strong>{t.name}</strong>
+                          <small>{t.category}</small>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </section>
                 <div className="cd-editor-grid">
                   <section className="cd-stage">
                     <div className="cd-toolbar">
@@ -315,13 +388,35 @@ export default function PersonalDesigner() {
                             aria-pressed={side === value}
                             onClick={() => {
                               setSide(value);
-                              setSelected(null);
+                              setSelected(value === "back" ? "__qr" : null);
                             }}
                           >
                             {value === "front" ? "Front" : "Back"}
                           </button>
                         ))}
                       </div>
+                    </div>
+                    <div
+                      className="cd-orientation"
+                      role="group"
+                      aria-label="Card orientation"
+                    >
+                      {(["landscape", "portrait"] as const).map((value) => (
+                        <button
+                          key={value}
+                          aria-pressed={
+                            (current.orientation || "landscape") === value
+                          }
+                          onClick={() => {
+                            updateCard(reorientCard(current, value));
+                            setSelected(null);
+                          }}
+                        >
+                          <span className={`cd-orientation-icon ${value}`} />
+                          {value === "landscape" ? "Sideways" : "Standing up"}
+                        </button>
+                      ))}
+                      <span>Same card. Your point of view.</span>
                     </div>
                     <div className="cd-canvas-wrap">
                       <CardCanvas
@@ -332,11 +427,13 @@ export default function PersonalDesigner() {
                         selected={selected}
                         onSelect={setSelected}
                         onMove={move}
+                        onResize={resize}
                       />
                     </div>
                     <p className="cd-canvas-help">
-                      Click an element to edit it. Drag to move it, or use the
-                      position controls. Dashed guides won't print.
+                      Click to edit, drag to move, grab a corner to resize.
+                      Center snapping helps you line things up. Dashed guides
+                      won't print.
                     </p>
                     <div className="cd-toolbar">
                       <label className="cd-inline">
@@ -418,401 +515,71 @@ export default function PersonalDesigner() {
                       QR on the back updates automatically.
                     </p>
                   </section>
-                  <aside className="cd-controls">
-                    <h2>
-                      {layer
-                        ? layer.kind === "text"
-                          ? "Edit your text"
-                          : "Edit your image"
-                        : "Your canvas"}
-                    </h2>
-                    <label>
-                      Background
-                      <input
-                        type="color"
-                        value={face.background}
-                        onChange={(e) =>
-                          updateCard({
-                            [side]: { ...face, background: e.target.value },
-                          })
-                        }
-                      />
-                    </label>
-                    {layer ? (
-                      <>
-                        {layer.kind === "text" ? (
-                          <>
-                            <label>
-                              Text
-                              <textarea
-                                rows={3}
-                                maxLength={280}
-                                value={layer.text}
-                                onChange={(e) =>
-                                  updateLayer({ text: e.target.value })
-                                }
-                              />
-                            </label>
-                            <div className="cd-control-row">
-                              <label>
-                                Text color
-                                <input
-                                  type="color"
-                                  value={layer.color}
-                                  onChange={(e) =>
-                                    updateLayer({ color: e.target.value })
-                                  }
-                                />
-                              </label>
-                              <label>
-                                Size (pt)
-                                <input
-                                  type="number"
-                                  min="6"
-                                  max="60"
-                                  step="0.5"
-                                  value={+((layer.size * 72) / 25.4).toFixed(1)}
-                                  onChange={(e) =>
-                                    updateLayer({
-                                      size:
-                                        (Math.max(
-                                          6,
-                                          Math.min(60, +e.target.value),
-                                        ) *
-                                          25.4) /
-                                        72,
-                                    })
-                                  }
-                                />
-                              </label>
-                            </div>
-                            <label>
-                              Font
-                              <select
-                                value={layer.font}
-                                onChange={(e) =>
-                                  updateLayer({
-                                    font: e.target.value as CardFont,
-                                  })
-                                }
-                              >
-                                <option value="sans">Clean sans</option>
-                                <option value="serif">Classic serif</option>
-                                <option value="mono">Typewriter</option>
-                              </select>
-                            </label>
-                            <label className="cd-inline">
-                              <input
-                                type="checkbox"
-                                checked={layer.bold}
-                                onChange={(e) =>
-                                  updateLayer({ bold: e.target.checked })
-                                }
-                              />
-                              Bold
-                            </label>
-                          </>
-                        ) : (
-                          <>
-                            <p className="sf-price-note">{layer.label}</p>
-                            <label>
-                              Width (mm)
-                              <input
-                                type="number"
-                                min="2"
-                                max="170"
-                                value={+layer.width.toFixed(1)}
-                                onChange={(e) => {
-                                  const width = Math.max(
-                                    2,
-                                    Math.min(170, +e.target.value),
-                                  );
-                                  updateLayer({
-                                    width,
-                                    height:
-                                      (width * layer.pixelsHigh) /
-                                      layer.pixelsWide,
-                                  } as Partial<ImageLayer>);
-                                }}
-                              />
-                            </label>
-                            <button
-                              className="sf-text-link"
-                              onClick={() => {
-                                const scale = Math.max(
-                                  CARD_MM.width / layer.pixelsWide,
-                                  CARD_MM.height / layer.pixelsHigh,
-                                );
-                                updateLayer({
-                                  x:
-                                    (CARD_MM.width - layer.pixelsWide * scale) /
-                                    2,
-                                  y:
-                                    (CARD_MM.height -
-                                      layer.pixelsHigh * scale) /
-                                    2,
-                                  width: layer.pixelsWide * scale,
-                                  height: layer.pixelsHigh * scale,
-                                });
-                              }}
-                            >
-                              Fill the card with this image
-                            </button>
-                            <p className="sf-price-note">
-                              Images keep their proportions. For a full-card
-                              image, aim for at least 1011 × 638 pixels.
-                            </p>
-                          </>
-                        )}
-                        <div className="cd-control-row">
-                          <label>
-                            Left (mm)
-                            <input
-                              type="number"
-                              step="0.5"
-                              value={+layer.x.toFixed(1)}
-                              onChange={(e) =>
-                                updateLayer({
-                                  x: Math.max(
-                                    -85.6,
-                                    Math.min(85.6, +e.target.value),
-                                  ),
-                                })
+                  <DesignerControls
+                    card={current}
+                    side={side}
+                    selected={selected}
+                    onSelect={setSelected}
+                    updateLayer={updateLayer}
+                    updateCard={updateCard}
+                    otherCard={card === 0 ? 2 : 1}
+                    copySide={() => {
+                      const target = card === 0 ? 1 : 0;
+                      const fitted = reorientCard(
+                        current,
+                        draft.cards[target].orientation || "landscape",
+                      );
+                      change({
+                        ...draft,
+                        cards: draft.cards.map((c, i) =>
+                          i === target
+                            ? {
+                                ...c,
+                                [side]: structuredClone(fitted[side]),
+                                ...(side === "back"
+                                  ? { qr: { ...fitted.qr } }
+                                  : {}),
                               }
-                            />
-                          </label>
-                          <label>
-                            Top (mm)
-                            <input
-                              type="number"
-                              step="0.5"
-                              value={+layer.y.toFixed(1)}
-                              onChange={(e) =>
-                                updateLayer({
-                                  y: Math.max(
-                                    -54,
-                                    Math.min(54, +e.target.value),
-                                  ),
-                                })
-                              }
-                            />
-                          </label>
-                        </div>
-                        <div className="cd-layer-actions">
-                          <button
-                            onClick={() =>
-                              updateCard({
-                                [side]: {
-                                  ...face,
-                                  layers: [
-                                    layer,
-                                    ...face.layers.filter(
-                                      (l) => l.id !== selected,
-                                    ),
-                                  ],
-                                },
-                              })
-                            }
-                          >
-                            Send to back
-                          </button>
-                          <button
-                            onClick={() =>
-                              updateCard({
-                                [side]: {
-                                  ...face,
-                                  layers: [
-                                    ...face.layers.filter(
-                                      (l) => l.id !== selected,
-                                    ),
-                                    layer,
-                                  ],
-                                },
-                              })
-                            }
-                          >
-                            Bring to front
-                          </button>
-                          <button
-                            onClick={() => {
-                              updateCard({
-                                [side]: {
-                                  ...face,
-                                  layers: face.layers.filter(
-                                    (l) => l.id !== selected,
-                                  ),
-                                },
-                              });
-                              setSelected(null);
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            Delete
-                          </button>
-                        </div>
-                      </>
-                    ) : (
-                      <p className="sf-price-note">
-                        Choose text or an image on your card. Add as many as you
-                        need, up to 24 elements per side.
-                      </p>
-                    )}
-                    {side === "back" && (
-                      <details>
-                        <summary>QR position & size</summary>
-                        <div className="cd-control-row">
-                          {(["x", "y", "size"] as const).map((key) => (
-                            <label key={key}>
-                              {key === "size"
-                                ? "Size"
-                                : key === "x"
-                                  ? "Left"
-                                  : "Top"}{" "}
-                              (mm)
-                              <input
-                                type="number"
-                                step="0.5"
-                                min={key === "size" ? 22 : 3}
-                                max={key === "x" ? 60 : 45}
-                                value={current.qr[key]}
-                                onChange={(e) =>
-                                  updateCard({
-                                    qr: {
-                                      ...current.qr,
-                                      [key]: +e.target.value,
-                                    },
-                                  })
-                                }
-                              />
-                            </label>
-                          ))}
-                        </div>
-                      </details>
-                    )}
-                    <details>
-                      <summary>All elements</summary>
-                      <div className="cd-layer-list">
-                        {face.layers.map((l) => (
-                          <button
-                            key={l.id}
-                            aria-pressed={l.id === selected}
-                            onClick={() => setSelected(l.id)}
-                          >
-                            {l.kind === "text"
-                              ? l.text.slice(0, 40) || "Empty text"
-                              : l.label}
-                          </button>
-                        ))}
-                      </div>
-                    </details>
+                            : c,
+                        ) as CardDraft["cards"],
+                      });
+                    }}
+                  />
+                </div>
+                <div className="cd-inspiration-bar">
+                  <span>A little extra personality?</span>
+                  {[
+                    "✦",
+                    "♡",
+                    "☺",
+                    "BOO!",
+                    "Good vibes.",
+                    "Your next favorite person.",
+                  ].map((text) => (
                     <button
-                      className="sf-text-link"
+                      key={text}
                       onClick={() =>
-                        change({
-                          ...draft,
-                          cards: draft.cards.map((c, i) =>
-                            i === card
-                              ? c
-                              : { ...c, [side]: structuredClone(face) },
-                          ) as CardDraft["cards"],
+                        addLayer({
+                          id: crypto.randomUUID(),
+                          kind: "text",
+                          x: 7,
+                          y: 10,
+                          text,
+                          size: text.length < 5 ? 6 : 3.2,
+                          color:
+                            face.background === "#ffffff"
+                              ? "#182b23"
+                              : "#b13947",
+                          font: "sans",
+                          bold: true,
                         })
                       }
                     >
-                      Copy this side to card {card === 0 ? 2 : 1}
+                      {text}
                     </button>
-                  </aside>
+                  ))}
                 </div>
-                <section className="cd-destinations">
-                  <div>
-                    <p className="sf-eyebrow">
-                      Where should the tap take them?
-                    </p>
-                    <h2>Your cards. Your choice.</h2>
-                    <p>
-                      Point each card to a different link, or use the same one
-                      for both.
-                    </p>
-                  </div>
-                  <div className="cd-link-fields">
-                    {draft.cards.map((c, i) => (
-                      <label key={i}>
-                        Card {i + 1} destination
-                        <input
-                          value={c.destination}
-                          disabled={draft.hosted}
-                          maxLength={220}
-                          onChange={(e) =>
-                            change({
-                              ...draft,
-                              cards: draft.cards.map((item, j) =>
-                                j === i
-                                  ? { ...item, destination: e.target.value }
-                                  : item,
-                              ) as CardDraft["cards"],
-                            })
-                          }
-                          placeholder="yourwebsite.com or a social profile"
-                        />
-                      </label>
-                    ))}
-                    <p className="sf-price-note">
-                      Use your own links with no ongoing TapAway fee. The
-                      printed QR destination stays the same.
-                    </p>
-                  </div>
-                  <label className="cd-hosting">
-                    <input
-                      type="checkbox"
-                      checked={draft.hosted}
-                      onChange={(e) =>
-                        change({ ...draft, hosted: e.target.checked })
-                      }
-                    />
-                    <span>
-                      <strong>
-                        Add my own TapAway hub · $5/month{" "}
-                        <small>(optional)</small>
-                      </strong>
-                      <span>
-                        Put all your links in one place, update them anytime,
-                        and see visits and link activity. Both cards open your
-                        hub. Cancel anytime.
-                      </span>
-                      <small>
-                        $44 today with your cards, then $5/month. No personal
-                        free trial.
-                      </small>
-                    </span>
-                  </label>
-                  {draft.hosted && (
-                    <div className="cd-hosted-fields">
-                      <label>
-                        Name on your hub
-                        <input
-                          maxLength={100}
-                          value={draft.hubName}
-                          onChange={(e) =>
-                            change({ ...draft, hubName: e.target.value })
-                          }
-                          placeholder="Your name or personal brand"
-                        />
-                      </label>
-                      <label>
-                        Links to include{" "}
-                        <small>(one per line; you can add more later)</small>
-                        <textarea
-                          rows={3}
-                          maxLength={2000}
-                          value={draft.hubLinks}
-                          onChange={(e) =>
-                            change({ ...draft, hubLinks: e.target.value })
-                          }
-                          placeholder="https://yourportfolio.com"
-                        />
-                      </label>
-                    </div>
-                  )}
-                </section>
+                <CardDestinations draft={draft} onChange={change} />
               </>
             ) : (
               <section className="cd-review">

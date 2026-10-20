@@ -1,7 +1,7 @@
 import { PDFDocument, rgb, cmyk } from "pdf-lib";
 import QRCode from "qrcode";
 import {
-  CARD_MM,
+  cardSize,
   FONT_FAMILIES,
   cardDestination,
   checkDesign,
@@ -60,14 +60,15 @@ export async function createCardPdf(draft: CardDraft): Promise<Uint8Array> {
   ]);
   for (let index = 0; index < 2; index++) {
     const card = draft.cards[index];
+    const dimensions = cardSize(card);
     for (const side of ["front", "back"] as const) {
-      const page = pdf.addPage([CARD_MM.width * MM, CARD_MM.height * MM]);
+      const page = pdf.addPage([dimensions.width * MM, dimensions.height * MM]);
       const face = card[side];
       page.drawRectangle({
         x: 0,
         y: 0,
-        width: CARD_MM.width * MM,
-        height: CARD_MM.height * MM,
+        width: dimensions.width * MM,
+        height: dimensions.height * MM,
         color: color(face.background),
       });
       for (const layer of face.layers) {
@@ -75,7 +76,7 @@ export async function createCardPdf(draft: CardDraft): Promise<Uint8Array> {
           const image = await pdf.embedPng(layer.src);
           page.drawImage(image, {
             x: layer.x * MM,
-            y: (CARD_MM.height - layer.y - layer.height) * MM,
+            y: (dimensions.height - layer.y - layer.height) * MM,
             width: layer.width * MM,
             height: layer.height * MM,
           });
@@ -86,7 +87,7 @@ export async function createCardPdf(draft: CardDraft): Promise<Uint8Array> {
             image = await pdf.embedPng(raster.png);
           page.drawImage(image, {
             x: layer.x * MM,
-            y: (CARD_MM.height - layer.y - raster.height) * MM,
+            y: (dimensions.height - layer.y - raster.height) * MM,
             width: raster.width * MM,
             height: raster.height * MM,
           });
@@ -100,7 +101,7 @@ export async function createCardPdf(draft: CardDraft): Promise<Uint8Array> {
           quiet = 4,
           unit = (card.qr.size * MM) / (modules + quiet * 2);
         const left = card.qr.x * MM,
-          bottom = (CARD_MM.height - card.qr.y - card.qr.size) * MM;
+          bottom = (dimensions.height - card.qr.y - card.qr.size) * MM;
         page.drawRectangle({
           x: left,
           y: bottom,

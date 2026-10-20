@@ -176,7 +176,7 @@ export async function activatePersonalOrder(
           id: order.personal_profile_id,
           user_id: userId,
           username: `p${order.id.replace(/-/g, "")}`,
-          full_name: order.hub_name,
+          full_name: order.hub_name || session.customer_details?.name || "Your new hub",
           email,
           plan_type: "personal_hosted",
           subscription_status: session.livemode
@@ -223,7 +223,7 @@ export async function activatePersonalOrder(
       .eq("id", order.id);
     if (error) throw error;
     // Checkout confirmation is transactional. Never enroll the buyer in marketing.
-    const text = `Your two TapAway cards are paid for. We'll check your artwork, print both cards, program their links, and ship to the address you entered. ${order.hub_requested ? "Your optional personal hub is $5/month until canceled. Request a sign-in link at https://tapaway.co/support to edit your hub and manage billing." : "Your cards are a one-time purchase with no TapAway subscription."} Questions? Reply to tap@tapaway.co. Order ${order.id}.`;
+    const text = `Your two TapAway cards are paid for. We'll check your artwork, print both cards, program their links, and ship to the address you entered. ${order.hub_requested ? "Your optional personal hub is $5/month until canceled. No website is needed. Request your dashboard access at https://tapaway.co/support#access, choose an available tapaway.co/yourname address, then add photos, text, links and colors. Your dashboard and analytics are available 24/7." : "Your cards are a one-time purchase with no TapAway subscription."} Questions? Reply to tap@tapaway.co. Order ${order.id}.`;
     await sendEmail(
       email,
       "Your TapAway card order",

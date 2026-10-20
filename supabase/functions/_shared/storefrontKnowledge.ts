@@ -8,7 +8,7 @@ export const STOREFRONT_FAQS = [
   {
     question: "What's the difference between business and personal?",
     answer:
-      "Business plans include 4 or 15 custom cards, a hosted business hub, analytics, done-for-you setup, support, and a business free trial. Personal is $39 once for two custom cards with free standard US shipping. Personal cards can open your own links without a subscription. A TapAway personal hub with analytics is optional at $5/month.",
+      "Business plans include 4 or 15 custom cards, a hosted business hub, analytics, done-for-you setup, support, and a business free trial. Personal is $39 once for two custom cards with free standard US shipping. Personal cards can open your own links without a subscription. A TapAway personal hub is optional at $5/month: your own tapaway.co/yourname address (subject to availability), hosting, your full dashboard, analytics, and editing access 24/7. No existing website is needed. After payment, choose your address and customize photos, text, colors and optional links in the dashboard. You may instead connect existing Linktree, Linkme, social, or website links with no ongoing TapAway fee; third-party terms apply.",
   },
   {
     question: "When will I be charged?",
@@ -18,7 +18,7 @@ export const STOREFRONT_FAQS = [
   {
     question: "Can I design both personal cards?",
     answer:
-      "Yes. Start with a template or a blank card. Add your own images and text, edit both sides of each card, and give each card its own destination link. Both tap and QR open that card's destination. Preview your design before you buy; our team checks the artwork before printing.",
+      "Yes. Start with a template or a blank card. Add your own images and text, choose standing-up or sideways cards, use networking, meme, positive-message or seasonal templates, edit both sides of each card, and give each card its own destination link. Both tap and QR open that card's destination. Preview your design before you buy; our team checks the artwork before printing.",
   },
   {
     question: "How do I cancel hosting or a business plan?",

@@ -6,7 +6,7 @@ import {
 } from "../_shared/personalCards.ts";
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
-  const offer = { amount: 3900, hubAmount: 500, currency: "usd" };
+  const offer = { designerVersion: 2, amount: 3900, hubAmount: 500, currency: "usd" };
   try {
     if (!(await personalCardsAllowed(req)))
       return json({ ...offer, available: false, hubAvailable: false });

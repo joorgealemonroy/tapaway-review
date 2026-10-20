@@ -95,9 +95,7 @@ serve(async (req) => {
         .filter(Boolean);
     if (
       draft.hosted &&
-      (!hubName ||
-        hubLinksRaw.length > 20 ||
-        hubLinksRaw.some((x) => !publicLink(x)))
+      (hubLinksRaw.length > 20 || hubLinksRaw.some((x) => !publicLink(x)))
     )
       return json({ error: "Check your hub name and links." }, 400);
     const destinations = draft.cards.map((c: { destination: unknown }) =>
@@ -108,7 +106,24 @@ serve(async (req) => {
     if (destinations.some((x: string) => !x))
       return json({ error: "Add a valid destination for each card." }, 400);
     // Validate the editable source as well as the final print file. Prices and quantities never come from it.
-    for (const card of draft.cards)
+    for (const card of draft.cards) {
+      if (
+        card.orientation &&
+        !["landscape", "portrait"].includes(card.orientation)
+      )
+        return json({ error: "Choose portrait or landscape." }, 400);
+      const width = card.orientation === "portrait" ? 53.98 : 85.6,
+        height = card.orientation === "portrait" ? 85.6 : 53.98;
+      if (
+        !card.qr ||
+        ![card.qr.x, card.qr.y, card.qr.size].every(Number.isFinite) ||
+        card.qr.size < 22 ||
+        card.qr.x < 3 ||
+        card.qr.y < 3 ||
+        card.qr.x + card.qr.size > width - 3 ||
+        card.qr.y + card.qr.size > height - 3
+      )
+        return json({ error: "Keep the QR code inside the safe area." }, 400);
       for (const side of ["front", "back"]) {
         const face = card?.[side];
         if (
@@ -154,13 +169,19 @@ serve(async (req) => {
             return json({ error: "Invalid text." }, 400);
         }
       }
+    }
     const source = { ...draft, checkoutToken: undefined };
     const manifest = JSON.stringify({
       ...source,
       destinations,
       print: {
-        widthMm: 85.6,
-        heightMm: 53.98,
+        pageSizesMm: draft.cards.flatMap((c: { orientation?: string }) =>
+          Array.from({ length: 2 }, () =>
+            c.orientation === "portrait"
+              ? { width: 53.98, height: 85.6 }
+              : { width: 85.6, height: 53.98 },
+          ),
+        ),
         dpiTarget: 300,
         ribbon: "YMCKO R5F208A100",
         pageOrder: [
@@ -247,10 +268,14 @@ serve(async (req) => {
         { error: "Your print file must include both sides of both cards." },
         400,
       );
-    for (const p of loaded.getPages()) {
+    for (const [index, p] of loaded.getPages().entries()) {
+      const portrait =
+        draft.cards[Math.floor(index / 2)].orientation === "portrait";
       if (
-        Math.abs(p.getWidth() - (85.6 * 72) / 25.4) > 0.1 ||
-        Math.abs(p.getHeight() - (53.98 * 72) / 25.4) > 0.1 ||
+        Math.abs(p.getWidth() - ((portrait ? 53.98 : 85.6) * 72) / 25.4) >
+          0.1 ||
+        Math.abs(p.getHeight() - ((portrait ? 85.6 : 53.98) * 72) / 25.4) >
+          0.1 ||
         p.getRotation().angle !== 0
       )
         return json(

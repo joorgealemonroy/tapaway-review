@@ -58,8 +58,10 @@ export async function activateCheckout(stripe: Stripe, session: Stripe.Checkout.
     billing_address: addr(session.customer_details?.address, session.customer_details?.name),
     ...(intent.business_details?.name ? {
       business_name: intent.business_details.name, business_city: intent.business_details.city,
-      business_link: intent.business_details.link || null, needs_research: true,
-      setup_status: "needs_business_research", step: "logo",
+      business_link: intent.business_details.link || null,
+      google_place_id: intent.business_details.googlePlaceId || null, business_address: intent.business_details.address || null,
+      needs_research: !intent.business_details.googlePlaceId,
+      setup_status: intent.business_details.googlePlaceId ? "business_identified" : "needs_business_research", step: "logo",
     } : {}),
   }, { onConflict: "checkout_intent_id", ignoreDuplicates: true });
 
@@ -185,7 +187,7 @@ export async function ensureDraftProfile(db: Db, intentId: string, userId: strin
     plan_type: intent.billing_interval === "year" ? `${intent.plan}_yearly` : intent.plan,
     subscription_status: "trialing", is_approved: false, pipeline_status: "draft", legacy_allowance: false,
     stripe_customer_id: intent.stripe_customer_id, stripe_subscription_id: sess.stripe_subscription_id,
-    place_city: intent.business_details?.city || a.city || null, place_state: a.state ?? null, place_zip: a.postal_code ?? null,
+    place_city: intent.business_details?.city || a.city || null, place_state: intent.business_details?.state || a.state || null, place_zip: intent.business_details?.postalCode || a.postal_code || null,
   }).select("id").single();
   if (error || !prof) { console.error("[activation] draft hub failed", error?.message); return null; }
   await db.from("onboarding_sessions").update({ personal_profile_id: prof.id, hub_status: "draft" }).eq("id", sess.id).is("personal_profile_id", null);

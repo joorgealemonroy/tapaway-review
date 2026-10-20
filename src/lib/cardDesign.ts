@@ -1,3 +1,5 @@
+import { DESIGN_TEMPLATES } from "@/data/cardTemplates";
+export { DESIGN_TEMPLATES } from "@/data/cardTemplates";
 export const CARD_MM = {
   width: 85.6,
   height: 53.98,
@@ -30,7 +32,9 @@ export type ImageLayer = {
 };
 export type Layer = TextLayer | ImageLayer;
 export type CardFace = { background: string; layers: Layer[] };
+export type CardOrientation = "landscape" | "portrait";
 export type CustomCard = {
+  orientation?: CardOrientation;
   title: string;
   destination: string;
   front: CardFace;
@@ -51,108 +55,191 @@ export const FONT_FAMILIES: Record<CardFont, string> = {
   serif: "'Times New Roman', Times, serif",
   mono: "'Courier New', monospace",
 };
-export const DESIGN_TEMPLATES = [
-  {
-    id: "network",
-    name: "The introduction",
-    category: "Networking",
-    color: "#edf1e7",
-    ink: "#182b23",
-    title: "Nice to meet you.",
-    sub: "YOUR NAME / YOUR NEXT CHAPTER",
-  },
-  {
-    id: "personal",
-    name: "Good energy",
-    category: "Personal",
-    color: "#ffc9df",
-    ink: "#4e2142",
-    title: "Good energy only.",
-    sub: "YOUR NAME / YOUR WORLD",
-  },
-  {
-    id: "halloween",
-    name: "After dark",
-    category: "Halloween",
-    color: "#20182e",
-    ink: "#ffbf83",
-    title: "Let's haunt out.",
-    sub: "A CONNECTION WORTH KEEPING",
-  },
-  {
-    id: "blank",
-    name: "Make your own",
-    category: "Blank canvas",
-    color: "#ffffff",
-    ink: "#111111",
-    title: "",
-    sub: "",
-  },
-] as const;
-export function templateCard(templateId: string): CustomCard {
+export function cardSize(card: Pick<CustomCard, "orientation">) {
+  return card.orientation === "portrait"
+    ? { width: CARD_MM.height, height: CARD_MM.width }
+    : { width: CARD_MM.width, height: CARD_MM.height };
+}
+export function layerBounds(layer: Layer) {
+  return layer.kind === "image"
+    ? { width: layer.width, height: layer.height }
+    : {
+        width: textWidth(layer),
+        height: layer.size * 1.15 * layer.text.split("\n").length,
+      };
+}
+function wrapText(
+  text: string,
+  width: number,
+  size: number,
+  font: CardFont,
+  bold: boolean,
+) {
+  return text
+    .split("\n")
+    .flatMap((line) => {
+      const lines: string[] = [];
+      let current = "";
+      for (const word of line.split(" ")) {
+        const next = current ? current + " " + word : word;
+        if (
+          current &&
+          textWidth({ text: next, size, font, bold } as TextLayer) > width
+        ) {
+          lines.push(current);
+          current = word;
+        } else current = next;
+      }
+      lines.push(current);
+      return lines;
+    })
+    .join("\n");
+}
+export function templateCard(
+  templateId: string,
+  orientation: CardOrientation = "landscape",
+): CustomCard {
   const t =
     DESIGN_TEMPLATES.find((x) => x.id === templateId) || DESIGN_TEMPLATES[0];
+  const { width, height } = cardSize({ orientation });
+  const portrait = orientation === "portrait";
+  const text = (
+    value: string,
+    x: number,
+    y: number,
+    size: number,
+    ink = t.ink as string,
+    font = t.font as CardFont,
+    bold = true,
+    maxWidth = width - 14,
+  ): TextLayer => ({
+    id: crypto.randomUUID(),
+    kind: "text",
+    x,
+    y,
+    text: wrapText(value, maxWidth, size, font, bold),
+    size,
+    color: ink,
+    font,
+    bold,
+  });
+  const footer = text(t.sub, 7, 0, 2.6, t.ink, "sans", false);
+  footer.y = height - 6 - layerBounds(footer).height;
+  const headline = text(
+    t.title,
+    7,
+    portrait ? 24 : 16,
+    portrait ? Math.min(t.size, 6.0) : t.size,
+  );
+  const maxHeadline = footer.y - headline.y - 4;
+  if (layerBounds(headline).height > maxHeadline)
+    headline.size *= maxHeadline / layerBounds(headline).height;
   return {
     title: t.name,
+    orientation,
     destination: "",
-    qr: { x: 56, y: 15, size: 24 },
+    qr: portrait
+      ? { x: (width - 26) / 2, y: height - 34, size: 26 }
+      : { x: width - 30, y: (height - 24) / 2, size: 24 },
     front: {
       background: t.color,
       layers:
         t.id === "blank"
           ? []
-          : [
-              {
-                id: crypto.randomUUID(),
-                kind: "text",
-                x: 7,
-                y: 19,
-                text: t.title,
-                size: 5.1,
-                color: t.ink,
-                font: "sans",
-                bold: true,
-              },
-              {
-                id: crypto.randomUUID(),
-                kind: "text",
-                x: 7,
-                y: 37,
-                text: t.sub,
-                size: 2.6,
-                color: t.ink,
-                font: "sans",
-                bold: false,
-              },
-            ],
+          : [text(t.kicker, 7, 6, 2.6, t.ink, "sans", false), headline, footer],
     },
     back: {
-      background: "#ffffff",
+      background: t.color,
       layers: [
-        {
-          id: crypto.randomUUID(),
-          kind: "text",
-          x: 7,
-          y: 17,
-          text: "Your world,\none tap away.",
-          size: 3.8,
-          color: "#172b23",
-          font: "sans",
-          bold: true,
-        },
-        {
-          id: crypto.randomUUID(),
-          kind: "text",
-          x: 7,
-          y: 36,
-          text: "TAP OR SCAN",
-          size: 2.6,
-          color: "#172b23",
-          font: "sans",
-          bold: false,
-        },
+        text(
+          "Your world,\none tap away.",
+          7,
+          portrait ? 12 : 15,
+          3.8,
+          t.ink,
+          t.font,
+          true,
+          portrait ? width - 14 : width - 41,
+        ),
+        text(
+          "TAP OR SCAN",
+          7,
+          portrait ? 36 : 37,
+          2.6,
+          t.ink,
+          "sans",
+          false,
+          portrait ? width - 14 : width - 41,
+        ),
       ],
     },
+  };
+}
+/** Fit existing artwork without stretching when changing the card's orientation. */
+export function reorientCard(
+  card: CustomCard,
+  orientation: CardOrientation,
+): CustomCard {
+  if ((card.orientation || "landscape") === orientation) return card;
+  // Untouched templates reflow into their designed portrait/landscape layout.
+  // Custom artwork keeps its text and images and is fitted without stretching.
+  const preset = DESIGN_TEMPLATES.find((t) => t.name === card.title);
+  if (preset) {
+    const original = templateCard(preset.id, card.orientation || "landscape");
+    const comparable = (face: CardFace) =>
+      JSON.stringify({
+        ...face,
+        layers: face.layers.map(({ id, ...layer }) => layer),
+      });
+    if (
+      comparable(card.front) === comparable(original.front) &&
+      comparable(card.back) === comparable(original.back)
+    ) {
+      return {
+        ...templateCard(preset.id, orientation),
+        destination: card.destination,
+      };
+    }
+  }
+
+  const next = templateCard("blank", orientation),
+    after = cardSize(next);
+  const fit = (face: CardFace, back: boolean): CardFace => {
+    const region = back
+      ? orientation === "portrait"
+        ? { x: 5, y: 6, width: after.width - 10, height: 34 }
+        : { x: 5, y: 7, width: after.width - 42, height: after.height - 14 }
+      : { x: 5, y: 5, width: after.width - 10, height: after.height - 10 };
+    if (!face.layers.length) return face;
+    const left = Math.min(...face.layers.map((l) => l.x)),
+      top = Math.min(...face.layers.map((l) => l.y));
+    const w =
+      Math.max(...face.layers.map((l) => l.x + layerBounds(l).width)) - left;
+    const h =
+      Math.max(...face.layers.map((l) => l.y + layerBounds(l).height)) - top;
+    const scale = Math.min(
+      1,
+      region.width / Math.max(w, 1),
+      region.height / Math.max(h, 1),
+    );
+    return {
+      ...face,
+      layers: face.layers.map((l) => ({
+        ...l,
+        x: region.x + (l.x - left) * scale,
+        y: region.y + (l.y - top) * scale,
+        ...(l.kind === "image"
+          ? { width: l.width * scale, height: l.height * scale }
+          : { size: l.size * scale }),
+      })),
+    };
+  };
+  return {
+    ...card,
+    orientation,
+    front: fit(card.front, false),
+    back: fit(card.back, true),
+    qr: next.qr,
   };
 }
 export function newDraft(template = "network"): CardDraft {
@@ -209,6 +296,7 @@ export function checkDesign(draft: CardDraft): PrintIssue[] {
   const issues: PrintIssue[] = [];
   draft.cards.forEach((card, i) => {
     const prefix = `Card ${i + 1}`;
+    const dimensions = cardSize(card);
     if (!cardDestination(draft, i))
       issues.push({
         level: "error",
@@ -251,8 +339,8 @@ export function checkDesign(draft: CardDraft): PrintIssue[] {
           if (
             layer.x < 3 ||
             layer.y < 3 ||
-            layer.x + width > CARD_MM.width - 3 ||
-            layer.y + height > CARD_MM.height - 3
+            layer.x + width > dimensions.width - 3 ||
+            layer.y + height > dimensions.height - 3
           )
             issues.push({
               level: "error",
@@ -276,31 +364,14 @@ export function checkDesign(draft: CardDraft): PrintIssue[] {
       card.qr.size < 22 ||
       card.qr.x < 3 ||
       card.qr.y < 3 ||
-      card.qr.x + card.qr.size > CARD_MM.width - 3 ||
-      card.qr.y + card.qr.size > CARD_MM.height - 3
+      card.qr.x + card.qr.size > dimensions.width - 3 ||
+      card.qr.y + card.qr.size > dimensions.height - 3
     )
       issues.push({
         level: "error",
         message: `${prefix}: keep the QR code at least 22 mm wide and inside the safe area.`,
       });
   });
-  if (draft.hosted) {
-    const links = draft.hubLinks
-      .split("\n")
-      .map((x) => x.trim())
-      .filter(Boolean);
-    if (links.length > 20 || links.some((link) => !normalizeDestination(link)))
-      issues.push({
-        level: "error",
-        message:
-          "Use up to 20 valid website links for your hub, one per line (220 characters each).",
-      });
-  }
-  if (draft.hosted && !draft.hubName.trim())
-    issues.push({
-      level: "error",
-      message: "Add the name you want on your TapAway hub.",
-    });
   return issues.filter(
     (item, index, all) =>
       all.findIndex((other) => other.message === item.message) === index,

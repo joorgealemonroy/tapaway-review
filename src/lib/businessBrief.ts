@@ -3,6 +3,14 @@ export type BusinessBrief = {
   city: string;
   link: string;
   goal: string;
+  googlePlaceId?: string;
+  address?: string;
+  state?: string;
+  postalCode?: string;
+  phone?: string;
+  googleMapsUri?: string;
+  lat?: number;
+  lng?: number;
 };
 const KEY = "tapaway-business-brief";
 export function readBusinessBrief(): BusinessBrief {

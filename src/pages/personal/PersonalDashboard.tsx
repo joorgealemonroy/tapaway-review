@@ -1,3 +1,4 @@
+import { PersonalHubGuide } from "@/components/personal/PersonalHubGuide";
 import { useState, useEffect, useRef, memo, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -1283,6 +1284,7 @@ const PersonalDashboard = () => {
             </Button>
           </div>
 
+        {profile.plan_type === "personal_hosted" && !isAdminView && <div className="mb-6"><PersonalHubGuide key={profile.id} profileId={profile.id} username={profile.username} onGoToTab={tab=>{setActiveTab(tab);window.scrollTo({top:0,behavior:"smooth"});}}/></div>}
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={(tab) => { setActiveTab(tab); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="space-y-6">
           <TabsList className={cn("hidden md:grid w-full", isTrialing ? "grid-cols-8" : "grid-cols-10")}>
@@ -1390,7 +1392,7 @@ const PersonalDashboard = () => {
               bio={profile.bio}
               planType={profile.plan_type}
               showUsername={profile.show_username ?? true}
-              usernameLocked={!!profile.is_approved}
+              usernameLocked={!!profile.is_approved && profile.plan_type !== "personal_hosted"}
 
               onUpdate={(updates) => setProfile(prev => prev ? { ...prev, ...updates } : null)}
               onPendingChangesChange={setHeroHasPending}

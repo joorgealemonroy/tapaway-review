@@ -81,15 +81,18 @@ export default function PersonalOrder() {
               </p>
             </div>
             {order.hosted && (
-              <p className="sf-copy mt-5">
-                Your optional TapAway hub is included for the first month.
+              <section className="sf-status mt-5">
+                <h2 className="text-xl font-semibold">Now, make your hub yours.</h2>
+                <ol className="my-4 space-y-3 text-sm"><li><strong>1. Pick your address.</strong> Choose an available tapaway.co/yourname in your dashboard.</li><li><strong>2. Add a little personality.</strong> Photos, colors, text, and optional links. No existing website needed.</li><li><strong>3. Keep it fresh.</strong> Update it anytime, 24/7, and see visits and link activity in your analytics.</li></ol>
+                <Link to="/dashboard?type=lite&welcome=true" className="sf-button mb-4">Customize my hub</Link>
+                <p className="sf-copy">Your first month of hosting is paid.
                 Hosting renews at $5/month until canceled. Use your checkout
                 email to{" "}
                 <Link to="/support#access" className="underline">
                   get your dashboard access link
                 </Link>{" "}
-                and add or edit links.
-              </p>
+                if you are not signed in yet. Both cards will keep opening your hub as you make it your own.
+              </p></section>
             )}
             <p className="sf-price-note mt-5">
               Order reference: {order.orderId}

@@ -147,7 +147,7 @@ export default function Personal() {
               Your kind of card.
             </h2>
             <div className="sf-template-grid">
-              {DESIGN_TEMPLATES.map((t) => (
+              {DESIGN_TEMPLATES.filter(t=>["network","personal","halloween","blank"].includes(t.id)).map((t) => (
                 <Link key={t.id} to={`/personal/design?template=${t.id}`}>
                   <div style={{ background: t.color, color: t.ink }}>
                     <small>{t.category}</small>

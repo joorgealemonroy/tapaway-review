@@ -1,3 +1,4 @@
+import { GooglePlacesAutocomplete } from "@/components/GooglePlacesAutocomplete";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
@@ -57,6 +58,10 @@ export function CheckoutOrder({
     () => canceled && getOnboardingData().cardClubSelected === true,
   );
   const [brief, setBrief] = useState(readBusinessBrief);
+  const [manual, setManual] = useState(
+    () => !!brief.name && !brief.googlePlaceId,
+  );
+  const [intakeError, setIntakeError] = useState("");
   const item = catalog.find((i) => i.plan === plan && i.interval === interval);
   const canCheckout =
     !loading &&
@@ -93,6 +98,13 @@ export function CheckoutOrder({
         onSubmit={(event) => {
           event.preventDefault();
           if (!canCheckout || busy) return;
+          if (!manual && !brief.googlePlaceId) {
+            setIntakeError(
+              "Choose your business from the search results, or enter it manually below.",
+            );
+            return;
+          }
+          setIntakeError("");
           onCheckout(club, {
             ...brief,
             name: brief.name.trim(),
@@ -126,41 +138,134 @@ export function CheckoutOrder({
           )}
           <fieldset disabled={busy} className="co-intake">
             <legend>1. Your business</legend>
-            <label>
-              Business name
-              <input
-                name="businessName"
-                autoComplete="organization"
-                required
-                minLength={2}
-                maxLength={120}
-                value={brief.name}
-                onChange={(e) => change("name", e.target.value)}
-                placeholder="The name your customers know"
-              />
-            </label>
-            <label>
-              City & state
-              <input
-                name="businessCity"
-                required
-                minLength={2}
-                maxLength={120}
-                value={brief.city}
-                onChange={(e) => change("city", e.target.value)}
-                placeholder="e.g. Claremont, CA"
-              />
-            </label>
-            <label className="co-wide">
-              Website, social, or Google listing <span>(optional)</span>
-              <input
-                name="businessLink"
-                maxLength={300}
-                value={brief.link}
-                onChange={(e) => change("link", e.target.value)}
-                placeholder="Paste a link to help us find you"
-              />
-            </label>
+            {!manual ? (
+              <div className="co-wide co-place-finder">
+                <GooglePlacesAutocomplete
+                  variant="light"
+                  label="Find your business on Google"
+                  defaultValue={brief.googlePlaceId ? brief.name : ""}
+                  placeholder="Start typing your business name…"
+                  onQueryChange={() => {
+                    if (brief.googlePlaceId) {
+                      const next = {
+                        ...brief,
+                        googlePlaceId: undefined,
+                        address: undefined,
+                      };
+                      setBrief(next);
+                      saveBusinessBrief(next);
+                    }
+                  }}
+                  onPlaceSelected={(place) => {
+                    const next: BusinessBrief = {
+                      ...brief,
+                      name: place.name,
+                      city: place.city || "",
+                      state: place.state || "",
+                      postalCode: place.postalCode || "",
+                      googlePlaceId: place.placeId,
+                      address: place.address,
+                      link: place.website || place.googleMapsUri || brief.link,
+                      phone: place.phone || "",
+                      googleMapsUri: place.googleMapsUri || "",
+                      lat: place.lat ?? undefined,
+                      lng: place.lng ?? undefined,
+                    };
+                    setBrief(next);
+                    saveBusinessBrief(next);
+                    setIntakeError("");
+                  }}
+                />
+                {brief.googlePlaceId && (
+                  <div className="co-selected-place" role="status">
+                    <Check size={18} />
+                    <div>
+                      <strong>{brief.name}</strong>
+                      <p>{brief.address}</p>
+                      <small>
+                        We'll start with this listing. You can add more after
+                        checkout.
+                      </small>
+                    </div>
+                  </div>
+                )}
+                <p className="sf-price-note">Not listed on Google?</p>
+                <button
+                  className="sf-text-link"
+                  type="button"
+                  onClick={() => {
+                    setManual(true);
+                    setIntakeError("");
+                    const next = {
+                      ...brief,
+                      googlePlaceId: undefined,
+                      address: undefined,
+                    };
+                    setBrief(next);
+                    saveBusinessBrief(next);
+                  }}
+                >
+                  Business name, city, and state
+                </button>
+              </div>
+            ) : (
+              <>
+                <label>
+                  Business name
+                  <input
+                    name="businessName"
+                    autoComplete="organization"
+                    required
+                    minLength={2}
+                    maxLength={120}
+                    value={brief.name}
+                    onChange={(e) => change("name", e.target.value)}
+                    placeholder="The name your customers know"
+                  />
+                </label>
+                <label>
+                  City & state
+                  <input
+                    name="businessCity"
+                    required
+                    minLength={2}
+                    maxLength={120}
+                    value={brief.city}
+                    onChange={(e) => change("city", e.target.value)}
+                    placeholder="e.g. Claremont, CA"
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="sf-text-link co-wide"
+                  onClick={() => {
+                    setManual(false);
+                    setIntakeError("");
+                  }}
+                >
+                  Search Google instead
+                </button>
+              </>
+            )}
+            {intakeError && (
+              <p role="alert" className="sf-status co-wide">
+                {intakeError}
+              </p>
+            )}
+            {manual && (
+              <>
+                <label className="co-wide">
+                  Website, social, or Google listing <span>(optional)</span>
+                  <input
+                    name="businessLink"
+                    maxLength={300}
+                    value={brief.link}
+                    onChange={(e) => change("link", e.target.value)}
+                    placeholder="Paste a link to help us find you"
+                  />
+                </label>
+              </>
+            )}
             <label className="co-wide">
               What should your hub help with?
               <select

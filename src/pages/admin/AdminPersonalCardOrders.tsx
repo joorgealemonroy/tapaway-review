@@ -104,14 +104,14 @@ export default function AdminPersonalCardOrders() {
         <section className="rounded-xl border border-white/15 p-5 text-sm leading-7 mb-6">
           <strong>Production setup</strong>
           <p>
-            CR80 landscape · 85.60 × 53.98 mm · print at 100%, no “fit to page.”
+            CR80 · 85.60 × 53.98 mm sideways, or 53.98 × 85.60 mm standing up. Print at 100%, no “fit to page.”
             Pages: card 1 front, card 1 back, card 2 front, card 2 back. Target:
             300 dpi. YMCKO uses a full color panel set for each printed side.
           </p>
           <p>
             Confirm the installed printer model and R5F208A100 ribbon
             compatibility. Check driver black-panel extraction, overlay, color
-            profile, and duplex orientation on a sample card before a batch. The
+            profile, page orientation, and duplex flip on a sample card before a batch. Each card pair may have a different orientation; check the driver for each pair. The
             PDF does not configure the driver or encode NFC.
           </p>
           <p>

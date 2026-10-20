@@ -11,7 +11,7 @@ const STATUSES = ["purchase_complete", "business_identified", "needs_business_re
 
 type Redemption = { id: string; status: string; requested_at: string; approved_at: string | null; quantity: number; design_update_note: string | null; tracking_number: string | null };
 type Row = {
-  id: string; business_details?: { name: string; city: string; link: string; goal: string }; email: string | null; plan: string; billing_interval: string; card_quantity: number; status: string; review_reason: string | null;
+  id: string; business_details?: { name: string; city: string; link: string; goal: string; address?: string; googlePlaceId?: string; state?: string; phone?: string }; email: string | null; plan: string; billing_interval: string; card_quantity: number; status: string; review_reason: string | null;
   stripe_customer_id: string | null; stripe_subscription_id: string | null; created_at: string; stripe_livemode: boolean;
   onboarding_sessions: { id: string; setup_status: string; hub_status: string; business_name: string | null; google_place_id: string | null; logo_url: string | null; logo_skipped: boolean; step: string; personal_profile_id: string | null; fulfillment_order_id: string | null; shipping_address: Record<string, string | null> | null }[];
   card_club_memberships: { id: string; status: string; declined_at: string | null; card_club_paid_at: string | null; last_approved_at: string | null; total_redemptions: number; replacement_interval_days: number; review_reason: string | null; card_club_redemptions: Redemption[] }[];
@@ -88,7 +88,7 @@ export default function AdminNewOrders() {
               {r.review_reason && <p className="mt-1 text-destructive">Review: {r.review_reason}</p>}
               <div className="mt-2 grid gap-1 text-muted-foreground md:grid-cols-2">
                 <p>Stripe customer: {r.stripe_customer_id ?? "—"}</p><p>Subscription: {r.stripe_subscription_id ?? "—"}</p>
-                {r.business_details && <><p>Business location: {r.business_details.city}</p><p>Goal: {r.business_details.goal || "—"}</p>{r.business_details.link && <p className="md:col-span-2">Find them online: <a className="underline" href={r.business_details.link} target="_blank" rel="noopener noreferrer">{r.business_details.link}</a></p>}</>}
+                {r.business_details && <><p>Business location: {r.business_details.address || r.business_details.city}</p><p>Goal: {r.business_details.goal || "—"}</p>{r.business_details.link && <p className="md:col-span-2">Find them online: <a className="underline" href={r.business_details.link} target="_blank" rel="noopener noreferrer">{r.business_details.link}</a></p>}</>}
                 <p>Place ID: {s?.google_place_id ?? (s?.step === "business" ? "waiting on customer" : "needs research")}</p>
                 <p>Logo: {s?.logo_url ? <a className="underline" href={s.logo_url} target="_blank" rel="noreferrer">received</a> : s?.logo_skipped ? "find it for them" : "—"}</p>
                 <p>Setup: {s?.setup_status ?? "—"} · Page: {s?.hub_status ?? "—"}</p>

@@ -17,6 +17,7 @@ const { PGlite } = require(path.join(process.env.QA_MODULES,'@electric-sql/pglit
     GRANT ALL ON storage.objects TO anon,authenticated;
     CREATE POLICY old_permissive_storage ON storage.objects FOR ALL TO anon,authenticated USING(true) WITH CHECK(true);`);
   await db.exec(fs.readFileSync(path.join(__dirname,'../supabase/migrations/20261020090000_storefront_orders.sql'),'utf8'));
+  await db.exec(fs.readFileSync(path.join(__dirname,'../supabase/migrations/20261020090000_storefront_orders.sql'),'utf8'));
   const key='a'.repeat(64);
   const concurrent=await Promise.all(Array.from({length:20},()=>db.query('SELECT public.storefront_take_quota($1,5) AS used',[key])));
   assert.deepEqual(concurrent.map(r=>r.rows[0].used).filter(n=>n>0).sort(),[1,2,3,4,5]);

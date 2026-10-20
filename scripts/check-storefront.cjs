@@ -21,7 +21,7 @@ const test = (name, run) => cases.push({ name, run });
 
 async function scenario(options = {}) {
   const context = await browser.newContext({viewport:{width:1440,height:1000},serviceWorkers:'block'});
-  const state = { catalog: structuredClone(catalog), checkout: [], support: [], chat: [], personalOrders: [], aiCount: 0, notifications: 0, errors: [], welcome:'sign_in', setup:{step:'business',business_name:null,business_address:null,shipping_address:null,logo_url:null}, setupWrites:[], setupReads:[], clubRequests:[], billingRequests:[], ...options };
+  const state = { catalog: structuredClone(catalog), checkout: [], support: [], chat: [], personalOrders: [], aiCount: 0, notifications: 0, errors: [], welcome:'sign_in', setup:{step:'business',business_name:null,business_address:null,shipping_address:null,logo_url:null}, setupWrites:[], setupReads:[], clubRequests:[], billingRequests:[], profileWrites:[], nfcWrites:[], ...options };
   await context.addInitScript(({saved,authenticated,backendHost,fakeUser}) => {
     localStorage.setItem('tapaway_tracking_consent_v2',JSON.stringify({state:'declined',visitor:'qa',at:new Date().toISOString(),noticeVersion:'2026-10-14'}));
     if(saved) localStorage.setItem('tapaway_onboarding_data',JSON.stringify(saved));
@@ -44,10 +44,11 @@ async function scenario(options = {}) {
     if(url.hostname==='tapaway.co')return route.fulfill({contentType:'text/html',body:'<html><body style="font-family:Arial;padding:70px 20px"><h1>Customer hub fixture</h1><p>External hub traffic is blocked in automated checks.</p></body></html>'});
     if(url.hostname!==backendHost)return route.abort();
     if(url.pathname.endsWith('/onboarding-plan-catalog'))return state.catalogFailure ? reply({error:'Fixture unavailable'},503) : reply({catalog:state.catalog});
-    if(url.pathname.endsWith('/personal-card-catalog'))return reply({available:!state.personalUnavailable,hubAvailable:!state.hubUnavailable,amount:3900,hubAmount:500,currency:'usd'});
+    if(url.pathname.endsWith('/personal-card-catalog'))return reply({available:!state.personalUnavailable,hubAvailable:!state.hubUnavailable,amount:3900,hubAmount:500,currency:'usd',designerVersion:state.oldPersonalCatalog?1:2});
     if(url.pathname.endsWith('/personal-card-order')) { const data=request.postDataJSON(); if(data.action==='status')return reply({orderId:'11111111-1111-4111-8111-111111111111',paid:!state.personalPending,hosted:true,productionStatus:'needs_review',status:state.personalPending?'checkout_started':'paid'});state.personalOrders.push(data); return reply({url:base+'/qa-checkout'}); }
     if(url.pathname.endsWith('/storefront-support')) { const data=request.postDataJSON(); state.chat.push(data); if(data.mode==='team')return reply({sent:true});state.aiCount++;return state.aiCount>5 ? reply({error:'Five questions used',remaining:0},429) : reply({answer:'Personal cards are $39 for two, with optional hosting at $5/month.',remaining:5-state.aiCount}); }
     if(url.pathname.endsWith('/app_settings'))return reply({paywall_enabled:true,onboarding_default_billing:'year'});
+    if(url.pathname.endsWith('/lookup-place-id'))return state.placeFailure?reply({error:'Search unavailable'},503):reply({results:[{placeId:'ChIJ_fixture',name:'QA Pizza',formattedAddress:'123 Main St, Claremont, CA 91711, USA',city:'Claremont',state:'CA',postalCode:'91711',website:'https://example.com',lat:34.1,lng:-117.7}]});
     if(url.pathname.endsWith('/payment-first-checkout')) {
       state.checkout.push(request.postDataJSON());
       return state.checkoutFailure ? reply({error:'Checkout is temporarily unavailable. Please try again.'},503) : reply({url:base+'/qa-checkout'});
@@ -77,6 +78,9 @@ async function scenario(options = {}) {
     if(url.pathname.endsWith('/support-notification')) { state.notifications++;return reply({ok:true}); }
     if(url.pathname.endsWith('/request-dashboard-access'))return state.sendLinkFailure ? reply({error:'Fixture unavailable'},503) : reply({ok:true});
     if(url.pathname.endsWith('/auth/v1/user'))return reply(fakeUser);
+    if(url.pathname.endsWith('/rpc/is_username_available'))return reply(request.postDataJSON().check_username!=='taken');
+    if(url.pathname.endsWith('/nfc_cards')&&request.method()==='PATCH'){state.nfcWrites.push(request.postDataJSON());return reply(null);}
+    if(url.pathname.endsWith('/personal_profiles')&&request.method()==='PATCH'){state.profileWrites.push(request.postDataJSON());Object.assign(state.profile,request.postDataJSON());return reply(null);}
     if(url.pathname.endsWith('/rpc/is_admin'))return reply(false);
     if(url.pathname.endsWith('/personal_profiles') && state.profile) return reply(request.headers()['accept']?.includes('vnd.pgrst.object') ? state.profile : [state.profile]);
     if(url.pathname.includes('/rest/v1/')) {
@@ -85,12 +89,12 @@ async function scenario(options = {}) {
     if(url.pathname.endsWith('/track'))return reply({ok:true});
     return route.abort();
   });
-  const page=await context.newPage();page.on('pageerror',e=>state.errors.push(e.message));
+  const page=await context.newPage();page.on('pageerror',e=>{state.errors.push(e.message);console.error('Browser error:',e.message);});
   const go=async url=>page.goto(base+url,{waitUntil:'networkidle'});
   const close=async()=>{assert.deepEqual(state.errors,[],'No uncaught browser errors');await context.close();};
   return {page,state,go,close};
 }
-async function screenshot(page,name,fullPage=false){if(process.env.QA_SCREENSHOTS){mkdirSync(process.env.QA_SCREENSHOTS,{recursive:true});await page.screenshot({path:path.join(process.env.QA_SCREENSHOTS,name+'.png'),fullPage});}}
+async function screenshot(page,name,fullPage=false){if(process.env.QA_SCREENSHOTS){mkdirSync(process.env.QA_SCREENSHOTS,{recursive:true});if(fullPage)await page.evaluate(()=>scrollTo(0,0));await page.screenshot({path:path.join(process.env.QA_SCREENSHOTS,name+'.png'),fullPage});}}
 
 for(const plan of ['solo','venue'])for(const interval of ['year','month']) test(`${plan}/${interval}: pricing selection reaches checkout with exact offer`,async()=>{
   const {page,state,go,close}=await scenario();
@@ -104,6 +108,7 @@ for(const plan of ['solo','venue'])for(const interval of ['year','month']) test(
   await expect(page.getByRole('checkbox')).not.toBeChecked();
   const item=catalog.find(i=>i.plan===plan&&i.interval===interval);
   await expect(page.getByRole('complementary')).toContainText(`$${item.amount/100}/${interval==='year'?'year':'month'}`);
+  if(await page.getByRole('button',{name:'Business name, city, and state',exact:true}).isVisible())await page.getByRole('button',{name:'Business name, city, and state',exact:true}).click();
   await page.getByRole('textbox',{name:'Business name',exact:true}).fill('QA Pizza');
   await page.getByRole('textbox',{name:'City & state',exact:true}).fill('Claremont, CA');
   await page.getByRole('button',{name:'Start my business trial'}).click();
@@ -118,12 +123,14 @@ test('Canceled checkout restores Stripe cycle, quantity and chosen Card Club; er
   await expect(page.getByRole('button',{name:'Monthly',exact:true})).toHaveAttribute('aria-pressed','true');
   await expect(page.getByRole('checkbox')).toBeChecked();
   await expect(page.getByRole('complementary')).toContainText('Then $44/month, including Card Club');
+  if(await page.getByRole('button',{name:'Business name, city, and state',exact:true}).isVisible())await page.getByRole('button',{name:'Business name, city, and state',exact:true}).click();
   await page.getByRole('textbox',{name:'Business name',exact:true}).fill('QA Pizza');
   await page.getByRole('textbox',{name:'City & state',exact:true}).fill('Claremont, CA');
   await page.getByRole('button',{name:'Start my business trial'}).click();
   await expect(page.getByRole('alert')).toContainText('Checkout is temporarily unavailable');
   assert.equal(state.checkout[0].cardClub,true);
   state.checkoutFailure=false;
+  if(await page.getByRole('button',{name:'Business name, city, and state',exact:true}).isVisible())await page.getByRole('button',{name:'Business name, city, and state',exact:true}).click();
   await page.getByRole('textbox',{name:'Business name',exact:true}).fill('QA Pizza');
   await page.getByRole('textbox',{name:'City & state',exact:true}).fill('Claremont, CA');
   await page.getByRole('button',{name:'Start my business trial'}).click();
@@ -179,7 +186,7 @@ test('Business dashboard uses the included yearly membership and scopes replacem
 });
 test('Personal hub dashboard keeps cards one-time and billing at $5/month',async()=>{
   const profile={id:'22222222-2222-4222-8222-222222222222',user_id:fakeUser.id,username:'qa',full_name:'QA Personal',email:fakeUser.email,plan_type:'personal_hosted',subscription_status:'active',onboarding_source:'personal_cards_v1',stripe_customer_id:'cus_fixture',stripe_subscription_id:'sub_fixture',is_approved:true,created_at:'2025-01-01T00:00:00Z'};
-  const {page,state,go,close}=await scenario({authenticated:true,profile});await go('/dashboard?type=lite');await page.getByRole('tab',{name:'Cards',exact:true}).click();
+  const {page,state,go,close}=await scenario({authenticated:true,profile});await go('/dashboard?type=lite');await expect(page.getByRole('region',{name:'Personal hub setup guide'})).toBeVisible();await page.getByRole('button',{name:/Name & content/}).click();await expect(page.getByText('Your name & tapaway.co address',{exact:true})).toBeVisible();await page.getByLabel('Your TapAway address',{exact:true}).fill('taken');await expect(page.getByText('This username is already taken',{exact:true})).toBeVisible();assert.ok(state.profileWrites.every(x=>!x.username));await page.getByLabel('Your TapAway address',{exact:true}).fill('my-new-page'.replaceAll('-',''));await expect.poll(()=>state.profileWrites.some(x=>x.username==='mynewpage'),{timeout:10000}).toBe(true);assert.equal(state.nfcWrites.length,0);await page.getByRole('tab',{name:'Cards',exact:true}).click();
   await expect(page.getByRole('link',{name:'Design two more cards · $39'})).toBeVisible();await expect(page.getByRole('button',{name:/subscribe/i})).toHaveCount(0);assert.equal(state.setupReads.length,0);
   await page.getByRole('tab',{name:'Plan',exact:true}).click();await expect(page.getByRole('tabpanel')).toContainText('$5');await expect(page.getByRole('tabpanel')).toContainText('/month');await close();
 });
@@ -203,13 +210,41 @@ test('Monthly default, real hubs, testimonial images, and responsive pages',asyn
 test('Business intake is required before checkout; yearly Club is one total',async()=>{
   const {page,state,go,close}=await scenario(); await go('/start?plan=solo&billing=year');
   await page.getByRole('button',{name:'Start my business trial'}).click(); assert.equal(state.checkout.length,0);
+  if(await page.getByRole('button',{name:'Business name, city, and state',exact:true}).isVisible())await page.getByRole('button',{name:'Business name, city, and state',exact:true}).click();
   await page.getByRole('textbox',{name:'Business name',exact:true}).fill('QA Pizza'); await page.getByRole('textbox',{name:'City & state'}).fill('Claremont, CA');
   await page.getByRole('checkbox').check(); await expect(page.getByRole('complementary')).toContainText('Then $259/year, including Card Club');
   await page.getByRole('button',{name:'Start my business trial'}).click(); await expect(page.getByRole('heading',{name:'Fixture checkout reached'})).toBeVisible();
   assert.equal(state.checkout[0].business.name,'QA Pizza'); assert.equal(state.checkout[0].cardClub,true); await close();
 });
+test('Google business selection captures the full listing; edits require a new selection and manual fallback works',async()=>{
+  const {page,state,go,close}=await scenario(); await go('/start?plan=solo&billing=month');
+  await expect(page.getByRole('textbox',{name:'Business name',exact:true})).toHaveCount(0);
+  await page.getByLabel('Find your business on Google').fill('QA Pizza'); await page.getByRole('button',{name:/QA Pizza 123 Main St/}).click();
+  await expect(page.locator('.co-selected-place')).toContainText('123 Main St, Claremont, CA');
+  await page.getByLabel('Find your business on Google').fill('Another business'); await page.getByRole('button',{name:'Start my business trial'}).click(); assert.equal(state.checkout.length,0);
+  await page.getByLabel('Find your business on Google').fill('QA Pizza'); await page.getByRole('button',{name:/QA Pizza 123 Main St/}).click();
+  await page.getByRole('button',{name:'Start my business trial'}).click(); await expect(page.getByRole('heading',{name:'Fixture checkout reached'})).toBeVisible();
+  assert.equal(state.checkout[0].business.googlePlaceId,'ChIJ_fixture');assert.equal(state.checkout[0].business.postalCode,'91711');assert.equal(state.checkout[0].business.city,'Claremont');assert.equal(state.checkout[0].business.address,'123 Main St, Claremont, CA 91711, USA');await close();
+});
+test('All template orientations fit print boundaries; portrait QR and editing controls work',async()=>{
+  const {page,go,close}=await scenario();await go('/personal/design');
+  const issues=await page.evaluate(async()=>{const api=await import('/src/lib/cardDesign.ts');const failures=[];for(const template of api.DESIGN_TEMPLATES)for(const orientation of ['landscape','portrait']){const d=api.newDraft(template.id);d.hosted=true;d.cards=[api.templateCard(template.id,orientation),api.templateCard(template.id,orientation)];const errors=api.checkDesign(d).filter(x=>x.level==='error');if(errors.length)failures.push({template:template.id,orientation,errors});}return failures;});assert.deepEqual(issues,[]);
+  for(const name of ['Memes','Good energy','Halloween','Thanksgiving','Christmas','Networking']){await page.getByRole('button',{name,exact:true}).click();assert.ok(await page.locator('.cd-template-list button').count()>0);}
+  await page.getByRole('button',{name:'Standing up',exact:true}).click();await expect(page.locator('.cd-canvas-wrap svg.cd-card')).toHaveAttribute('data-orientation','portrait');
+  await page.getByRole('button',{name:'Back',exact:true}).click();await page.getByRole('button',{name:'Place QR bottom center'}).click();await page.getByRole('button',{name:'Larger',exact:true}).click();
+  await expect(page.getByLabel('QR size (mm)',{exact:true})).not.toBeVisible();
+  const qr=page.locator('.cd-canvas-wrap [aria-label="Move QR code"]');const before=Number(await qr.locator('rect').first().getAttribute('y'));const box=await qr.boundingBox();await page.mouse.move(box.x+box.width/2,box.y+box.height/2);await page.mouse.down();await page.mouse.move(box.x+box.width/2,box.y+box.height/2-38,{steps:8});await page.mouse.up();assert.ok(Number(await qr.locator('rect').first().getAttribute('y'))<before);
+  const corner=page.getByRole('button',{name:'Resize QR code'});const handle=await corner.boundingBox();const widthBefore=Number(await qr.locator('rect').first().getAttribute('width'));await page.mouse.move(handle.x+handle.width/2,handle.y+handle.height/2);await page.mouse.down();await page.mouse.move(handle.x-12,handle.y-12,{steps:8});await page.mouse.up();assert.ok(Number(await qr.locator('rect').first().getAttribute('width'))<widthBefore);
+  await page.getByRole('button',{name:'Undo',exact:true}).click();assert.ok(Math.abs(Number(await qr.locator('rect').first().getAttribute('width'))-widthBefore)<.01);
+  await page.getByRole('button',{name:'Front',exact:true}).click();await page.getByRole('button',{name:'Add text',exact:true}).click();await screenshot(page,'designer-after-add-text',true);await page.getByLabel('Your words',{exact:true}).fill('Hello there.');await page.getByRole('button',{name:'Center across',exact:true}).click();
+  await screenshot(page,'designer-portrait',true);await page.setViewportSize({width:390,height:900});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);await screenshot(page,'designer-portrait-mobile',true);await close();
+});
+test('Old personal backend version keeps purchase disabled',async()=>{
+  const {page,go,close}=await scenario({oldPersonalCatalog:true});await go('/personal/design');await page.getByRole('radio',{name:/Create my own TapAway hub/}).click();await page.getByRole('button',{name:'Review my cards'}).click();await page.getByRole('checkbox').check();await expect(page.getByRole('button',{name:'Buy my two cards'})).toBeDisabled();await close();
+});
 test('Designer exports four pages and checks out two cards without a subscription',async()=>{
   const {page,state,go,close}=await scenario(); await go('/personal/design');
+  await page.getByRole('button',{name:'Standing up',exact:true}).click();
   await page.getByLabel('Card 1 destination',{exact:true}).fill('https://example.com/work'); await page.getByLabel('Card 2 destination',{exact:true}).fill('https://example.com/social');
   await page.getByRole('button',{name:'Review my cards'}).click(); await expect(page.getByRole('heading',{name:'One last look.'})).toBeVisible();
   const download=page.waitForEvent('download'); await page.getByRole('button',{name:'Download print PDF'}).click(); const file=await download;
@@ -219,11 +254,11 @@ test('Designer exports four pages and checks out two cards without a subscriptio
   assert.equal(state.personalOrders.length,1); assert.equal(state.personalOrders[0].draft.hosted,false); assert.equal(state.personalOrders[0].draft.cards.length,2); assert.ok(state.personalOrders[0].pdf.startsWith('JVBER')); await close();
 });
 test('Optional hub is explicit, uses a stable link, and adds $5 in the same personal order',async()=>{
-  const {page,state,go,close}=await scenario(); await go('/personal/design'); await page.getByLabel(/Add my own TapAway hub/).check();
-  await page.getByLabel('Name on your hub').fill('QA Personal'); await page.getByLabel(/Links to include/).fill('https://example.com/portfolio');
+  const {page,state,go,close}=await scenario(); await go('/personal/design'); await page.getByRole('radio',{name:/Create my own TapAway hub/}).click();
+  await expect(page.getByText('tapaway.co/yourname',{exact:true})).toBeVisible(); await expect(page.getByLabel('Name on your hub')).toHaveCount(0); await expect(page.getByLabel(/Links to include/)).toHaveCount(0); await expect(page.getByLabel('Card 1 destination')).toHaveCount(0);
   await page.getByRole('button',{name:'Review my cards'}).click(); await expect(page.locator('.cd-checkout')).toContainText('$44'); await expect(page.locator('.cd-checkout')).toContainText('Then $5/month until canceled');
   await page.getByRole('checkbox').check(); await page.getByRole('button',{name:'Buy my two cards'}).click(); await expect(page.getByRole('heading',{name:'Fixture checkout reached'})).toBeVisible();
-  assert.equal(state.personalOrders[0].draft.hosted,true); assert.equal(state.personalOrders[0].draft.hubName,'QA Personal'); await close();
+  assert.equal(state.personalOrders[0].draft.hosted,true); assert.equal(state.personalOrders[0].draft.hubName,''); assert.equal(state.personalOrders[0].draft.hubLinks,''); await close();
 });
 test('Low-resolution images block printing; an unavailable catalog blocks purchase only',async()=>{
   const {page,go,close}=await scenario({personalUnavailable:true}); await go('/personal/design');
@@ -337,6 +372,7 @@ test('Personal post-checkout setup collects name, optional artwork and shipping 
   server=await createServer({root,mode:'production',cacheDir:path.join(process.env.QA_SCREENSHOTS||root,'.vite-fixture'),optimizeDeps:{force:true},server:{host:'127.0.0.1',port:4173,strictPort:true}});
   await server.listen();base='http://127.0.0.1:4173';
   browser=await chromium.launch({headless:true,...(process.env.BROWSER_EXECUTABLE?{executablePath:process.env.BROWSER_EXECUTABLE}:{}),args:JSON.parse(process.env.BROWSER_ARGS||'[]')});
-  for(const {name,run} of cases){await run();passed++;console.log(`PASS ${name}`);}
-  console.log(`${passed}/${cases.length} storefront checks passed. All external network activity was mocked or blocked.`);
+  const selected=process.env.QA_FILTER?cases.filter(c=>new RegExp(process.env.QA_FILTER).test(c.name)):cases;
+  for(const {name,run} of selected){await run();passed++;console.log(`PASS ${name}`);}
+  console.log(`${passed}/${selected.length} storefront checks passed. All external network activity was mocked or blocked.`);
 })().catch(error=>{console.error(error);process.exitCode=1;}).finally(async()=>{await browser?.close();await server?.close();});

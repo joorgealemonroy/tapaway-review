@@ -78,9 +78,10 @@ const paymentStub = `export const admin=()=>globalThis.__db;export const getStri
 async function load(file, state) {
   const result = await build({ entryPoints:[path.join(root,file)], bundle:true, platform:'node', format:'cjs', write:false, plugins:[{ name:'isolated-edge', setup(build) {
     build.onResolve({filter:/paymentFirst\.ts$/},()=>({path:'payment',namespace:'mock'}));
+    build.onResolve({filter:/^https:\/\/deno\.land\/x\/xhr/},()=>({path:'xhr',namespace:'mock'}));
     build.onResolve({filter:/security\.ts$/},()=>({path:'security',namespace:'mock'}));
     build.onResolve({filter:/^https:\/\/deno\.land\/.*\/http\/server\.ts$/},()=>({path:'serve',namespace:'mock'}));
-    build.onLoad({filter:/.*/,namespace:'mock'},({path})=>({contents:path==='payment'?paymentStub:path==='security'?'export const isAdmin=async()=>globalThis.__admin;':'export const serve=handler=>globalThis.__handler=handler;',loader:'js'}));
+    build.onLoad({filter:/.*/,namespace:'mock'},({path})=>({contents:path==='payment'?paymentStub:path==='security'?'export const isAdmin=async()=>globalThis.__admin;export const requireUser=async()=>null;export const isSafeExternalUrl=()=>false;':path==='xhr'?'':'export const serve=handler=>globalThis.__handler=handler;',loader:'js'}));
     build.onResolve({filter:/^https:\/\/esm.sh\/pdf-lib@/},()=>({path:require.resolve('pdf-lib')}));
     build.onResolve({filter:/^https:\/\/esm.sh\/stripe@/},()=>({path:require.resolve(path.join(qa,'stripe')),external:true}));
   }}] });
@@ -137,6 +138,25 @@ function draft(hosted=false,id=randomUUID()) { return {version:1,id,checkoutToke
   await pass('unavailable or incorrect prices and wrong-size PDFs cannot start personal checkout',async()=>{
     const s=environment(),h=await load('supabase/functions/personal-card-order/index.ts',s);s.stripe.prices.retrieve=async()=>({active:true,currency:'usd',unit_amount:1,livemode:false,product:{active:true}});assert.equal((await h(request({action:'create',draft:draft(),pdf}))).status,503);assert.equal(s.calls.checkout.length,0);
     const t=environment(),g=await load('supabase/functions/personal-card-order/index.ts',t);assert.equal((await g(request({action:'create',draft:draft(),pdf:await pdfBase64(86,54)}))).status,400);assert.equal(t.calls.checkout.length,0);assert.equal(t.db.files.size,0);
+  });
+  await pass('mixed portrait/landscape PDFs match their card faces; mismatched pages and unsafe QR reject before Stripe',async()=>{
+    const s=environment(),h=await load('supabase/functions/personal-card-order/index.ts',s),d=draft();d.cards[0].orientation='portrait';d.cards[0].qr={x:14,y:52,size:26};
+    assert.equal((await h(request({action:'create',draft:d,pdf}))).status,400);assert.equal(s.calls.checkout.length,0);
+    const mixed=await PDFDocument.create();for(const [w,ht] of [[53.98,85.6],[53.98,85.6],[85.6,53.98],[85.6,53.98]])mixed.addPage([w*72/25.4,ht*72/25.4]);const printed=Buffer.from(await mixed.save()).toString('base64');
+    d.cards[0].qr.x=40;assert.equal((await h(request({action:'create',draft:d,pdf:printed}))).status,400);assert.equal(s.calls.checkout.length,0);
+    d.cards[0].qr.x=14;assert.equal((await h(request({action:'create',draft:d,pdf:printed}))).status,200);assert.equal(s.calls.checkout.length,1);
+  });
+  await pass('hosted checkout needs no prefilled name or links; paid activation starts a blank editable hub',async()=>{
+    const s=environment(),h=await load('supabase/functions/personal-card-order/index.ts',s),d=draft(true);d.hubName='';d.hubLinks='';assert.equal((await h(request({action:'create',draft:d,pdf}))).status,200);
+    const session=[...s.sessions.values()][0];Object.assign(session,{status:'complete',payment_status:'paid',amount_total:4400,currency:'usd',subscription:'sub_personal',customer:'cus_personal',customer_details:{email:'buyer@example.invalid',name:'QA Buyer'},shipping_details:{name:'QA Buyer',address:{line1:'1 QA St',city:'QA',state:'CA',postal_code:'90000',country:'US'}}});s.subscriptions.set('sub_personal',{status:'active',metadata:{commerce_version:'personal_cards_v1'}});
+    delete s.context.__handler;const api=await load('supabase/functions/_shared/personalCards.ts',s);await api.activatePersonalOrder(s.stripe,session);assert.equal(s.db.rows('personal_profiles')[0].full_name,'QA Buyer');assert.equal(s.db.rows('personal_links').length,0);assert.equal(s.db.rows('personal_profiles')[0].plan_type,'personal_hosted');
+  });
+  await pass('Google business listing details persist without asking for the address twice',async()=>{
+    const s=environment(),h=await load('supabase/functions/payment-first-checkout/index.ts',s);assert.equal((await h(request({checkoutVersion:2,plan:'solo',interval:'month',cardClub:false,business:{name:'QA Place',city:'',googlePlaceId:'ChIJ_fixture',address:'123 Main St, CA 91711',state:'CA',postalCode:'91711',phone:'555-0100',lat:34,lng:-117}}))).status,200);const b=s.db.rows('checkout_intents')[0].business_details;assert.equal(b.googlePlaceId,'ChIJ_fixture');assert.equal(b.address,'123 Main St, CA 91711');assert.equal(b.postalCode,'91711');assert.equal(b.lat,34);
+  });
+  await pass('existing Google finder returns structured address details and preserves the public search throttle',async()=>{
+    const s=environment();s.env.GOOGLE_PLACES_API_KEY_SERVER='qa_only';let calls=0;s.context.fetch=async(url,init)=>{assert.equal(url,'https://places.googleapis.com/v1/places:searchText');assert.match(init.headers['X-Goog-FieldMask'],/places.addressComponents/);calls++;return new Response(JSON.stringify({places:[{id:'ChIJ_fixture',displayName:{text:'QA Pizza'},formattedAddress:'123 Main St, Claremont, CA 91711',addressComponents:[{types:['locality'],longText:'Claremont'},{types:['administrative_area_level_1'],shortText:'CA'},{types:['postal_code'],longText:'91711'}]}]}));};
+    const h=await load('supabase/functions/lookup-place-id/index.ts',s);const res=await h(request({address:'QA Pizza'}));assert.equal(res.status,200);const item=(await res.json()).results[0];assert.equal(item.city,'Claremont');assert.equal(item.state,'CA');assert.equal(item.postalCode,'91711');for(let i=1;i<8;i++)assert.equal((await h(request({address:'QA Pizza'}))).status,200);assert.equal((await h(request({address:'QA Pizza'}))).status,429);assert.equal(calls,8);
   });
   await pass('AI fifth question succeeds, sixth is server-blocked; human handoff is still available',async()=>{
     const s=environment(),h=await load('supabase/functions/storefront-support/index.ts',s),visitor=randomUUID();
