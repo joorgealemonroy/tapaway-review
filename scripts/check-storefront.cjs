@@ -201,6 +201,11 @@ test('Monthly default, real hubs, testimonial images, and responsive pages',asyn
     await page.setViewportSize({width,height:900});
     for(const route of ['/','/personal','/personal/design','/onboarding?plan=solo&billing=month','/support']) {
       await go(route); assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`${route} overflows at ${width}`);
+      if(route==='/') {
+        await page.locator('.sf-products').scrollIntoViewIfNeeded();
+        await expect.poll(()=>page.locator('.sf-product-photo img').evaluateAll(imgs=>imgs.length===2&&imgs.every(img=>img.complete&&img.naturalWidth===1024))).toBe(true);
+        if(process.env.QA_SCREENSHOTS)await page.locator('.sf-products').screenshot({path:path.join(process.env.QA_SCREENSHOTS,`product-photos-${width}.png`)});
+      }
       if(width===1440&&route==='/')await screenshot(page,'home-desktop',true);
       if(width===390)await screenshot(page,route.replaceAll('/','-')+'-mobile',true);
     }

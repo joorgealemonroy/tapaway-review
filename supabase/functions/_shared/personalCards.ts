@@ -9,6 +9,22 @@ import {
 } from "./paymentFirst.ts";
 export const PERSONAL_VERSION = "personal_cards_v1";
 export const PERSONAL_BUCKET = "personal-card-artwork";
+// Public Stripe identifiers, verified in TapAway's live account. Secret keys stay in Cloud.
+const LIVE_PERSONAL_PRICES = {
+  cards: "price_1USlnhDg8DaTuVNZvpuFiScC",
+  hub: "price_1USlnpDg8DaTuVNZebiRWrPS",
+};
+export function personalPortalConfiguration() {
+  const configured = Deno.env.get(
+    `PERSONAL_PORTAL_CONFIGURATION_ID_${stripeMode().toUpperCase()}`,
+  );
+  const configuration =
+    configured ||
+    (stripeMode() === "live" ? "bpc_1USlo1Dg8DaTuVNZovODPDXA" : undefined);
+  if (!configuration)
+    throw new Error("Personal billing portal is not configured");
+  return configuration;
+}
 export async function personalCardsAllowed(req: Request) {
   if (Deno.env.get("PERSONAL_CARDS_ENABLED") === "true")
     return paymentFirstAllowed(req);
@@ -20,7 +36,9 @@ export async function personalCardsAllowed(req: Request) {
 }
 export async function personalPrice(kind: "cards" | "hub") {
   const variable = `${kind === "cards" ? "PERSONAL_CARDS" : "PERSONAL_HUB"}_PRICE_ID_${stripeMode().toUpperCase()}`;
-  const id = Deno.env.get(variable);
+  const id =
+    Deno.env.get(variable) ||
+    (stripeMode() === "live" ? LIVE_PERSONAL_PRICES[kind] : undefined);
   if (!id || !/^price_/.test(id))
     throw new Error("Personal catalog is not configured");
   const price = await getStripe().prices.retrieve(id, { expand: ["product"] });
@@ -102,7 +120,11 @@ export async function activatePersonalOrder(
     order.artwork_revision !== session.metadata.artwork_revision
   )
     throw new Error("Order revision mismatch");
-  if (["refunded", "disputed"].includes(order.status) || order.production_status === "on_hold") return { onHold: true };
+  if (
+    ["refunded", "disputed"].includes(order.status) ||
+    order.production_status === "on_hold"
+  )
+    return { onHold: true };
   if (order.activated_at) return { paid: true };
   const expected = order.hub_requested ? 4400 : 3900;
   if (
@@ -176,7 +198,8 @@ export async function activatePersonalOrder(
           id: order.personal_profile_id,
           user_id: userId,
           username: `p${order.id.replace(/-/g, "")}`,
-          full_name: order.hub_name || session.customer_details?.name || "Your new hub",
+          full_name:
+            order.hub_name || session.customer_details?.name || "Your new hub",
           email,
           plan_type: "personal_hosted",
           subscription_status: session.livemode
@@ -196,20 +219,18 @@ export async function activatePersonalOrder(
       const links = (order.hub_links || []) as string[];
       for (let i = 0; i < links.length; i++) {
         const linkId = `${order.personal_profile_id.slice(0, 24)}${String(i + 1).padStart(12, "0")}`;
-        const { error } = await db
-          .from("personal_links")
-          .upsert(
-            {
-              id: linkId,
-              profile_id: order.personal_profile_id,
-              link_type: "website",
-              label: new URL(links[i]).hostname.replace(/^www\./, ""),
-              url: links[i],
-              sort_order: i,
-              is_active: true,
-            },
-            { onConflict: "id", ignoreDuplicates: true },
-          );
+        const { error } = await db.from("personal_links").upsert(
+          {
+            id: linkId,
+            profile_id: order.personal_profile_id,
+            link_type: "website",
+            label: new URL(links[i]).hostname.replace(/^www\./, ""),
+            url: links[i],
+            sort_order: i,
+            is_active: true,
+          },
+          { onConflict: "id", ignoreDuplicates: true },
+        );
         if (error) throw error;
       }
     }

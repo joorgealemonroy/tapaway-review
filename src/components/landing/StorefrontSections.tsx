@@ -89,12 +89,15 @@ export function ProductPaths() {
           <a className="sf-button" href="#pricing">
             View business plans <ArrowRight />
           </a>
-          <div
-            className="sf-product-art"
-            aria-label="Illustrative custom card designs"
-          >
-            <MiniCard name="THE LOCAL" label="Coffee & good company" />
-            <MiniCard name="Your brand. Your card." tone="light" />
+          <div className="sf-product-photo business-photo">
+            <img
+              src="/product-photos/business-cards-in-hands.webp"
+              alt="Hands holding custom TapAway cards for Fish Hook Seafood and Las Islas"
+              width="1024"
+              height="1536"
+              loading="lazy"
+              decoding="async"
+            />
           </div>
         </article>
         <article className="sf-product personal">
@@ -104,18 +107,21 @@ export function ProductPaths() {
             <br />A lot of you.
           </h3>
           <p>
-            Two custom cards for your work, socials, or whatever you love.
-            $39 once. Free US shipping. Tap or scan to open your link.
+            Two custom cards for your work, socials, or whatever you love. $39
+            once. Free US shipping. Tap or scan to open your link.
           </p>
           <Link className="sf-button" to="/personal">
             Get two cards · $39 <ArrowRight />
           </Link>
-          <div
-            className="sf-product-art"
-            aria-label="Illustrative personal card designs"
-          >
-            <MiniCard name="Good energy only." tone="pink" />
-            <MiniCard name="Nice to meet you." tone="yellow" />
+          <div className="sf-product-photo personal-photo">
+            <img
+              src="/product-photos/personal-networking-and-meme-cards.webp"
+              alt="Custom TapAway examples: Jorge Monroy networking card and a John Pork meme card"
+              width="1024"
+              height="1536"
+              loading="lazy"
+              decoding="async"
+            />
           </div>
         </article>
       </div>
@@ -218,7 +224,14 @@ export function CustomerQuotes() {
             <article className="sf-quote" key={name}>
               <blockquote>“{quote}”</blockquote>
               <footer>
-                <img className="sf-customer-photo" src={photo} alt={name} loading="lazy" width="56" height="56" />
+                <img
+                  className="sf-customer-photo"
+                  src={photo}
+                  alt={name}
+                  loading="lazy"
+                  width="56"
+                  height="56"
+                />
                 <div>
                   <strong>{name}</strong>
                   <small>TapAway customer</small>
@@ -270,7 +283,9 @@ export function StorefrontFooter() {
     </footer>
   );
 }
-export function HelpLink() { return <SupportChat />; }
+export function HelpLink() {
+  return <SupportChat />;
+}
 
 export function FinalOffer() {
   return (

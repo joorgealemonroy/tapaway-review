@@ -100,12 +100,15 @@ function draft(hosted=false,id=randomUUID()) { return {version:1,id,checkoutToke
     if(interval==='year'){assert.equal(p.line_items[1].price_data.unit_amount,6000);assert.equal(p.line_items[1].price_data.recurring.interval,'year');}else assert.equal(p.line_items[1].price,'price_card_club');
     assert.equal(s.db.rows('checkout_intents')[0].business_details.name,'QA Pizza'); assert.equal(s.calls.separate.length,0);
   });
-  await pass('business rejects old clients, missing brief fields, and invalid links before Stripe',async()=>{
+  await pass('business rejects unknown client versions, missing brief fields, and invalid links before Stripe',async()=>{
     const s=environment(), h=await load('supabase/functions/payment-first-checkout/index.ts',s);
-    assert.equal((await h(request({plan:'solo',interval:'month',cardClub:false}))).status,409);
+    assert.equal((await h(request({checkoutVersion:3,plan:'solo',interval:'month',cardClub:false}))).status,409);
     assert.equal((await h(request({checkoutVersion:2,plan:'solo',interval:'month',cardClub:false,business:{name:'',city:'CA'}}))).status,400);
     assert.equal((await h(request({checkoutVersion:2,plan:'solo',interval:'month',cardClub:false,business:{name:'QA',city:'CA',link:'javascript:alert(1)'}}))).status,400);
     assert.equal(s.calls.checkout.length,0);
+  });
+  await pass('published unversioned business checkout preserves its legacy Club contract',async()=>{
+    const s=environment(),h=await load('supabase/functions/payment-first-checkout/index.ts',s);assert.equal((await h(request({plan:'solo',interval:'year',cardClub:true}))).status,200);const p=s.calls.checkout[0];assert.equal(p.line_items.length,1);assert.equal(p.metadata.card_club_billing,undefined);assert.equal(p.metadata.card_club_selected,'true');assert.match(p.custom_text.submit.message,/separate recurring charge of \$5\/month/);assert.equal(p.subscription_data.trial_period_days,14);
   });
   await pass('included Card Club activation never creates or cancels a second subscription',async()=>{
     const s=environment();s.db.rows('card_club_memberships').push({id:'m',status:'pending_activation',main_stripe_subscription_id:'sub_main',stripe_customer_id:'cus_fixture'});
@@ -181,6 +184,23 @@ function draft(hosted=false,id=randomUUID()) { return {version:1,id,checkoutToke
     assert.equal((await deliver(event('evt_free',0,[]))).status,200);assert.equal(m.card_club_paid_at,null);
     assert.equal((await deliver(event('evt_base',2000,[{amount:2000,subscription_item:'si_base',price:{id:'price_base'}}]))).status,200);assert.equal(m.card_club_paid_at,null);
     const paid=event('evt_paid',2500,[{amount:500,subscription_item:'si_club',price:{id:'price_club'}}]);assert.equal((await deliver(paid)).status,200);assert.ok(m.card_club_paid_at);assert.equal(m.status,'active');const date=m.card_club_paid_at;assert.equal((await deliver(paid)).status,200);assert.equal(m.card_club_paid_at,date);
+  });
+  await pass('delayed personal payment waits for success; repeated webhook does not repeat fulfillment',async()=>{
+    const s=environment(),create=await load('supabase/functions/personal-card-order/index.ts',s);
+    assert.equal((await create(request({action:'create',draft:draft(),pdf}))).status,200);
+    const order=s.db.rows('personal_card_orders')[0], session=[...s.sessions.values()][0];
+    Object.assign(session,{status:'complete',payment_status:'unpaid',amount_total:3900,currency:'usd',payment_intent:'pi_delayed',customer:'cus_delayed',customer_details:{email:'buyer@example.invalid',name:'QA Buyer'},shipping_details:{name:'QA Buyer',address:{line1:'1 QA St',city:'QA',state:'CA',postal_code:'90000',country:'US'}}});
+    const h=await load('supabase/functions/payment-first-webhook/index.ts',s);
+    const deliver=(id,type)=>{const payload=JSON.stringify({id,type,created:Math.floor(Date.now()/1000),livemode:false,data:{object:session}});return h(new Request('https://functions.invalid/webhook',{method:'POST',headers:{'stripe-signature':stripeVerifier.webhooks.generateTestHeaderString({payload,secret:'whsec_fixture'})},body:payload}));};
+    assert.equal((await deliver('evt_delayed_open','checkout.session.completed')).status,200);assert.equal(order.production_status,'awaiting_payment');assert.equal(s.calls.emails.length,0);
+    session.payment_status='paid';assert.equal((await deliver('evt_delayed_paid','checkout.session.async_payment_succeeded')).status,200);assert.equal(order.production_status,'needs_review');assert.ok(order.activated_at);assert.equal(s.calls.emails.length,1);
+    assert.equal((await deliver('evt_delayed_paid','checkout.session.async_payment_succeeded')).status,200);assert.equal(s.calls.emails.length,1);
+  });
+  await pass('live personal catalog uses verified prices while test mode requires its own configuration',async()=>{
+    const s=environment();const api=await load('supabase/functions/_shared/personalCards.ts',s);s.context.__mode='live';
+    const ids=[];s.stripe.prices.retrieve=async id=>{ids.push(id);return {id,active:true,livemode:true,currency:'usd',unit_amount:id==='price_1USlnhDg8DaTuVNZvpuFiScC'?3900:500,recurring:id==='price_1USlnhDg8DaTuVNZvpuFiScC'?null:{interval:'month',interval_count:1},product:{active:true}};};
+    await api.personalPrice('cards');await api.personalPrice('hub');assert.deepEqual(ids,['price_1USlnhDg8DaTuVNZvpuFiScC','price_1USlnpDg8DaTuVNZebiRWrPS']);assert.equal(api.personalPortalConfiguration(),'bpc_1USlo1Dg8DaTuVNZovODPDXA');
+    s.context.__mode='test';delete s.env.PERSONAL_CARDS_PRICE_ID_TEST;await assert.rejects(()=>api.personalPrice('cards'),/not configured/);assert.throws(()=>api.personalPortalConfiguration(),/not configured/);
   });
   await pass('initial purchase refunds hold fulfillment; hosting renewal refunds leave the card order intact',async()=>{
     const s=environment(),h=await load('supabase/functions/payment-first-webhook/index.ts',s);

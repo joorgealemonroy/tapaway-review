@@ -1,23 +1,39 @@
 import { getStripe, stripeMode } from "../_shared/paymentFirst.ts";
+import { personalPortalConfiguration } from "../_shared/personalCards.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
-import { requireUser, adminClient, isAdmin, jsonResponse } from "../_shared/security.ts";
+import {
+  requireUser,
+  adminClient,
+  isAdmin,
+  jsonResponse,
+} from "../_shared/security.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS")
+    return new Response(null, { headers: corsHeaders });
 
   try {
     const auth = await requireUser(req);
     if (!auth) return jsonResponse({ error: "Unauthorized" }, 401, corsHeaders);
 
     const { action, profileId } = await req.json();
-    if (!profileId) return jsonResponse({ error: "profileId required" }, 400, corsHeaders);
-    console.log("[manage-personal-subscription] Action:", action, "ProfileId:", profileId, "by:", auth.user.id);
+    if (!profileId)
+      return jsonResponse({ error: "profileId required" }, 400, corsHeaders);
+    console.log(
+      "[manage-personal-subscription] Action:",
+      action,
+      "ProfileId:",
+      profileId,
+      "by:",
+      auth.user.id,
+    );
 
     const supabase = adminClient();
 
@@ -27,52 +43,111 @@ serve(async (req) => {
       .eq("id", profileId)
       .single();
 
-    if (profileError || !profile) return jsonResponse({ error: "Profile not found" }, 404, corsHeaders);
+    if (profileError || !profile)
+      return jsonResponse({ error: "Profile not found" }, 404, corsHeaders);
 
     // Ownership check: caller must own the profile or be an admin.
     const callerIsAdmin = await isAdmin(auth.user.id);
     if (profile.user_id !== auth.user.id && !callerIsAdmin) {
-      console.warn("[manage-personal-subscription] Forbidden: profile owner mismatch");
+      console.warn(
+        "[manage-personal-subscription] Forbidden: profile owner mismatch",
+      );
       return jsonResponse({ error: "Forbidden" }, 403, corsHeaders);
     }
 
-    if (profile.plan_type === "personal_hosted" || profile.onboarding_source?.startsWith("payment_first")) {
+    if (
+      profile.plan_type === "personal_hosted" ||
+      profile.onboarding_source?.startsWith("payment_first")
+    ) {
       let order;
       if (profile.plan_type === "personal_hosted") {
-        const result = await supabase.from("personal_card_orders").select("stripe_livemode, stripe_customer_id, stripe_subscription_id").eq("personal_profile_id", profile.id).eq("user_id", profile.user_id).single();
+        const result = await supabase
+          .from("personal_card_orders")
+          .select("stripe_livemode, stripe_customer_id, stripe_subscription_id")
+          .eq("personal_profile_id", profile.id)
+          .eq("user_id", profile.user_id)
+          .single();
         order = result.data;
       } else {
-        const { data: setup } = await supabase.from("onboarding_sessions").select("checkout_intent_id").eq("personal_profile_id", profile.id).eq("user_id", profile.user_id).single();
-        const result = await supabase.from("checkout_intents").select("stripe_livemode, stripe_customer_id, stripe_subscription_id").eq("id", setup?.checkout_intent_id || "00000000-0000-0000-0000-000000000000").eq("user_id", profile.user_id).single();
+        const { data: setup } = await supabase
+          .from("onboarding_sessions")
+          .select("checkout_intent_id")
+          .eq("personal_profile_id", profile.id)
+          .eq("user_id", profile.user_id)
+          .single();
+        const result = await supabase
+          .from("checkout_intents")
+          .select("stripe_livemode, stripe_customer_id, stripe_subscription_id")
+          .eq(
+            "id",
+            setup?.checkout_intent_id || "00000000-0000-0000-0000-000000000000",
+          )
+          .eq("user_id", profile.user_id)
+          .single();
         order = result.data;
       }
-      if (!order || order.stripe_livemode !== (stripeMode() === "live")) return jsonResponse({ error: "Billing is unavailable in this environment." }, 503, corsHeaders);
+      if (!order || order.stripe_livemode !== (stripeMode() === "live"))
+        return jsonResponse(
+          { error: "Billing is unavailable in this environment." },
+          503,
+          corsHeaders,
+        );
       const personalStripe = getStripe();
       if (action === "portal") {
-        const portal = await personalStripe.billingPortal.sessions.create({ customer: order.stripe_customer_id, return_url: "https://tapaway.co/dashboard" });
+        const portal = await personalStripe.billingPortal.sessions.create({
+          customer: order.stripe_customer_id,
+          return_url: "https://tapaway.co/dashboard",
+          ...(profile.plan_type === "personal_hosted"
+            ? { configuration: personalPortalConfiguration() }
+            : {}),
+        });
         return jsonResponse({ url: portal.url }, 200, corsHeaders);
       }
       if (action === "downgrade") {
-        await personalStripe.subscriptions.update(order.stripe_subscription_id, { cancel_at_period_end: true });
-        return jsonResponse({ success: true, cancel_at_period_end: true }, 200, corsHeaders);
+        await personalStripe.subscriptions.update(
+          order.stripe_subscription_id,
+          { cancel_at_period_end: true },
+        );
+        return jsonResponse(
+          { success: true, cancel_at_period_end: true },
+          200,
+          corsHeaders,
+        );
       }
-      return jsonResponse({ error: "Unsupported personal hub billing action." }, 400, corsHeaders);
+      return jsonResponse(
+        { error: "Unsupported personal hub billing action." },
+        400,
+        corsHeaders,
+      );
     }
 
     // Portal action
     if (action === "portal") {
-      if (!profile.stripe_customer_id) throw new Error("No Stripe customer found");
+      if (!profile.stripe_customer_id)
+        throw new Error("No Stripe customer found");
 
-      const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, { apiVersion: "2023-10-16" });
+      const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
+        apiVersion: "2023-10-16",
+      });
 
       if (!profile.stripe_subscription_id && profile.stripe_customer_id) {
         try {
-          const subs = await stripe.subscriptions.list({ customer: profile.stripe_customer_id, status: "active", limit: 1 });
+          const subs = await stripe.subscriptions.list({
+            customer: profile.stripe_customer_id,
+            status: "active",
+            limit: 1,
+          });
           if (subs.data.length > 0) {
-            await supabase.from("personal_profiles").update({ stripe_subscription_id: subs.data[0].id }).eq("id", profileId);
+            await supabase
+              .from("personal_profiles")
+              .update({ stripe_subscription_id: subs.data[0].id })
+              .eq("id", profileId);
           }
         } catch (e) {
-          console.error("[manage-personal-subscription] Backfill error (non-fatal):", e);
+          console.error(
+            "[manage-personal-subscription] Backfill error (non-fatal):",
+            e,
+          );
         }
       }
 
@@ -86,12 +161,21 @@ serve(async (req) => {
 
     if (action === "downgrade") {
       if (profile.stripe_subscription_id) {
-        const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, { apiVersion: "2023-10-16" });
-        try { await stripe.subscriptions.cancel(profile.stripe_subscription_id); }
-        catch (e) { console.error("[manage-personal-subscription] Stripe cancel error:", e); }
+        const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
+          apiVersion: "2023-10-16",
+        });
+        try {
+          await stripe.subscriptions.cancel(profile.stripe_subscription_id);
+        } catch (e) {
+          console.error(
+            "[manage-personal-subscription] Stripe cancel error:",
+            e,
+          );
+        }
       }
 
-      await supabase.from("personal_blocks")
+      await supabase
+        .from("personal_blocks")
         .update({ is_archived: true })
         .eq("profile_id", profileId)
         .in("block_type", ["photo_collage", "email_capture"]);
@@ -105,7 +189,10 @@ serve(async (req) => {
 
       if (links && links.length > 5) {
         const toArchive = links.slice(5).map((l) => l.id);
-        await supabase.from("personal_links").update({ is_archived: true }).in("id", toArchive);
+        await supabase
+          .from("personal_links")
+          .update({ is_archived: true })
+          .in("id", toArchive);
       }
 
       const updateData: Record<string, unknown> = {
@@ -127,7 +214,11 @@ serve(async (req) => {
         .eq("id", profileId);
       if (updateError) throw new Error("Failed to update profile");
 
-      return jsonResponse({ success: true, message: "Successfully downgraded to free plan" }, 200, corsHeaders);
+      return jsonResponse(
+        { success: true, message: "Successfully downgraded to free plan" },
+        200,
+        corsHeaders,
+      );
     }
 
     return jsonResponse({ error: "Invalid action" }, 400, corsHeaders);

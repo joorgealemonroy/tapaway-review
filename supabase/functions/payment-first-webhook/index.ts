@@ -54,7 +54,7 @@ serve(async (req) => {
   }
 
   try {
-    if (event.type === "checkout.session.completed") {
+    if (event.type === "checkout.session.completed" || event.type === "checkout.session.async_payment_succeeded") {
       const s = event.data.object as Stripe.Checkout.Session;
       if (s.metadata?.onboarding_version === ONBOARDING_VERSION) await activateCheckout(stripe, s);
       if (s.metadata?.commerce_version === PERSONAL_VERSION) await activatePersonalOrder(stripe, s);
