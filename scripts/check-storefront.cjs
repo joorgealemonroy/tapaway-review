@@ -204,6 +204,10 @@ test('Monthly default, real hubs, testimonial images, and responsive pages',asyn
       if(route==='/') {
         await page.locator('.sf-products').scrollIntoViewIfNeeded();
         await expect.poll(()=>page.locator('.sf-product-photo img').evaluateAll(imgs=>imgs.length===2&&imgs.every(img=>img.complete&&img.naturalWidth===1024))).toBe(true);
+        for(const product of ['business','personal']) {
+          const photo=page.locator(`.sf-product.${product} img`);await photo.scrollIntoViewIfNeeded();await photo.evaluate(img=>img.decode());
+          if(process.env.QA_SCREENSHOTS)await page.locator(`.sf-product.${product}`).screenshot({path:path.join(process.env.QA_SCREENSHOTS,`${product}-photo-${width}.png`),style:'header, .sf-help-launcher, .sf-skip {visibility:hidden!important}'});
+        }
         if(process.env.QA_SCREENSHOTS)await page.locator('.sf-products').screenshot({path:path.join(process.env.QA_SCREENSHOTS,`product-photos-${width}.png`)});
       }
       if(width===1440&&route==='/')await screenshot(page,'home-desktop',true);

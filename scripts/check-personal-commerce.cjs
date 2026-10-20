@@ -171,6 +171,14 @@ function draft(hosted=false,id=randomUUID()) { return {version:1,id,checkoutToke
   await pass('clearing visitor IDs cannot bypass the network-level AI cap',async()=>{
     const s=environment(),h=await load('supabase/functions/storefront-support/index.ts',s);for(let i=0;i<20;i++)assert.equal((await h(request({mode:'ai',visitor:randomUUID(),message:'Cards?'}))).status,200);assert.equal((await h(request({mode:'ai',visitor:randomUUID(),message:'Cards?'}))).status,429);assert.equal(s.calls.ai.length,20);
   });
+  await pass('AI timeouts and truncated replies use reviewed facts without guessing or resetting the quota',async()=>{
+    const s=environment(),h=await load('supabase/functions/storefront-support/index.ts',s),visitor=randomUUID();
+    s.context.fetch=async()=>{throw new Error('Fixture timeout');};
+    const a=await h(request({mode:'ai',visitor,message:'How much is the 4-card business plan?'}));assert.equal(a.status,200);const b=await a.json();assert.match(b.answer,/\$20\/month/);assert.match(b.answer,/\$199\/year/);assert.equal(b.source,'reviewed_faq');assert.equal(b.remaining,4);
+    s.context.fetch=async()=>new Response(JSON.stringify({choices:[{finish_reason:'length',message:{content:'Your hub includes:'}}]}));
+    const c=await h(request({mode:'ai',visitor,message:'What does the $5 personal hub include?'}));assert.equal(c.status,200);const d=await c.json();assert.match(d.answer,/dashboard, analytics/);assert.equal(d.source,'reviewed_faq');assert.equal(d.remaining,3);
+    const e=await h(request({mode:'ai',visitor,message:'What is the tracking number for my order?'}));assert.equal(e.status,503);assert.equal((await e.json()).remaining,2);
+  });
   await pass('private artwork/admin mutations require a verified admin role',async()=>{
     const s=environment(),h=await load('supabase/functions/personal-card-admin/index.ts',s);assert.equal((await h(request({action:'list'}))).status,403);s.context.__user={id:'regular_user'};assert.equal((await h(request({action:'download',orderId:randomUUID(),file:'pdf'}))).status,403);assert.equal(s.db.tables.size,0);
   });
@@ -191,10 +199,17 @@ function draft(hosted=false,id=randomUUID()) { return {version:1,id,checkoutToke
     const order=s.db.rows('personal_card_orders')[0], session=[...s.sessions.values()][0];
     Object.assign(session,{status:'complete',payment_status:'unpaid',amount_total:3900,currency:'usd',payment_intent:'pi_delayed',customer:'cus_delayed',customer_details:{email:'buyer@example.invalid',name:'QA Buyer'},shipping_details:{name:'QA Buyer',address:{line1:'1 QA St',city:'QA',state:'CA',postal_code:'90000',country:'US'}}});
     const h=await load('supabase/functions/payment-first-webhook/index.ts',s);
-    const deliver=(id,type)=>{const payload=JSON.stringify({id,type,created:Math.floor(Date.now()/1000),livemode:false,data:{object:session}});return h(new Request('https://functions.invalid/webhook',{method:'POST',headers:{'stripe-signature':stripeVerifier.webhooks.generateTestHeaderString({payload,secret:'whsec_fixture'})},body:payload}));};
+    const deliver=(id,type)=>{const modern={...session,collected_information:{shipping_details:session.shipping_details}};delete modern.shipping_details;const payload=JSON.stringify({id,type,created:Math.floor(Date.now()/1000),livemode:false,data:{object:modern}});return h(new Request('https://functions.invalid/webhook',{method:'POST',headers:{'stripe-signature':stripeVerifier.webhooks.generateTestHeaderString({payload,secret:'whsec_fixture'})},body:payload}));};
     assert.equal((await deliver('evt_delayed_open','checkout.session.completed')).status,200);assert.equal(order.production_status,'awaiting_payment');assert.equal(s.calls.emails.length,0);
     session.payment_status='paid';assert.equal((await deliver('evt_delayed_paid','checkout.session.async_payment_succeeded')).status,200);assert.equal(order.production_status,'needs_review');assert.ok(order.activated_at);assert.equal(s.calls.emails.length,1);
     assert.equal((await deliver('evt_delayed_paid','checkout.session.async_payment_succeeded')).status,200);assert.equal(s.calls.emails.length,1);
+  });
+  await pass('Clover invoice fields identify a paid Club line without treating the base line as Club',async()=>{
+    const s=environment(),h=await load('supabase/functions/payment-first-webhook/index.ts',s);
+    const m={id:'m',status:'pending_activation',plan:'solo',card_club_stripe_subscription_id:'sub_main',main_stripe_subscription_id:'sub_main',card_club_stripe_subscription_item_id:'si_club',stripe_price_id:'price_club',card_club_paid_at:null};s.db.rows('card_club_memberships').push(m);s.subscriptions.set('sub_main',{id:'sub_main',status:'active',items:{data:[{id:'si_base',price:{unit_amount:2000}},{id:'si_club',price:{unit_amount:500}}]}});
+    const deliver=async(id,item,price)=>{const payload=JSON.stringify({id,type:'invoice.paid',created:Math.floor(Date.now()/1000),livemode:false,data:{object:{object:'invoice',parent:{subscription_details:{subscription:'sub_main'}},amount_paid:2500,lines:{data:[{amount:500,parent:{subscription_item_details:{subscription_item:item}},pricing:{price_details:{price}}}]}}}});return h(new Request('https://functions.invalid/webhook',{method:'POST',headers:{'stripe-signature':stripeVerifier.webhooks.generateTestHeaderString({payload,secret:'whsec_fixture'})},body:payload}));};
+    assert.equal((await deliver('evt_clover_base','si_base','price_base')).status,200);assert.equal(m.card_club_paid_at,null);
+    assert.equal((await deliver('evt_clover_club','si_club','price_club')).status,200);assert.ok(m.card_club_paid_at);assert.equal(m.status,'active');
   });
   await pass('live personal catalog uses verified prices while test mode requires its own configuration',async()=>{
     const s=environment();const api=await load('supabase/functions/_shared/personalCards.ts',s);s.context.__mode='live';

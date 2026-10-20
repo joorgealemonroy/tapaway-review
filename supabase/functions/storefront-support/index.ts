@@ -7,7 +7,10 @@ import {
   getStripe,
   verifiedPrice,
 } from "../_shared/paymentFirst.ts";
-import { SUPPORT_INSTRUCTIONS } from "../_shared/storefrontKnowledge.ts";
+import {
+  SUPPORT_INSTRUCTIONS,
+  STOREFRONT_FAQS,
+} from "../_shared/storefrontKnowledge.ts";
 import { takeQuota } from "../_shared/storefrontRateLimit.ts";
 import { escapeHtml } from "../_shared/sanitize.ts";
 let priceCache: { expires: number; facts: string } | null = null;
@@ -39,6 +42,58 @@ async function currentBusinessPrices() {
 }
 const clean = (x: unknown, max: number) =>
   typeof x === "string" ? x.trim().slice(0, max) : "";
+
+// Give common product questions a reviewed answer if the provider times out or truncates.
+// Pricing comes from Stripe; this fallback never supplies an unverified business price.
+function reviewedAnswer(question: string, pricing: string) {
+  const q = question.toLowerCase();
+  if (
+    /price|cost|how much|plan/.test(q) &&
+    /business|\b4\b|\bfour\b|\b15\b|\bfifteen\b/.test(q)
+  ) {
+    const quantity = /\b15\b|\bfifteen\b/.test(q)
+      ? "15"
+      : /\b4\b|\bfour\b/.test(q)
+        ? "4"
+        : "";
+    const facts = pricing
+      .split("\n")
+      .filter(
+        (line) =>
+          /^\d+ business cards:/.test(line) &&
+          (!quantity || line.startsWith(quantity + " ")),
+      );
+    return facts.length
+      ? facts.join("\n")
+      : "Please check the pricing section or ask our team for the current business price. I couldn't verify it just now.";
+  }
+  if (
+    /linktree|linkme|own (link|website)|require.*subscription|need.*subscription/.test(
+      q,
+    )
+  )
+    return "Personal cards are $39 once for two, with free standard US shipping. They can open your existing Linktree, Linkme, social profile, or website with no ongoing TapAway fee. A TapAway hub is optional at $5/month. Third-party terms apply.";
+  if (/\$5|hosting|personal hub/.test(q))
+    return "The optional $5/month TapAway hub gives you a tapaway.co/yourname address (subject to availability), your dashboard, analytics, and editing access anytime. No website is needed. After payment, choose your address and customize your page. With your $39 card pair, the initial total is $44, then $5/month until canceled.";
+  const topic = /design|template|both sides|print/.test(q)
+    ? 3
+    : /cancel/.test(q)
+      ? 4
+      : /change.*links?/.test(q)
+        ? 5
+        : /shipping|delivery/.test(q)
+          ? 6
+          : /card club/.test(q)
+            ? 7
+            : /iphone|android|phone|nfc/.test(q)
+              ? 8
+              : /after.*order/.test(q)
+                ? 9
+                : /what is tapaway|how.*work/.test(q)
+                  ? 0
+                  : -1;
+  return topic < 0 ? null : STOREFRONT_FAQS[topic].answer;
+}
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
@@ -125,43 +180,69 @@ serve(async (req) => {
         429,
       );
     const pricing = await currentBusinessPrices();
-    const response = await fetch(
-      "https://ai.gateway.lovable.dev/v1/chat/completions",
-      {
-        method: "POST",
-        signal: AbortSignal.timeout(12000),
-        headers: {
-          Authorization: `Bearer ${key}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
-          temperature: 0.2,
-          max_tokens: 350,
-          messages: [
+    const fallback = () => {
+      const answer = reviewedAnswer(message, pricing);
+      return answer
+        ? json({ answer, remaining: 5 - used, source: "reviewed_faq" })
+        : json(
             {
-              role: "system",
-              content: `${SUPPORT_INSTRUCTIONS}\n\nVerified current business pricing:\n${pricing}`,
+              error:
+                "I couldn't get a complete answer. Please ask our team below.",
+              remaining: 5 - used,
             },
-            ...history,
-            { role: "user", content: message },
-          ],
-        }),
-      },
-    );
-    if (!response.ok)
-      return json(
+            503,
+          );
+    };
+    try {
+      const response = await fetch(
+        "https://ai.gateway.lovable.dev/v1/chat/completions",
         {
-          error:
-            "AI help is unavailable right now. Our team can help by email.",
-          remaining: 5 - used,
+          method: "POST",
+          signal: AbortSignal.timeout(20000),
+          headers: {
+            Authorization: `Bearer ${key}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model:
+              Deno.env.get("STOREFRONT_AI_MODEL") ||
+              "google/gemini-3.1-flash-lite",
+            temperature: 0.2,
+            max_tokens: 1200,
+            messages: [
+              {
+                role: "system",
+                content: `${SUPPORT_INSTRUCTIONS}\n\nVerified current business pricing:\n${pricing}`,
+              },
+              ...history,
+              { role: "user", content: message },
+            ],
+          }),
         },
-        503,
       );
-    const result = await response.json();
-    const answer = clean(result.choices?.[0]?.message?.content, 2200);
-    if (!answer) throw new Error("Empty AI response");
-    return json({ answer, remaining: 5 - used });
+      if (!response.ok) {
+        console.error("[storefront-support] provider status", response.status);
+        return fallback();
+      }
+      const result = await response.json();
+      const choice = result.choices?.[0];
+      const content = choice?.message?.content;
+      if (
+        choice?.finish_reason === "length" ||
+        typeof content !== "string" ||
+        content.length > 2200
+      )
+        return fallback();
+      const answer = content.trim();
+      if (!answer) return fallback();
+      return json({ answer, remaining: 5 - used, source: "ai" });
+    } catch (error) {
+      console.error(
+        "[storefront-support] provider unavailable",
+        error instanceof Error ? error.name : "unknown",
+      );
+      return fallback();
+    }
   } catch (error) {
     console.error(
       "[storefront-support]",

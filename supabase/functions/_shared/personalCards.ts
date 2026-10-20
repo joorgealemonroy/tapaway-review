@@ -134,7 +134,16 @@ export async function activatePersonalOrder(
   )
     throw new Error("Order payment mismatch");
   const email = (session.customer_details?.email || "").trim().toLowerCase();
-  const shipping = session.shipping_details;
+  // Webhook versions from Basil onward nest shipping under collected_information.
+  const shipping =
+    session.shipping_details ||
+    (
+      session as unknown as {
+        collected_information?: {
+          shipping_details?: Stripe.Checkout.Session.ShippingDetails;
+        };
+      }
+    ).collected_information?.shipping_details;
   if (
     !email ||
     !shipping?.address ||

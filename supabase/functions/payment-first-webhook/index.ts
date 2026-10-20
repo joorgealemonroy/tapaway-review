@@ -18,6 +18,21 @@ export function invoiceSubscriptionId(inv: Record<string, any>): string | null {
   return line?.subscription ?? line?.parent?.subscription_item_details?.subscription ?? null;
 }
 
+/** Accept both the pinned SDK shape and the newer live webhook invoice shape. */
+function invoiceLineMatchesClub(line: Stripe.InvoiceLineItem, membership: Record<string, any>) {
+  const modern = line as unknown as {
+    parent?: { subscription_item_details?: { subscription_item?: string } };
+    pricing?: { price_details?: { price?: string | { id: string } } };
+  };
+  const item = line.subscription_item || modern.parent?.subscription_item_details?.subscription_item;
+  const price = line.price?.id || modern.pricing?.price_details?.price;
+  const priceId = typeof price === "string" ? price : price?.id;
+  return line.amount > 0 && (
+    (!!membership.card_club_stripe_subscription_item_id && item === membership.card_club_stripe_subscription_item_id) ||
+    (!!membership.stripe_price_id && priceId === membership.stripe_price_id)
+  );
+}
+
 serve(async (req) => {
   const secret = webhookSecret();
   if (!secret) {
@@ -64,7 +79,7 @@ serve(async (req) => {
       if (sub) await syncPersonalSubscription(stripe, sub);
       if (sub && inv.amount_paid > 0) {
         const { data: m } = await db.from("card_club_memberships").select("*").eq("card_club_stripe_subscription_id", sub).maybeSingle();
-        const paidClubLine = m && (m.card_club_stripe_subscription_id !== m.main_stripe_subscription_id || inv.lines.data.some(line => line.amount > 0 && (line.subscription_item === m.card_club_stripe_subscription_item_id || line.price?.id === m.stripe_price_id)));
+        const paidClubLine = m && (m.card_club_stripe_subscription_id !== m.main_stripe_subscription_id || inv.lines.data.some(line => invoiceLineMatchesClub(line, m)));
         if (m && paidClubLine && m.status !== "cancelled" && m.status !== "declined") {
           // The actual successful payment time — never trial or checkout dates.
           const paidAt = new Date((inv.status_transitions?.paid_at ?? event.created) * 1000).toISOString();
