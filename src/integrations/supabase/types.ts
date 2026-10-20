@@ -1312,6 +1312,7 @@ export type Database = {
         Row: {
           attribution: Json
           billing_interval: string
+          business_details: Json | null
           card_club_price_id: string | null
           card_club_selected: boolean
           card_quantity: number
@@ -1338,6 +1339,7 @@ export type Database = {
         Insert: {
           attribution?: Json
           billing_interval: string
+          business_details?: Json | null
           card_club_price_id?: string | null
           card_club_selected?: boolean
           card_quantity: number
@@ -1364,6 +1366,7 @@ export type Database = {
         Update: {
           attribution?: Json
           billing_interval?: string
+          business_details?: Json | null
           card_club_price_id?: string | null
           card_club_selected?: boolean
           card_quantity?: number
@@ -3065,6 +3068,99 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      personal_card_orders: {
+        Row: {
+          activated_at: string | null
+          activation_started_at: string | null
+          artwork_hash: string
+          artwork_path: string | null
+          artwork_revision: string
+          checkout_token_hash: string
+          created_at: string
+          customer_name: string | null
+          destinations: Json
+          email: string | null
+          hub_links: Json
+          hub_name: string | null
+          hub_requested: boolean
+          id: string
+          manifest_path: string | null
+          paid_at: string | null
+          personal_profile_id: string
+          production_status: string
+          shipping_address: Json | null
+          status: string
+          stripe_checkout_session_id: string | null
+          stripe_customer_id: string | null
+          stripe_livemode: boolean
+          stripe_payment_intent_id: string | null
+          stripe_subscription_id: string | null
+          tracking: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          activated_at?: string | null
+          activation_started_at?: string | null
+          artwork_hash: string
+          artwork_path?: string | null
+          artwork_revision?: string
+          checkout_token_hash: string
+          created_at?: string
+          customer_name?: string | null
+          destinations: Json
+          email?: string | null
+          hub_links?: Json
+          hub_name?: string | null
+          hub_requested?: boolean
+          id: string
+          manifest_path?: string | null
+          paid_at?: string | null
+          personal_profile_id?: string
+          production_status?: string
+          shipping_address?: Json | null
+          status?: string
+          stripe_checkout_session_id?: string | null
+          stripe_customer_id?: string | null
+          stripe_livemode?: boolean
+          stripe_payment_intent_id?: string | null
+          stripe_subscription_id?: string | null
+          tracking?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          activated_at?: string | null
+          activation_started_at?: string | null
+          artwork_hash?: string
+          artwork_path?: string | null
+          artwork_revision?: string
+          checkout_token_hash?: string
+          created_at?: string
+          customer_name?: string | null
+          destinations?: Json
+          email?: string | null
+          hub_links?: Json
+          hub_name?: string | null
+          hub_requested?: boolean
+          id?: string
+          manifest_path?: string | null
+          paid_at?: string | null
+          personal_profile_id?: string
+          production_status?: string
+          shipping_address?: Json | null
+          status?: string
+          stripe_checkout_session_id?: string | null
+          stripe_customer_id?: string | null
+          stripe_livemode?: boolean
+          stripe_payment_intent_id?: string | null
+          stripe_subscription_id?: string | null
+          tracking?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
       }
       personal_card_requests: {
         Row: {
@@ -4873,6 +4969,24 @@ export type Database = {
         }
         Relationships: []
       }
+      storefront_quotas: {
+        Row: {
+          day: string
+          quota_key: string
+          uses: number
+        }
+        Insert: {
+          day?: string
+          quota_key: string
+          uses?: number
+        }
+        Update: {
+          day?: string
+          quota_key?: string
+          uses?: number
+        }
+        Relationships: []
+      }
       support_requests: {
         Row: {
           business_name: string
@@ -5656,6 +5770,10 @@ export type Database = {
           used: number
         }[]
       }
+      personal_card_hub_destination: {
+        Args: { _order_id: string }
+        Returns: string
+      }
       personal_profile_is_active: {
         Args: { _profile_id: string }
         Returns: boolean
@@ -5761,6 +5879,10 @@ export type Database = {
           sessions: number
           source: string
         }[]
+      }
+      storefront_take_quota: {
+        Args: { _key: string; _limit: number }
+        Returns: number
       }
       sync_business_locations_admin: {
         Args: never
