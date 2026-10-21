@@ -18,6 +18,7 @@ Validation completed:
 - 21 payment activation checks
 - 16 targeted payment database checks
 - 10 upload and welcome-flow checks
+- 12 PostgreSQL quota integration checks
 - Frontend and changed backend type checks
 - Production build
 

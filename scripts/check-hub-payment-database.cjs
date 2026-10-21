@@ -48,8 +48,23 @@ const uid = n => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
     VALUES($1,$2,$3,'','private@example.invalid','Test Business',$4,$5,$6,$7,$8,'2026-08-01')`, [id, owner, slug, plan, status, payment, approved, sub]);
   await db.query("INSERT INTO personal_links VALUES($1,$2,'google_review','https://search.google.com/local/writereview?placeid=example'),($3,$2,'yelp','https://www.yelp.com/biz/example'),($4,$2,'instagram','https://instagram.com/example'),($5,$2,'directions','https://google.com/maps/place/example')", [uid(20), profile, uid(21), uid(22), uid(23)]);
   const migration = fs.readFileSync(path.join(root, 'supabase/migrations/20261021190000_hub_payment_requests.sql'), 'utf8');
-  await pass('Source and deploy migrations are identical', async () => assert.equal(migration, fs.readFileSync(path.join(root, 'drizzle/migrations/0029_hub_payment_requests.sql'), 'utf8')));
-  await db.exec(migration);
+  await pass('Deployed migration chain produces the canonical offer function', async () => {
+    // Applied migrations are immutable. Capture the intended definition in a
+    // rolled-back transaction, then exercise the actual deployment history.
+    const definitionSql = "SELECT pg_get_functiondef('public.get_hub_payment_offer(text)'::regprocedure) definition";
+    let expected;
+    await db.exec('BEGIN');
+    try {
+      await db.exec(migration);
+      expected = (await db.query(definitionSql)).rows[0].definition;
+    } finally {
+      await db.exec('ROLLBACK');
+    }
+    for (const file of ['0029_hub_payment_requests.sql', '0030_fix_hub_payment_offer_filter.sql']) {
+      await db.exec(fs.readFileSync(path.join(root, 'drizzle/migrations', file), 'utf8'));
+    }
+    assert.equal((await db.query(definitionSql)).rows[0].definition, expected);
+  });
   await pass('Installing the gate does not change existing accounts', async () => {
     assert.equal((await db.query('SELECT count(*) n FROM hub_payment_requests')).rows[0].n, 0);
     assert.equal((await db.query('SELECT personal_profile_is_active($1) allowed', [profile])).rows[0].allowed, true);
