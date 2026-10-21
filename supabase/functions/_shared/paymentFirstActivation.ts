@@ -1,3 +1,4 @@
+import { deliverPurchaseEmail } from "./purchaseEmail.ts";
 // Idempotent activation shared by the webhook and /welcome (whichever runs first).
 import Stripe from "https://esm.sh/stripe@14.21.0";
 import { admin, cardClubPriceId, ONBOARDING_VERSION, sendWelcomeLink, stripeMode, type Plan } from "./paymentFirst.ts";
@@ -13,83 +14,96 @@ function addr(a?: Stripe.Address | null, name?: string | null) {
 
 export async function activateCheckout(stripe: Stripe, session: Stripe.Checkout.Session) {
   if (session.metadata?.onboarding_version !== ONBOARDING_VERSION) return { skipped: "not_payment_first" };
-  if (session.status !== "complete" || session.mode !== "subscription") return { skipped: "incomplete" };
+  if (session.status !== "complete" || session.mode !== "subscription" || session.payment_status === "unpaid") return { skipped: "incomplete" };
+  if (session.livemode !== (stripeMode() === "live")) throw new Error("Wrong Stripe environment");
   const db = admin();
-  const intentId = session.metadata?.checkout_intent_id;
-  const { data: intent } = await db.from("checkout_intents").select("*").eq("id", intentId).maybeSingle();
-  if (!intent) { console.error("[activation] intent missing", intentId); return { skipped: "intent_missing" }; }
-  const email = (session.customer_details?.email || "").trim().toLowerCase();
+  const { data: intent, error: lookupError } = await db.from("checkout_intents").select("*").eq("id", session.metadata.checkout_intent_id).maybeSingle();
+  if (lookupError || !intent) throw lookupError || new Error("Checkout intent missing; retry activation");
+  if (intent.stripe_checkout_session_id !== session.id || (intent.activated_at && intent.stripe_livemode !== session.livemode)) throw new Error("Checkout intent mismatch");
   const mainSub = subId(session.subscription as string | Stripe.Subscription | null);
   const customer = custId(session.customer as string | Stripe.Customer | null);
-  if (!email || !mainSub) {
-    await db.from("checkout_intents").update({ status: "needs_review", review_reason: "missing email or subscription" }).eq("id", intent.id);
-    return { skipped: "missing_data" };
+  const email = (session.customer_details?.email || "").trim().toLowerCase();
+  if (!mainSub || !customer || !email) throw new Error("Incomplete purchase details");
+  const subscription = await stripe.subscriptions.retrieve(mainSub);
+  if (custId(subscription.customer) !== customer || !subscription.items.data.some(item => item.price.id === intent.main_price_id)) throw new Error("Purchased subscription mismatch");
+  if (!["active", "trialing"].includes(subscription.status)) return { skipped: "subscription_inactive" };
+  if (session.payment_status !== "paid" && !(session.payment_status === "no_payment_required" && subscription.status === "trialing" && subscription.trial_end && subscription.trial_end * 1000 > Date.now())) return { skipped: "not_paid" };
+  if (intent.activated_at) {
+    await deliverBusinessWelcome(db, intent);
+    return { already: true };
   }
-
-  // Claim the intent once: only a 'created'/'checkout_started' row moves forward.
-  const { data: claimed } = await db.from("checkout_intents")
-    .update({ status: "paid", email, stripe_customer_id: customer, stripe_subscription_id: mainSub, paid_at: new Date().toISOString(), stripe_livemode: session.livemode === true })
-    .eq("id", intent.id).in("status", ["created", "checkout_started"]).select("id");
-  if (!claimed?.length) return { already: true };
-
-  // Account: create only when the email is new. Existing accounts must verify ownership by email.
-  const { data: existing } = await db.rpc("get_auth_user_by_email", { lookup_email: email });
-  const existingId = Array.isArray(existing) && existing[0]?.id ? existing[0].id as string : null;
-  let userId: string | null = null;
-  let status = "associated";
-  let created = false;
-  if (existingId) {
-    status = "pending_association";
-  } else {
-    const { data: u, error } = await db.auth.admin.createUser({ email, email_confirm: true, user_metadata: { source: ONBOARDING_VERSION } });
-    if (error || !u?.user) {
-      // A race may have created it; fall back to verification instead of guessing.
-      console.error("[activation] createUser failed", error?.message);
-      status = "pending_association";
-    } else { userId = u.user.id; created = true; }
-  }
-  await db.from("checkout_intents").update({ status, user_id: userId, user_created_by_purchase: created }).eq("id", intent.id);
-
-  const shipping = (session as unknown as { shipping_details?: { address?: Stripe.Address; name?: string } }).shipping_details
-    ?? (session as unknown as { collected_information?: { shipping_details?: { address?: Stripe.Address; name?: string } } }).collected_information?.shipping_details;
-  await db.from("onboarding_sessions").upsert({
-    checkout_intent_id: intent.id, user_id: userId, stripe_subscription_id: mainSub,
-    shipping_address: addr(shipping?.address, shipping?.name),
-    billing_address: addr(session.customer_details?.address, session.customer_details?.name),
-    ...(intent.business_details?.name ? {
-      business_name: intent.business_details.name, business_city: intent.business_details.city,
-      business_link: intent.business_details.link || null,
-      google_place_id: intent.business_details.googlePlaceId || null, business_address: intent.business_details.address || null,
-      needs_research: !intent.business_details.googlePlaceId,
-      setup_status: intent.business_details.googlePlaceId ? "business_identified" : "needs_business_research", step: "logo",
-    } : {}),
-  }, { onConflict: "checkout_intent_id", ignoreDuplicates: true });
-
-  // Initial order = draft Solo/Pro hub (existing model). Unapproved and without print artwork,
-  // so it is neither public nor in the print queue until the team finishes setup.
-  if (userId) await ensureDraftProfile(db, intent.id, userId);
-
-  const plan = intent.plan as Plan;
-  if (intent.card_club_selected) {
-    const { data: m } = await db.from("card_club_memberships").upsert({
-      checkout_intent_id: intent.id, user_id: userId, stripe_customer_id: customer, main_stripe_subscription_id: mainSub,
-      stripe_price_id: cardClubPriceId(), status: "pending_activation", plan, enrollment_date: new Date().toISOString(), stripe_livemode: session.livemode === true,
-    }, { onConflict: "checkout_intent_id" }).select("*").single();
-    if (m) await ensureCardClubSubscription(stripe, db, m.id);
-  } else {
-    await db.from("card_club_memberships").upsert({
-      checkout_intent_id: intent.id, user_id: userId, stripe_customer_id: customer, main_stripe_subscription_id: mainSub,
-      status: "declined", plan, declined_at: new Date().toISOString(), stripe_livemode: session.livemode === true,
+  // A lease, rather than a terminal paid flag, lets Stripe retry after any interrupted step.
+  const { data: claimed, error: claimError } = await db.from("checkout_intents")
+    .update({ activation_started_at: new Date().toISOString() })
+    .eq("id", intent.id).is("activated_at", null)
+    .or(`activation_started_at.is.null,activation_started_at.lt.${new Date(Date.now() - 120000).toISOString()}`).select("id");
+  if (claimError || !claimed?.length) throw claimError || new Error("Activation in progress; retry");
+  try {
+    let userId = (intent.user_id || null) as string | null;
+    let created = intent.user_created_by_purchase === true;
+    let status = userId ? "associated" : "pending_association";
+    if (!userId) {
+      const { data: existing, error } = await db.rpc("get_auth_user_by_email", { lookup_email: email });
+      if (error) throw error;
+      if (!Array.isArray(existing) || !existing[0]?.id) {
+        const result = await db.auth.admin.createUser({ email, email_confirm: false, user_metadata: { source: ONBOARDING_VERSION } });
+        if (result.error || !result.data?.user) throw result.error || new Error("Could not create account");
+        userId = result.data.user.id; created = true; status = "associated";
+      }
+    }
+    const patch = { status, email, stripe_livemode: session.livemode, user_id: userId, user_created_by_purchase: created, stripe_customer_id: customer, stripe_subscription_id: mainSub, paid_at: intent.paid_at || new Date().toISOString() };
+    const saved = await db.from("checkout_intents").update(patch).eq("id", intent.id);
+    if (saved.error) throw saved.error;
+    const shipping = (session as any).shipping_details ?? (session as any).collected_information?.shipping_details;
+    const onboarding = await db.from("onboarding_sessions").upsert({
+      checkout_intent_id: intent.id, user_id: userId, stripe_subscription_id: mainSub,
+      shipping_address: addr(shipping?.address, shipping?.name), billing_address: addr(session.customer_details?.address, session.customer_details?.name),
+      ...(intent.business_details?.name ? { business_name: intent.business_details.name, business_city: intent.business_details.city,
+        business_link: intent.business_details.link || null, google_place_id: intent.business_details.googlePlaceId || null,
+        business_address: intent.business_details.address || null, needs_research: !intent.business_details.googlePlaceId,
+        setup_status: intent.business_details.googlePlaceId ? "business_identified" : "needs_business_research", step: "logo" } : {}),
     }, { onConflict: "checkout_intent_id", ignoreDuplicates: true });
+    if (onboarding.error) throw onboarding.error;
+    if (userId) {
+      const profileId = await ensureDraftProfile(db, intent.id, userId);
+      if (!profileId) throw new Error("Draft hub unavailable; retry");
+      const updated = await db.from("personal_profiles").update({ subscription_status: session.livemode ? subscription.status : "pending", trial_ends_at: subscription.trial_end ? new Date(subscription.trial_end * 1000).toISOString() : null }).eq("id", profileId);
+      if (updated.error) throw updated.error;
+    }
+    const membership = await db.from("card_club_memberships").upsert({ checkout_intent_id: intent.id, user_id: userId, stripe_customer_id: customer,
+      main_stripe_subscription_id: mainSub, stripe_price_id: intent.card_club_selected ? cardClubPriceId() : null,
+      status: intent.card_club_selected ? "pending_activation" : "declined", plan: intent.plan as Plan,
+      enrollment_date: intent.card_club_selected ? new Date().toISOString() : null, stripe_livemode: session.livemode,
+    }, { onConflict: "checkout_intent_id", ignoreDuplicates: true }).select("*").single();
+    if (membership.error) throw membership.error;
+    if (intent.card_club_selected && membership.data) {
+      await ensureCardClubSubscription(stripe, db, membership.data.id);
+      const checked = await db.from("card_club_memberships").select("status").eq("id", membership.data.id).single();
+      if (checked.error || checked.data?.status === "activation_failed") throw checked.error || new Error("Card Club activation needs retry");
+    }
+    const finished = await db.from("checkout_intents").update({ activated_at: new Date().toISOString(), activation_started_at: null }).eq("id", intent.id);
+    if (finished.error) throw finished.error;
+    await deliverBusinessWelcome(db, { ...intent, ...patch });
+    return { status, userId };
+  } catch (error) {
+    await db.from("checkout_intents").update({ activation_started_at: null }).eq("id", intent.id);
+    throw error;
   }
+}
+async function deliverBusinessWelcome(db: Db, intent: Record<string, any>) {
+  if (intent.welcome_email_sent_at) return;
+  await deliverPurchaseEmail(db, "checkout_intents", intent.id, () => sendWelcomeLink(intent.email, intent.status === "pending_association" ? "verify" : "purchase"));
+}
 
-  if (status === "associated") {
-    await sendWelcomeLink(email, "purchase");
-  } else {
-    await sendWelcomeLink(email, "verify");
-    await db.from("checkout_intents").update({ verify_email_sent_at: new Date().toISOString() }).eq("id", intent.id);
-  }
-  return { status, userId };
+/** Retrieve current Stripe truth even for out-of-order lifecycle events. */
+export async function syncBusinessSubscription(stripe: Stripe, subscriptionId: string) {
+  const db = admin();
+  const { data: intent, error } = await db.from("checkout_intents").select("id,stripe_livemode").eq("stripe_subscription_id", subscriptionId).maybeSingle();
+  if (error) throw error;
+  if (!intent || intent.stripe_livemode !== (stripeMode() === "live")) return;
+  const sub = await stripe.subscriptions.retrieve(subscriptionId);
+  const updated = await db.from("personal_profiles").update({ subscription_status: intent.stripe_livemode ? sub.status : "pending", trial_ends_at: sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null }).eq("stripe_subscription_id", subscriptionId);
+  if (updated.error) throw updated.error;
 }
 
 /** New orders use an item on the main subscription. Legacy orders retain their original billing. */
@@ -181,15 +195,18 @@ export async function ensureDraftProfile(db: Db, intentId: string, userId: strin
     username = `${base}${Math.floor(1000 + Math.random() * 9000)}`;
   }
   const a = (sess.shipping_address ?? {}) as Record<string, string | null>;
-  const { data: prof, error } = await db.from("personal_profiles").insert({
-    user_id: userId, username, full_name: name, email: intent.email,
+  const { error } = await db.from("personal_profiles").upsert({
+    id: intentId, user_id: userId, username, full_name: name, email: intent.email,
     onboarding_source: intent.stripe_livemode ? "payment_first" : "payment_first_test",
     plan_type: intent.billing_interval === "year" ? `${intent.plan}_yearly` : intent.plan,
-    subscription_status: "trialing", is_approved: false, pipeline_status: "draft", legacy_allowance: false,
+    subscription_status: "pending", is_approved: false, pipeline_status: "draft", legacy_allowance: false,
     stripe_customer_id: intent.stripe_customer_id, stripe_subscription_id: sess.stripe_subscription_id,
     place_city: intent.business_details?.city || a.city || null, place_state: intent.business_details?.state || a.state || null, place_zip: intent.business_details?.postalCode || a.postal_code || null,
-  }).select("id").single();
-  if (error || !prof) { console.error("[activation] draft hub failed", error?.message); return null; }
-  await db.from("onboarding_sessions").update({ personal_profile_id: prof.id, hub_status: "draft" }).eq("id", sess.id).is("personal_profile_id", null);
+  }, { onConflict: "id", ignoreDuplicates: true });
+  if (error) throw error;
+  const { data: prof, error: readError } = await db.from("personal_profiles").select("id").eq("id", intentId).eq("user_id", userId).single();
+  if (readError || !prof) throw readError || new Error("Draft hub missing");
+  const linked = await db.from("onboarding_sessions").update({ personal_profile_id: prof.id, hub_status: "draft" }).eq("id", sess.id).is("personal_profile_id", null);
+  if (linked.error) throw linked.error;
   return prof.id as string;
 }

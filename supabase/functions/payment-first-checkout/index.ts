@@ -1,3 +1,4 @@
+import { takeQuota } from "../_shared/storefrontRateLimit.ts";
 // Public checkout for payment-first onboarding. No TapAway account needed.
 // The browser sends only plan, interval and Card Club yes/no; the server picks prices.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
@@ -46,6 +47,7 @@ serve(async (req) => {
   )
     return rateLimitResponse(cors);
   try {
+    if (await takeQuota(req, "payment-first-checkout", 20) < 0) return json({ error: "Too many requests. Please try later or contact tap@tapaway.co." }, 429);
     const body = await req.json().catch(() => ({}));
     if (body.checkoutVersion != null && body.checkoutVersion !== 2)
       return json(
@@ -177,6 +179,7 @@ serve(async (req) => {
         card_club_selected: cardClub,
         card_club_price_id: club?.id ?? null,
         onboarding_version: ONBOARDING_VERSION,
+        stripe_livemode: stripeMode() === "live",
         business_details: business,
         checkout_source:
           typeof body.source === "string"

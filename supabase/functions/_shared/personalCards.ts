@@ -1,3 +1,6 @@
+import { deliverPurchaseEmail } from "./purchaseEmail.ts";
+import { wrapEmail } from "./email.ts";
+import { escapeHtml } from "./sanitize.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 import {
   admin,
@@ -125,7 +128,7 @@ export async function activatePersonalOrder(
     order.production_status === "on_hold"
   )
     return { onHold: true };
-  if (order.activated_at) return { paid: true };
+  if (order.activated_at) { await deliverPersonalWelcome(db, order); return { paid: true }; }
   const expected = order.hub_requested ? 4400 : 3900;
   if (
     session.amount_total !== expected ||
@@ -252,14 +255,7 @@ export async function activatePersonalOrder(
       })
       .eq("id", order.id);
     if (error) throw error;
-    // Checkout confirmation is transactional. Never enroll the buyer in marketing.
-    const text = `Your two TapAway cards are paid for. We'll check your artwork, print both cards, program their links, and ship to the address you entered. ${order.hub_requested ? "Your optional personal hub is $5/month until canceled. No website is needed. Request your dashboard access at https://tapaway.co/support#access, choose an available tapaway.co/yourname address, then add photos, text, links and colors. Your dashboard and analytics are available 24/7." : "Your cards are a one-time purchase with no TapAway subscription."} Questions? Reply to tap@tapaway.co. Order ${order.id}.`;
-    await sendEmail(
-      email,
-      "Your TapAway card order",
-      `<p>${text}</p>`,
-      text,
-    ).catch(() => false);
+    await deliverPersonalWelcome(db, { ...order, email });
     return { paid: true };
   } catch (error) {
     await db
@@ -269,6 +265,23 @@ export async function activatePersonalOrder(
     throw error;
   }
 }
+async function deliverPersonalWelcome(db: ReturnType<typeof admin>, order: Record<string, any>) {
+  if (order.welcome_email_sent_at) return;
+  const text = `Thanks for choosing TapAway! Your two cards are paid for. We'll review your artwork, print and program both cards, then ship to your checkout address. ${order.hub_requested ? "Your optional hub is $5/month until canceled. Open your dashboard to choose your address, add links and see analytics." : "Your cards are a one-time purchase with no TapAway subscription."} Order ${order.id}. Questions? Reply to tap@tapaway.co.`;
+  await deliverPurchaseEmail(db, "personal_card_orders", order.id, async () => {
+  let accessUrl = `${frontendUrl()}/support`;
+  if (order.hub_requested) {
+    const { data, error } = await db.auth.admin.generateLink({ type: "magiclink", email: order.email, options: { redirectTo: `${frontendUrl()}/dashboard` } });
+    if (error || !data?.properties?.action_link) throw error || new Error("Dashboard link unavailable");
+    accessUrl = data.properties.action_link;
+  }
+  const html = wrapEmail({ preheader: "Two cards. Endless ways to make them yours.", headline: "Thanks! Your cards are in good hands.", introHtml: `<p>${escapeHtml(text)}</p>`,
+    bodyHtml: `<div style="padding:20px;background:#f0f8ed;border-radius:12px"><strong>What happens next</strong><p>Artwork review → Printing & programming → Shipping</p><p>Keep this email with your order number. We're here if you need help.</p></div>`,
+    ctaLabel: order.hub_requested ? "Customize my hub" : "Get help with my order", ctaUrl: escapeHtml(accessUrl), footerNote: "Free standard US shipping. No marketing enrollment is added to your purchase." });
+  return sendEmail(order.email, "Thank you for your TapAway order", html, `${text}\n\n${accessUrl}`, "personal_order");
+  });
+}
+
 export async function syncPersonalSubscription(
   stripe: Stripe,
   subscriptionId: string,

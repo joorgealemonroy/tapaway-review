@@ -1,8 +1,8 @@
 // Post-purchase onboarding for signed-in customers. Also finalizes purchases that were
 // waiting for an existing account owner to confirm their email.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { admin, cors, json, userFromRequest } from "../_shared/paymentFirst.ts";
-import { ensureDraftProfile } from "../_shared/paymentFirstActivation.ts";
+import { admin, cors, json, userFromRequest, getStripe } from "../_shared/paymentFirst.ts";
+import { ensureDraftProfile, syncBusinessSubscription } from "../_shared/paymentFirstActivation.ts";
 
 const str = (v: unknown, max = 200) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 
@@ -14,7 +14,7 @@ serve(async (req) => {
   const email = user.email.toLowerCase();
   try {
     // Signing in through the emailed link proves ownership of this email.
-    const { data: pending } = await db.from("checkout_intents").select("id, stripe_customer_id")
+    const { data: pending } = await db.from("checkout_intents").select("id, stripe_customer_id, stripe_subscription_id")
       .eq("email", email).eq("status", "pending_association");
     for (const p of pending ?? []) {
       const { data: other } = await db.from("checkout_intents").select("user_id")
@@ -26,7 +26,9 @@ serve(async (req) => {
       await db.from("checkout_intents").update({ status: "associated", user_id: user.id }).eq("id", p.id).eq("status", "pending_association");
       await db.from("onboarding_sessions").update({ user_id: user.id }).eq("checkout_intent_id", p.id);
       await db.from("card_club_memberships").update({ user_id: user.id }).eq("checkout_intent_id", p.id);
-      await ensureDraftProfile(db, p.id, user.id);
+      const profileId = await ensureDraftProfile(db, p.id, user.id);
+      if (!profileId) throw new Error("Draft setup missing");
+      if (p.stripe_subscription_id) await syncBusinessSubscription(getStripe(), p.stripe_subscription_id);
     }
 
     const body = await req.json().catch(() => ({}));

@@ -32,6 +32,7 @@ interface EmailSendRow {
   id: string;
   to_email: string;
   template_key: string;
+  delivery_status?: string | null;
   subject: string | null;
   status: string;
   resend_id: string | null;
@@ -49,9 +50,9 @@ function templateLabel(key: string): string {
 function statusBadge(status: string) {
   const s = status.toLowerCase();
   if (s === "sent" || s === "delivered")
-    return <Badge className="bg-emerald-600/20 text-emerald-300 border-emerald-500/30">Sent</Badge>;
+    return <Badge className="bg-emerald-600/20 text-emerald-300 border-emerald-500/30">{s === "delivered" ? "Delivered" : "Accepted"}</Badge>;
   if (s === "failed" || s === "bounced" || s === "complained")
-    return <Badge className="bg-red-600/20 text-red-300 border-red-500/30">Failed</Badge>;
+    return <Badge className="bg-red-600/20 text-red-300 border-red-500/30">{s === "bounced" ? "Bounced" : s === "complained" ? "Complaint" : "Failed"}</Badge>;
   return <Badge variant="outline" className="text-white/60">{status}</Badge>;
 }
 
@@ -72,7 +73,7 @@ export default function EmailHistory() {
     try {
       let q = supabase
         .from("email_sends")
-        .select("id, to_email, template_key, subject, status, resend_id, error, sent_at, opened_at")
+        .select("id, to_email, template_key, subject, status, resend_id, error, sent_at, opened_at, delivery_status")
         .order("sent_at", { ascending: false })
         .limit(PAGE_SIZE);
       if (templateFilter !== "all") q = q.eq("template_key", templateFilter);
@@ -152,7 +153,7 @@ export default function EmailHistory() {
             className="w-full text-left px-4 py-3.5 hover:bg-white/[0.03] transition-colors"
           >
             <div className="flex items-center gap-2 mb-1">
-              {statusBadge(r.status)}
+              {statusBadge(r.delivery_status || r.status)}
               <span className="text-[11px] text-white/40">
                 {templateLabel(r.template_key)}
               </span>
@@ -215,7 +216,7 @@ export default function EmailHistory() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All statuses</SelectItem>
-              <SelectItem value="sent">Sent</SelectItem>
+              <SelectItem value="sent">Accepted by email provider</SelectItem>
               <SelectItem value="failed">Failed</SelectItem>
             </SelectContent>
           </Select>

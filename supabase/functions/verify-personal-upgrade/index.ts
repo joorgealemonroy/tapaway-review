@@ -46,6 +46,8 @@ serve(async (req) => {
       );
     }
 
+    const verifiedSub = session.subscription as Stripe.Subscription | null;
+    if (session.status !== "complete" || !verifiedSub || verifiedSub.status !== "active") return new Response(JSON.stringify({error:"Your subscription is not active."}), {status:409,headers:{...corsHeaders,"Content-Type":"application/json"}});
     const metadata = session.metadata || {};
     
     if (metadata.type !== "personal_upgrade") {
@@ -60,8 +62,8 @@ serve(async (req) => {
     const oldUsername = metadata.old_username;
     const newUsername = metadata.new_username;
     const planType = metadata.plan_type || "monthly";
-    const customerId = session.customer as string;
-    const subscriptionId = session.subscription as string;
+    const customerId = typeof session.customer === "string" ? session.customer : session.customer?.id;
+    const subscriptionId = verifiedSub.id;
 
     if (!profileId) {
       return new Response(

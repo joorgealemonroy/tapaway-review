@@ -192,6 +192,8 @@ serve(async (req) => {
         },
         429,
       );
+    if (await takeQuota(req, "support-global-ai", 1000, "all-visitors") < 0)
+      return json({ error: "Our AI helper is busy today. Please contact tap@tapaway.co.", remaining: 0 }, 429);
     // Reviewed answers keep common questions fast and consistent; the AI handles the rest.
     const needsPrices = /price|cost|how much|plan/i.test(message) && /business|\b4\b|\bfour\b|\b15\b|\bfifteen\b/i.test(message);
     const pricing = needsPrices ? await currentBusinessPrices() : "";

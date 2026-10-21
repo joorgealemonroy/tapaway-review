@@ -165,3 +165,6 @@ verify_jwt = false
 
 [functions.admin-navigator]
 verify_jwt = false
+
+[functions.email-delivery-webhook]
+verify_jwt = false

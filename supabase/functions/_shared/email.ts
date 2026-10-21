@@ -50,10 +50,10 @@ interface WrapArgs {
   footerNote?: string;
 }
 
-function wrapEmail(a: WrapArgs): string {
+export function wrapEmail(a: WrapArgs): string {
   const cta = a.ctaLabel && a.ctaUrl
     ? `<p style="margin:28px 0;text-align:center;">
-         <a href="${a.ctaUrl}" class="ta-btn">${a.ctaLabel}</a>
+         <a href="${a.ctaUrl}" class="ta-btn" style="display:inline-block;background:#245b43;color:#ffffff;font-size:16px;font-weight:700;padding:14px 28px;border-radius:10px;text-decoration:none;">${a.ctaLabel}</a>
        </p>`
     : "";
   const footer = a.footerNote
@@ -434,7 +434,7 @@ export async function sendEmailAndLog(opts: SendEmailOptions): Promise<SendEmail
   let resendId: string | undefined;
   try {
     const res = await fetch(RESEND_URL, {
-      method: "POST",
+      method: "POST", signal: AbortSignal.timeout(10000),
       headers: {
         Authorization: `Bearer ${resendApiKey}`,
         "Content-Type": "application/json",

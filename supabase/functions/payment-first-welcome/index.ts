@@ -1,3 +1,4 @@
+import { takeQuota } from "../_shared/storefrontRateLimit.ts";
 // /welcome return from Stripe. Verifies the session server-side.
 // New account from this purchase: one short-lived sign-in token, issued once, within 2 hours.
 // Existing account: never signs in; ownership must be confirmed through the emailed link.
@@ -12,6 +13,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (!checkRateLimit(getRateLimitKey(req, "payment-first-welcome"), 30, 60 * 60 * 1000)) return rateLimitResponse(cors);
   try {
+    if (await takeQuota(req, "payment-first-welcome", 30) < 0) return json({ error: "Too many requests. Please try later or contact tap@tapaway.co." }, 429);
     const body = await req.json().catch(() => ({}));
     const db = admin();
 
@@ -20,7 +22,8 @@ serve(async (req) => {
       const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 255) return json({ error: "Enter a valid email." }, 400);
       const { data } = await db.from("checkout_intents").select("id").eq("email", email).in("status", ["associated", "pending_association"]).limit(1);
-      if (data?.length) await sendWelcomeLink(email, "login");
+      if (await takeQuota(req, "welcome-email", 5, email) < 0) return json({ ok: true });
+      if (data?.length && !(await sendWelcomeLink(email, "login"))) return json({ error: "Email is temporarily unavailable. Please try again." }, 503);
       return json({ ok: true }); // Same answer either way.
     }
 

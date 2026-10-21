@@ -16,9 +16,9 @@ const stripeVerifier = new Stripe('sk_test_fixture');
 let checks = 0;
 function plain(x) { return JSON.parse(JSON.stringify(x)); }
 class Database {
-  constructor() { this.tables = new Map(); this.files = new Map(); this.quota = new Map(); this.users = new Map();
+  constructor() { this.tables = new Map(); this.failures = new Map(); this.files = new Map(); this.quota = new Map(); this.users = new Map();
     this.storage = { from: () => ({ upload: async (key, data) => { this.files.set(key, data); return { error: null }; }, createSignedUrl: async key => ({ data: { signedUrl: 'https://files.invalid/' + key }, error: null }) }) };
-    this.auth = { admin: { createUser: async input => { const user = { id: randomUUID(), email: input.email }; this.users.set(input.email, user); return { data: { user }, error: null }; } } };
+    this.auth = { admin: { generateLink: async () => ({data:{properties:{action_link:"https://tapaway.co/auth?token=fixture"}},error:null}), createUser: async input => { const user = { id: randomUUID(), email: input.email }; this.users.set(input.email, user); return { data: { user }, error: null }; } } };
   }
   rows(name) { if (!this.tables.has(name)) this.tables.set(name, []); return this.tables.get(name); }
   from(name) { return new Query(this, name); }
@@ -45,13 +45,15 @@ class Query {
   delete() { this.action = 'delete'; return this; }
   single() { this.object = true; return this; } maybeSingle() { this.object = true; return this; }
   then(resolve,reject) { try {
+    const failureKey=this.table+':'+this.action;
+    if(this.db.failures.get(failureKey)>0){this.db.failures.set(failureKey,this.db.failures.get(failureKey)-1);return Promise.resolve({data:null,error:{message:'Injected transient '+failureKey}}).then(resolve,reject);}
     const rows = this.db.rows(this.table); let found = rows.filter(r => this.filters.every(f => f(r)));
     if (this.action === 'insert' || this.action === 'upsert') {
       found = []; for (const input of Array.isArray(this.value) ? this.value : [this.value]) {
         const key = this.options?.onConflict || 'id', existing = rows.find(r => input[key] != null && r[key] === input[key]);
         if (existing && this.action === 'insert') return Promise.resolve({ data: null, error: { message: 'Duplicate' } }).then(resolve,reject);
         if (existing) { if (!this.options.ignoreDuplicates) Object.assign(existing, plain(input)); found.push(existing); }
-        else { const row = { id: randomUUID(), personal_profile_id: randomUUID(), created_at: new Date().toISOString(), production_status: 'awaiting_payment', ...plain(input) }; rows.push(row); found.push(row); }
+        else { const row = { id: randomUUID(), personal_profile_id: this.table === 'personal_card_orders' ? randomUUID() : null, created_at: new Date().toISOString(), production_status: 'awaiting_payment', ...plain(input) }; rows.push(row); found.push(row); }
       }
     } else if (this.action === 'update') found.forEach(r => Object.assign(r, plain(this.value)));
     else if (this.action === 'delete') this.db.tables.set(this.table, rows.filter(r => !found.includes(r)));
@@ -74,15 +76,17 @@ function environment() {
   const context = vm.createContext({ console, Error, TypeError, Date, Request, Response, Headers, TextEncoder, TextDecoder, URL, URLSearchParams, AbortSignal, Uint8Array, ArrayBuffer, crypto: webcrypto, atob, btoa, setTimeout, clearTimeout, Buffer, require, __db: db, __stripe: stripe, __mode: 'test', __allowed: true, __admin: false, __user: null, __send: async (...args) => { calls.emails.push(args); return true; }, Deno: { env: { get: name => env[name] } }, fetch: async (url, init) => { assert.equal(url,'https://ai.gateway.lovable.dev/v1/chat/completions','No real network calls permitted'); calls.ai.push(JSON.parse(init.body)); return new Response(JSON.stringify({choices:[{message:{content:'Two cards cost $39 once.'}}]}),{headers:{'Content-Type':'application/json'}}); } });
   return { db, calls, sessions, subscriptions, env, stripe, context };
 }
-const paymentStub = `export const admin=()=>globalThis.__db;export const getStripe=()=>globalThis.__stripe;export const stripeMode=()=>globalThis.__mode;export const paymentFirstAllowed=async()=>globalThis.__allowed;export const userFromRequest=async()=>globalThis.__user;export const frontendUrl=()=>"https://tapaway.co";export const sendEmail=(...args)=>globalThis.__send(...args);export const sendWelcomeLink=async()=>true;export const webhookSecret=()=>"whsec_fixture";export const ONBOARDING_VERSION="payment_first_v1";export const CARD_QUANTITY={solo:4,venue:15};export const TRIAL_DAYS=14;export const cardClubPriceId=()=>"price_club";export const cors={"Access-Control-Allow-Origin":"*"};export const json=(body,status=200)=>new Response(JSON.stringify(body),{status,headers:{...cors,"Content-Type":"application/json"}});export const verifiedPrice=async(_,key)=>globalThis.__verifiedPrice?globalThis.__verifiedPrice(key):({id:"price_"+key,amount:key==="card_club"?500:key==="solo_month"?2000:key==="solo_year"?19900:key==="venue_month"?3900:39000,interval:key.endsWith("year")?"year":"month",product:key==="card_club"?"prod_club":"prod_main"});`;
+const paymentStub = `export const admin=()=>globalThis.__db;export const getStripe=()=>globalThis.__stripe;export const stripeMode=()=>globalThis.__mode;export const paymentFirstAllowed=async()=>globalThis.__allowed;export const userFromRequest=async()=>globalThis.__user;export const frontendUrl=()=>"https://tapaway.co";export const sendEmail=(...args)=>globalThis.__send(...args);export const sendWelcomeLink=(...args)=>globalThis.__send(...args);export const webhookSecret=()=>"whsec_fixture";export const ONBOARDING_VERSION="payment_first_v1";export const CARD_QUANTITY={solo:4,venue:15};export const TRIAL_DAYS=14;export const cardClubPriceId=()=>"price_club";export const cors={"Access-Control-Allow-Origin":"*"};export const json=(body,status=200)=>new Response(JSON.stringify(body),{status,headers:{...cors,"Content-Type":"application/json"}});export const verifiedPrice=async(_,key)=>globalThis.__verifiedPrice?globalThis.__verifiedPrice(key):({id:"price_"+key,amount:key==="card_club"?500:key==="solo_month"?2000:key==="solo_year"?19900:key==="venue_month"?3900:39000,interval:key.endsWith("year")?"year":"month",product:key==="card_club"?"prod_club":"prod_main"});`;
 async function load(file, state) {
   const result = await build({ entryPoints:[path.join(root,file)], bundle:true, platform:'node', format:'cjs', write:false, plugins:[{ name:'isolated-edge', setup(build) {
-    build.onResolve({filter:/paymentFirst\.ts$/},()=>({path:'payment',namespace:'mock'}));
+    build.onResolve({filter:/^https:\/\/esm.sh\/@supabase\/supabase-js/},()=>({path:'supabase',namespace:'mock'}));
+    build.onResolve({filter:/paymentFirst\.ts$/},args=>args.kind==='entry-point'?null:({path:'payment',namespace:'mock'}));
     build.onResolve({filter:/^https:\/\/deno\.land\/x\/xhr/},()=>({path:'xhr',namespace:'mock'}));
     build.onResolve({filter:/security\.ts$/},()=>({path:'security',namespace:'mock'}));
     build.onResolve({filter:/^https:\/\/deno\.land\/.*\/http\/server\.ts$/},()=>({path:'serve',namespace:'mock'}));
-    build.onLoad({filter:/.*/,namespace:'mock'},({path})=>({contents:path==='payment'?paymentStub:path==='security'?'export const isAdmin=async()=>globalThis.__admin;export const requireUser=async()=>null;export const isSafeExternalUrl=()=>false;':path==='xhr'?'':'export const serve=handler=>globalThis.__handler=handler;',loader:'js'}));
+    build.onLoad({filter:/.*/,namespace:'mock'},({path})=>({contents:path==='supabase'?'export const createClient=()=>globalThis.__db;':path==='payment'?paymentStub:path==='security'?'export const isAdmin=async()=>globalThis.__admin;export const requireUser=async()=>null;export const isSafeExternalUrl=()=>false;':path==='xhr'?'':'export const serve=handler=>globalThis.__handler=handler;',loader:'js'}));
     build.onResolve({filter:/^https:\/\/esm.sh\/pdf-lib@/},()=>({path:require.resolve('pdf-lib')}));
+    build.onResolve({filter:/^https:\/\/esm.sh\/svix@/},()=>({path:require.resolve(path.join(qa,'svix')),external:true}));
     build.onResolve({filter:/^https:\/\/esm.sh\/stripe@/},()=>({path:require.resolve(path.join(qa,'stripe')),external:true}));
   }}] });
   state.context.module={exports:{}};state.context.exports=state.context.module.exports;new vm.Script(result.outputFiles[0].text,{filename:file}).runInContext(state.context);

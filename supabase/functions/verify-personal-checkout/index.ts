@@ -57,7 +57,15 @@ serve(async (req) => {
       );
     }
 
+    // A historical paid Checkout session must never revive a canceled subscription.
+    const verifiedSub = session.subscription as Stripe.Subscription | null;
+    if (session.status !== 'complete' || session.mode !== 'subscription' || !verifiedSub ||
+        !['active', 'trialing'].includes(verifiedSub.status) ||
+        (verifiedSub.status === 'trialing' && (!verifiedSub.trial_end || verifiedSub.trial_end * 1000 <= Date.now()))) {
+      return new Response(JSON.stringify({ error: 'An active paid plan or valid trial is required.' }), { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
     const metadata = session.metadata || {};
+    if (metadata.onboarding_version || metadata.commerce_version) return new Response(JSON.stringify({error:'Use the current order setup flow.'}), {status:409,headers:{...corsHeaders,'Content-Type':'application/json'}});
     const customerEmail = session.customer_email || (session.customer as Stripe.Customer)?.email;
     // Phone collected at Stripe checkout (phone_number_collection). Used to
     // text the client when their hub is ready.
@@ -137,10 +145,9 @@ serve(async (req) => {
     // Only match by accountEmail (the user's chosen signup email).
     // Never match by billing email -- Apple Pay, Google Pay, etc. use
     // a different email that belongs to someone else's account.
-    const { data: existingUsers } = await supabase.auth.admin.listUsers();
-    const existingUser = existingUsers?.users.find(
-      (u: { email?: string }) => u.email === accountEmail
-    );
+    const { data: existingUsers, error: lookupError } = await supabase.rpc('get_auth_user_by_email', { lookup_email: accountEmail.toLowerCase() });
+    if (lookupError) throw lookupError;
+    const existingUser = Array.isArray(existingUsers) ? existingUsers[0] : null;
 
     let userId: string;
     let tempPassword: string | null = null;
@@ -149,13 +156,6 @@ serve(async (req) => {
       userId = existingUser.id;
       console.log('[verify-personal-checkout] Found existing user:', userId, 'email:', existingUser.email);
       
-      // Ensure must_set_password flag is set for auto-login flow
-      await supabase.auth.admin.updateUserById(userId, {
-        user_metadata: {
-          ...existingUser.user_metadata,
-          must_set_password: true,
-        },
-      });
     } else {
       // Create a new user with the SIGNUP email, not the billing email
       tempPassword = crypto.randomUUID().slice(0, 16);
@@ -192,7 +192,7 @@ serve(async (req) => {
     let isNewProfile = false;
 
     // Detect trial status from Stripe subscription
-    let subscriptionStatus = 'active';
+    let subscriptionStatus = verifiedSub.status;
     let trialEndsAt: string | null = null;
     
     if (session.subscription) {
@@ -299,6 +299,7 @@ serve(async (req) => {
           stripe_customer_id: typeof session.customer === 'string' ? session.customer : session.customer?.id,
           stripe_subscription_id: typeof session.subscription === 'string' ? session.subscription : session.subscription?.id,
           subscription_status: subscriptionStatus,
+          is_approved: true,
           plan_type: detectedPlanType,
           stripe_billing_email: customerEmail,
           ...(trialEndsAt ? { trial_ends_at: trialEndsAt } : {}),
