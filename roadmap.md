@@ -1,5 +1,10 @@
 # Roadmap
 
+## Final raw-profile privacy migration (2026-10-21, 31f37bf6)
+- [x] Run isolated PostgreSQL suite: 14/14 passed; apply private_profile_records once as drizzle/migrations/0027_private_profile_records.sql. Applied SQL differs from reviewed source only by one extra indentation space before the booking helper SELECT; semantics unchanged, not byte-identical. No repair rerun, function deployment, publication, provider work or customer mutations.
+- [x] Anonymous Data API raw-profile SELECT returns zero rows; all six requested slugs resolve through the personal RPC (one row each), restaurant RPCs return zero. RLS remains enabled; owner/rep/admin policies remain; public RPC is SECURITY DEFINER with fixed search_path; approved legacy unbilled gift count remains 108 (explicit complimentary count is zero).
+- [ ] Production SQL role-context checks are blocked: the read-only runner cannot SET ROLE anon/authenticated or execute public RPCs. Anonymous runtime denial verified through Data API; unrelated authenticated identity denial and owner access passed isolated tests, but production authenticated runtime access remains unverified.
+
 ## Final narrow deployment (2026-10-21, c3ec6ab6)
 - [x] Run the 16 isolated launch-handler checks: 16/16 passed with no external fixture traffic; deploy only send-mass-sms (submitted source SHA-256 f9e308d4d112521a90d4d8df64d435b41728bfa9c32a0a8f1b357d7c1429afff). No real sends.
 - [x] LIVE recheck confirmed sub_1UAtXuDg8DaTuVNZUPKMuBVn active and sub_1TLK42Dg8DaTuVNZsO9g1VIM canceled since 2026-05-04T16:42:40Z; both customers matched and each had only the specified subscription. Both local payment states were unknown_manual, not gifts. Executed the reviewed data-only SQL once via Cloud run_sql, not the DDL-only migration runner; no migration journal entry was created.

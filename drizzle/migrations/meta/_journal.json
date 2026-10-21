@@ -190,6 +190,13 @@
       "when": 1792564788886,
       "tag": "0026_claim_summary_privacy",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1792566432090,
+      "tag": "0027_private_profile_records",
+      "breakpoints": true
     }
   ]
 }
