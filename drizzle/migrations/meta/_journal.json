@@ -204,6 +204,20 @@
       "when": 1792598028671,
       "tag": "0028_account_verification_guard",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1792607718080,
+      "tag": "0029_hub_payment_requests",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1792607750744,
+      "tag": "0030_fix_hub_payment_offer_filter",
+      "breakpoints": true
     }
   ]
 }

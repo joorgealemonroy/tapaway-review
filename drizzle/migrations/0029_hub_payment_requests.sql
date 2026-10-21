@@ -189,7 +189,7 @@ RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$
    FROM public.personal_analytics a JOIN target t ON t.id=a.profile_id
    WHERE a.event_type='profile_visit'
      AND a.created_at < COALESCE((SELECT min(h.occurred_at) FROM public.analytics_hits h WHERE h.hub_id=t.id),'infinity'::timestamptz)
-     AND COALESCE(a.visitor_info->>'userAgent',a.visitor_info->>'user_agent','')<>''
+     AND COALESCE(a.visitor_info->>'userAgent',a.visitor_info->>'user_agent','')<>' '
      AND COALESCE(a.visitor_info->>'userAgent',a.visitor_info->>'user_agent','') !~* 'bot|crawl|spider|slurp|preview|facebookexternalhit|headless|phantomjs|puppeteer|playwright|python-requests|curl/|wget|monitor|uptime|lighthouse|gtmetrix'
      AND COALESCE(a.visitor_info->>'referrer','') !~* 'localhost|127\.0\.0\.1|lovable\.(app|dev)|admin_preview'
  )

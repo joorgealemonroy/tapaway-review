@@ -62,3 +62,10 @@
 - [ ] Existing-email purchase: verify association after real email sign-in (needs a signed-in test)
 - [ ] Regression run of claim / rep / van flows
 - [ ] GO LIVE (owner approval): live webhook + secrets + flag
+
+## Hub payment request deployment (2026-10-21, commit 07e28cc1)
+- [x] Applied 0029_hub_payment_requests.sql + 0030_fix_hub_payment_offer_filter.sql (corrective: restored exact reviewed empty-string filter in get_hub_payment_offer)
+- [x] Deployed hub-payment-request, payment-first-webhook, stripe-webhook, personal-card-order, payment-first-welcome
+- [x] Smoke: unsigned payment-first-webhook 400; unauthenticated require 403; RPCs service-role-only; hub_payment_requests empty; onetwentythreeburgerco unchanged
+- [x] Published tapaway.co bundle lacks the reactivation UI (preview-only); build OK
+- [ ] BLOCKER (root source fix needed): hub-payment-request summary/status/checkout-global quota limits (300/20000/1000) exceed storefront_take_quota hard max of 100 -> fail-closed 503. Lower limits to <=100 or raise limiter cap via reviewed migration.
