@@ -9,6 +9,9 @@ import { Label } from "@/components/ui/label";
 import { GooglePlacesAutocomplete } from "@/components/GooglePlacesAutocomplete";
 import { callFunction } from "@/lib/paymentFirst";
 import { track } from "@/lib/analytics";
+import { getOnboardingData } from "@/lib/onboardingData";
+import { Brand } from "@/components/landing/LandingNav";
+import "@/components/landing/storefront.css";
 import { verifyTokenHash } from "@/lib/authGuard";
 
 type Address = { name?: string | null; line1?: string | null; line2?: string | null; city?: string | null; state?: string | null; postal_code?: string | null };
@@ -16,9 +19,9 @@ type OnboardingState = {
   session: null | { step: "business" | "logo" | "shipping" | "done"; business_name: string | null; business_address: string | null; shipping_address: Address | null; logo_url: string | null };
   needsReview?: boolean;
 };
-type Phase = "loading" | "verify_email" | "sign_in" | "processing" | "flow" | "error";
+type Phase = "loading" | "verify_email" | "sign_in" | "processing" | "flow" | "error" | "recover";
 
-const shell = "min-h-screen bg-hero text-hero-foreground";
+const shell = "checkout-surface min-h-screen bg-hero text-hero-foreground";
 
 export default function Welcome() {
   const [params] = useSearchParams();
@@ -30,29 +33,39 @@ export default function Welcome() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const tracked = useRef(false);
+  const [retryAttempt, setRetryAttempt] = useState(0);
 
   const token = async () => (await supabase.auth.getSession()).data.session?.access_token;
 
   const refresh = useCallback(async (body: Record<string, unknown> = { action: "state" }) => {
-    const t = await token();
-    if (!t) { setPhase("sign_in"); return null; }
-    const { ok, data } = await callFunction<OnboardingState & { error?: string }>("payment-first-onboarding", body, t);
-    if (!ok) { setError(data.error || "Something went wrong."); return null; }
-    setError(null);
-    setState(data);
-    setPhase(data.session ? "flow" : data.needsReview ? "processing" : "processing");
-    return data;
+    try {
+      const t = await token();
+      if (!t) { setPhase("sign_in"); return null; }
+      const { ok, data } = await callFunction<OnboardingState & { error?: string }>("payment-first-onboarding", body, t);
+      if (!ok) throw new Error(data.error || "We couldn't save that. Please try again.");
+      setError(null);
+      setState(data);
+      setPhase(data.session ? "flow" : "processing");
+      return data;
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Connection lost. Please try again.");
+      setPhase(current => current === "flow" ? current : "recover");
+      return null;
+    }
   }, []);
 
   useEffect(() => {
     let cancelled = false;
+    setPhase("loading");
     (async () => {
       const existing = await token();
       if (!sessionId) { if (existing) await refresh(); else setPhase("sign_in"); return; }
       for (let attempt = 0; attempt < 6 && !cancelled; attempt++) {
-        const { data } = await callFunction<{ status?: string; token_hash?: string; emailHint?: string }>("payment-first-welcome", { session_id: sessionId });
+        const { ok, data } = await callFunction<{ status?: string; token_hash?: string; emailHint?: string }>("payment-first-welcome", { session_id: sessionId });
+        if (cancelled) return;
+        if (!ok) { setPhase("recover"); return; }
         if (data.emailHint) setEmailHint(data.emailHint);
-        if (!tracked.current && data.status && data.status !== "not_paid") { tracked.current = true; track("purchase_completed", { hubKind: "site" }); }
+        if (!tracked.current && ["ready", "verify_email", "sign_in"].includes(data.status || "")) { tracked.current = true; track("purchase_completed", { hubKind: "site" }); }
         if (data.status === "ready" && data.token_hash) {
           const { error: e } = await verifyTokenHash(data.token_hash, "email");
           if (!e) { await refresh(); return; }
@@ -65,9 +78,9 @@ export default function Welcome() {
         await new Promise((r) => setTimeout(r, 2000));
       }
       if (!cancelled) setPhase("processing");
-    })();
+    })().catch(() => { if (!cancelled) setPhase("recover"); });
     return () => { cancelled = true; };
-  }, [sessionId, refresh]);
+  }, [sessionId, refresh, retryAttempt]);
 
   const step = state?.session?.step;
   const searchTracked = useRef(false);
@@ -77,10 +90,11 @@ export default function Welcome() {
     <div className={shell}>
       <Helmet><title>Finish setting up your TapAway</title><meta name="robots" content="noindex" /></Helmet>
       <main className="mx-auto max-w-md px-4 py-10">
-        <p className="mb-8 text-center text-lg font-bold tracking-tight">TapAway</p>
+        <div className="mb-8 flex items-center justify-between"><Brand /><Link to="/support#question" className="text-xs underline">Need help?</Link></div>
         {phase === "loading" && <Centered><Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="mt-4 text-hero-foreground/70">Confirming your order…</p></Centered>}
-        {phase === "processing" && <Centered><Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="mt-4 text-hero-foreground/70">Your payment went through. We're getting your account ready. This can take a minute, and we've emailed you a link too.</p></Centered>}
-        {phase === "error" && <Centered><h1 className="text-2xl font-bold">Payment not completed</h1><p className="mt-3 text-hero-foreground/70">Nothing was charged. You can try again anytime.</p><Button asChild className="mt-6 h-12 w-full"><Link to="/onboarding?flow=payment_first">Try again</Link></Button></Centered>}
+        {phase === "processing" && <Centered><Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="mt-4 text-hero-foreground/70">Your order is still being confirmed. This can take a minute. If you completed checkout, check your email for a setup link. You do not need to place another order.</p></Centered>}
+        {(phase === "processing" || phase === "recover") && <div className="mt-6 space-y-4">{phase === "recover" && <><h1 className="text-2xl font-bold">Let's reconnect to your order.</h1><p className="text-sm text-muted-foreground">We couldn't confirm your order right now. If you completed checkout, don't pay again. Retry here or open the setup link in your email.</p></>}<Button className="w-full h-12" onClick={() => setRetryAttempt(n => n + 1)}>Check my order again</Button><Link className="block text-center text-sm underline" to="/support#question">Get help with my order</Link></div>}
+        {phase === "error" && <Centered><h1 className="text-2xl font-bold">Checkout not completed</h1><p className="mt-3 text-hero-foreground/70">Your checkout was not completed. You can return to your order and try again.</p><Button asChild className="mt-6 h-12 w-full"><Link to="/onboarding?flow=payment_first">Try again</Link></Button></Centered>}
         {phase === "verify_email" && <Centered><Mail className="h-10 w-10 text-primary" /><h1 className="mt-4 text-2xl font-bold">Check your email to continue</h1><p className="mt-3 text-hero-foreground/70">Your payment went through. You already have a TapAway account{emailHint ? ` at ${emailHint}` : ""}, so we sent a link to confirm it's you. Open it to attach this order and finish setup.</p></Centered>}
         {phase === "sign_in" && <SignIn emailHint={emailHint} />}
         {phase === "flow" && step === "business" && <BusinessStep busy={busy} error={error} onSubmit={async (b) => { setBusy(true); const r = await refresh({ action: "business", ...b }); setBusy(false); if (r) track(b.notFound ? "business_not_found" : "business_selected", { hubKind: "site" }); }} />}
@@ -100,12 +114,14 @@ function SignIn({ emailHint }: { emailHint: string | null }) {
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">Continue your TapAway setup</h1>
       <p className="text-hero-foreground/70">{sent ? "If there's an order for that email, a sign-in link is on its way." : `Enter the email you used at checkout${emailHint ? ` (${emailHint})` : ""} and we'll send you a sign-in link. No password needed.`}</p>
       {!sent && (
-        <form className="space-y-3" onSubmit={async (e) => { e.preventDefault(); setBusy(true); await callFunction("payment-first-welcome", { action: "send_link", email }); setBusy(false); setSent(true); }}>
+        <form className="space-y-3" onSubmit={async (e) => { e.preventDefault(); setBusy(true); setError(null); try { const result = await callFunction("payment-first-welcome", { action: "send_link", email }); if (!result.ok) throw new Error(); setSent(true); } catch { setError("We couldn’t send the link. Please try again or contact support."); } finally { setBusy(false); } }}>
+          {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
           <Label htmlFor="welcome-email">Email</Label>
           <Input id="welcome-email" type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} className="h-12" />
           <Button type="submit" className="h-12 w-full" disabled={busy}>{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Email me a sign-in link"}</Button>
@@ -117,13 +133,14 @@ function SignIn({ emailHint }: { emailHint: string | null }) {
 
 function BusinessStep({ busy, error, onSubmit }: { busy: boolean; error: string | null; onSubmit: (b: Record<string, unknown>) => void }) {
   const [place, setPlace] = useState<{ placeId: string; name: string; address: string } | null>(null);
-  const [notFound, setNotFound] = useState(false);
+  const personal = getOnboardingData().audience === "personal";
+  const [notFound, setNotFound] = useState(personal);
   const [name, setName] = useState(""); const [city, setCity] = useState(""); const [link, setLink] = useState("");
   if (notFound) return (
     <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); onSubmit({ notFound: true, businessName: name, city, link }); }}>
-      <h1 className="text-2xl font-bold">Can't find your business?</h1>
-      <p className="text-hero-foreground/70">No problem. Our team will look it up for you.</p>
-      <div className="space-y-2"><Label htmlFor="nf-name">Business name</Label><Input id="nf-name" required value={name} onChange={(e) => setName(e.target.value)} className="h-12" /></div>
+      <h1 className="text-2xl font-bold">{personal ? "Tell us about you." : "Tell us about your business."}</h1>
+      <p className="text-hero-foreground/70">Add your name or brand and a link to help us get your hub started. You can share design ideas with our team.</p>
+      <div className="space-y-2"><Label htmlFor="nf-name">Your name or business name</Label><Input id="nf-name" required value={name} onChange={(e) => setName(e.target.value)} className="h-12" /></div>
       <div className="space-y-2"><Label htmlFor="nf-city">City</Label><Input id="nf-city" required value={city} onChange={(e) => setCity(e.target.value)} className="h-12" /></div>
       <div className="space-y-2"><Label htmlFor="nf-link">Website or Instagram (optional)</Label><Input id="nf-link" value={link} onChange={(e) => setLink(e.target.value)} className="h-12" /></div>
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
@@ -145,12 +162,13 @@ function BusinessStep({ busy, error, onSubmit }: { busy: boolean; error: string 
         </div>
       )}
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-      <button type="button" className="min-h-11 w-full rounded-full border border-hero-foreground/20 text-sm" onClick={() => setNotFound(true)}>Can't find your business?</button>
+      <button type="button" className="min-h-11 w-full rounded-full border border-hero-foreground/20 text-sm" onClick={() => setNotFound(true)}>Not on Google, or setting up a personal brand?</button>
     </div>
   );
 }
 
 function LogoStep({ busy, error, onSubmit }: { busy: boolean; error: string | null; onSubmit: (url: string) => void }) {
+  const personal = getOnboardingData().audience === "personal";
   const [preview, setPreview] = useState<string | null>(null);
   const [url, setUrl] = useState<string>("");
   const [uploading, setUploading] = useState(false);
@@ -168,18 +186,18 @@ function LogoStep({ busy, error, onSubmit }: { busy: boolean; error: string | nu
   };
   return (
     <div className="space-y-5">
-      <h1 className="text-2xl font-bold">Have your logo?</h1>
+      <h1 className="text-2xl font-bold">Have a logo or profile image?</h1>
       <label className="flex min-h-32 cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-hero-foreground/25 p-5 text-center">
         {preview ? <img src={preview} alt="Your logo preview" className="max-h-28 object-contain" /> : <><Upload className="h-6 w-6 text-primary" /><span className="mt-2 font-semibold">{uploading ? "Uploading…" : "Upload Logo"}</span></>}
         <input type="file" accept="image/*" className="sr-only" onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])} />
       </label>
       {(upErr || error) && <p role="alert" className="text-sm text-destructive">{upErr || error}</p>}
       <div className="rounded-2xl bg-hero-foreground/[0.05] p-5">
-        <h2 className="font-bold">We'll take it from here.</h2>
-        <p className="mt-2 text-sm leading-relaxed text-hero-foreground/75">We'll find your Google review link, website, social profiles, directions, contact information, photos, and other important business links. Our team will build your TapAway page for you.</p>
+        <h2 className="font-bold">We'll take it from here.</h2><p className="mt-2 text-sm"><Link to="/support?topic=personal#question" className="underline" target="_blank" rel="noopener noreferrer">Send us artwork or a custom design idea</Link></p>
+        <p className="mt-2 text-sm leading-relaxed text-hero-foreground/75">{personal ? "We'll use the details and links you shared to build your personal hub. Send any other links or design ideas to our team whenever you're ready." : "We'll find your Google review link, website, social profiles, directions, contact information, photos, and other important business links. Our team will build your TapAway page for you."}</p>
       </div>
-      <Button className="h-12 w-full" disabled={busy || uploading || !url} onClick={() => onSubmit(url)}>Finish Setup</Button>
-      <button type="button" disabled={busy} className="min-h-11 w-full text-sm text-hero-foreground/75 underline" onClick={() => onSubmit("")}>Skip this, we'll find it for you</button>
+      <Button className="h-12 w-full" disabled={busy || uploading || !url} onClick={() => onSubmit(url)}>Continue to shipping</Button>
+      <button type="button" disabled={busy} className="min-h-11 w-full text-sm text-hero-foreground/75 underline" onClick={() => onSubmit("")}>{personal ? "Skip for now, I'll send it later" : "Skip this, we'll find it for you"}</button>
     </div>
   );
 }

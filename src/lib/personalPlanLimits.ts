@@ -39,6 +39,7 @@ export type PlanType = keyof typeof PERSONAL_PLANS;
 export type FeatureKey = keyof typeof PERSONAL_PLANS.paid.features;
 
 export function getPlanLimits(planType: string | null) {
+  if (planType === 'personal_hosted') return { ...PERSONAL_PLANS.paid, name: "Personal hub", price: "$5" };
   if (planType === 'vip') return PERSONAL_PLANS.vip;
   return PERSONAL_PLANS.paid;
 }

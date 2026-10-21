@@ -1,3 +1,5 @@
+import BuildingDashboard from "@/components/dashboard/BuildingDashboard";
+import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -9,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Package, Crown, Minus, Plus, Loader2, MapPin, Pencil, Check } from "lucide-react";
 
 interface CardsTabProps {
+  paymentFirst?: boolean;
   profileId: string;
   userId: string;
   hasCardAddon: boolean;
@@ -41,7 +44,7 @@ const MONTHLY_LIMIT = 3;
 const isAddressComplete = (addr: ShippingAddress) =>
   !!(addr.name.trim() && addr.line1.trim() && addr.city.trim() && addr.state.trim() && addr.postal_code.trim());
 
-export const CardsTab = ({ profileId, userId, hasCardAddon, planType, stripeCustomerId, fullName }: CardsTabProps) => {
+export const CardsTab = ({ profileId, paymentFirst = false, userId, hasCardAddon, planType, stripeCustomerId, fullName }: CardsTabProps) => {
   const [requests, setRequests] = useState<CardRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -54,7 +57,7 @@ export const CardsTab = ({ profileId, userId, hasCardAddon, planType, stripeCust
     name: fullName || "", line1: "", line2: "", city: "", state: "", postal_code: "", country: "US",
   });
 
-  useEffect(() => { loadRequests(); }, [profileId]);
+  useEffect(() => { if (planType === "personal_hosted" || paymentFirst) { setLoading(false); return; } void loadRequests(); }, [profileId, planType, paymentFirst]);
 
   const loadRequests = async () => {
     const { data, error } = await supabase
@@ -206,6 +209,8 @@ export const CardsTab = ({ profileId, userId, hasCardAddon, planType, stripeCust
     </div>
   );
 
+  if (paymentFirst) return <BuildingDashboard embedded profileId={profileId} />;
+  if (planType === "personal_hosted") return <Card><CardHeader><CardTitle>Your personal cards</CardTitle><CardDescription>Your two-card order is a one-time purchase. Your $5/month subscription hosts your hub and analytics.</CardDescription></CardHeader><CardContent className="space-y-4"><p className="text-sm text-muted-foreground">Need another pair or help with your original order? Our team can help. Card Club is for business plans.</p><div className="flex flex-wrap gap-3"><Button asChild><Link to="/personal/design">Design two more cards · $39</Link></Button><Button asChild variant="outline"><Link to="/support#question">Get order help</Link></Button></div></CardContent></Card>;
   if (loading) {
     return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
   }

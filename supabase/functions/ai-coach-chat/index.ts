@@ -1,3 +1,4 @@
+import { customerAiAllowed, readAiBody } from "../_shared/customerAiGuard.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -34,7 +35,7 @@ serve(async (req) => {
       );
     }
 
-    const { restaurantId, message, chatHistory, stats } = await req.json();
+    const { restaurantId, message, chatHistory, stats } = await readAiBody(req);
 
     if (!restaurantId) {
       return new Response(
@@ -75,13 +76,17 @@ serve(async (req) => {
 
     // Check if user is admin or owner
     const { data: isAdminData } = await supabaseClient.rpc('is_admin');
-    const isAdmin = isAdminData || user.email === 'tap@tapaway.co';
+    const isAdmin = isAdminData === true;
 
     if (!isAdmin && restaurant.owner_id !== user.id) {
       return new Response(
         JSON.stringify({ error: 'Unauthorized access to restaurant data' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+
+    if (!(await customerAiAllowed(req, user.id, restaurantId))) {
+      return new Response(JSON.stringify({ error: "AI is unavailable for this account or today's limit has been reached. Contact tap@tapaway.co for help." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -133,15 +138,15 @@ A: "Guests love your tacos and friendly staff. Keep doing what you're doing and 
 
     const chatMessages = [
       { role: "system", content: systemPrompt },
-      ...chatHistory.map((m: { role: string; content: string }) => ({
+      ...(Array.isArray(chatHistory) ? chatHistory.slice(-8).filter(m => ["user", "assistant"].includes(m.role) && typeof m.content === "string") : []).map((m: { role: string; content: string }) => ({
         role: m.role,
-        content: m.content,
+        content: m.content.slice(0, 2000),
       })),
       { role: "user", content: message }
     ];
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
+      method: "POST", signal: AbortSignal.timeout(20000),
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",

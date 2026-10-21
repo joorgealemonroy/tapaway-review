@@ -1,27 +1,11 @@
-/**
- * TapAway centralized analytics client.
- *
- * The single write path for all public-page tracking. Sends to the hardened
- * `track` edge function; the browser never inserts into analytics tables.
- *
- * Identifiers (deliberately two, and distinct):
- *  - session_id: rotates after 30 minutes of inactivity (sessionStorage-backed,
- *    mirrored in localStorage only to carry the inactivity timestamp).
- *  - visitor_id: returning-visitor identifier, persisted ONLY when the
- *    visitor's analytics consent state allows it (Phase 3 wires the real
- *    consent store; until then it defaults to not persisting).
- *
- * No fingerprinting. No raw IP is ever sent from the client. Query strings are
- * stripped before a path leaves the browser.
+/** First-party product usage events. No advertising SDKs or persistent analytics IDs.
+ * Visit IDs exist only in memory and rotate after 30 minutes of inactivity.
  */
-
-const SESSION_KEY = "ta_sid";
-const SESSION_TS_KEY = "ta_sid_ts";
-const VISITOR_KEY = "ta_vid";
-const ENTRY_KEY = "ta_entry";
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
-
 const FN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/track`;
+let sessionId = "";
+let lastActivity = 0;
+let firstPath = "";
 
 export type AnalyticsEventName =
   | "page_view"
@@ -92,60 +76,13 @@ function uid(): string {
   }
 }
 
-function safeGet(store: Storage | undefined, key: string): string | null {
-  try {
-    return store?.getItem(key) ?? null;
-  } catch {
-    return null;
-  }
-}
-function safeSet(store: Storage | undefined, key: string, value: string): void {
-  try {
-    store?.setItem(key, value);
-  } catch {
-    /* storage blocked. Tracking degrades, app keeps working */
-  }
-}
-
-/** Session ID that expires after 30 minutes of inactivity. */
+/** A page-lifetime visit ID; never written to cookies or browser storage. */
 export function getSessionId(): { id: string; isNew: boolean } {
   const now = Date.now();
-  const last = Number(safeGet(window.localStorage, SESSION_TS_KEY) || 0);
-  let id = safeGet(window.localStorage, SESSION_KEY);
-  let isNew = false;
-
-  if (!id || !last || now - last > SESSION_TIMEOUT_MS) {
-    id = uid();
-    isNew = true;
-    safeSet(window.localStorage, SESSION_KEY, id);
-  }
-  safeSet(window.localStorage, SESSION_TS_KEY, String(now));
-  return { id, isNew };
-}
-
-/**
- * Returning-visitor ID. Persisted only when analytics consent allows it.
- * Phase 3 replaces `consentAllowsVisitorId` with the real consent store.
- */
-let visitorIdAllowed = false;
-export function setVisitorIdAllowed(allowed: boolean): void {
-  visitorIdAllowed = allowed;
-  if (!allowed) {
-    try {
-      window.localStorage.removeItem(VISITOR_KEY);
-    } catch {
-      /* ignore */
-    }
-  }
-}
-
-function getVisitorId(): { id: string | null; isNew: boolean | null } {
-  if (!visitorIdAllowed) return { id: null, isNew: null };
-  const existing = safeGet(window.localStorage, VISITOR_KEY);
-  if (existing) return { id: existing, isNew: false };
-  const id = uid();
-  safeSet(window.localStorage, VISITOR_KEY, id);
-  return { id, isNew: true };
+  const isNew = !sessionId || now - lastActivity > SESSION_TIMEOUT_MS;
+  if (isNew) sessionId = uid();
+  lastActivity = now;
+  return { id: sessionId, isNew };
 }
 
 function stripQuery(path: string): string {
@@ -153,40 +90,32 @@ function stripQuery(path: string): string {
 }
 
 function campaign() {
-  const p = new URLSearchParams(window.location.search);
-  const savedRaw = safeGet(window.sessionStorage, "tapaway_campaign");
-  let saved: Record<string, string> = {};
-  try { saved = savedRaw ? JSON.parse(savedRaw) : {}; } catch { saved = {}; }
-  const current = Object.fromEntries(["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "fbclid", "src", "via"].flatMap((key) => {
-    const value = p.get(key);
-    return value ? [[key, value.slice(0, 250)]] : [];
-  }));
-  if (Object.keys(current).length) {
-    saved = { ...saved, ...current };
-    safeSet(window.sessionStorage, "tapaway_campaign", JSON.stringify(saved));
-  }
-  const src = saved.utm_source ?? null;
-  const medium = saved.utm_medium ?? null;
-  const explicit = saved.src || saved.via;
-  let channel: string | null = null;
-  if (explicit === "nfc" || medium === "nfc") channel = "nfc";
-  else if (explicit === "qr" || medium === "qr") channel = "qr";
+  const params = new URLSearchParams(window.location.search);
+  const medium = params.get("utm_medium");
+  const source = params.get("src") || params.get("via");
   return {
-    utm_source: src,
-    utm_medium: medium,
-    utm_campaign: saved.utm_campaign ?? null,
-    utm_content: saved.utm_content ?? null,
-    utm_term: saved.utm_term ?? null,
-    campaign_channel: channel,
+    utm_source: params.get("utm_source")?.slice(0, 250) ?? null,
+    utm_medium: medium?.slice(0, 250) ?? null,
+    utm_campaign: params.get("utm_campaign")?.slice(0, 250) ?? null,
+    utm_content: params.get("utm_content")?.slice(0, 250) ?? null,
+    utm_term: params.get("utm_term")?.slice(0, 250) ?? null,
+    campaign_channel: [source, medium].includes("nfc")
+      ? "nfc"
+      : [source, medium].includes("qr")
+        ? "qr"
+        : null,
   };
 }
-
 function entryPath(): string {
-  const existing = safeGet(window.sessionStorage, ENTRY_KEY);
-  if (existing) return existing;
-  const value = stripQuery(window.location.pathname);
-  safeSet(window.sessionStorage, ENTRY_KEY, value);
-  return value;
+  if (!firstPath) firstPath = stripQuery(window.location.pathname);
+  return firstPath;
+}
+function referrerOrigin(): string | null {
+  try {
+    return document.referrer ? new URL(document.referrer).origin : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Set by the auth layer so staff traffic is labelled, not counted as customers. */
@@ -200,32 +129,41 @@ export function setInternalActor(value: boolean): void {
 const recentlySent = new Map<string, number>();
 const IN_TAB_WINDOW_MS = 30_000;
 
-export function track(event: AnalyticsEventName, options: TrackOptions = {}): void {
+export function track(
+  event: AnalyticsEventName,
+  options: TrackOptions = {},
+): void {
   if (typeof window === "undefined") return;
+  // Only server-verified billing events may claim a financial conversion.
+  if (["trial_start_confirmed", "paid_conversion", "subscription_renewal", "purchase", "purchase_completed"].includes(event)) return;
 
   const path = stripQuery(options.path ?? window.location.pathname);
   const guardKey = `${event}|${path}|${options.hubId ?? ""}`;
   const now = Date.now();
   const last = recentlySent.get(guardKey);
-  if (last && now - last < IN_TAB_WINDOW_MS && event !== "cta_click" && event !== "link_click") {
+  if (
+    last &&
+    now - last < IN_TAB_WINDOW_MS &&
+    event !== "cta_click" &&
+    event !== "link_click"
+  ) {
     return;
   }
   recentlySent.set(guardKey, now);
 
   const { id: sessionId } = getSessionId();
-  const visitor = getVisitorId();
 
   const payload = {
     event_id: uid(),
     event_name: event,
     session_id: sessionId,
-    visitor_id: visitor.id,
-    is_new_visitor: visitor.isNew,
+    visitor_id: null,
+    is_new_visitor: null,
     hub_id: options.hubId ?? null,
     hub_kind: options.hubKind ?? null,
     path,
     entry_path: entryPath(),
-    referrer: document.referrer || null,
+    referrer: referrerOrigin(),
     ...campaign(),
     time_on_page_ms: options.timeOnPageMs ?? null,
     scroll_depth_pct: options.scrollDepthPct ?? null,
@@ -245,7 +183,9 @@ export function track(event: AnalyticsEventName, options: TrackOptions = {}): vo
   };
 
   if ("requestIdleCallback" in window) {
-    (window as unknown as { requestIdleCallback: (cb: () => void) => void }).requestIdleCallback(send);
+    (
+      window as unknown as { requestIdleCallback: (cb: () => void) => void }
+    ).requestIdleCallback(send);
   } else {
     setTimeout(send, 0);
   }

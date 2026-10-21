@@ -1,6 +1,6 @@
 // Hardened analytics ingest. The ONLY write path into public.analytics_hits.
 // Browsers never touch the table directly and never see service-role creds.
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { checkRateLimit, getRateLimitKey } from "../_shared/rateLimit.ts";
 
 const corsHeaders = {
@@ -31,10 +31,10 @@ const ALLOWED_EVENTS = new Set([
   "plan_view",
   "billing_cycle_change",
   "continue_click",
-  "trial_start_confirmed",
-  "paid_conversion",
-  "subscription_renewal",
-  "purchase",
+
+
+
+
   "landing_cta_clicked",
   "plan_selection_viewed",
   "cards_4_selected",
@@ -47,7 +47,7 @@ const ALLOWED_EVENTS = new Set([
   "card_club_decline_prompt",
   "checkout_clicked",
   "stripe_checkout_started",
-  "purchase_completed",
+
   "purchase_failed",
   "business_search_started",
   "business_selected",
@@ -140,7 +140,7 @@ async function sha256Hex(input: string): Promise<string> {
 }
 
 /** Daily rotating salt, backend-only table, purged after 14 days. */
-async function currentSalt(admin: ReturnType<typeof createClient>): Promise<string> {
+async function currentSalt(admin: SupabaseClient): Promise<string> {
   const today = new Date().toISOString().slice(0, 10);
   const { data } = await admin
     .from("analytics_ip_salt")
@@ -223,9 +223,9 @@ Deno.serve(async (req) => {
     } else if (originHost && PREVIEW_HOST_PATTERNS.some((r) => r.test(originHost)) && !PROD_HOSTS.includes(originHost)) {
       trafficClass = "preview";
       reason = "lovable preview origin";
-    } else if (originHost && !PROD_HOSTS.includes(originHost)) {
+    } else if (!originHost || !PROD_HOSTS.includes(originHost)) {
       trafficClass = "bot";
-      reason = "unrecognized origin";
+      reason = "missing or unrecognized origin";
     }
 
     if (trafficClass === "human" && (!ua || BOT_UA.test(ua))) {
@@ -288,9 +288,13 @@ Deno.serve(async (req) => {
     }
 
     const referrer = str(body.referrer, 300);
-    const props = (body.props && typeof body.props === "object" && !Array.isArray(body.props))
-      ? JSON.parse(JSON.stringify(body.props).slice(0, 2000).replace(/[^\x20-\x7E{}":,\[\].\-_\/ ]/g, "")) ?? {}
-      : {};
+    // Keep scalar properties without truncating serialized JSON mid-string.
+    const props: Record<string, string | number | boolean | null> = {};
+    if (rawProps) for (const [key, value] of Object.entries(rawProps).slice(0, 12)) {
+      if (!/^[a-zA-Z0-9_]{1,60}$/.test(key)) continue;
+      if (typeof value === "string") props[key] = value.slice(0, 120);
+      else if (value === null || typeof value === "boolean" || typeof value === "number" && Number.isFinite(value)) props[key] = value as number | boolean | null;
+    }
 
     const row = {
       event_id: eventId,

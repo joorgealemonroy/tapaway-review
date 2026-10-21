@@ -10,6 +10,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 import { checkRateLimit, getRateLimitKey, rateLimitResponse } from "../_shared/rateLimit.ts";
+import { allowAccessEmail, readAccessBody } from "../_shared/accountAccess.ts";
 import { sendEmailAndLog, renderTemplate } from "../_shared/email.ts";
 
 const corsHeaders = {
@@ -48,13 +49,15 @@ serve(async (req) => {
   }
 
   try {
-    const { email } = await req.json().catch(() => ({ email: "" }));
+    const { email } = await readAccessBody(req).catch(() => ({ email: "" }));
     const normalized = typeof email === "string" ? email.trim().toLowerCase() : "";
 
     // Invalid input still gets the neutral success response.
     if (!normalized || !EMAIL_RE.test(normalized) || normalized.length > 254) {
       return ok();
     }
+
+    if (!await allowAccessEmail(req, normalized)) return ok();
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;

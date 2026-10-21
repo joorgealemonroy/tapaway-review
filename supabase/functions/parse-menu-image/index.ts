@@ -1,3 +1,4 @@
+import { customerAiAllowed, readAiBody } from "../_shared/customerAiGuard.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { requireUser } from "../_shared/security.ts";
 import { checkRateLimit, getRateLimitKey, rateLimitResponse } from "../_shared/rateLimit.ts";
@@ -188,12 +189,13 @@ serve(async (req: Request) => {
   }
 
   try {
+    if (!(await customerAiAllowed(req, caller.user.id))) return json({ error: "AI limit reached or an active account is required." }, 429);
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       return json({ success: false, step: "env", error: "LOVABLE_API_KEY not configured" }, 500);
     }
 
-    const body = (await req.json().catch(() => null)) as
+    const body = (await readAiBody(req, 18 * 1024 * 1024).catch(() => null)) as
       | { imageUrl?: string; images?: string[] }
       | null;
 

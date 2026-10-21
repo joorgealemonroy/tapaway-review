@@ -30,31 +30,31 @@ const TABS: { id: Tab; label: string }[] = [
 ];
 
 export default function AdminEmails() {
-  const { loading: guardLoading } = useAdminGuard();
+  const { loading: guardLoading, isAdmin } = useAdminGuard();
   const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>("templates");
 
-  if (guardLoading) {
+  if (guardLoading || !isAdmin) {
     return (
-      <div className="min-h-screen bg-[#0a0e1a] flex items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-white/50" />
+      <div className="min-h-screen bg-[#f6f8f4] flex items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-slate-600" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0e1a] text-white">
+    <div className="min-h-screen bg-[#f6f8f4] text-slate-900">
       <div className="max-w-3xl mx-auto px-4 py-6 pb-16">
         <Button
           variant="ghost"
           onClick={() => navigate("/admin")}
-          className="mb-4 -ml-2 text-white/60 hover:text-white"
+          className="mb-4 -ml-2 text-slate-600 hover:text-slate-900"
         >
           <ArrowLeft className="h-4 w-4 mr-2" /> Back to Admin
         </Button>
 
         <h1 className="text-xl font-bold">Emails</h1>
-        <p className="text-sm text-white/50 mt-1 mb-5">
+        <p className="text-sm text-slate-600 mt-1 mb-5">
           Every email the system sends. What they look like, who got them,
           and a way to send an update.
         </p>
@@ -63,7 +63,7 @@ export default function AdminEmails() {
         <div
           role="tablist"
           aria-label="Email sections"
-          className="flex gap-1 p-1 rounded-xl bg-white/[0.04] border border-white/10 mb-5"
+          className="flex gap-1 p-1 rounded-xl bg-slate-100 border border-slate-200 mb-5"
         >
           {TABS.map((t) => (
             <button
@@ -74,8 +74,8 @@ export default function AdminEmails() {
               className={cn(
                 "flex-1 min-h-[44px] rounded-lg text-sm font-medium transition-colors",
                 tab === t.id
-                  ? "bg-white/10 text-white"
-                  : "text-white/50 hover:text-white/80"
+                  ? "bg-white text-slate-900"
+                  : "text-slate-600 hover:text-slate-800"
               )}
             >
               {t.label}
@@ -85,7 +85,7 @@ export default function AdminEmails() {
 
         {tab === "templates" && (
           <div>
-            <p className="text-xs text-white/40 mb-3">
+            <p className="text-xs text-slate-500 mb-3">
               Rendered from the canonical email templates. The exact HTML,
               subject, and preheader clients receive. Tap any card for the
               full-size version.

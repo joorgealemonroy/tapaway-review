@@ -8,7 +8,6 @@ import { TRIAL_URL } from "@/lib/constants";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useState } from "react";
-import { getTrybeVisitorId } from "@/lib/trybePixel";
 
 const Paywall = () => {
   const navigate = useNavigate();
@@ -64,7 +63,6 @@ const Paywall = () => {
             planType: 'solo',
             claimRestaurantId,
             dashboardType: 'restaurant',
-            trybeVisitorId: getTrybeVisitorId(),
           },
         });
 

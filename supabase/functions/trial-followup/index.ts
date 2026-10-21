@@ -113,6 +113,7 @@ Deno.serve(async (req) => {
       .from("restaurants")
       .select("id, restaurant_name, phone, custom_slug, created_at")
       .eq("subscription_status", "trialing")
+      .not("stripe_subscription_id", "is", null)
       // Comped accounts (family, free on purpose) never receive trial
       // nurture texts, regardless of subscription_status.
       .neq("payment_state", "complimentary")

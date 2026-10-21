@@ -1,3 +1,6 @@
+import { CustomerGuide } from "@/components/dashboard/customer/CustomerGuide";
+import "@/components/dashboard/customer/customer.css";
+import { PersonalHubGuide } from "@/components/personal/PersonalHubGuide";
 import { useState, useEffect, useRef, memo, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -59,6 +62,7 @@ import { AdminViewBanner } from "@/components/admin/AdminViewBanner";
 
 
 interface PersonalProfile {
+  onboarding_source?: string | null;
   id: string;
   user_id: string;
   username: string;
@@ -469,7 +473,7 @@ const PersonalDashboard = () => {
   // One-time Card Club offer for signups that selected it at checkout.
   // This is the only way to join Card Club. No self-serve subscribe exists.
   useEffect(() => {
-    if (profile && localStorage.getItem(PENDING_CARD_CLUB_KEY) && !profile.has_card_addon) {
+    if (profile && !profile.onboarding_source?.startsWith("payment_first") && profile.plan_type !== "personal_hosted" && localStorage.getItem(PENDING_CARD_CLUB_KEY) && !profile.has_card_addon) {
       setShowCardClubOffer(true);
     }
   }, [profile]);
@@ -987,7 +991,7 @@ const PersonalDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background overflow-x-hidden max-w-full">
+    <div className="customer-workspace min-h-screen bg-background overflow-x-hidden max-w-full">
       {showConfetti && <ConfettiEffect onComplete={() => setShowConfetti(false)} />}
       {isAdminView && (
         <AdminViewBanner name={adminViewName} backTo="/admin/personal-accounts" />
@@ -1282,9 +1286,11 @@ const PersonalDashboard = () => {
             </Button>
           </div>
 
+        {profile.plan_type === "personal_hosted" && !isAdminView && <div className="mb-6"><PersonalHubGuide key={profile.id} profileId={profile.id} username={profile.username} onGoToTab={tab=>{setActiveTab(tab);window.scrollTo({top:0,behavior:"smooth"});}}/></div>}
+        <div className="mb-6"><CustomerGuide activeTab={activeTab} onNavigate={tab => { setActiveTab(tab); window.scrollTo({ top: 0, behavior: "smooth" }); }} /></div>
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={(tab) => { setActiveTab(tab); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="space-y-6">
-          <TabsList className={cn("hidden md:grid w-full", isTrialing ? "grid-cols-8" : "grid-cols-10")}>
+          <TabsList className={"hidden md:flex flex-wrap w-full h-auto gap-1 p-2"}>
             <TabsTrigger 
               id="tab-overview"
               value="overview" 
@@ -1389,7 +1395,7 @@ const PersonalDashboard = () => {
               bio={profile.bio}
               planType={profile.plan_type}
               showUsername={profile.show_username ?? true}
-              usernameLocked={!!profile.is_approved}
+              usernameLocked={!!profile.is_approved && profile.plan_type !== "personal_hosted"}
 
               onUpdate={(updates) => setProfile(prev => prev ? { ...prev, ...updates } : null)}
               onPendingChangesChange={setHeroHasPending}
@@ -1486,6 +1492,7 @@ const PersonalDashboard = () => {
                 id: profile.id,
                 plan_type: profile.plan_type,
                 subscription_status: profile.subscription_status,
+                onboarding_source: profile.onboarding_source,
                 stripe_customer_id: profile.stripe_customer_id,
                 stripe_subscription_id: profile.stripe_subscription_id,
                 trial_ends_at: profile.trial_ends_at,
@@ -1500,6 +1507,7 @@ const PersonalDashboard = () => {
           {/* Cards Tab */}
           <TabsContent value="cards" className="space-y-4">
             <CardsTab
+              paymentFirst={profile.onboarding_source?.startsWith("payment_first") || false}
               profileId={profile.id}
               userId={profile.user_id}
               hasCardAddon={profile.has_card_addon || false}
@@ -1563,7 +1571,7 @@ const PersonalDashboard = () => {
       />
 
       {/* One-time Card Club offer (signup selection) */}
-      {showCardClubOffer && (
+      {showCardClubOffer && !profile.onboarding_source?.startsWith("payment_first") && profile.plan_type !== "personal_hosted" && (
         <CardClubWelcomeOffer
           profileId={profile.id}
           onDone={() => setShowCardClubOffer(false)}

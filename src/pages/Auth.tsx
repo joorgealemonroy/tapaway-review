@@ -1,5 +1,6 @@
+import "@/components/landing/storefront.css";
 import { useState, useEffect } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { Button } from "@/components/ui/button";
@@ -7,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import PasswordChecklistSection from "@/components/PasswordChecklistSection";
-import { Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, Loader2 } from "lucide-react";
 import { LegalFooter } from "@/components/compliance/LegalFooter";
 
 
@@ -34,7 +35,7 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Post-checkout state
   const [checkingSession, setCheckingSession] = useState(false);
   const [stripeSessionData, setStripeSessionData] = useState<StripeSessionData | null>(null);
@@ -49,7 +50,8 @@ const Auth = () => {
   const [oauthLoading, setOauthLoading] = useState(false);
 
   // Get redirect destination from URL params
-  const redirectTo = searchParams.get("redirect") || "/dashboard";
+  const requestedRedirect = searchParams.get("redirect") || "/dashboard";
+  const redirectTo = requestedRedirect.startsWith("/") && !requestedRedirect.startsWith("//") && !requestedRedirect.includes("\\") ? requestedRedirect : "/dashboard";
 
   // Detect OAuth return. If user already has a session on mount in login mode, auto-redirect
   useEffect(() => {
@@ -159,7 +161,7 @@ const Auth = () => {
     setLoading(true);
     setError(null);
     setMessage(null);
-    
+
     try {
       const { error } = await supabase.auth.signInWithPassword({
         email: email.trim(),
@@ -194,8 +196,7 @@ const Auth = () => {
     }
 
     // Check if admin (via email or app_metadata)
-    const ADMIN_EMAILS = ["tap@tapaway.co"];
-    const isAdmin = ADMIN_EMAILS.includes(user.email ?? "") || user.app_metadata?.role === "admin";
+    const { data: isAdmin } = await supabase.rpc("is_admin");
     if (isAdmin) {
       return "/admin";
     }
@@ -207,7 +208,7 @@ const Auth = () => {
       .eq("id", user.id)
       .eq("is_active", true)
       .maybeSingle();
-    
+
     if (salesRepData) {
       return "/rep";
     }
@@ -229,9 +230,9 @@ const Auth = () => {
    const restaurant = restaurantResult.data;
    const personal = personalResult.data;
 
-   const hasValidBusiness = restaurant && 
-     restaurant.onboarding_completed && 
-     (restaurant.subscription_status === 'active' || 
+   const hasValidBusiness = restaurant &&
+     restaurant.onboarding_completed &&
+     (restaurant.subscription_status === 'active' ||
       restaurant.subscription_status === 'trialing' ||
       restaurant.subscription_status === 'pending_payment' ||
       restaurant.subscription_status === 'pending_setup');
@@ -271,7 +272,7 @@ const Auth = () => {
 
   const onPostCheckoutSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validPassword) {
       setError("Please enter a valid password that meets all requirements.");
       return;
@@ -290,11 +291,11 @@ const Auth = () => {
       // If user already exists with must_set_password flag, update their password via edge function
       if (stripeSessionData.alreadyHasUser && stripeSessionData.userId) {
         console.log("[Auth] Existing user needs password - calling set-user-password");
-        
+
         const sessionId = getSessionIdFromRedirect();
         const { error: setPasswordError } = await supabase.functions.invoke("set-user-password", {
-          body: { 
-            userId: stripeSessionData.userId, 
+          body: {
+            userId: stripeSessionData.userId,
             password: validPassword,
             sessionId,
           },
@@ -324,7 +325,7 @@ const Auth = () => {
       }
 
       setMessage("Password set! Redirecting to onboarding…");
-      
+
       console.log("[Auth] Redirecting to:", redirectTo);
       window.location.href = redirectTo;
     } catch (e: any) {
@@ -414,9 +415,9 @@ const Auth = () => {
   // Show loading while checking Stripe session
   if (checkingSession) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4 bg-muted/30">
-        <div className="w-full max-w-md">
-          <div className="bg-card rounded-2xl shadow-sm border border-border px-6 py-8 space-y-6">
+      <div className="storefront auth-surface min-h-screen flex items-center justify-center px-4">
+        <div className="w-full max-w-md"><Link className="auth-back" to="/"><ArrowLeft size={17}/> Back to TapAway</Link>
+          <div className="auth-card bg-card rounded-2xl shadow-sm border border-border px-6 py-8 space-y-6">
             <div className="flex flex-col items-center gap-4">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
               <p className="text-sm text-muted-foreground">Verifying your payment...</p>
@@ -456,13 +457,11 @@ const Auth = () => {
   const { title, subtitle } = getTitleAndSubtitle();
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 bg-muted/30">
-      <div className="w-full max-w-md">
-        <div className="bg-card rounded-2xl shadow-sm border border-border px-6 py-8 space-y-6">
+    <div className="storefront auth-surface min-h-screen flex items-center justify-center px-4">
+      <div className="w-full max-w-md"><Link className="auth-back" to="/"><ArrowLeft size={17}/> Back to TapAway</Link>
+        <div className="auth-card bg-card rounded-2xl shadow-sm border border-border px-6 py-8 space-y-6">
           <div className="space-y-2 text-center">
-            <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-primary text-primary-foreground font-bold text-lg">
-              T
-            </div>
+            <Link to="/" className="auth-wordmark">TapAway<ArrowUpRight size={22}/></Link>
             <div>
               <h1 className="text-xl font-semibold text-foreground">{title}</h1>
               <p className="text-sm text-muted-foreground">{subtitle}</p>
@@ -485,10 +484,10 @@ const Auth = () => {
             <form className="space-y-4" onSubmit={onPostCheckoutSignup}>
               <div className="space-y-2">
                 <Label htmlFor="email">Email address</Label>
-                <Input 
-                  id="email" 
-                  type="email" 
-                  value={email} 
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
                   disabled
                   className="bg-muted cursor-not-allowed"
                 />
@@ -503,9 +502,9 @@ const Auth = () => {
 
               <p className="text-xs text-center text-muted-foreground">
                 Already have an account?{" "}
-                <button 
-                  type="button" 
-                  onClick={() => setMode("post-checkout-login")} 
+                <button
+                  type="button"
+                  onClick={() => setMode("post-checkout-login")}
                   className="text-foreground hover:underline"
                 >
                   Log in instead
@@ -519,33 +518,33 @@ const Auth = () => {
             <form className="space-y-4" onSubmit={onLogin}>
               <div className="space-y-2">
                 <Label htmlFor="email">Email address</Label>
-                <Input 
-                  id="email" 
-                  type="email" 
-                  autoComplete="email" 
-                  required 
-                  value={email} 
-                  onChange={e => setEmail(e.target.value)} 
-                  placeholder="you@restaurant.com" 
+                <Input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="you@example.com"
                 />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
-                <Input 
-                  id="password" 
-                  type="password" 
-                  autoComplete="current-password" 
-                  required 
-                  value={password} 
-                  onChange={e => setPassword(e.target.value)} 
-                  placeholder="••••••••" 
+                <Input
+                  id="password"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="••••••••"
                 />
               </div>
 
               <div className="flex items-center justify-end text-xs text-muted-foreground">
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={() => {
                     setMode("forgot");
                     setForgotStep("send");
@@ -553,7 +552,7 @@ const Auth = () => {
                     setForgotValidPassword(null);
                     setMessage(null);
                     setError(null);
-                  }} 
+                  }}
                   className="text-foreground hover:underline"
                 >
                   Forgot password?
@@ -616,42 +615,42 @@ const Auth = () => {
 
               <div className="space-y-2">
                 <Label htmlFor="email">Email address</Label>
-                <Input 
-                  id="email" 
-                  type="email" 
-                  autoComplete="email" 
-                  required 
-                  value={email} 
-                  onChange={e => setEmail(e.target.value)} 
-                  placeholder="you@restaurant.com" 
+                <Input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="you@example.com"
                 />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
-                <Input 
-                  id="password" 
-                  type="password" 
-                  autoComplete="current-password" 
-                  required 
-                  value={password} 
-                  onChange={e => setPassword(e.target.value)} 
-                  placeholder="••••••••" 
+                <Input
+                  id="password"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="••••••••"
                 />
               </div>
 
               <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <label className="inline-flex items-center gap-2">
-                  <input 
-                    type="checkbox" 
-                    checked={rememberMe} 
-                    onChange={e => setRememberMe(e.target.checked)} 
-                    className="rounded border-input" 
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={e => setRememberMe(e.target.checked)}
+                    className="rounded border-input"
                   />
                   <span>Remember me</span>
                 </label>
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={() => {
                     setMode("forgot");
                     setForgotStep("send");
@@ -659,7 +658,7 @@ const Auth = () => {
                     setForgotValidPassword(null);
                     setMessage(null);
                     setError(null);
-                  }} 
+                  }}
                   className="text-foreground hover:underline"
                 >
                   Forgot password?
@@ -673,7 +672,7 @@ const Auth = () => {
 
                 {/* Continue setup button for users who hit auth during setup */}
                 {redirectTo.includes('/onboarding') && (
-                  <Button 
+                  <Button
                     type="button"
                     onClick={() => window.location.href = '/onboarding?source=resume'}
                     className="w-full"
@@ -682,12 +681,12 @@ const Auth = () => {
                   </Button>
                 )}
 
-                <Button 
+                <Button
                   type="button"
-                  variant="outline" 
+                  variant="outline"
                   onClick={() => {
                     window.location.href = PAYWALL_PATH;
-                  }} 
+                  }}
                   className="w-full"
                 >
                   Create an account
@@ -725,14 +724,14 @@ const Auth = () => {
             <form className="space-y-4" onSubmit={onForgot}>
               <div className="space-y-2">
                 <Label htmlFor="forgot-email">Email address</Label>
-                <Input 
-                  id="forgot-email" 
-                  type="email" 
-                  autoComplete="email" 
-                  required 
-                  value={email} 
-                  onChange={e => setEmail(e.target.value)} 
-                  placeholder="you@restaurant.com" 
+                <Input
+                  id="forgot-email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="you@example.com"
                   disabled={forgotStep === "verify"}
                 />
               </div>
@@ -778,26 +777,26 @@ const Auth = () => {
                 </button>
               )}
 
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => {
                   // Go back to the appropriate mode
-                  setMode(stripeSessionData?.alreadyHasUser ? "post-checkout-login" : 
+                  setMode(stripeSessionData?.alreadyHasUser ? "post-checkout-login" :
                           stripeSessionData ? "post-checkout-signup" : "login");
                   setMessage(null);
                   setError(null);
-                }} 
+                }}
                 className="w-full text-xs text-muted-foreground hover:underline text-center"
               >
                 Back to login
               </button>
 
               {!stripeSessionData && (
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={() => {
                     window.location.href = PAYWALL_PATH;
-                  }} 
+                  }}
                   className="w-full text-xs text-muted-foreground hover:underline text-center"
                 >
                   Create an account

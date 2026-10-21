@@ -1,3 +1,5 @@
+import { sendEmailAndLog, wrapEmail } from "./email.ts";
+import { escapeHtml } from "./sanitize.ts";
 // Payment-first onboarding: Stripe mode, catalog and Card Club price.
 // PAYMENT_FIRST_STRIPE_MODE defaults to "test" until the owner approves go-live.
 import Stripe from "https://esm.sh/stripe@14.21.0";
@@ -50,7 +52,7 @@ export async function verifiedPrice(stripe: Stripe, key: `${Plan}_${Interval}` |
   if (!price.active || price.currency !== "usd" || price.unit_amount !== rule.amount || price.recurring?.interval !== rule.interval) {
     throw new Error(`Price mapping invalid for ${key}`);
   }
-  return { id: price.id, amount: rule.amount, interval: rule.interval };
+  return { id: price.id, amount: rule.amount, interval: rule.interval, product: typeof price.product === "string" ? price.product : price.product.id };
 }
 
 export function cardClubPriceId() {
@@ -72,16 +74,9 @@ export async function userFromRequest(req: Request) {
 
 export const frontendUrl = () => (Deno.env.get("FRONTEND_URL") || "https://tapaway.co").replace(/\/$/, "");
 
-export async function sendEmail(to: string, subject: string, html: string, text: string) {
-  const key = Deno.env.get("RESEND_API_KEY");
-  if (!key) { console.error("[paymentFirst] RESEND_API_KEY missing"); return false; }
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-    body: JSON.stringify({ from: Deno.env.get("EMAIL_FROM") || "TapAway <no-reply@tapaway.co>", to: [to], subject, html, text, reply_to: "tap@tapaway.co" }),
-  });
-  if (!res.ok) console.error("[paymentFirst] email failed", res.status, await res.text());
-  return res.ok;
+export async function sendEmail(to: string, subject: string, html: string, text: string, templateKey = "checkout_transaction") {
+  const result = await sendEmailAndLog({ to, subject, html, text, templateKey, replyTo: "tap@tapaway.co" });
+  return result.ok;
 }
 
 /** Sends a durable magic link that returns the customer to /welcome. */
@@ -96,13 +91,17 @@ export async function sendWelcomeLink(email: string, kind: "purchase" | "verify"
   const lead = kind === "purchase"
     ? "Thanks for joining TapAway. We're setting everything up for you now. Our team will gather your business links, build your TapAway page, prepare your cards, and get everything ready to ship."
     : kind === "verify"
-      ? "Your payment went through. You already have a TapAway account with this email, so please confirm it's you to attach this order and finish setup."
+      ? "Your checkout is complete. You already have a TapAway account with this email, so please confirm it's you to attach this order and finish setup."
       : "Use the button below to sign in to TapAway.";
-  const html = `<div style="background:#ffffff;font-family:Arial,sans-serif;padding:32px 20px"><div style="max-width:520px;margin:0 auto">
-<h1 style="font-size:22px;color:#111">${subject}</h1><p style="font-size:15px;color:#444;line-height:1.6">${lead}</p>
-<p><a href="${link}" style="display:inline-block;background:#111;color:#fff;padding:14px 28px;border-radius:999px;text-decoration:none;font-weight:600">Access My Dashboard</a></p>
-<p style="font-size:12px;color:#888">This link works once. If it expires, open tapaway.co/welcome to get a new one.</p></div></div>`;
-  return sendEmail(email, subject, html, `${lead}\n\nAccess My Dashboard: ${link}`);
+  const html = wrapEmail({
+    preheader: kind === "purchase" ? "Thank you for choosing TapAway. A few quick steps and we take it from here." : "Your secure access to TapAway.",
+    headline: kind === "purchase" ? "You're in. Let's make your first tap count." : kind === "verify" ? "Let's connect your order." : "Welcome back to TapAway.",
+    introHtml: `<p>${escapeHtml(lead)}</p>`,
+    bodyHtml: kind === "purchase" ? `<div style="background:#f0f8ed;border-radius:12px;padding:20px;margin-top:20px"><strong>Here's what happens next</strong><p>1. Confirm your business, logo and shipping details.</p><p>2. We prepare your hub and review your cards.</p><p>3. Once your cards arrive, tap or scan to share your hub.</p></div><p>You can update your links and see activity from your dashboard. Need a hand? Reply and we'll help.</p>` : "",
+    ctaLabel: kind === "purchase" ? "Finish my setup" : "Access my dashboard", ctaUrl: escapeHtml(link),
+    footerNote: "This secure link works once. If it expires, visit tapaway.co/welcome to request a fresh one. Never share your sign-in link.",
+  });
+  return sendEmail(email, subject, html, `${lead}\n\nAccess My Dashboard: ${link}`, `checkout_${kind}`);
 }
 
 export const cors = {

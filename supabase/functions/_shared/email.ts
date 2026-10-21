@@ -34,7 +34,7 @@ const SITE_URL = "https://tapaway.co";
 const BRAND_CSS = `
   .ta-outer { margin:0; padding:0; background:#f3f4f6; }
   .ta-card { background:#ffffff; border-radius:16px; overflow:hidden; }
-  .ta-btn { display:inline-block; background:#6BCB77; color:#0b0f0c !important;
+  .ta-btn { display:inline-block; background:#245b43; color:#ffffff !important;
     font-size:16px; font-weight:700; padding:14px 32px; border-radius:10px;
     text-decoration:none; }
   .ta-muted { color:#6b7280; }
@@ -50,14 +50,14 @@ interface WrapArgs {
   footerNote?: string;
 }
 
-function wrapEmail(a: WrapArgs): string {
+export function wrapEmail(a: WrapArgs): string {
   const cta = a.ctaLabel && a.ctaUrl
     ? `<p style="margin:28px 0;text-align:center;">
-         <a href="${a.ctaUrl}" class="ta-btn">${a.ctaLabel}</a>
+         <a href="${a.ctaUrl}" class="ta-btn" style="display:inline-block;background:#245b43;color:#ffffff;font-size:16px;font-weight:700;padding:14px 28px;border-radius:10px;text-decoration:none;">${a.ctaLabel}</a>
        </p>`
     : "";
   const footer = a.footerNote
-    ? `<p style="margin:24px 0 0 0;font-size:13px;color:#9ca3af;line-height:1.6;
+    ? `<p style="margin:24px 0 0 0;font-size:13px;color:#667085;line-height:1.6;
         border-top:1px solid #e5e7eb;padding-top:20px;text-align:center;">${a.footerNote}</p>`
     : "";
   return `<!DOCTYPE html>
@@ -88,9 +88,9 @@ function wrapEmail(a: WrapArgs): string {
   </div>
 </td></tr>
 <tr><td style="text-align:center;padding-top:24px;">
-  <p style="margin:0 0 6px 0;font-size:12px;color:#9ca3af;">
-    TapAway. Tap a card, grow your business.</p>
-  <p style="margin:0;font-size:12px;color:#9ca3af;">
+  <p style="margin:0 0 6px 0;font-size:12px;color:#667085;">
+    TapAway. Tap. Share. Connect.</p>
+  <p style="margin:0;font-size:12px;color:#667085;">
     Questions? Just reply to this email. A human reads every one.</p>
 </td></tr>
 </table></td></tr></table></body></html>`;
@@ -395,6 +395,8 @@ export interface SendEmailOptions {
   /** Optional account correlation. Powers dedup checks without extra queries. */
   profileId?: string | null;
   attachments?: Array<{ filename: string; content: string }>;
+  /** Stable operation key for safely retrying transactional provider requests. */
+  idempotencyKey?: string;
 }
 
 export interface SendEmailResult {
@@ -434,10 +436,11 @@ export async function sendEmailAndLog(opts: SendEmailOptions): Promise<SendEmail
   let resendId: string | undefined;
   try {
     const res = await fetch(RESEND_URL, {
-      method: "POST",
+      method: "POST", signal: AbortSignal.timeout(10000),
       headers: {
         Authorization: `Bearer ${resendApiKey}`,
         "Content-Type": "application/json",
+        ...(opts.idempotencyKey ? { "Idempotency-Key": opts.idempotencyKey } : {}),
       },
       body: JSON.stringify({
         from: opts.from || Deno.env.get("EMAIL_FROM") || DEFAULT_FROM,

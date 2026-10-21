@@ -2,7 +2,6 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Stripe from 'https://esm.sh/stripe@14.21.0';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.81.1';
 import { checkRateLimit, getRateLimitKey, rateLimitResponse } from "../_shared/rateLimit.ts";
-import { sendMetaCapiEvent } from "../_shared/metaCapi.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -58,7 +57,15 @@ serve(async (req) => {
       );
     }
 
+    // A historical paid Checkout session must never revive a canceled subscription.
+    const verifiedSub = session.subscription as Stripe.Subscription | null;
+    if (session.status !== 'complete' || session.mode !== 'subscription' || !verifiedSub ||
+        !['active', 'trialing'].includes(verifiedSub.status) ||
+        (verifiedSub.status === 'trialing' && (!verifiedSub.trial_end || verifiedSub.trial_end * 1000 <= Date.now()))) {
+      return new Response(JSON.stringify({ error: 'An active paid plan or valid trial is required.' }), { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
     const metadata = session.metadata || {};
+    if (metadata.onboarding_version || metadata.commerce_version) return new Response(JSON.stringify({error:'Use the current order setup flow.'}), {status:409,headers:{...corsHeaders,'Content-Type':'application/json'}});
     const customerEmail = session.customer_email || (session.customer as Stripe.Customer)?.email;
     // Phone collected at Stripe checkout (phone_number_collection). Used to
     // text the client when their hub is ready.
@@ -138,10 +145,9 @@ serve(async (req) => {
     // Only match by accountEmail (the user's chosen signup email).
     // Never match by billing email -- Apple Pay, Google Pay, etc. use
     // a different email that belongs to someone else's account.
-    const { data: existingUsers } = await supabase.auth.admin.listUsers();
-    const existingUser = existingUsers?.users.find(
-      u => u.email === accountEmail
-    );
+    const { data: existingUsers, error: lookupError } = await supabase.rpc('get_auth_user_by_email', { lookup_email: accountEmail.toLowerCase() });
+    if (lookupError) throw lookupError;
+    const existingUser = Array.isArray(existingUsers) ? existingUsers[0] : null;
 
     let userId: string;
     let tempPassword: string | null = null;
@@ -150,13 +156,6 @@ serve(async (req) => {
       userId = existingUser.id;
       console.log('[verify-personal-checkout] Found existing user:', userId, 'email:', existingUser.email);
       
-      // Ensure must_set_password flag is set for auto-login flow
-      await supabase.auth.admin.updateUserById(userId, {
-        user_metadata: {
-          ...existingUser.user_metadata,
-          must_set_password: true,
-        },
-      });
     } else {
       // Create a new user with the SIGNUP email, not the billing email
       tempPassword = crypto.randomUUID().slice(0, 16);
@@ -193,7 +192,7 @@ serve(async (req) => {
     let isNewProfile = false;
 
     // Detect trial status from Stripe subscription
-    let subscriptionStatus = 'active';
+    let subscriptionStatus = verifiedSub.status;
     let trialEndsAt: string | null = null;
     
     if (session.subscription) {
@@ -300,6 +299,7 @@ serve(async (req) => {
           stripe_customer_id: typeof session.customer === 'string' ? session.customer : session.customer?.id,
           stripe_subscription_id: typeof session.subscription === 'string' ? session.subscription : session.subscription?.id,
           subscription_status: subscriptionStatus,
+          is_approved: true,
           plan_type: detectedPlanType,
           stripe_billing_email: customerEmail,
           ...(trialEndsAt ? { trial_ends_at: trialEndsAt } : {}),
@@ -414,28 +414,6 @@ serve(async (req) => {
     }
 
     // clientIp was captured above (used for affiliate abuse tracking + card check).
-
-    // Meta Conversions API: server-side Lead/Purchase for Instagram ad
-    // tracking + retargeting. event_id is the Stripe session id, so a
-    // retried verification never double-counts. Silent no-op until
-    // META_PIXEL_ID / META_CONVERSIONS_API_TOKEN are configured.
-    // Never fails the checkout.
-    try {
-      const paidNow = (session.amount_total || 0) > 0;
-      // Paid subscriptions are reported only by the existing invoice emitter.
-      const capiResult = paidNow ? { ok: false, skipped: "Purchase belongs to invoice emitter" } : await sendMetaCapiEvent({
-        eventName: "Lead",
-        eventId: `verify_${sessionId}`,
-        email: customerEmail,
-        phone: customerPhone,
-        ...(paidNow
-          ? { value: (session.amount_total || 0) / 100, currency: (session.currency || "usd").toLowerCase() }
-          : {}),
-      });
-      console.log("[verify-personal-checkout] Meta CAPI:", capiResult);
-    } catch (capiErr) {
-      console.error("[verify-personal-checkout] Meta CAPI failed (non-fatal):", capiErr);
-    }
 
     // Return success with session info for auto-login
     return new Response(

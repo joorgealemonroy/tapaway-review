@@ -1,8 +1,8 @@
 // Post-purchase onboarding for signed-in customers. Also finalizes purchases that were
 // waiting for an existing account owner to confirm their email.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { admin, cors, json, userFromRequest } from "../_shared/paymentFirst.ts";
-import { ensureDraftProfile } from "../_shared/paymentFirstActivation.ts";
+import { admin, cors, json, userFromRequest, getStripe } from "../_shared/paymentFirst.ts";
+import { ensureDraftProfile, syncBusinessSubscription } from "../_shared/paymentFirstActivation.ts";
 
 const str = (v: unknown, max = 200) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 
@@ -14,7 +14,7 @@ serve(async (req) => {
   const email = user.email.toLowerCase();
   try {
     // Signing in through the emailed link proves ownership of this email.
-    const { data: pending } = await db.from("checkout_intents").select("id, stripe_customer_id")
+    const { data: pending } = await db.from("checkout_intents").select("id, stripe_customer_id, stripe_subscription_id")
       .eq("email", email).eq("status", "pending_association");
     for (const p of pending ?? []) {
       const { data: other } = await db.from("checkout_intents").select("user_id")
@@ -26,17 +26,20 @@ serve(async (req) => {
       await db.from("checkout_intents").update({ status: "associated", user_id: user.id }).eq("id", p.id).eq("status", "pending_association");
       await db.from("onboarding_sessions").update({ user_id: user.id }).eq("checkout_intent_id", p.id);
       await db.from("card_club_memberships").update({ user_id: user.id }).eq("checkout_intent_id", p.id);
-      await ensureDraftProfile(db, p.id, user.id);
+      const profileId = await ensureDraftProfile(db, p.id, user.id);
+      if (!profileId) throw new Error("Draft setup missing");
+      if (p.stripe_subscription_id) await syncBusinessSubscription(getStripe(), p.stripe_subscription_id);
     }
 
-    const { data: session } = await db.from("onboarding_sessions").select("*").eq("user_id", user.id)
-      .order("created_at", { ascending: false }).limit(1).maybeSingle();
     const body = await req.json().catch(() => ({}));
+    let sessionQuery = db.from("onboarding_sessions").select("*").eq("user_id", user.id);
+    if (typeof body.profileId === "string") sessionQuery = sessionQuery.eq("personal_profile_id", body.profileId);
+    const { data: session } = await sessionQuery.order("created_at", { ascending: false }).limit(1).maybeSingle();
     const action = str(body.action, 20) || "state";
 
     if (!session) return json({ session: null, needsReview: (pending ?? []).length > 0 });
     const { data: intent } = await db.from("checkout_intents").select("plan, billing_interval, card_quantity, card_club_selected").eq("id", session.checkout_intent_id).single();
-    const { data: club } = await db.from("card_club_memberships").select("id,status,plan,card_club_paid_at,last_approved_at,total_redemptions,declined_at")
+    const { data: club } = await db.from("card_club_memberships").select("id,status,plan,card_club_paid_at,last_approved_at,total_redemptions,declined_at,card_club_stripe_subscription_id,main_stripe_subscription_id")
       .eq("checkout_intent_id", session.checkout_intent_id).maybeSingle();
 
     let patch: Record<string, unknown> | null = null;
@@ -74,8 +77,9 @@ serve(async (req) => {
     }
     let current = session;
     if (patch) {
-      const { data } = await db.from("onboarding_sessions").update(patch).eq("id", session.id).select("*").single();
-      current = data ?? session;
+      const { data, error } = await db.from("onboarding_sessions").update(patch).eq("id", session.id).select("*").single();
+      if (error || !data) throw error || new Error("Setup was not saved");
+      current = data;
     }
     let entitlement = null;
     if (club && club.status !== "declined") {
@@ -89,7 +93,8 @@ serve(async (req) => {
       redemption = data;
     }
     const { data: settings } = await db.from("app_settings").select("reprint_price_cents").limit(1).maybeSingle();
-    return json({ session: current, intent, club, entitlement, reprintPriceCents: settings?.reprint_price_cents ?? null, redemption });
+    const clubWithBilling = club ? { ...club, billingWithPlan: !!club.card_club_stripe_subscription_id && club.card_club_stripe_subscription_id === club.main_stripe_subscription_id, billingInterval: club.card_club_stripe_subscription_id === club.main_stripe_subscription_id ? intent?.billing_interval || "month" : "month" } : null;
+    return json({ session: current, intent, club: clubWithBilling, entitlement, reprintPriceCents: settings?.reprint_price_cents ?? null, redemption });
   } catch (e) {
     console.error("[payment-first-onboarding] failed", e instanceof Error ? e.message : e);
     return json({ error: "Something went wrong. Please try again." }, 500);

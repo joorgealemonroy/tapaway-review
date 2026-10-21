@@ -169,6 +169,62 @@
       "when": 1792018213429,
       "tag": "0023_guard_legacy_fields_invoker",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1792545289334,
+      "tag": "0024_admin_workspace",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1792563996248,
+      "tag": "0025_launch_hardening",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1792564788886,
+      "tag": "0026_claim_summary_privacy",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1792566432090,
+      "tag": "0027_private_profile_records",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1792598028671,
+      "tag": "0028_account_verification_guard",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1792607718080,
+      "tag": "0029_hub_payment_requests",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1792607750744,
+      "tag": "0030_fix_hub_payment_offer_filter",
+      "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1792608396483,
+      "tag": "0031_storefront_quota_limits",
+      "breakpoints": true
     }
   ]
 }

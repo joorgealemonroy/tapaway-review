@@ -102,6 +102,8 @@ serve(async (req) => {
       .from("personal_profiles")
       .select("id, full_name, username, email, stripe_billing_email, trial_ends_at, stripe_subscription_id, plan_type")
       .eq("subscription_status", "trialing")
+      .not("stripe_subscription_id", "is", null)
+      .neq("payment_state", "complimentary")
       .not("trial_ends_at", "is", null);
     if (pErr) {
       console.error("[trial-ending-email] personal query failed:", pErr.message);
@@ -128,6 +130,7 @@ serve(async (req) => {
       .from("restaurants")
       .select("id, restaurant_name, owner_name, email, trial_ends_at, stripe_subscription_id, plan_type, payment_state")
       .eq("subscription_status", "trialing")
+      .not("stripe_subscription_id", "is", null)
       .neq("payment_state", "complimentary")
       .not("trial_ends_at", "is", null);
     if (rErr) {

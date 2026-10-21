@@ -94,14 +94,13 @@ export default function EmailTemplateCard({
             ) : loadError ? (
               <div className="flex flex-col items-center justify-center gap-2 py-10 px-6 text-center">
                 <AlertTriangle className="h-6 w-6 text-amber-400" />
-                <p className="text-xs text-white/60">
-                  Preview backend isn't live yet. Deploy the
-                  email-template-preview edge function to see the real email.
+                <p className="text-xs text-slate-600">
+                  Couldn't load this preview. Refresh the page to try again.
                 </p>
               </div>
             ) : (
               <div className="flex items-center justify-center py-10">
-                <Loader2 className="h-6 w-6 animate-spin text-white/40" />
+                <Loader2 className="h-6 w-6 animate-spin text-slate-500" />
               </div>
             )}
           </button>
@@ -134,25 +133,25 @@ export default function EmailTemplateCard({
             />
           )}
 
-          <div className="p-4 border-t border-white/10">
+          <div className="p-4 border-t border-slate-200">
             <div className="flex items-center gap-2 mb-1.5">
-              <h3 className="text-sm font-semibold text-white">
+              <h3 className="text-sm font-semibold text-slate-900">
                 {template.label}
               </h3>
-              <Badge variant="outline" className="text-[10px] text-white/50">
+              <Badge variant="outline" className="text-[10px] text-slate-600">
                 {template.key}
               </Badge>
             </div>
-            <p className="text-xs text-white/80 font-medium mb-1">
+            <p className="text-xs text-slate-800 font-medium mb-1">
               Subject: {subject}
             </p>
             {preheader && (
-              <p className="text-xs text-white/50 mb-2 line-clamp-2">
+              <p className="text-xs text-slate-600 mb-2 line-clamp-2">
                 {preheader}
               </p>
             )}
-            <p className="text-[11px] text-white/40">
-              <span className="text-white/60 font-medium">Triggers:</span>{" "}
+            <p className="text-[11px] text-slate-500">
+              <span className="text-slate-600 font-medium">Triggers:</span>{" "}
               {template.trigger}
             </p>
             <button

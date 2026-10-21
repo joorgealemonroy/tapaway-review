@@ -1,3 +1,5 @@
+import AdminWorkspace from "@/components/admin/AdminWorkspace";
+import CustomerNotifications from "@/components/dashboard/CustomerNotifications";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,13 +9,11 @@ import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "@/hooks/useAuth";
 import { Suspense, useEffect } from "react";
 import { lazyWithRetry as lazy, clearChunkReloadGuard } from "@/lib/lazyWithRetry";
+import { storefrontLoaders, isStorefrontPath, StorefrontRouteSurface } from "@/lib/storefrontNavigation";
 import { Loader2 } from "lucide-react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { RepImpersonationOverlay } from "@/components/rep/RepImpersonationOverlay";
 import SiteAnalytics from "@/components/analytics/SiteAnalytics";
-import { ConsentBanner } from "@/components/analytics/ConsentBanner";
-import { watchConsentForPixel } from "@/lib/metaPixel";
-import { watchConsentForTrybePixel } from "@/lib/trybePixel";
 
 // Critical routes - loaded immediately
 import Index from "./pages/Index";
@@ -27,6 +27,12 @@ const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const MagicLinkVerify = lazy(() => import("./pages/auth/MagicLinkVerify"));
 const SetPassword = lazy(() => import("./pages/auth/SetPassword"));
 
+const PersonalCardLink = lazy(() => import("./pages/PersonalCardLink"));
+const PersonalDesigner = lazy(storefrontLoaders.designer);
+const PersonalOrder = lazy(() => import("./pages/PersonalOrder"));
+const AdminPersonalCardOrders = lazy(() => import("./pages/admin/AdminPersonalCardOrders"));
+const Personal = lazy(storefrontLoaders.personal);
+
 // Personal TapAway - code split (Business Lite dashboard still used internally)
 const ImportProfile = lazy(() => import("./pages/personal/ImportProfile"));
 const PersonalDashboard = lazy(() => import("./pages/personal/PersonalDashboard"));
@@ -35,7 +41,7 @@ const LegacyProfileRedirect = lazy(() => import("./pages/personal/LegacyProfileR
 // Business routes - lazy loaded
 const Demo = lazy(() => import("./pages/Demo"));
 
-const Onboarding = lazy(() => import("./pages/Onboarding"));
+const Onboarding = lazy(storefrontLoaders.onboarding);
 const OnboardingSuccess = lazy(() => import("./pages/OnboardingSuccess"));
 
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -47,7 +53,7 @@ const Admin = lazy(() => import("./pages/Admin"));
 const Terms = lazy(() => import("./pages/Terms"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const Refund = lazy(() => import("./pages/Refund"));
-const Support = lazy(() => import("./pages/Support"));
+const Support = lazy(storefrontLoaders.support);
 const AcceptableUse = lazy(() => import("./pages/AcceptableUse"));
 const AffiliateTerms = lazy(() => import("./pages/AffiliateTerms"));
 const NFCDisclaimer = lazy(() => import("./pages/NFCDisclaimer"));
@@ -110,12 +116,14 @@ const Paywall = lazy(() => import("./pages/Paywall"));
 const Welcome = lazy(() => import("./pages/Welcome"));
 
 
-// Minimal loading spinner
-const PageLoader = () => (
-  <div className="min-h-screen bg-background flex items-center justify-center">
-    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-  </div>
-);
+// Keep the storefront's light surface even on a cold, slow route load.
+const PageLoader = () => {
+  const { pathname } = useLocation();
+  return <div className={`min-h-screen flex flex-col gap-4 items-center justify-center ${(isStorefrontPath(pathname) || pathname.startsWith("/admin")) ? "storefront sf-route-loading" : "bg-background"}`} role="status">
+    <Loader2 className="h-6 w-6 animate-spin" aria-hidden="true" />
+    <span className="text-sm">Loading TapAway…</span>
+  </div>;
+};
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -139,13 +147,6 @@ const App = () => {
   // reload guard so a future deploy can reload again if needed.
   useEffect(() => {
     clearChunkReloadGuard();
-    // Meta + Trybe pixels boot only after tracking consent is accepted.
-    const unwatch = watchConsentForPixel();
-    const unwatchTrybe = watchConsentForTrybePixel();
-    return () => {
-      unwatch();
-      unwatchTrybe();
-    };
   }, []);
 
   return (
@@ -154,24 +155,26 @@ const App = () => {
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <BrowserRouter>
         <AuthProvider>
+          <StorefrontRouteSurface />
           <ErrorBoundary>
             <Suspense fallback={<PageLoader />}>
               <RepImpersonationOverlay />
               <SiteAnalytics />
-              <ConsentBanner />
-              <Routes>
+              <CustomerNotifications /><AdminWorkspace><Routes>
 
               <Route path="/" element={<Index />} />
                 <Route path="/business" element={<Navigate to="/" replace />} />
-                {/* /personal/* routes redirect. Namespace deprecated */}
-                <Route path="/personal" element={<Navigate to="/" replace />} />
+                {/* Personal storefront; legacy account routes keep their redirects. */}
+                <Route path="/personal" element={<Personal />} />
                 <Route path="/personal/vibe" element={<Navigate to="/" replace />} />
                 <Route path="/personal/signup" element={<Navigate to="/" replace />} />
                 <Route path="/personal/signup/complete" element={<Navigate to="/" replace />} />
-                <Route path="/personal/pricing" element={<Navigate to="/" replace />} />
-                <Route path="/personal/order" element={<Navigate to="/" replace />} />
+                <Route path="/personal/pricing" element={<Navigate to="/personal#pricing" replace />} />
+                <Route path="/personal/order" element={<PersonalOrder />} />
+                <Route path="/personal/design" element={<PersonalDesigner />} />
+                <Route path="/connect/:cardId" element={<PersonalCardLink />} />
                 <Route path="/personal/dashboard" element={<Navigate to="/dashboard" replace />} />
                 <Route path="/import" element={<ImportProfile />} />
                 <Route path="/demo" element={<Demo />} />
@@ -228,6 +231,7 @@ const App = () => {
                 <Route path="/admin/personal-accounts" element={<AdminPersonalAccounts />} />
                 <Route path="/admin/affiliates" element={<AdminAffiliates />} />
                 <Route path="/admin/cards" element={<AdminCards />} />
+                <Route path="/admin/personal-card-orders" element={<AdminPersonalCardOrders />} />
                 <Route path="/admin/founders" element={<AdminFounders />} />
                 <Route path="/admin/sms-subscribers" element={<AdminSmsSubscribers />} />
                 <Route path="/admin/hub-health" element={<AdminHubHealth />} />
@@ -273,7 +277,7 @@ const App = () => {
                 
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
-              </Routes>
+              </Routes></AdminWorkspace>
             </Suspense>
           </ErrorBoundary>
         </AuthProvider>

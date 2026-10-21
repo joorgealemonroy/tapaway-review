@@ -1,109 +1,173 @@
-import { Link, useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
+import { StorefrontLink as Link } from "@/lib/storefrontNavigation";
+import { ArrowRight, Check, QrCode, Wifi } from "lucide-react";
 import { LandingNav } from "@/components/landing/LandingNav";
-import { PersonalHero } from "@/components/landing/personal/PersonalHero";
-import { PersonalHowItWorks } from "@/components/landing/personal/PersonalHowItWorks";
-import { PersonalUseCases } from "@/components/landing/personal/PersonalUseCases";
-import { PersonalFeatures } from "@/components/landing/personal/PersonalFeatures";
-import PersonalShopShowcase from "@/components/landing/personal/PersonalShopShowcase";
-import { PersonalFAQ } from "@/components/landing/personal/PersonalFAQ";
-import { PersonalFooterCTA } from "@/components/landing/personal/PersonalFooterCTA";
-
-import { AffiliateOnboarding } from "@/components/affiliate/AffiliateOnboarding";
-
-const organizationSchema = {
-  "@context": "https://schema.org",
-  "@type": "Organization",
-  "name": "TapAway",
-  "url": "https://tapaway.co",
-  "logo": "https://tapaway.co/favicon.png",
-  "sameAs": [
-    "https://www.tiktok.com/@tapawayco",
-    "https://www.instagram.com/tapawayco",
-    "https://twitter.com/tapawayco",
-    "https://www.youtube.com/@tapawayco"
-  ],
-  "contactPoint": {
-    "@type": "ContactPoint",
-    "contactType": "customer support",
-    "url": "https://tapaway.co/support"
-  }
-};
-
-const websiteSchema = {
-  "@context": "https://schema.org",
-  "@type": "WebSite",
-  "name": "TapAway",
-  "url": "https://tapaway.co",
-  "potentialAction": {
-    "@type": "SearchAction",
-    "target": "https://tapaway.co/{username}",
-    "query-input": "required name=username"
-  }
-};
-
-const Personal = () => {
-  const [searchParams] = useSearchParams();
-  const affiliateRef = searchParams.get("ref");
-
-  if (affiliateRef) {
-    sessionStorage.setItem("tapaway_ref", affiliateRef);
-    return <AffiliateOnboarding refCode={affiliateRef} />;
-  }
-
+import { FAQSection } from "@/components/landing/FAQSection";
+import {
+  StorefrontFooter,
+  HelpLink,
+} from "@/components/landing/StorefrontSections";
+import { PersonalCardGallery } from "@/components/landing/PersonalCardGallery";
+import { RealHubDemo } from "@/components/landing/RealHubDemo";
+import { SeasonalOffer, HalloweenCountdown } from "@/components/landing/SeasonalOffer";
+import { DESIGN_TEMPLATES } from "@/lib/cardDesign";
+export default function Personal() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="storefront min-h-screen">
       <Helmet>
-        <title>TapAway | All Your Links, One Tap Away</title>
-        <meta name="description" content="The ultimate digital business card and link-sharing platform. Connect with one tap using TapAway." />
-        <link rel="canonical" href="https://tapaway.co/" />
-        <meta property="og:title" content="TapAway | All Your Links, One Tap Away" />
-        <meta property="og:description" content="The ultimate digital business card and link-sharing platform. Connect with one tap using TapAway." />
-        <meta property="og:url" content="https://tapaway.co/" />
-        <meta property="og:image" content="https://tapaway.co/logo-og.png" />
-        <meta property="og:type" content="website" />
-        <meta name="twitter:title" content="TapAway | All Your Links, One Tap Away" />
-        <meta name="twitter:description" content="The ultimate digital business card and link-sharing platform. Connect with one tap using TapAway." />
-        <meta name="twitter:image" content="https://tapaway.co/logo-og.png" />
-        <script type="application/ld+json">{JSON.stringify(organizationSchema)}</script>
-        <script type="application/ld+json">{JSON.stringify(websiteSchema)}</script>
+        <title>Two Custom NFC Cards for $39 | TapAway Personal</title>
+        <meta
+          name="description"
+          content="Two fully custom NFC and QR cards for $39 once, with free US shipping. Design both sides. Use your own links or add a personal hub for $5/month."
+        />
+        <link rel="canonical" href="https://tapaway.co/personal" />
+        <meta
+          property="og:title"
+          content="Two cards. Entirely you. | TapAway"
+        />
+        <meta property="og:url" content="https://tapaway.co/personal" />
       </Helmet>
-
-      {/* Navigation */}
       <LandingNav />
-
-      {/* Main Content */}
-      <PersonalHero />
-      <PersonalHowItWorks />
-      <PersonalFeatures />
-      <PersonalShopShowcase />
-      <PersonalUseCases />
-      <PersonalFAQ />
-      <PersonalFooterCTA />
-
-      {/* Footer */}
-      <footer className="py-8 px-4 bg-foreground text-background/60 border-t border-background/10">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-sm">© 2025 TapAway. Share everything with one tap.</p>
-            <div className="flex items-center flex-wrap gap-x-4 gap-y-2 text-sm">
-              <a href="https://www.tiktok.com/@tapawayco" rel="me" target="_blank" className="hover:text-background transition-colors">TikTok</a>
-              <a href="https://www.instagram.com/tapawayco" rel="me" target="_blank" className="hover:text-background transition-colors">Instagram</a>
-              <a href="https://twitter.com/tapawayco" rel="me" target="_blank" className="hover:text-background transition-colors">X</a>
-              <a href="https://www.youtube.com/@tapawayco" rel="me" target="_blank" className="hover:text-background transition-colors">YouTube</a>
-              <span className="text-background/30">|</span>
-              <Link to="/business" className="hover:text-background transition-colors">For Business</Link>
-              <a href="/terms" className="hover:text-background transition-colors">Terms</a>
-              <a href="/privacy" className="hover:text-background transition-colors">Privacy</a>
-              <a href="/refund" className="hover:text-background transition-colors">Refund</a>
-              <a href="/cookie-policy" className="hover:text-background transition-colors">Cookies</a>
+      <SeasonalOffer />
+      <main id="main-content">
+        <section className="sf-hero">
+          <div className="sf-container sf-hero-grid">
+            <div className="sf-hero-copy">
+              <p className="sf-eyebrow">TapAway personal · $39 for two</p>
+              <h1>
+                A little card.
+                <br />A lot of you.
+              </h1>
+              <p>
+                Your work. Your socials. Your next great connection. Design two
+                cards your way and share a link with a tap or a scan.
+              </p>
+              <div className="sf-hero-actions">
+                <Link className="sf-button" to="/personal/design">
+                  Design my two cards · $39 <ArrowRight />
+                </Link>
+                <a className="sf-text-link" href="#examples">
+                  See a real personal hub
+                </a>
+              </div>
+              <p className="sf-hero-small">
+                One-time purchase · Two NFC + QR cards · Free US shipping
+              </p>
+              <p className="sf-price-note mt-3">
+                Use your own links with no subscription. A TapAway hub with
+                analytics is optional at $5/month.
+              </p>
+            </div>
+            <PersonalCardGallery />
+          </div>
+        </section>
+        <section
+          className="sf-personal-explainer sf-container"
+          aria-label="How your cards work"
+        >
+          <div>
+            <Wifi />
+            <h2>Tap it.</h2>
+            <p>
+              Hold your card near a compatible phone's NFC reader. Open the
+              notification.
+            </p>
+          </div>
+          <div>
+            <QrCode />
+            <h2>Or scan it.</h2>
+            <p>
+              Use the phone's camera to scan the QR code. It opens the same
+              link.
+            </p>
+          </div>
+          <div>
+            <ArrowRight />
+            <h2>Make a connection.</h2>
+            <p>
+              Share a website, portfolio, social profile, or your own TapAway
+              hub. No app needed.
+            </p>
+          </div>
+        </section>
+        <section className="sf-section sf-container" id="pricing">
+          <div className="sf-personal-offer">
+            <div>
+              <p className="sf-eyebrow">Two cards. Yours to keep.</p>
+              <h2 className="sf-title">
+                Two cards.
+                <br />
+                One simple purchase.
+              </h2>
+              <p className="sf-copy mt-4">
+                One for networking. One for your personal world. Or make them a
+                matching pair. You choose what each card opens.
+              </p>
+              <ul className="sf-checklist">
+                {[
+                  "Two custom NFC + QR cards",
+                  "Your design on both sides",
+                  "Templates or a completely blank canvas",
+                  "Free standard US shipping",
+                ].map((t) => (
+                  <li key={t}>
+                    <Check />
+                    {t}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="sf-personal-price">
+              <HalloweenCountdown />
+              <p>
+                <strong>$39</strong> once
+              </p>
+              <Link className="sf-button" to="/personal/design">
+                Make my cards <ArrowRight />
+              </Link>
+              <p className="sf-price-note">
+                Two cards + free US shipping. No required subscription.
+              </p>
+              <div>
+                <h3>Want all your links in one place?</h3>
+                <p>
+                  Add a TapAway hub with analytics for $5/month at checkout.
+                  Update its links without reprinting your cards. Optional, and
+                  you can cancel anytime.
+                </p>
+              </div>
             </div>
           </div>
-        </div>
-      </footer>
-
+        </section>
+        <section className="sf-section sf-personal-templates">
+          <div className="sf-container">
+            <p className="sf-eyebrow">Start with a vibe. Make it yours.</p>
+            <h2 className="sf-title">
+              Your name. Your images.
+              <br />
+              Your kind of card.
+            </h2>
+            <div className="sf-template-grid">
+              {DESIGN_TEMPLATES.filter(t=>["network","personal","halloween","blank"].includes(t.id)).map((t) => (
+                <Link key={t.id} to={`/personal/design?template=${t.id}`}>
+                  <div style={{ background: t.color, color: t.ink }}>
+                    <small>{t.category}</small>
+                    <strong>{t.title || "Your idea goes here."}</strong>
+                    <span>TapAway</span>
+                  </div>
+                  <p>
+                    {t.name} <ArrowRight className="h-4 w-4" />
+                  </p>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+        <RealHubDemo personal />
+        <FAQSection />
+      </main>
+      <StorefrontFooter />
+      <HelpLink />
     </div>
   );
-};
-
-export default Personal;
+}

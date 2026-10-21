@@ -197,7 +197,7 @@ export default function FeatureUpdateComposer() {
           <AlertTriangle className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
           <div className="text-sm">
             <p className="font-medium text-amber-200">Send backend isn't live yet</p>
-            <p className="text-white/60 text-xs mt-1">
+            <p className="text-slate-600 text-xs mt-1">
               The send-feature-update edge function hasn't been deployed. Your
               draft is saved below. Sending activates once the backend lands.
             </p>
@@ -205,20 +205,20 @@ export default function FeatureUpdateComposer() {
         </div>
       )}
 
-      <div className="rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3 flex items-center gap-2.5">
-        <Users className="h-4 w-4 text-white/50 shrink-0" />
-        <p className="text-sm text-white/80">
+      <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 flex items-center gap-2.5">
+        <Users className="h-4 w-4 text-slate-600 shrink-0" />
+        <p className="text-sm text-slate-800">
           {countLoading ? (
-            <span className="inline-flex items-center gap-2 text-white/50">
+            <span className="inline-flex items-center gap-2 text-slate-600">
               <Loader2 className="h-3.5 w-3.5 animate-spin" /> Counting active clients…
             </span>
           ) : recipientCount === null ? (
             "Couldn't count recipients. Check filters, then try again."
           ) : (
             <>
-              Will reach <span className="font-semibold text-white">{recipientCount}</span>{" "}
+              Will reach <span className="font-semibold text-slate-900">{recipientCount}</span>{" "}
               active client{recipientCount === 1 ? "" : "s"}
-              <span className="text-white/40 text-xs block">
+              <span className="text-slate-500 text-xs block">
                 Paying subscribers only. No trials, no comped accounts.
               </span>
             </>
@@ -249,7 +249,7 @@ export default function FeatureUpdateComposer() {
             maxLength={2000}
             className="mt-1 text-base"
           />
-          <p className="text-[11px] text-white/40 mt-1">{body.trim().length}/2,000</p>
+          <p className="text-[11px] text-slate-500 mt-1">{body.trim().length}/2,000</p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
@@ -274,13 +274,13 @@ export default function FeatureUpdateComposer() {
             />
           </div>
         </div>
-        <p className="text-[11px] text-white/40">
-          Subject line: <span className="text-white/70 font-medium">{subject}</span>
+        <p className="text-[11px] text-slate-500">
+          Subject line: <span className="text-slate-700 font-medium">{subject}</span>
         </p>
       </div>
 
       <div>
-        <p className="text-xs font-medium text-white/60 mb-2">Live preview. Exactly what clients get</p>
+        <p className="text-xs font-medium text-slate-600 mb-2">Live preview. Exactly what clients get</p>
         <Card className="overflow-hidden">
           <CardContent className="p-0">
             {previewHtml ? (
@@ -292,7 +292,7 @@ export default function FeatureUpdateComposer() {
             ) : previewError ? (
               <div className="flex flex-col items-center justify-center gap-2 py-10 px-6 text-center">
                 <AlertTriangle className="h-6 w-6 text-amber-400" />
-                <p className="text-xs text-white/60">
+                <p className="text-xs text-slate-600">
                   Preview backend isn't live yet. Deploy the
                   email-template-preview edge function. Your draft is safe
                   below; sending still works once the send backend is live.
@@ -300,7 +300,7 @@ export default function FeatureUpdateComposer() {
               </div>
             ) : (
               <div className="flex items-center justify-center py-10">
-                <Loader2 className="h-6 w-6 animate-spin text-white/40" />
+                <Loader2 className="h-6 w-6 animate-spin text-slate-500" />
               </div>
             )}
           </CardContent>
@@ -321,14 +321,14 @@ export default function FeatureUpdateComposer() {
             <DialogTitle>Send this update?</DialogTitle>
             <DialogDescription asChild>
               <div className="text-sm space-y-2 pt-1">
-                <p className="text-white/80 font-medium">"{headline.trim()}"</p>
-                <p className="text-white/60">
+                <p className="text-slate-800 font-medium">"{headline.trim()}"</p>
+                <p className="text-slate-600">
                   This goes to{" "}
-                  <span className="font-semibold text-white">
+                  <span className="font-semibold text-slate-900">
                     {recipientCount ?? "N/A"} active client{recipientCount === 1 ? "" : "s"}
                   </span>. Paying subscribers only. No trials, no comped accounts.
                 </p>
-                <p className="text-white/40 text-xs">
+                <p className="text-slate-500 text-xs">
                   The backend dedupes by email and logs every send. This can't be
                   undone.
                 </p>

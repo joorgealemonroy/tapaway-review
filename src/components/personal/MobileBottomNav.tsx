@@ -37,14 +37,9 @@ const BASE_MORE_TABS = [
  
 export const MobileBottomNav = ({ activeTab, onTabChange, isAffiliate, allProfiles = [], activeProfileId, onSwitchProfile, isTrialing = false }: MobileBottomNavProps) => {
   const [moreOpen, setMoreOpen] = useState(false);
-  const [isDark, setIsDark] = useState(() => localStorage.getItem('tapaway_dashboard_theme') !== 'light');
   const navigate = useNavigate();
+  useEffect(() => { document.documentElement.classList.remove("dark"); }, []);
 
-  useEffect(() => {
-    document.documentElement.classList.toggle('dark', isDark);
-    localStorage.setItem('tapaway_dashboard_theme', isDark ? 'dark' : 'light');
-  }, [isDark]);
-  
   const MORE_TABS = [
     ...BASE_MORE_TABS.filter(t => !(isTrialing && t.value === "cards")),
     ...(isAffiliate ? [{ value: "affiliate", label: "Affiliate", icon: Users, description: "Your affiliate dashboard" }] : []),
@@ -112,7 +107,7 @@ export const MobileBottomNav = ({ activeTab, onTabChange, isAffiliate, allProfil
  
        {/* More Sheet */}
        <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
-         <SheetContent side="bottom" className="rounded-t-2xl pb-safe">
+         <SheetContent side="bottom" className="rounded-t-2xl pb-safe max-h-[85dvh] overflow-y-auto">
            <SheetHeader className="pb-4">
              <SheetTitle className="text-left">More Options</SheetTitle>
            </SheetHeader>
@@ -199,19 +194,6 @@ export const MobileBottomNav = ({ activeTab, onTabChange, isAffiliate, allProfil
                </div>
              )}
 
-             {/* Dark Mode Toggle */}
-             <div className="border-t border-border mt-2 pt-2">
-               <div className="flex items-center gap-4 p-4 rounded-xl">
-                 <div className="h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0 bg-muted">
-                   {isDark ? <Moon className="h-5 w-5 text-muted-foreground" /> : <Sun className="h-5 w-5 text-muted-foreground" />}
-                 </div>
-                 <div className="flex-1 text-left">
-                   <p className="font-medium">Dark Mode</p>
-                   <p className="text-xs text-muted-foreground">Switch appearance</p>
-                 </div>
-                 <Switch checked={isDark} onCheckedChange={setIsDark} />
-               </div>
-             </div>
           </SheetContent>
        </Sheet>
      </>

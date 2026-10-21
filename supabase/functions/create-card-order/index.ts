@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
     // Verify ownership
     const { data: profile } = await supabaseAdmin
       .from('personal_profiles')
-      .select('id, user_id, has_card_addon, stripe_customer_id, email')
+      .select('id, user_id, has_card_addon, stripe_customer_id, email, plan_type, onboarding_source')
       .eq('id', profile_id)
       .single();
 
@@ -51,6 +51,12 @@ Deno.serve(async (req) => {
     const isAdmin = user.email === 'tap@tapaway.co';
     if (!isOwner && !isAdmin) throw new Error('Profile not found');
 
+    if (profile.plan_type === "personal_hosted" && flow !== "fetch_address") {
+      return new Response(JSON.stringify({ error: "Personal cards are ordered at /personal/design. Card Club is for businesses." }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    if (profile.onboarding_source?.startsWith("payment_first") && flow === "subscribe_addon") {
+      return new Response(JSON.stringify({ error: "Card Club is selected with the business order. Use your Cards tab to manage it." }), { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
     // ── FETCH ADDRESS (read-only, returns Stripe shipping) ──
     if (flow === 'fetch_address') {
       if (!profile.stripe_customer_id) {

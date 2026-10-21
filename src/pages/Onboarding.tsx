@@ -1,3 +1,4 @@
+import type { BusinessBrief } from "@/lib/businessBrief";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,7 +14,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { GooglePlacesAutocomplete } from "@/components/GooglePlacesAutocomplete";
 import { isSuperAdmin } from "@/lib/grandfatheredUsers";
 import { normalizeGooglePlaceId, buildGoogleReviewUrl } from "@/lib/google";
-import { getTrybeVisitorId } from "@/lib/trybePixel";
 import {
   getOnboardingData,
   saveOnboardingData,
@@ -24,8 +24,8 @@ import {
 } from "@/lib/onboardingData";
 import { track } from "@/lib/analytics";
 import { paymentFirstEnabled, callFunction } from "@/lib/paymentFirst";
+import { CheckoutOrder } from "@/components/onboarding/CheckoutOrder";
 import { CardClubStep } from "@/components/onboarding/CardClubStep";
-import { getAppSettings } from "@/lib/appSettings";
 import { Button } from "@/components/ui/button";
 import { formatCatalogPrice, useOnboardingCatalog } from "@/lib/onboardingCatalog";
 
@@ -117,7 +117,7 @@ const Onboarding = () => {
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
   // Billing period: yearly is preselected and visually pushed as the best
   // value (Solo $199/yr = save $41; Venue $390/yr = 2 months free).
-  const [billingInterval, setBillingInterval] = useState<BillingInterval>("year");
+  const [billingInterval, setBillingInterval] = useState<BillingInterval>("month");
   const { catalog, loading: catalogLoading, failed: catalogFailed, retry: retryCatalog } = useOnboardingCatalog();
   const [dashboardType, setDashboardType] = useState<"restaurant" | "personal" | null>(null);
 
@@ -201,6 +201,8 @@ const Onboarding = () => {
     const init = async () => {
       setPendingSetup(true);
       const savedData = getOnboardingData();
+      const audience = searchParams.get("audience");
+      if (audience === "personal" || audience === "business") saveOnboardingData({ audience });
 
       if (savedData.businessName) setBusinessName(savedData.businessName);
       const explicitPlan = searchParams.get("plan") || searchParams.get("plan_type");
@@ -209,15 +211,12 @@ const Onboarding = () => {
         setSelectedPlan(initialPlan);
         saveOnboardingData({ planType: initialPlan });
       }
-      const explicitBilling = searchParams.get("billing") || searchParams.get("billing_interval");
+      const explicitBilling = searchParams.get("billing") || searchParams.get("billing_interval") || searchParams.get("cycle");
       if (explicitBilling === "month" || explicitBilling === "year") {
         setBillingInterval(explicitBilling);
         saveOnboardingData({ billingInterval: explicitBilling, billingSelectionExplicit: true });
-      } else if (savedData.billingInterval === "month" || savedData.billingInterval === "year") {
-        setBillingInterval(savedData.billingInterval);
       } else {
-        const settings = await getAppSettings(supabase);
-        setBillingInterval(settings.onboardingDefaultBilling);
+        setBillingInterval("month");
       }
       saveOnboardingData({ hasProtection: false, campaign: { ...savedData.campaign, ...getCampaignParams() } });
       if (savedData.dashboardType) setDashboardType(savedData.dashboardType as 'personal' | 'restaurant');
@@ -347,17 +346,16 @@ const Onboarding = () => {
   const paymentFirst = paymentFirstEnabled();
   const [pfBusy, setPfBusy] = useState(false);
   const [pfError, setPfError] = useState<string | null>(null);
-  const startPaymentFirstCheckout = async (cardClub: boolean) => {
-    if (!selectedPlan || pfBusy) return;
+  const startPaymentFirstCheckout = async (cardClub: boolean, business?: BusinessBrief) => {
+    if (!selectedPlan || pfBusy || catalogLoading || catalogItem(selectedPlan, billingInterval)?.available !== true) return;
     setPfBusy(true); setPfError(null);
-    saveOnboardingData({ planType: selectedPlan, billingInterval, billingSelectionExplicit: true, hasProtection: false });
+    saveOnboardingData({ planType: selectedPlan, billingInterval, billingSelectionExplicit: true, hasProtection: false, cardClubSelected: cardClub });
     track(cardClub ? "card_club_selected" : "card_club_declined", { hubKind: "site", props: { plan: selectedPlan, interval: billingInterval } });
     track("checkout_clicked", { hubKind: "site", props: { plan: selectedPlan, interval: billingInterval, card_club: cardClub } });
     const saved = getOnboardingData();
     const { ok, data } = await callFunction<{ url?: string; error?: string }>("payment-first-checkout", {
-      plan: selectedPlan, interval: billingInterval, cardClub, source: "onboarding", returnOrigin: window.location.origin,
+      checkoutVersion: 2, plan: selectedPlan, interval: billingInterval, cardClub, business, source: "onboarding", returnOrigin: window.location.origin,
       attribution: { ...(saved.campaign || {}), landing_path: window.location.pathname },
-      trybeVisitorId: getTrybeVisitorId(),
     }).catch(() => ({ ok: false, data: {} as { url?: string; error?: string } }));
     if (ok && data.url) {
       track("stripe_checkout_started", { hubKind: "site", props: { plan: selectedPlan, interval: billingInterval, card_club: cardClub } });
@@ -874,7 +872,6 @@ const Onboarding = () => {
             hasProtection: false,
             promoToken: promoTokenParam || undefined,
             dashboardType: resolvedDashboardType,
-            trybeVisitorId: getTrybeVisitorId(),
             campaign: savedData.campaign || {},
           },
         });
@@ -963,6 +960,12 @@ const Onboarding = () => {
         </div>
       </div>
     );
+  }
+
+  if (paymentFirst && !isRepMode && !promoTokenParam && step === "plan") {
+    return <CheckoutOrder plan={selectedPlan} interval={billingInterval} catalog={catalog} loading={catalogLoading}
+      failed={catalogFailed} busy={pfBusy} error={pfError} canceled={searchParams.has("canceled")}
+      onRetry={retryCatalog} onPlan={selectPlan} onInterval={selectBillingInterval} onCheckout={startPaymentFirstCheckout} />;
   }
 
   return (
@@ -1110,6 +1113,7 @@ const Onboarding = () => {
           {step === "cardclub" && selectedPlan && (
             <motion.div key="cardclub" custom={direction} variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.3 }}>
               <CardClubStep
+                interval={billingInterval}
                 cards={PLAN_DETAILS[selectedPlan].cards}
                 priceLabel={formatCatalogPrice(catalogItem(selectedPlan, billingInterval))}
                 busy={pfBusy}
@@ -1403,7 +1407,7 @@ const Onboarding = () => {
                   hosted page, so the notice lives on our last screen before
                   the redirect. */}
               <p className="text-center text-xs text-muted-foreground">
-                After checkout, we request a temporary $1 authorization to verify your card and cancel it without capture. Your bank determines when the pending hold disappears.
+                Secure payment processing by Stripe.
               </p>
 
               <button

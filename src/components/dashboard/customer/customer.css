@@ -1,0 +1,8 @@
+.customer-workspace { background: #faf8f2; color: #1a2923; --primary: 151 45% 27%; --primary-foreground: 0 0% 100%; --ring: 151 45% 27%; }
+.customer-workspace button, .customer-workspace [role="tab"] { min-height: 44px; }
+.customer-workspace button:has(> svg:only-child) { min-width: 44px; }
+.customer-workspace input, .customer-workspace textarea, .customer-workspace select { font-size: 16px; }
+.customer-workspace [role="tabpanel"] { background: #fff; border: 1px solid #e5e8df; border-radius: 20px; padding: clamp(16px, 3vw, 28px); }
+.customer-workspace button:focus-visible, .customer-workspace a:focus-visible { outline: 3px solid #23835e; outline-offset: 3px; }
+.customer-workspace [role="tab"][data-state="active"] { background: #e2f3e8; color: #145a3f; box-shadow: none; }
+@media(max-width:767px) { .customer-workspace [role="tabpanel"] { border-radius: 16px; } .customer-workspace [role="dialog"] { max-height: 90dvh; overflow-y: auto; } }
