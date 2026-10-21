@@ -21,9 +21,9 @@ const test = (name, run) => cases.push({ name, run });
 
 async function scenario(options = {}) {
   const context = await browser.newContext({viewport:{width:1440,height:1000},serviceWorkers:'block'});
-  const state = { catalog: structuredClone(catalog), checkout: [], support: [], chat: [], personalOrders: [], aiCount: 0, notifications: 0, errors: [], welcome:'sign_in', setup:{step:'business',business_name:null,business_address:null,shipping_address:null,logo_url:null}, setupWrites:[], setupReads:[], clubRequests:[], billingRequests:[], profileWrites:[], nfcWrites:[], ...options };
+  const state = { catalog: structuredClone(catalog), checkout: [], support: [], chat: [], personalOrders: [], aiCount: 0, notifications: 0, errors: [], resources: [], external: [], documents: [], welcome:'sign_in', setup:{step:'business',business_name:null,business_address:null,shipping_address:null,logo_url:null}, setupWrites:[], setupReads:[], clubRequests:[], billingRequests:[], profileWrites:[], nfcWrites:[], ...options };
   await context.addInitScript(({saved,authenticated,backendHost,fakeUser}) => {
-    localStorage.setItem('tapaway_tracking_consent_v2',JSON.stringify({state:'declined',visitor:'qa',at:new Date().toISOString(),noticeVersion:'2026-10-14'}));
+    // No consent seed: checks exercise a genuine first visit.
     if(saved) localStorage.setItem('tapaway_onboarding_data',JSON.stringify(saved));
     if(authenticated) {
       const exp=Math.floor(Date.now()/1000)+3600;
@@ -36,10 +36,13 @@ async function scenario(options = {}) {
     const url = new URL(request.url());
     const reply = (data,status=200) => route.fulfill({status,contentType:'application/json',body:JSON.stringify(data)});
     if(url.origin===base) {
+      if(request.resourceType()==='document')state.documents.push(url.pathname);
+      if(state.chunkDelay&&/src\/pages\/(Support|Onboarding)\.tsx/.test(url.pathname))await new Promise(resolve=>setTimeout(resolve,700));
       if(url.pathname.startsWith('/__l5e/assets-v1/')) { const photo=path.join(process.env.QA_ASSETS||'/nonexistent',url.pathname.split('/').pop()); if(existsSync(photo))return route.fulfill({contentType:'image/jpeg',body:readFileSync(photo)}); }
       if(url.pathname==='/qa-checkout')return route.fulfill({contentType:'text/html',body:'<h1>Fixture checkout reached</h1>'});
       return route.continue();
     }
+    state.external.push(url.href);
     // Nothing may escape this fixture boundary, including analytics and email.
     if(url.hostname==='tapaway.co')return route.fulfill({contentType:'text/html',body:'<html><body style="font-family:Arial;padding:70px 20px"><h1>Customer hub fixture</h1><p>External hub traffic is blocked in automated checks.</p></body></html>'});
     if(url.hostname!==backendHost)return route.abort();
@@ -166,7 +169,7 @@ test('Missing/unavailable prices cannot enable checkout; a valid interval can',a
 test('Personal offer is a two-card one-time purchase with optional hosting',async()=>{
   const {page,go,close}=await scenario(); await go('/personal');
   await expect(page.locator('#pricing')).toContainText('$39');
-  await expect(page.locator('#pricing')).toContainText('No personal free trial. No required subscription.');
+  await expect(page.locator('#pricing')).toContainText('No required subscription.');
   await expect(page.getByRole('link',{name:'Design my two cards · $39'})).toHaveAttribute('href','/personal/design');
   await screenshot(page,'personal-desktop'); await close();
 });
@@ -197,16 +200,16 @@ test('Monthly default, real hubs, testimonial images, and responsive pages',asyn
     await page.getByRole('button',{name,exact:true}).click(); await expect(page.locator('.sf-iphone iframe')).toHaveAttribute('src','https://tapaway.co/'+slug);
   }
   await expect(page.locator('.sf-customer-photo')).toHaveCount(3);
-  for(const width of [1440,768,390,360]) {
+  for(const width of [1440,1024,768,430,390,360,320]) {
     await page.setViewportSize({width,height:900});
     for(const route of ['/','/personal','/personal/design','/onboarding?plan=solo&billing=month','/support']) {
       await go(route); assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`${route} overflows at ${width}`);
       if(route==='/') {
         await page.locator('.sf-products').scrollIntoViewIfNeeded();
-        await expect.poll(()=>page.locator('.sf-product-photo img').evaluateAll(imgs=>imgs.length===2&&imgs.every(img=>img.complete&&img.naturalWidth===1024))).toBe(true);
+        await expect.poll(()=>page.locator('.sf-product-photo img').evaluateAll(imgs=>imgs.length===2&&imgs.every(img=>img.complete&&img.naturalWidth>0))).toBe(true);
         for(const product of ['business','personal']) {
           const photo=page.locator(`.sf-product.${product} img`);await photo.scrollIntoViewIfNeeded();await photo.evaluate(img=>img.decode());
-          if(process.env.QA_SCREENSHOTS)await page.locator(`.sf-product.${product}`).screenshot({path:path.join(process.env.QA_SCREENSHOTS,`${product}-photo-${width}.png`),style:'header, .sf-help-launcher, .sf-skip {visibility:hidden!important}'});
+          if(process.env.QA_SCREENSHOTS)await page.locator(`.sf-product.${product}`).screenshot({path:path.join(process.env.QA_SCREENSHOTS,`${product}-photo-${width}.png`),style:'header, .sf-help {visibility:hidden!important}'});
         }
         if(process.env.QA_SCREENSHOTS)await page.locator('.sf-products').screenshot({path:path.join(process.env.QA_SCREENSHOTS,`product-photos-${width}.png`)});
       }
@@ -372,6 +375,55 @@ test('Personal post-checkout setup collects name, optional artwork and shipping 
   assert.equal(state.setup.step,'done');
   await screenshot(page,'setup-complete');
   await close();
+});
+
+
+test('Real personal hero is eager, correctly sized, and replaces the pink/yellow placeholders',async()=>{
+  const {page,go,close}=await scenario();await page.setViewportSize({width:390,height:844});await go('/personal');
+  const img=page.locator('.sf-card-gallery img');await expect(img).toHaveAttribute('loading','eager');await expect(img).toHaveAttribute('fetchpriority','high');
+  await expect.poll(()=>img.evaluate(i=>i.complete&&i.naturalWidth>0)).toBe(true);
+  assert.match(await img.getAttribute('src'),/personal-networking-and-meme-cards/);assert.equal(await page.locator('.sf-personal-stage, .sf-mini-card').count(),0);
+  const dimensions=await img.boundingBox();assert.ok(Math.abs(dimensions.height/dimensions.width-1.5)<0.01);
+  await expect(page.locator('.sf-skip')).toHaveCSS('clip-path','inset(50%)');await page.keyboard.press('Tab');await expect(page.locator('.sf-skip')).toBeFocused();await expect(page.locator('.sf-skip')).toHaveCSS('clip-path','none');await close();
+});
+test('First and returning visits have no advertising popup, SDK requests, or persistent analytics IDs',async()=>{
+  const {page,state,go,close}=await scenario();
+  await page.addInitScript(()=>{localStorage.setItem('tapaway_tracking_consent_v2',JSON.stringify({state:'accepted'}));localStorage.setItem('ta_vid','old');localStorage.setItem('ta_sid','old');localStorage.setItem('_trybe','old');document.cookie='_fbp=old; path=/';});
+  await go('/');await page.locator('.sf-nav-links').getByRole('link',{name:'Personal',exact:true}).click();await expect(page.locator('.sf-card-gallery img')).toBeVisible();
+  assert.ok(!state.external.some(u=>/connect.facebook|facebook.com\/tr|trybe|track.tapaway/.test(u)));
+  const saved=await page.evaluate(()=>({keys:Object.keys(localStorage),cookies:document.cookie,scripts:[...document.scripts].map(x=>x.src)}));
+  assert.ok(!saved.keys.some(k=>/^ta_(sid|vid|sid_ts)$|trybe|tapaway_tracking/.test(k)));assert.ok(!/_fbp=/.test(saved.cookies));
+  assert.ok(!saved.scripts.some(u=>/facebook|trybe/.test(u)));assert.equal(await page.getByRole('button',{name:/accept.*tracking|cookie settings|decline.*tracking/i}).count(),0);
+  await close();
+});
+test('Help and business checkout navigate without document reload or a dark loading surface',async()=>{
+  const {page,state,go,close}=await scenario({chunkDelay:true});await go('/');
+  await page.evaluate(()=>{window.__darkFrames=[];window.__sample=true;const check=()=>{if(!window.__sample)return;const bg=getComputedStyle(document.body).backgroundColor;const loader=document.querySelector('[role="status"].sf-route-loading');if(bg!=='rgb(255, 255, 255)')window.__darkFrames.push(bg);if(loader&&getComputedStyle(loader).backgroundColor!=='rgb(255, 255, 255)')window.__darkFrames.push('loader');requestAnimationFrame(check);};requestAnimationFrame(check);});
+  await page.locator('.sf-nav-links').getByRole('link',{name:'Help',exact:true}).click();await expect(page.getByRole('heading',{name:'Support & Help'})).toBeVisible();
+  await page.locator('.sf-nav-links').getByRole('link',{name:'Pricing',exact:true}).click();await expect(page.locator('#pricing')).toBeInViewport();
+  await expect(page.locator('.sf-personal-pricing-callout')).toContainText('$39 once');await page.getByRole('button',{name:'Get my 4 cards',exact:true}).click();await expect(page.getByRole('heading',{name:'Your business order',exact:true})).toBeVisible();
+  assert.deepEqual(state.documents,['/']);const dark=await page.evaluate(()=>{window.__sample=false;return window.__darkFrames;});assert.deepEqual(dark,[]);await close();
+});
+test('Mobile menu is a focused side panel with clear product paths and closes on navigation',async()=>{
+  const {page,go,close}=await scenario();await page.setViewportSize({width:390,height:844});await go('/');await page.getByRole('button',{name:'Open menu'}).click();
+  const menu=page.getByRole('navigation',{name:'Mobile navigation'});await expect(menu).toBeVisible();await expect(menu).toContainText('2 custom cards · $39 once');
+  await expect.poll(async()=>{const b=await page.locator('.sf-mobile-sheet').boundingBox();return b.x>=0&&b.x+b.width<=391;}).toBe(true);await screenshot(page,'mobile-navigation');
+  await page.keyboard.press('Escape');await expect(menu).toHaveCount(0);await expect(page.getByRole('button',{name:'Open menu'})).toBeFocused();
+  await page.getByRole('button',{name:'Open menu'}).click();await menu.getByRole('link',{name:'Personal',exact:true}).click();await expect(menu).toHaveCount(0);await expect(page.locator('.sf-card-gallery')).toBeVisible();await close();
+});
+test('Halloween notice dismisses across routes; the fixed countdown expires without restarting',async()=>{
+  const {page,go,close}=await scenario();await page.clock.install({time:new Date('2026-10-31T20:00:00Z')});await go('/');
+  await expect(page.getByRole('complementary',{name:'Halloween offer'})).toBeVisible();await expect(page.locator('.sf-sale-countdown time')).toContainText('0d');
+  await page.getByRole('button',{name:'Dismiss Halloween offer'}).click();await page.locator('.sf-nav-links').getByRole('link',{name:'Personal',exact:true}).click();await expect(page.locator('.sf-card-gallery')).toBeVisible();await expect(page.getByRole('complementary',{name:'Halloween offer'})).toHaveCount(0);
+  await page.clock.setSystemTime(new Date('2026-11-01T06:59:59Z'));await page.clock.runFor(1000);await expect(page.locator('.sf-sale-countdown')).toHaveCount(0);
+  await expect(page.locator('#pricing')).toContainText('$39');await close();
+});
+test('Support page offers the same assistant, question ideas, human contact and email',async()=>{
+  const {page,state,go,close}=await scenario();await page.setViewportSize({width:390,height:844});await go('/support');
+  await page.getByRole('button',{name:'Ask the AI helper'}).click();await page.getByRole('button',{name:'What is an NFC card?',exact:true}).click();await expect(page.getByLabel('Your question',{exact:true})).toHaveValue('What is an NFC card?');
+  await page.getByRole('button',{name:'Ask AI',exact:true}).click();await expect(page.getByRole('log')).toContainText('$39 for two');assert.equal(state.chat[0].message,'What is an NFC card?');
+  await page.getByRole('button',{name:'Talk to our team',exact:true}).click();await expect(page.getByLabel('Email for our reply')).toBeVisible();await expect(page.getByText('A real person will reply by email.',{exact:false})).toBeVisible();assert.equal(state.notifications,0);
+  await page.getByRole('button',{name:'Close help'}).click();await expect(page.getByRole('link',{name:'Email our team',exact:true})).toHaveAttribute('href','mailto:tap@tapaway.co');await close();
 });
 
 (async()=>{

@@ -44,7 +44,7 @@ export interface OnboardingData {
 export function getCampaignParams(): Record<string, string> {
   if (typeof window === 'undefined') return {};
   const params = new URLSearchParams(window.location.search);
-  const allowed = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'fbclid', 'src', 'via'];
+  const allowed = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'src', 'via'];
   return Object.fromEntries(allowed.flatMap((key) => {
     const value = params.get(key);
     return value ? [[key, value.slice(0, 250)]] : [];

@@ -1,6 +1,6 @@
 # TapAway storefront and commerce review
 
-Updated October 20, 2026 on `codex/storefront-conversion`. Review in [draft PR #1](https://github.com/joorgealemonroy/tapaway-review/pull/1).
+Updated October 21, 2026 on `codex/storefront-conversion`. Review in [draft PR #1](https://github.com/joorgealemonroy/tapaway-review/pull/1).
 
 The owner explicitly approved production schema, permissions, and provider setup. The migration and backend functions are now deployed through the existing Lovable Cloud connection. Stripe live products/prices, the personal hosting billing portal, and webhook events are configured. The updated frontend has **not** been published. Personal purchasing remains disabled while paid end-to-end validation is outstanding. Existing live business mode and customer subscriptions were preserved.
 
@@ -11,11 +11,11 @@ The owner explicitly approved production schema, permissions, and provider setup
 | Try the Experience | Real Tutti Mangia, Sugar Bloom, Space Studios, Reborn Wraps, Julian, and Denzel hubs, with external-open links. Responsive iPhone 16 body proportions and a scaled 393 × 852 viewport. |
 | Testimonials | Existing quotes paired with their existing customer portraits. No invented reviews or ratings. |
 | Personal offer | $39 once for two independently designed NFC + QR cards; free US shipping; no personal trial or Card Club. Optional hosted hub and analytics are $5/month, unchecked by default. |
-| Personal gallery | Existing Julian/Denzel card art reused where available. Crossfading photo slots are ready for new owner-supplied photographs; illustrative fallbacks are labeled. |
-| Halloween | October 2026 banner and card template; banner ends November 1. No fabricated discount or countdown. |
+| Personal gallery | Owner-supplied networking/meme cards appear on the homepage and the personal hero. Pink/yellow placeholder cards are removed. Responsive image versions load eagerly; the hero gets a high-priority preload. |
+| Halloween | Owner-approved $39-for-two Halloween sale, a small dismissible top notice, and a fixed countdown ending November 1, 2026 at 00:00 Pacific (07:00 UTC). No invented original price, discount percentage, or resetting urgency; the sale label disappears after expiry. |
 | Business purchase | Monthly first, yearly savings badge, verified 4/15-card offers, existing Google Place Finder first, with a “Business name, city, and state” manual fallback and a goal choice before payment. Selected listings supply address, place ID, locality, region, postal code, coordinates, website, and phone. |
 | Card Club | One unchecked business add-on in the same checkout and subscription: +$5/month or +$60/year, matching the base plan. Existing legacy memberships retain their billing model. |
-| Help | Readable support page, AI answers capped at five questions per visitor per UTC day, and immediate team-message handoff with transcript. The team replies by email; this is not presented as staffed live chat. |
+| Help | Readable support page with the same assistant and question suggestions, AI answers capped at five questions per visitor per UTC day, and immediate team-message handoff with transcript. The team replies by email; this is not presented as staffed live chat. |
 
 Public temporary $1-verification-hold copy has been removed. Stripe verification behavior remains unchanged; actual renewal and optional hosting charges remain visible.
 
@@ -97,7 +97,7 @@ In the admin queue, download the PDF/source, verify destinations, approve, print
 
 ## Replace product photos
 
-Add approved photos to `public/personal-cards/` or the existing asset store and fill `src/data/personalCardPhotos.ts` with `src`, `alt`, and `caption` entries. The gallery handles transitions and layout without changes to checkout/templates. The owner-supplied two-hands photo now appears in the homepage business section, and the networking/meme-card photo appears in the personal section. They are stored as pixel-identical lossless WebP files under `public/product-photos/`; full card proportions are retained. Desktop, tablet, and phone layouts were visually reviewed. Existing testimonial portraits were reused, not generated.
+Add approved photos to `public/personal-cards/` or the existing asset store and fill `src/data/personalCardPhotos.ts` with `src`, `srcSet`, `alt`, and `caption` entries. The gallery handles transitions and layout without changes to checkout/templates. The owner-supplied two-hands photo now appears in the homepage business section, and the networking/meme-card photo appears in the personal section. The original lossless WebP assets remain under `public/product-photos/`. Delivery uses optimized business versions at 480/768/1024 pixels (71–244 KB) and a 186 KB personal image, retaining full card proportions. The main business hero is 57–144 KB instead of the original 2.2 MB PNG. Desktop, tablet, and phone layouts were visually reviewed. Existing testimonial portraits were reused, not generated.
 
 ## Verification
 
@@ -105,8 +105,10 @@ Add approved photos to `public/personal-cards/` or the existing asset store and 
 - **Deployed AI:** five complete answers returned HTTP 200 with remaining counts 4, 3, 2, 1, 0; the sixth returned HTTP 429. Typical tested responses took 4.6–5.5 seconds after the first call. A discovered card-design/hub-setup ambiguity was corrected with direct reviewed card-design instructions.
 - **Deployed access/provider checks:** Google business lookup returned a listing; all four business prices were verified; unsigned webhooks and signed-out personal-admin access were denied. Personal catalog version 2 reports unavailable while its gate is off.
 - Production Vite build and frontend TypeScript checks pass.
-- Changed/new payment, personal-commerce, and support functions type-check against matching Stripe 14.21.0 / Supabase 2.39.7 npm definitions. The affected functions were then deployed successfully to Lovable Cloud; live public catalog, Google search, AI and access-denial responses were checked.
-- The earlier full run passed all 26 browser fixture scenarios; after the photo replacement, the responsive scenario was rerun successfully at 360, 390, 768 and 1440 pixels. They cover all 20 templates in both orientations, drag/resize/undo, visual QR controls, empty hosted setup, username availability and stable-card editing, Google selection and manual fallback, plus catalog gating, all four business prices/intervals, required intake, Club totals and dashboard scope, personal hosting, designer/PDF checkout, mobile widths, hubs/portraits, AI cap/handoff, and error recovery. All external customer/payment/email/analytics traffic is mocked or blocked.
+- Changed/new payment, personal-commerce, and support functions type-check against matching Stripe 14.21.0 / Supabase 2.39.7 and 2.81.1 npm definitions. The affected functions were then deployed successfully to Lovable Cloud; live public catalog, Google search, AI and access-denial responses were checked.
+- All **32 browser fixture scenarios** pass across the full and focused runs. Home, personal, designer, business signup, and support have no horizontal overflow at 320, 360, 390, 430, 768, 1024, and 1440 pixels. New checks cover real eager hero art, keyboard-only skip link, retired advertising cleanup/no SDK requests, help and checkout without document reloads or dark frames, mobile sheet focus/Escape/navigation, Halloween dismissal/expiry, and support-page AI/human choices. Existing checkout, designer/PDF, Club, hub, and recovery checks still pass. All external traffic is mocked or blocked.
+- **19 synthetic customer-scenario checks** exercise the actual support handler: beginners, recipients, Linktree/Linkme users, hub hosting/charges, designers, NFC/QR destinations, cancellation, personal-vs-business/Club/trials, both business quantities, shipping, compatibility, order-status handoff, and exact sale expiry. These verify reviewed answers, not model quality or actual customer research. Cancellation-question routing was corrected after a failing test.
+- A signed, isolated **legacy webhook recovery test** verifies failure releases a claimed event, returns 500 for retry, succeeds on retry, and deduplicates success. Expanded type checking found and fixed two pre-existing scope errors (claim restoration and demo-hub handoff).
 - All 24 isolated commerce checks pass. They exercise actual handlers with mocked services: Stripe signature/mode verification, pricing, immutable retries, profile identity isolation, included Club billing/eligibility, quotas, admin authorization, and refunds.
 - The migration runs twice successfully in isolated PostgreSQL (PGlite), proving safe reapplication. Checks cover concurrent five-question limits, denied public order/artwork access, username redirects, canceled hosting, and test/live isolation.
 - A mixed-orientation four-page PDF passed exact dimension checks and visual review. Both QR destinations decoded correctly. No physical printer was available.
@@ -124,3 +126,12 @@ QA_MODULES=/path/to/qa/node_modules node scripts/check-stripe-checkout-integrati
 Separate QA dependencies: Playwright/Chromium, Stripe 14.21.0, and `@electric-sql/pglite`. Optional `BROWSER_EXECUTABLE`, `BROWSER_ARGS` (JSON), `QA_ASSETS`, and `QA_SCREENSHOTS` configure browser checks. App additions are `pdf-lib`, `qrcode`, and QR typings; the lockfile also reconciles previously declared Lovable dependencies.
 
 Real Stripe checkout pages, provider AI responses, email delivery, and physical fulfillment are not proven by isolated fixtures. Conversion gains and sales growth need measurement after release.
+
+## October 21 mobile and tracking pass
+
+- Personal pricing is visible in the main Pricing section, clearly labeled $39 once for two cards with optional $5/month hosting; business subscriptions have their own heading and verified prices.
+- Primary internal navigation uses client-side links; signup/support/designer chunks preload on hover, focus, or touch intent. Slow/cold storefront routes keep a white loading surface. Dashboards retain their theme preference.
+- The mobile navigation uses an accessible side panel with product explanations. Supplied product photos have a compact, uncropped mobile layout. Skip navigation stays visually hidden until keyboard focus.
+- Meta/Facebook and Trybe browser SDKs, server advertising emitters, checkout visitor attribution, fbclid capture, and their configuration references are removed. The advertising acceptance popup and cookie-settings action are removed. Previously saved browser advertising IDs are cleared on boot; historical external records are not claimed deleted.
+- First-party hub/product metrics remain. They use an in-memory visit ID and no persistent returning-visitor ID; ordinary login, checkout/design, preference, and support-limit storage remain. Privacy/storage pages describe this change without claiming all technical information is anonymous.
+- This pass's backend deployment and obsolete secret cleanup are pending the targeted Lovable deployment. Frontend publishing and enabling personal payments remain separate from preview review.

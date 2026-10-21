@@ -14,7 +14,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { GooglePlacesAutocomplete } from "@/components/GooglePlacesAutocomplete";
 import { isSuperAdmin } from "@/lib/grandfatheredUsers";
 import { normalizeGooglePlaceId, buildGoogleReviewUrl } from "@/lib/google";
-import { getTrybeVisitorId } from "@/lib/trybePixel";
 import {
   getOnboardingData,
   saveOnboardingData,
@@ -357,7 +356,6 @@ const Onboarding = () => {
     const { ok, data } = await callFunction<{ url?: string; error?: string }>("payment-first-checkout", {
       checkoutVersion: 2, plan: selectedPlan, interval: billingInterval, cardClub, business, source: "onboarding", returnOrigin: window.location.origin,
       attribution: { ...(saved.campaign || {}), landing_path: window.location.pathname },
-      trybeVisitorId: getTrybeVisitorId(),
     }).catch(() => ({ ok: false, data: {} as { url?: string; error?: string } }));
     if (ok && data.url) {
       track("stripe_checkout_started", { hubKind: "site", props: { plan: selectedPlan, interval: billingInterval, card_club: cardClub } });
@@ -874,7 +872,6 @@ const Onboarding = () => {
             hasProtection: false,
             promoToken: promoTokenParam || undefined,
             dashboardType: resolvedDashboardType,
-            trybeVisitorId: getTrybeVisitorId(),
             campaign: savedData.campaign || {},
           },
         });

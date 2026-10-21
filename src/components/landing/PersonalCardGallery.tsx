@@ -1,54 +1,37 @@
 import { useState } from "react";
-import { MiniCard } from "./StorefrontSections";
 import { PERSONAL_CARD_PHOTOS } from "@/data/personalCardPhotos";
-import { useCardShowcase } from "@/hooks/useCardShowcase";
+
 export function PersonalCardGallery() {
-  const { designs } = useCardShowcase();
   const [selected, setSelected] = useState(0);
-  const existing = designs
-    .filter(
-      (d) =>
-        d.hubKind === "personal" &&
-        ["julian", "denzel"].includes(d.hubSlug || ""),
-    )
-    .map((d) => ({
-      src: d.frontImageUrl,
-      alt: `${d.businessName}'s custom TapAway card artwork`,
-      caption: `${d.businessName}'s card design`,
-    }));
-  const photos = PERSONAL_CARD_PHOTOS.length ? PERSONAL_CARD_PHOTOS : existing;
-  if (!photos.length)
-    return (
-      <div>
-        <div
-          className="sf-personal-stage"
-          aria-label="Personal card design previews"
-        >
-          <MiniCard name="Good energy only." tone="pink" />
-          <MiniCard name="Nice to meet you." tone="yellow" />
-        </div>
-        <p className="sf-price-note text-center">
-          Design previews. Make both cards your own.
-        </p>
-      </div>
-    );
-  const current = photos[selected % photos.length];
+  const current = PERSONAL_CARD_PHOTOS[selected % PERSONAL_CARD_PHOTOS.length];
   return (
     <div className="sf-card-gallery">
       <figure key={current.src}>
-        <img src={current.src} alt={current.alt} />
+        <img
+          src={current.src}
+          srcSet={current.srcSet}
+          sizes="(max-width: 650px) 250px, (max-width: 900px) 290px, 360px"
+          width="1024"
+          height="1536"
+          alt={current.alt}
+          loading="eager"
+          decoding="async"
+          fetchPriority="high"
+        />
         <figcaption>{current.caption}</figcaption>
       </figure>
-      <div className="sf-gallery-controls" aria-label="Choose a card photo">
-        {photos.map((p, i) => (
-          <button
-            key={p.src}
-            aria-label={`Show ${p.caption}`}
-            aria-pressed={selected % photos.length === i}
-            onClick={() => setSelected(i)}
-          />
-        ))}
-      </div>
+      {PERSONAL_CARD_PHOTOS.length > 1 && (
+        <div className="sf-gallery-controls" aria-label="Choose a card photo">
+          {PERSONAL_CARD_PHOTOS.map((p, i) => (
+            <button
+              key={p.src}
+              aria-label={`Show ${p.caption}`}
+              aria-pressed={selected === i}
+              onClick={() => setSelected(i)}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

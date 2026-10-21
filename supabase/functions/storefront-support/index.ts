@@ -11,6 +11,7 @@ import {
   SUPPORT_INSTRUCTIONS,
   STOREFRONT_FAQS,
 } from "../_shared/storefrontKnowledge.ts";
+import { seasonalOfferFacts } from "../_shared/storefrontOffers.ts";
 import { takeQuota } from "../_shared/storefrontRateLimit.ts";
 import { escapeHtml } from "../_shared/sanitize.ts";
 let priceCache: { expires: number; facts: string } | null = null;
@@ -45,8 +46,19 @@ const clean = (x: unknown, max: number) =>
 
 // Give common product questions a reviewed answer if the provider times out or truncates.
 // Pricing comes from Stripe; this fallback never supplies an unverified business price.
-function reviewedAnswer(question: string, pricing: string) {
+export function reviewedAnswer(question: string, pricing: string) {
   const q = question.toLowerCase();
+  if (/where.*(my|our) order|track.*(my|our) order|order status|refund.*(my|our)|charged.*twice/.test(q))
+    return "I can't look up orders or payments. Choose Talk to our team or email tap@tapaway.co with your order email or order number. Please don't send card numbers or passwords. Our team will reply by email.";
+  if (/halloween|sale|promotion|discount/.test(q)) return seasonalOfferFacts();
+  if (/both.*(qr|nfc)|(?:qr.*nfc|nfc.*qr).*different/.test(q))
+    return "Each personal card has one destination: its NFC tap and printed QR code open the same link. Your two cards can open different links. Choose a website, Linktree, Linkme, social profile, or the optional $5/month TapAway hub.";
+  if (/what (is|are).*(nfc|tapaway|tap card)|what.*(sell|selling)|never.*(used|heard)|how.*(card|tapaway).*work|need.*app|other person.*app/.test(q)) return STOREFRONT_FAQS[0].answer;
+  if (/(design|customi[sz]e|edit).*(card|sides|front|back)|(card|sides).*(design|customi[sz]e)/.test(q)) return STOREFRONT_FAQS[3].answer;
+  if (/card club/.test(q)) return STOREFRONT_FAQS[7].answer;
+  if (/personal.*trial|trial.*personal/.test(q)) return STOREFRONT_FAQS[2].answer;
+  if (/difference|business or personal|personal or business/.test(q)) return STOREFRONT_FAQS[1].answer;
+  if (/(personal|two cards|2 cards).*(price|cost|how much)|how much.*(personal|two cards|2 cards)|when.*charg/.test(q)) return STOREFRONT_FAQS[2].answer;
   if (
     /price|cost|how much|plan/.test(q) &&
     /business|\b4\b|\bfour\b|\b15\b|\bfifteen\b/.test(q)
@@ -73,6 +85,7 @@ function reviewedAnswer(question: string, pricing: string) {
     )
   )
     return "Personal cards are $39 once for two, with free standard US shipping. They can open your existing Linktree, Linkme, social profile, or website with no ongoing TapAway fee. A TapAway hub is optional at $5/month. Third-party terms apply.";
+  if (/cancel/.test(q)) return STOREFRONT_FAQS[4].answer;
   if (/\$5|hosting|personal hub/.test(q))
     return "The optional $5/month TapAway hub gives you a tapaway.co/yourname address (subject to availability), your dashboard, analytics, and editing access anytime. No website is needed. After payment, choose your address and customize your page. With your $39 card pair, the initial total is $44, then $5/month until canceled.";
   const topic = /design|template|both sides|print/.test(q)
@@ -179,17 +192,12 @@ serve(async (req) => {
         },
         429,
       );
-    // Keep the physical-card designer distinct from post-payment online hub setup.
-    if (
-      /design|customi[sz]e|edit/i.test(message) &&
-      /cards?|both sides|front|back/i.test(message)
-    )
-      return json({
-        answer: STOREFRONT_FAQS[3].answer,
-        remaining: 5 - used,
-        source: "reviewed_faq",
-      });
-    const pricing = await currentBusinessPrices();
+    // Reviewed answers keep common questions fast and consistent; the AI handles the rest.
+    const needsPrices = /price|cost|how much|plan/i.test(message) && /business|\b4\b|\bfour\b|\b15\b|\bfifteen\b/i.test(message);
+    const pricing = needsPrices ? await currentBusinessPrices() : "";
+    const reviewed = reviewedAnswer(message, pricing);
+    if (reviewed) return json({ answer: reviewed, remaining: 5 - used, source: "reviewed_faq" });
+    const verifiedPricing = pricing || await currentBusinessPrices();
     const fallback = () => {
       const answer = reviewedAnswer(message, pricing);
       return answer
@@ -222,7 +230,7 @@ serve(async (req) => {
             messages: [
               {
                 role: "system",
-                content: `${SUPPORT_INSTRUCTIONS}\n\nVerified current business pricing:\n${pricing}`,
+                content: `${SUPPORT_INSTRUCTIONS}\n\nCurrent seasonal offer:\n${seasonalOfferFacts()}\n\nVerified current business pricing:\n${verifiedPricing}`,
               },
               ...history,
               { role: "user", content: message },

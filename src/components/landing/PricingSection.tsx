@@ -12,6 +12,8 @@ import {
   selectStorefrontPlan,
   type StorefrontAudience,
 } from "@/lib/storefront";
+import { HalloweenCountdown } from "./SeasonalOffer";
+import { StorefrontLink, prefetchStorefrontRoute } from "@/lib/storefrontNavigation";
 import { track } from "@/lib/analytics";
 
 export function PricingSection({
@@ -50,9 +52,18 @@ export function PricingSection({
       aria-labelledby="pricing-heading"
       className="sf-section sf-container"
     >
+      <div className="sf-personal-pricing-callout" aria-label="TapAway Personal pricing">
+        <div>
+          <p className="sf-eyebrow">TapAway personal · One-time purchase</p>
+          <h2>Two custom cards. <strong>$39 once.</strong></h2>
+          <p>Design both sides. Free US shipping. Use your own link with no subscription, or add a TapAway hub for $5/month.</p>
+          <HalloweenCountdown />
+        </div>
+        <StorefrontLink className="sf-button" to="/personal/design">Design my 2 cards <ArrowRight /></StorefrontLink>
+      </div>
       <div className="sf-price-header">
         <div>
-          <p className="sf-eyebrow">Simple plans. Setup included.</p>
+          <p className="sf-eyebrow">TapAway business · Cards + hub subscription</p>
           <h2 id="pricing-heading" className="sf-title">
             {audience === "personal"
               ? "Your cards. Your hub. One plan."
@@ -132,7 +143,7 @@ export function PricingSection({
               <h3>{CARD_QUANTITIES[plan]} custom cards</h3>
               <p className="description">
                 {plan === "solo"
-                  ? "For your counter, kit or personal brand."
+                  ? "For your business counter, kit or team."
                   : "For more tables, team members and touchpoints."}
               </p>
               <p className="sf-price-tag">
@@ -187,6 +198,9 @@ export function PricingSection({
               <button
                 className="sf-button"
                 disabled={loading || item?.available !== true}
+                onMouseEnter={() => prefetchStorefrontRoute("/onboarding")}
+                onFocus={() => prefetchStorefrontRoute("/onboarding")}
+                onTouchStart={() => prefetchStorefrontRoute("/onboarding")}
                 onClick={() => choose(plan)}
               >
                 Get my {CARD_QUANTITIES[plan]} cards <ArrowRight />

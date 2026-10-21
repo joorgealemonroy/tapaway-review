@@ -1,6 +1,6 @@
 import { SeasonalOffer } from "@/components/landing/SeasonalOffer";
 import { Helmet } from "react-helmet-async";
-import { Link } from "react-router-dom";
+import { StorefrontLink as Link } from "@/lib/storefrontNavigation";
 import { ArrowRight } from "lucide-react";
 import { LandingNav } from "@/components/landing/LandingNav";
 import { PricingSection } from "@/components/landing/PricingSection";
@@ -35,6 +35,7 @@ export default function Index() {
       </Helmet>
       <TrialBanner />
       <LandingNav />
+      <SeasonalOffer />
       <main id="main-content">
         <section className="sf-hero">
           <div className="sf-container sf-hero-grid">
@@ -65,7 +66,7 @@ export default function Index() {
                   Get TapAway for business <ArrowRight />
                 </a>
                 <Link className="sf-button secondary" to="/personal">
-                  Make it personal
+                  Get 2 personal cards · $39
                 </Link>
               </div>
               <p className="sf-hero-small">
@@ -77,7 +78,11 @@ export default function Index() {
             </div>
             <div className="sf-hero-media">
               <img
-                src="/done-for-you-mockup.png"
+                src="/product-photos/business-hub-preview-1024.webp"
+                srcSet="/product-photos/business-hub-preview-640.webp 640w, /product-photos/business-hub-preview-1024.webp 1024w, /product-photos/business-hub-preview-1254.webp 1254w"
+                sizes="(max-width: 650px) 100vw, 50vw"
+                loading="eager"
+                decoding="async"
                 alt="TapAway custom printed card beside examples of branded mobile hubs"
                 width="1254"
                 height="1254"
@@ -91,7 +96,6 @@ export default function Index() {
         </section>
         <TrustStrip />
         <ProductPaths />
-        <SeasonalOffer />
         <HubDemo />
         <SetupSteps />
         <PricingSection />

@@ -190,13 +190,23 @@
 .sf-skip {
   position: absolute;
   left: 12px;
-  top: -80px;
+  top: 8px;
+  clip-path: inset(50%);
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  white-space: nowrap;
   z-index: 100;
   background: #fff;
   padding: 12px;
 }
-.sf-skip:focus {
-  top: 8px;
+.sf-skip:focus-visible {
+  clip-path: none;
+  width: auto;
+  height: auto;
+  overflow: visible;
+  border: 2px solid #315840;
+  border-radius: 8px;
 }
 .sf-hero {
   position: relative;
@@ -1444,39 +1454,6 @@
 .sf-support h1 {
   font-size: clamp(30px, 6vw, 46px);
 }
-.sf-seasonal {
-  color: #fff2e0;
-  background: #251b30;
-}
-.sf-seasonal > div {
-  min-height: 68px;
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  padding-block: 12px;
-}
-.sf-seasonal svg {
-  color: #ffbf83;
-  flex-shrink: 0;
-}
-.sf-seasonal p {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px 18px;
-  flex: 1;
-  font-size: 12px;
-}
-.sf-seasonal span {
-  color: #e3c8e1;
-}
-.sf-seasonal a {
-  font-size: 12px;
-  font-weight: 600;
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
 .sf-personal-explainer {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1845,7 +1822,223 @@
   font-size: 11px;
 }
 
-/* Supplied artwork: retain the full card faces and original proportions. */
+/* Clear mobile navigation, with native dialog focus and scroll management. */
+.sf-mobile-sheet {
+  width: min(390px, 92vw);
+  padding: 28px 22px;
+  overflow-y: auto;
+}
+.sf-mobile-sheet > button:last-child {
+  padding: 12px;
+  top: 16px;
+  right: 12px;
+}
+.sf-mobile-sheet > button:last-child svg {
+  width: 20px;
+  height: 20px;
+}
+.sf-mobile-title {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 25px;
+}
+.sf-mobile-title svg {
+  width: 22px;
+  transform: rotate(90deg);
+}
+.sf-mobile-menu {
+  padding: 22px 0;
+  border: 0;
+  gap: 2px;
+}
+.sf-mobile-menu a {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  padding: 15px 8px;
+  border-radius: 12px;
+}
+.sf-mobile-menu a:hover {
+  background: #f3f6ee;
+}
+.sf-mobile-menu a > svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  color: #526c50;
+}
+.sf-mobile-menu a > svg:last-child {
+  width: 16px;
+  margin-left: auto;
+}
+.sf-mobile-menu strong {
+  display: block;
+  font-size: 16px;
+  font-weight: 650;
+}
+.sf-mobile-menu small {
+  display: block;
+  font-size: 11px;
+  color: #5b6659;
+  margin-top: 3px;
+}
+.sf-mobile-sheet > .sf-button {
+  width: 100%;
+}
+.sf-mobile-note {
+  font-size: 11px;
+  color: #65705f;
+  text-align: center;
+  margin-top: 15px;
+}
+.sf-menu-toggle {
+  border: 1px solid #e0e5dc;
+  border-radius: 10px;
+  margin-left: 8px;
+}
+.sf-route-loading {
+  background: #fff;
+  color: #425441;
+}
+
+/* A dismissible notice in normal flow: no blocked content or automatic focus. */
+.sf-seasonal {
+  background: #fcf1e7;
+  color: #483227;
+  border-bottom: 1px solid #efddcd;
+}
+.sf-seasonal-inner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-block: 11px;
+}
+.sf-seasonal-icon {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  color: #9b5429;
+}
+.sf-seasonal p {
+  flex: 1;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.sf-seasonal strong {
+  display: block;
+  font-weight: 650;
+}
+.sf-seasonal p span {
+  color: #71513a;
+  font-size: 11px;
+}
+.sf-seasonal a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 650;
+  min-height: 44px;
+}
+.sf-seasonal a svg {
+  width: 16px;
+}
+.sf-seasonal button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 50%;
+}
+.sf-seasonal button:hover {
+  background: #efdccc;
+}
+.sf-seasonal button svg {
+  width: 17px;
+}
+.sf-sale-countdown {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 16px 0;
+  font-size: 11px;
+  color: #6f4329;
+}
+.sf-sale-countdown > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 650;
+}
+.sf-sale-countdown svg {
+  width: 15px;
+  height: 15px;
+}
+.sf-sale-countdown time {
+  border-radius: 8px;
+  background: #fae9da;
+  padding: 7px 10px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+}
+.sf-sale-countdown b {
+  color: #ad8461;
+  padding-inline: 2px;
+}
+.sf-sale-countdown small {
+  font-size: 10px;
+  color: #756657;
+}
+.sf-personal-price > .sf-sale-countdown {
+  padding: 0;
+  border: 0;
+  margin: 0 0 18px;
+}
+.sf-personal-price > p {
+  margin-bottom: 22px;
+  font-size: 18px;
+}
+.sf-personal-price > p.sf-price-note {
+  font-size: 12px;
+  margin-bottom: 0;
+}
+.sf-personal-pricing-callout {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+  justify-content: space-between;
+  padding: 30px 34px;
+  background: #faf3ed;
+  border: 1px solid #e8d9cb;
+  border-radius: 20px;
+  margin-bottom: 50px;
+}
+.sf-personal-pricing-callout h2 {
+  font-size: clamp(24px, 3vw, 32px);
+  margin: 12px 0;
+  font-weight: 650;
+}
+.sf-personal-pricing-callout h2 strong {
+  white-space: nowrap;
+}
+.sf-personal-pricing-callout > div > p:not(.sf-eyebrow) {
+  font-size: 13px;
+  max-width: 600px;
+  line-height: 1.8;
+  color: #62574c;
+}
+.sf-personal-pricing-callout .sf-button {
+  flex-shrink: 0;
+}
+.sf-personal-pricing-callout .sf-sale-countdown {
+  margin-bottom: 0;
+}
+
+/* Supplied photos retain their complete card faces at every breakpoint. */
 .sf-product {
   min-height: 450px;
 }
@@ -1875,6 +2068,44 @@
 .sf-product > p:not(.sf-eyebrow) {
   max-width: 53%;
 }
+.sf-card-gallery {
+  min-height: 0;
+  margin: 26px 0 26px 35px;
+  padding: 28px;
+  background: radial-gradient(ellipse at 55% 45%, #e7e3d8, #f4f0e8 65%);
+}
+.sf-card-gallery img {
+  width: 360px;
+  height: auto;
+  max-height: none;
+  filter: drop-shadow(0 14px 18px #33212b18);
+}
+.sf-card-gallery figcaption {
+  max-width: 300px;
+  text-align: center;
+  color: #655b50;
+  line-height: 1.6;
+  margin-top: 14px;
+}
+.sf-chat-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.sf-chat-suggestions button {
+  text-align: left;
+  border: 1px solid #d5dfce;
+  background: #f6f8f2;
+  padding: 9px 11px;
+  font-size: 11px;
+  border-radius: 10px;
+}
+.sf-chat-suggestions button:hover {
+  background: #eaf0e3;
+}
+.sf-support main {
+  padding-bottom: 15px;
+}
 @media (min-width: 901px) and (max-width: 1100px) {
   .sf-product {
     min-height: 470px;
@@ -1884,44 +2115,144 @@
   }
 }
 @media (max-width: 900px) {
+  .sf-products {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
   .sf-product {
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-    padding-bottom: 0;
-  }
-  .sf-product > p:not(.sf-eyebrow) {
-    max-width: 100%;
-  }
-  .sf-product > .sf-button {
-    align-self: flex-start;
-    max-width: none;
+    min-height: 350px;
+    padding: 30px;
   }
   .sf-product-photo {
-    position: relative;
-    inset: auto;
-    align-self: flex-end;
-    width: 78%;
-    max-width: 280px;
-    margin: 24px -28px 0 0;
+    width: 220px;
+    right: 20px;
   }
   .sf-product-photo.personal-photo {
-    inset: auto;
-    width: 70%;
-    max-width: 260px;
-    margin: 24px -10px 12px 0;
+    width: 200px;
+    right: 30px;
+    bottom: 18px;
+  }
+  .sf-product h3 {
+    max-width: 60%;
+  }
+  .sf-product > p:not(.sf-eyebrow) {
+    max-width: 50%;
+  }
+  .sf-product .sf-button {
+    max-width: none;
+  }
+  .sf-card-gallery {
+    margin-left: 15px;
+    padding: 22px 14px;
+  }
+  .sf-card-gallery img {
+    width: 290px;
+  }
+}
+@media (max-width: 650px) {
+  .sf-personal-pricing-callout {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 20px;
+    padding: 25px 22px;
+    margin-bottom: 36px;
+  }
+  .sf-personal-pricing-callout .sf-button {
+    width: 100%;
+  }
+  .sf-card-gallery {
+    margin: 5px 0 25px;
+    padding: 22px 15px;
+    border-radius: 22px;
+  }
+  .sf-card-gallery img {
+    width: 250px;
+  }
+  .sf-card-gallery figcaption {
+    font-size: 11px;
+  }
+  .sf-hero-actions .sf-button {
+    min-height: 48px;
+  }
+  .sf-personal-price {
+    padding: 26px;
+  }
+  .sf-seasonal-inner {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0 8px;
+    padding: 9px 36px 9px 0;
+  }
+  .sf-seasonal-icon {
+    display: none;
+  }
+  .sf-seasonal p {
+    font-size: 11px;
+  }
+  .sf-seasonal p span {
+    font-size: 10px;
+  }
+  .sf-seasonal a {
+    font-size: 11px;
+    max-width: none;
+    grid-column: 1/-1;
+    min-height: 30px;
+  }
+  .sf-seasonal button {
+    position: absolute;
+    right: -10px;
+    top: 10px;
   }
 }
 @media (max-width: 560px) {
-  .sf-product-photo {
-    width: 68%;
-    max-width: 260px;
+  .sf-product {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 14px;
+    padding: 24px;
+    min-height: 0;
+    align-items: center;
   }
+  .sf-product > .sf-eyebrow,
+  .sf-product > h3 {
+    grid-column: 1/-1;
+    max-width: 100%;
+  }
+  .sf-product > h3 {
+    font-size: 30px;
+    margin-bottom: 6px;
+  }
+  .sf-product > p:not(.sf-eyebrow) {
+    grid-row: 3;
+    grid-column: 1;
+    max-width: 100%;
+    font-size: 13px;
+    margin-top: 0;
+  }
+  .sf-product-photo,
   .sf-product-photo.personal-photo {
-    width: 60%;
-    max-width: 240px;
+    position: static;
+    grid-row: 3;
+    grid-column: 2;
+    width: 100%;
+    max-width: 180px;
+    margin: 8px 0 14px;
+    justify-self: center;
   }
   .sf-product > .sf-button {
-    margin-top: 18px;
+    grid-row: 4;
+    grid-column: 1/-1;
+    width: 100%;
+    margin-top: 6px;
+    font-size: 13px;
+  }
+  .sf-help {
+    font-size: 11px;
+    min-height: 44px;
+  }
+  .sf-chat {
+    max-height: calc(100dvh - 24px);
+    bottom: 12px;
   }
 }

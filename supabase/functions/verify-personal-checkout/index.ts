@@ -2,7 +2,6 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Stripe from 'https://esm.sh/stripe@14.21.0';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.81.1';
 import { checkRateLimit, getRateLimitKey, rateLimitResponse } from "../_shared/rateLimit.ts";
-import { sendMetaCapiEvent } from "../_shared/metaCapi.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -140,7 +139,7 @@ serve(async (req) => {
     // a different email that belongs to someone else's account.
     const { data: existingUsers } = await supabase.auth.admin.listUsers();
     const existingUser = existingUsers?.users.find(
-      u => u.email === accountEmail
+      (u: { email?: string }) => u.email === accountEmail
     );
 
     let userId: string;
@@ -414,28 +413,6 @@ serve(async (req) => {
     }
 
     // clientIp was captured above (used for affiliate abuse tracking + card check).
-
-    // Meta Conversions API: server-side Lead/Purchase for Instagram ad
-    // tracking + retargeting. event_id is the Stripe session id, so a
-    // retried verification never double-counts. Silent no-op until
-    // META_PIXEL_ID / META_CONVERSIONS_API_TOKEN are configured.
-    // Never fails the checkout.
-    try {
-      const paidNow = (session.amount_total || 0) > 0;
-      // Paid subscriptions are reported only by the existing invoice emitter.
-      const capiResult = paidNow ? { ok: false, skipped: "Purchase belongs to invoice emitter" } : await sendMetaCapiEvent({
-        eventName: "Lead",
-        eventId: `verify_${sessionId}`,
-        email: customerEmail,
-        phone: customerPhone,
-        ...(paidNow
-          ? { value: (session.amount_total || 0) / 100, currency: (session.currency || "usd").toLowerCase() }
-          : {}),
-      });
-      console.log("[verify-personal-checkout] Meta CAPI:", capiResult);
-    } catch (capiErr) {
-      console.error("[verify-personal-checkout] Meta CAPI failed (non-fatal):", capiErr);
-    }
 
     // Return success with session info for auto-login
     return new Response(

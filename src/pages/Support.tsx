@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { SupportChat } from "@/components/landing/SupportChat";
+import { StorefrontFooter } from "@/components/landing/StorefrontSections";
 import { LandingNav } from "@/components/landing/LandingNav";
 import { STOREFRONT_FAQS } from "@/lib/storefrontFaqs";
 import { Helmet } from "react-helmet-async";
@@ -301,7 +303,7 @@ const Support = () => {
           </div>
           <h1 className="text-2xl font-bold sm:text-3xl">Support &amp; Help</h1>
           <p className="text-sm text-muted-foreground">Questions before you buy? Help with an order? You're in the right place.</p>
-          <div className="flex flex-wrap justify-center gap-3 pt-4"><a href="#question" className="sf-button">Ask a question</a><a href="mailto:tap@tapaway.co" className="sf-button secondary">Email our team</a></div>
+          <div className="flex flex-wrap justify-center gap-3 pt-4"><SupportChat inline /><a href="#question" className="sf-button secondary">Message our team</a><a href="mailto:tap@tapaway.co" className="sf-button secondary">Email our team</a></div>
         </div>
 
         <section className="rounded-xl border p-5" aria-labelledby="quick-answers"><h2 id="quick-answers" className="font-semibold mb-2">Quick answers</h2>{STOREFRONT_FAQS.filter((_,i) => [0,3,4,6,7].includes(i)).map(faq => <details key={faq.question} className="border-b last:border-0 py-3"><summary className="cursor-pointer text-sm font-medium">{faq.question}</summary><p className="mt-3 text-sm leading-7 text-muted-foreground">{faq.answer}</p></details>)}<Link to="/faq" className="sf-text-link text-xs mt-4">See all answers</Link></section>
@@ -553,6 +555,7 @@ const Support = () => {
           </a>
         </p>
       </main>
+      <StorefrontFooter />
     </div>
   );
 };

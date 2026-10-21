@@ -7,13 +7,11 @@ import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "@/hooks/useAuth";
 import { Suspense, useEffect } from "react";
 import { lazyWithRetry as lazy, clearChunkReloadGuard } from "@/lib/lazyWithRetry";
+import { storefrontLoaders, isStorefrontPath, StorefrontRouteSurface } from "@/lib/storefrontNavigation";
 import { Loader2 } from "lucide-react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { RepImpersonationOverlay } from "@/components/rep/RepImpersonationOverlay";
 import SiteAnalytics from "@/components/analytics/SiteAnalytics";
-import { ConsentBanner } from "@/components/analytics/ConsentBanner";
-import { watchConsentForPixel } from "@/lib/metaPixel";
-import { watchConsentForTrybePixel } from "@/lib/trybePixel";
 
 // Critical routes - loaded immediately
 import Index from "./pages/Index";
@@ -28,10 +26,10 @@ const MagicLinkVerify = lazy(() => import("./pages/auth/MagicLinkVerify"));
 const SetPassword = lazy(() => import("./pages/auth/SetPassword"));
 
 const PersonalCardLink = lazy(() => import("./pages/PersonalCardLink"));
-const PersonalDesigner = lazy(() => import("./pages/PersonalDesigner"));
+const PersonalDesigner = lazy(storefrontLoaders.designer);
 const PersonalOrder = lazy(() => import("./pages/PersonalOrder"));
 const AdminPersonalCardOrders = lazy(() => import("./pages/admin/AdminPersonalCardOrders"));
-const Personal = lazy(() => import("./pages/Personal"));
+const Personal = lazy(storefrontLoaders.personal);
 
 // Personal TapAway - code split (Business Lite dashboard still used internally)
 const ImportProfile = lazy(() => import("./pages/personal/ImportProfile"));
@@ -41,7 +39,7 @@ const LegacyProfileRedirect = lazy(() => import("./pages/personal/LegacyProfileR
 // Business routes - lazy loaded
 const Demo = lazy(() => import("./pages/Demo"));
 
-const Onboarding = lazy(() => import("./pages/Onboarding"));
+const Onboarding = lazy(storefrontLoaders.onboarding);
 const OnboardingSuccess = lazy(() => import("./pages/OnboardingSuccess"));
 
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -53,7 +51,7 @@ const Admin = lazy(() => import("./pages/Admin"));
 const Terms = lazy(() => import("./pages/Terms"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const Refund = lazy(() => import("./pages/Refund"));
-const Support = lazy(() => import("./pages/Support"));
+const Support = lazy(storefrontLoaders.support);
 const AcceptableUse = lazy(() => import("./pages/AcceptableUse"));
 const AffiliateTerms = lazy(() => import("./pages/AffiliateTerms"));
 const NFCDisclaimer = lazy(() => import("./pages/NFCDisclaimer"));
@@ -116,12 +114,14 @@ const Paywall = lazy(() => import("./pages/Paywall"));
 const Welcome = lazy(() => import("./pages/Welcome"));
 
 
-// Minimal loading spinner
-const PageLoader = () => (
-  <div className="min-h-screen bg-background flex items-center justify-center">
-    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-  </div>
-);
+// Keep the storefront's light surface even on a cold, slow route load.
+const PageLoader = () => {
+  const { pathname } = useLocation();
+  return <div className={`min-h-screen flex flex-col gap-4 items-center justify-center ${isStorefrontPath(pathname) ? "storefront sf-route-loading" : "bg-background"}`} role="status">
+    <Loader2 className="h-6 w-6 animate-spin" aria-hidden="true" />
+    <span className="text-sm">Loading TapAway…</span>
+  </div>;
+};
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -145,13 +145,6 @@ const App = () => {
   // reload guard so a future deploy can reload again if needed.
   useEffect(() => {
     clearChunkReloadGuard();
-    // Meta + Trybe pixels boot only after tracking consent is accepted.
-    const unwatch = watchConsentForPixel();
-    const unwatchTrybe = watchConsentForTrybePixel();
-    return () => {
-      unwatch();
-      unwatchTrybe();
-    };
   }, []);
 
   return (
@@ -162,11 +155,11 @@ const App = () => {
       <Sonner />
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <AuthProvider>
+          <StorefrontRouteSurface />
           <ErrorBoundary>
             <Suspense fallback={<PageLoader />}>
               <RepImpersonationOverlay />
               <SiteAnalytics />
-              <ConsentBanner />
               <Routes>
 
               <Route path="/" element={<Index />} />

@@ -1,5 +1,5 @@
 import { Helmet } from "react-helmet-async";
-import { Link } from "react-router-dom";
+import { StorefrontLink as Link } from "@/lib/storefrontNavigation";
 import { ArrowRight, Check, QrCode, Wifi } from "lucide-react";
 import { LandingNav } from "@/components/landing/LandingNav";
 import { FAQSection } from "@/components/landing/FAQSection";
@@ -9,7 +9,7 @@ import {
 } from "@/components/landing/StorefrontSections";
 import { PersonalCardGallery } from "@/components/landing/PersonalCardGallery";
 import { RealHubDemo } from "@/components/landing/RealHubDemo";
-import { SeasonalOffer } from "@/components/landing/SeasonalOffer";
+import { SeasonalOffer, HalloweenCountdown } from "@/components/landing/SeasonalOffer";
 import { DESIGN_TEMPLATES } from "@/lib/cardDesign";
 export default function Personal() {
   return (
@@ -27,8 +27,8 @@ export default function Personal() {
         />
         <meta property="og:url" content="https://tapaway.co/personal" />
       </Helmet>
-      <SeasonalOffer />
       <LandingNav />
+      <SeasonalOffer />
       <main id="main-content">
         <section className="sf-hero">
           <div className="sf-container sf-hero-grid">
@@ -93,7 +93,7 @@ export default function Personal() {
         <section className="sf-section sf-container" id="pricing">
           <div className="sf-personal-offer">
             <div>
-              <p className="sf-eyebrow">Yours to keep</p>
+              <p className="sf-eyebrow">Two cards. Yours to keep.</p>
               <h2 className="sf-title">
                 Two cards.
                 <br />
@@ -118,6 +118,7 @@ export default function Personal() {
               </ul>
             </div>
             <div className="sf-personal-price">
+              <HalloweenCountdown />
               <p>
                 <strong>$39</strong> once
               </p>
@@ -125,7 +126,7 @@ export default function Personal() {
                 Make my cards <ArrowRight />
               </Link>
               <p className="sf-price-note">
-                No personal free trial. No required subscription.
+                Two cards + free US shipping. No required subscription.
               </p>
               <div>
                 <h3>Want all your links in one place?</h3>

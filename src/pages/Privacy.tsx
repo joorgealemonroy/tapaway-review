@@ -1,5 +1,4 @@
 import { Helmet } from "react-helmet-async";
-import { openConsentSettings } from "@/lib/consent";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Smartphone } from "lucide-react";
@@ -9,7 +8,7 @@ const Privacy = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Helmet><title>Privacy Policy | TapAway</title><meta name="description" content="Privacy Policy for TapAway, including optional Meta and Trybe tracking and your cookie settings." /></Helmet>
+      <Helmet><title>Privacy Policy | TapAway</title><meta name="description" content="Privacy Policy for TapAway, including payments, support, product analytics, and browser storage." /></Helmet>
       <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate("/")}>
@@ -27,7 +26,7 @@ const Privacy = () => {
 
       <div className="container mx-auto px-4 py-12 max-w-4xl">
         <h1 className="text-4xl font-bold mb-8">Privacy Policy</h1>
-        <p className="text-muted-foreground mb-8">Tracking description updated: October 14, 2026</p>
+        <p className="text-muted-foreground mb-8">Tracking description updated: October 20, 2026</p>
 
         {/* SMS / A2P 10DLC Carrier-required disclosure. Exact clause required by TCR */}
         <div className="border border-primary/30 bg-primary/5 p-4 rounded-lg mb-8">
@@ -72,20 +71,20 @@ const Privacy = () => {
           <section>
             <h2 className="text-2xl font-bold mb-4">1. Introduction & Acceptance</h2>
             <p className="text-muted-foreground mb-4">
-              TapAway ("Company," "we," "us," or "our") is committed to protecting the privacy of users who access 
-              our website, dashboard, personal profiles, Review Hub, NFC cards, AI Coach, and related services 
-              (collectively, the "Service"). This Privacy Policy explains what information we collect, how we use it, 
+              TapAway ("Company," "we," "us," or "our") is committed to protecting the privacy of users who access
+              our website, dashboard, personal profiles, Review Hub, NFC cards, AI Coach, and related services
+              (collectively, the "Service"). This Privacy Policy explains what information we collect, how we use it,
               and your rights regarding your data.
             </p>
             <p className="text-muted-foreground">
-              This policy describes our data practices. Using the service or supplying checkout contact information is not consent to optional advertising. Accept or decline optional tracking in Cookie settings.
+              This policy describes how we use information to provide cards, hubs, payments, support, and product analytics. We do not load advertising pixels or send checkout events to advertising attribution services.
             </p>
           </section>
 
           {/* 2. DATA WE COLLECT */}
           <section>
             <h2 className="text-2xl font-bold mb-4">2. Information We Collect</h2>
-            
+
             <h3 className="text-xl font-semibold mb-2">Account Information</h3>
             <ul className="list-disc pl-6 text-muted-foreground space-y-1 mb-4">
               <li>Full name and contact name</li>
@@ -165,10 +164,10 @@ const Privacy = () => {
           <section>
             <h2 className="text-2xl font-bold mb-4">3. Information We Do NOT Collect</h2>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li><strong>Credit card numbers</strong>. All payment processing is handled exclusively by Stripe. 
+              <li><strong>Credit card numbers</strong>. All payment processing is handled exclusively by Stripe.
                   We never see, store, or process your full credit card information.</li>
-              <li><strong>Personal information of your customers</strong>. We do not collect names, 
-                  emails, or any personally identifiable information from people who tap your NFC cards (unless they 
+              <li><strong>Personal information of your customers</strong>. We do not collect names,
+                  emails, or any personally identifiable information from people who tap your NFC cards (unless they
                   voluntarily submit information through an email capture form on your profile).</li>
               <li><strong>Social Security numbers or government IDs</strong></li>
               <li><strong>Health, medical, or biometric data</strong></li>
@@ -202,7 +201,7 @@ const Privacy = () => {
           <section>
             <h2 className="text-2xl font-bold mb-4">5. Legal Basis for Processing (GDPR)</h2>
             <p className="text-muted-foreground mb-4">
-              For users in the European Economic Area (EEA), United Kingdom, and Switzerland, we process personal 
+              For users in the European Economic Area (EEA), United Kingdom, and Switzerland, we process personal
               data under the following legal bases:
             </p>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
@@ -215,44 +214,42 @@ const Privacy = () => {
 
           {/* 6. WE DO NOT SELL DATA */}
           <section>
-            <h2 className="text-2xl font-bold mb-4">6. Optional Advertising Disclosures</h2>
-            <p className="text-muted-foreground">With your explicit tracking acceptance, Meta and Trybe may receive browser page events, device information, and referral identifiers for advertising measurement, optimization, retargeting, and creator attribution. Do not interpret other policy wording as a promise that no third-party advertising disclosure occurs. These vendors process received information under their own policies.</p>
-            <p className="mt-4 text-muted-foreground">Server advertising reports are disabled in this source revision until current, revocable server consent evidence is available. Checkout contact information and prior visitor identifiers alone are insufficient permission. Billing and fulfillment continue independently.</p>
+            <h2 className="text-2xl font-bold mb-4">6. Advertising Tracking</h2>
+            <p className="text-muted-foreground">TapAway does not load advertising pixels or send purchase and renewal events to advertising attribution services. We removed our previous advertising integrations. This does not delete information previously received by those providers; contact us with questions about earlier data.</p>
           </section>
 
           {/* 7. THIRD-PARTY SERVICES */}
           <section>
             <h2 className="text-2xl font-bold mb-4">7. Third-Party Services We Use</h2>
-            
+
             <h3 className="text-xl font-semibold mb-2">Stripe (Payment Processing)</h3>
             <p className="text-muted-foreground mb-4">
-              All billing, subscription management, and payment processing is handled by Stripe. We do not have 
+              All billing, subscription management, and payment processing is handled by Stripe. We do not have
               access to your full credit card number. Stripe's privacy policy governs your payment information.
             </p>
 
             <h3 className="text-xl font-semibold mb-2">Cloud Infrastructure (Database & Authentication)</h3>
             <p className="text-muted-foreground mb-4">
-              We use secure cloud infrastructure for hosting, database management, and user authentication. 
+              We use secure cloud infrastructure for hosting, database management, and user authentication.
               Data is encrypted in transit and at rest.
             </p>
 
             <h3 className="text-xl font-semibold mb-2">First-Party Analytics (Usage Tracking)</h3>
             <p className="text-muted-foreground mb-4">
-              We use first-party analytics stored in our own database to track taps, clicks, and usage events. 
-              A returning-visitor identifier is optional and removed from this browser when tracking is declined. Separate optional Meta and Trybe integrations can receive browser events after explicit acceptance. 
+              We use first-party analytics stored in our own database to track taps, clicks, and usage events.
+              Visits use a temporary identifier held in page memory, not a persistent returning-visitor identifier in browser storage. Technical information may still be processed for usage reporting and security; this is not a claim that every event is anonymous.
               For details, see our <a href="/cookie-policy" className="text-primary hover:underline">Cookie & Analytics Policy</a>.
             </p>
 
             <h3 className="text-xl font-semibold mb-2">Resend (Email Delivery)</h3>
             <p className="text-muted-foreground mb-4">
-              We use Resend to deliver transactional emails (authentication, notifications, reports). Email content 
+              We use Resend to deliver transactional emails (authentication, notifications, reports). Email content
               and metadata are processed by Resend in accordance with their privacy policy.
             </p>
 
             <h3 className="text-xl font-semibold mb-2">AI Model Providers</h3>
             <p className="text-muted-foreground mb-4">
-              For AI-powered features (business users only), we process data through AI model providers to generate 
-              insights and review replies. Data sent to AI providers is limited to what is necessary for the specific 
+              For AI-powered features, we process data through AI model providers to answer public support questions, generate business insights, and draft review replies. Data sent to AI providers is limited to what is necessary for the specific
               AI feature being used.
             </p>
 
@@ -269,12 +266,12 @@ const Privacy = () => {
               <strong>YOUR DATA IS NOT AUTOMATICALLY DELETED</strong> when you cancel your subscription or stop paying.
             </p>
             <p className="text-muted-foreground mb-4">
-              We retain your data indefinitely until you explicitly request deletion. This ensures you can 
+              We retain your data indefinitely until you explicitly request deletion. This ensures you can
               reactivate your account without losing historical data.
             </p>
             <p className="text-muted-foreground">
-              <strong>To request data deletion:</strong> Email <strong>tap@tapaway.co</strong> with the subject line 
-              "Data Deletion Request." We will verify your identity before processing. Once verified, all data 
+              <strong>To request data deletion:</strong> Email <strong>tap@tapaway.co</strong> with the subject line
+              "Data Deletion Request." We will verify your identity before processing. Once verified, all data
               will be permanently and irreversibly deleted within 30 days.
             </p>
           </section>
@@ -289,9 +286,8 @@ const Privacy = () => {
               <li>Security and fraud prevention</li>
               <li>UI preferences (theme, sidebar state)</li>
             </ul>
-            <Button variant="outline" onClick={openConsentSettings}>Cookie settings</Button>
             <p className="text-muted-foreground mt-4">
-              Optional Meta and Trybe scripts load only after tracking acceptance. Cookie settings allow you to decline after accepting; new Meta calls and Trybe identifiers stop, and a loaded Trybe SDK is stopped by reloading. Historical data already sent cannot be recalled here. Choice, timestamp, notice version, and notice text are saved locally; absent or blocked storage keeps optional advertising disabled. 
+              Browser storage supports login, saved card designs, checkout selections, preferences, and support abuse prevention. Advertising and persistent returning-visitor tracking are not enabled.
               For complete details, see our <a href="/cookie-policy" className="text-primary hover:underline">Cookie & Analytics Policy</a>.
             </p>
           </section>
@@ -308,9 +304,9 @@ const Privacy = () => {
               <li>Limited employee access to personal data</li>
             </ul>
             <p className="text-muted-foreground mt-4">
-              <strong>SECURITY DISCLAIMER:</strong> No system is 100% secure. While we take reasonable precautions, 
-              we cannot guarantee absolute security. You are responsible for maintaining strong passwords and 
-              protecting your account credentials. TapAway shall not be held liable for data breaches caused by 
+              <strong>SECURITY DISCLAIMER:</strong> No system is 100% secure. While we take reasonable precautions,
+              we cannot guarantee absolute security. You are responsible for maintaining strong passwords and
+              protecting your account credentials. TapAway shall not be held liable for data breaches caused by
               third-party attacks, your negligence, or factors outside our reasonable control.
             </p>
           </section>
@@ -319,19 +315,19 @@ const Privacy = () => {
           <section>
             <h2 className="text-2xl font-bold mb-4">11. California Privacy Rights (CCPA/CPRA)</h2>
             <p className="text-muted-foreground mb-4">
-              If you are a California resident, you have the following rights under the California Consumer Privacy Act 
+              If you are a California resident, you have the following rights under the California Consumer Privacy Act
               and the California Privacy Rights Act:
             </p>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
               <li><strong>Right to Know:</strong> Request disclosure of what personal information we collect, use, and share</li>
               <li><strong>Right to Delete:</strong> Request deletion of your personal information</li>
               <li><strong>Right to Correct:</strong> Request correction of inaccurate personal information</li>
-              <li><strong>Right to Opt-Out:</strong> Opt out of optional advertising disclosures using Cookie settings, and contact us about other applicable privacy requests</li>
+              <li><strong>Right to Opt-Out:</strong> Contact us about applicable privacy requests; advertising attribution integrations are no longer enabled</li>
               <li><strong>Right to Non-Discrimination:</strong> We will not discriminate against you for exercising your rights</li>
               <li><strong>Right to Limit:</strong> Limit the use of sensitive personal information (we do not collect sensitive personal information as defined by the CPRA)</li>
             </ul>
             <p className="text-muted-foreground mt-4">
-              To submit a CCPA/CPRA request, email <strong>tap@tapaway.co</strong> with subject line "California Privacy Request." 
+              To submit a CCPA/CPRA request, email <strong>tap@tapaway.co</strong> with subject line "California Privacy Request."
               We will verify your identity and respond within 45 days.
             </p>
           </section>
@@ -340,9 +336,9 @@ const Privacy = () => {
           <section>
             <h2 className="text-2xl font-bold mb-4">12. Children's Privacy (COPPA)</h2>
             <p className="text-muted-foreground">
-              <strong>TAPAWAY IS NOT INTENDED FOR CHILDREN UNDER 13.</strong> We do not knowingly collect personal 
-              information from children under 13 years of age. If we discover that a child under 13 has provided 
-              us with personal information, we will immediately delete it. If you believe a child has submitted 
+              <strong>TAPAWAY IS NOT INTENDED FOR CHILDREN UNDER 13.</strong> We do not knowingly collect personal
+              information from children under 13 years of age. If we discover that a child under 13 has provided
+              us with personal information, we will immediately delete it. If you believe a child has submitted
               information to us, contact <strong>tap@tapaway.co</strong> immediately.
             </p>
           </section>
@@ -351,17 +347,17 @@ const Privacy = () => {
           <section>
             <h2 className="text-2xl font-bold mb-4">13. International Data Transfers</h2>
             <p className="text-muted-foreground mb-4">
-              TapAway is operated from the United States. Your information may be transferred to and processed in 
+              TapAway is operated from the United States. Your information may be transferred to and processed in
               the United States or other countries where our service providers operate.
             </p>
             <p className="text-muted-foreground mb-4">
-              For transfers of personal data from the European Economic Area (EEA), United Kingdom, or Switzerland 
-              to the United States, TapAway relies on Standard Contractual Clauses (SCCs) as approved by the 
+              For transfers of personal data from the European Economic Area (EEA), United Kingdom, or Switzerland
+              to the United States, TapAway relies on Standard Contractual Clauses (SCCs) as approved by the
               European Commission, or other legally recognized transfer mechanisms.
             </p>
             <p className="text-muted-foreground">
-              <strong>INTERNATIONAL ACCESS DISCLAIMER:</strong> If you access TapAway from outside the United States, 
-              you do so at your own risk and are solely responsible for compliance with local data protection laws. 
+              <strong>INTERNATIONAL ACCESS DISCLAIMER:</strong> If you access TapAway from outside the United States,
+              you do so at your own risk and are solely responsible for compliance with local data protection laws.
               By using TapAway, you consent to the transfer of your data to the United States.
             </p>
           </section>
@@ -370,7 +366,7 @@ const Privacy = () => {
           <section>
             <h2 className="text-2xl font-bold mb-4">14. European Union Rights (GDPR)</h2>
             <p className="text-muted-foreground mb-4">
-              If you are in the European Union, European Economic Area, or United Kingdom, you may have the following 
+              If you are in the European Union, European Economic Area, or United Kingdom, you may have the following
               rights under the General Data Protection Regulation:
             </p>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
@@ -384,8 +380,8 @@ const Privacy = () => {
               <li><strong>Lodge a Complaint:</strong> File a complaint with your local data protection authority</li>
             </ul>
             <p className="text-muted-foreground mt-4">
-              To exercise these rights, email <strong>tap@tapaway.co</strong>. We will respond within 30 days. 
-              Business users who process customer data through TapAway should review our 
+              To exercise these rights, email <strong>tap@tapaway.co</strong>. We will respond within 30 days.
+              Business users who process customer data through TapAway should review our
               <a href="/dpa" className="text-primary hover:underline"> Data Processing Addendum</a>.
             </p>
           </section>
@@ -394,8 +390,8 @@ const Privacy = () => {
           <section>
             <h2 className="text-2xl font-bold mb-4">15. Legal Compliance & Law Enforcement</h2>
             <p className="text-muted-foreground">
-              We may disclose your information if required by law or in good-faith belief that such disclosure is 
-              necessary to: comply with legal obligations, respond to valid law enforcement requests or subpoenas, 
+              We may disclose your information if required by law or in good-faith belief that such disclosure is
+              necessary to: comply with legal obligations, respond to valid law enforcement requests or subpoenas,
               protect the rights or property of TapAway, prevent fraud or security threats, or enforce our Terms of Service.
             </p>
           </section>
@@ -404,11 +400,11 @@ const Privacy = () => {
           <section>
             <h2 className="text-2xl font-bold mb-4">16. Data Breach Liability Limitations</h2>
             <p className="text-muted-foreground">
-              While we implement reasonable security measures, we cannot guarantee absolute security. In the event 
-              of a data breach caused by factors outside our reasonable control (including but not limited to: 
-              third-party attacks, zero-day vulnerabilities, user negligence, or force majeure), TapAway's liability 
-              shall be limited to the total amount you paid in the twelve (12) months immediately preceding the 
-              breach. We shall not be liable for any indirect, consequential, or punitive damages arising from 
+              While we implement reasonable security measures, we cannot guarantee absolute security. In the event
+              of a data breach caused by factors outside our reasonable control (including but not limited to:
+              third-party attacks, zero-day vulnerabilities, user negligence, or force majeure), TapAway's liability
+              shall be limited to the total amount you paid in the twelve (12) months immediately preceding the
+              breach. We shall not be liable for any indirect, consequential, or punitive damages arising from
               data breaches.
             </p>
           </section>
@@ -417,8 +413,8 @@ const Privacy = () => {
           <section>
             <h2 className="text-2xl font-bold mb-4">17. Third-Party Links</h2>
             <p className="text-muted-foreground">
-              TapAway and user profiles may contain links to third-party websites (Google, Yelp, Instagram, YouTube, 
-              Apple Maps, personal websites, etc.). We are not responsible for the privacy practices or content of 
+              TapAway and user profiles may contain links to third-party websites (Google, Yelp, Instagram, YouTube,
+              Apple Maps, personal websites, etc.). We are not responsible for the privacy practices or content of
               those external sites. We encourage you to review their privacy policies separately.
             </p>
           </section>
@@ -427,9 +423,9 @@ const Privacy = () => {
           <section>
             <h2 className="text-2xl font-bold mb-4">18. Changes to This Privacy Policy</h2>
             <p className="text-muted-foreground">
-              We may update this Privacy Policy at any time, with or without prior notice. The "Last Updated" date 
-              at the top reflects the most recent revision. Your continued use of TapAway after any changes 
-              constitutes acceptance of the updated Privacy Policy. You are responsible for reviewing this page 
+              We may update this Privacy Policy at any time, with or without prior notice. The "Last Updated" date
+              at the top reflects the most recent revision. Your continued use of TapAway after any changes
+              constitutes acceptance of the updated Privacy Policy. You are responsible for reviewing this page
               periodically.
             </p>
           </section>

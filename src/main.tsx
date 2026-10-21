@@ -7,9 +7,14 @@ import "./index.css";
 import { installAuthGuard } from "./lib/authGuard";
 installAuthGuard();
 
-// Apply theme before React renders to prevent flash of light mode
-if (localStorage.getItem('tapaway_dashboard_theme') !== 'light') {
-  document.documentElement.classList.add('dark');
-}
+import { isStorefrontPath } from "./lib/storefrontNavigation";
+import { clearRetiredTracking } from "./lib/retiredTracking";
+clearRetiredTracking();
+if (isStorefrontPath(location.pathname)) document.documentElement.style.setProperty("--app-bg", "#fff");
+
+// Dashboard preference must not darken public storefront loading screens.
+try {
+  if (localStorage.getItem('tapaway_dashboard_theme') !== 'light') document.documentElement.classList.add('dark');
+} catch { /* Storage-blocked visitors can still use the storefront. */ }
 
 createRoot(document.getElementById("root")!).render(<App />);

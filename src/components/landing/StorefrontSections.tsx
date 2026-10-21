@@ -1,4 +1,5 @@
-import { Link } from "react-router-dom";
+import { StorefrontLink as Link } from "@/lib/storefrontNavigation";
+import { ProductPhoto } from "./ProductPhoto";
 import {
   ArrowRight,
   BarChart3,
@@ -14,7 +15,6 @@ import {
   Wifi,
 } from "lucide-react";
 import { Brand } from "./LandingNav";
-import { openConsentSettings } from "@/lib/consent";
 import { SupportChat } from "./SupportChat";
 import victor from "@/assets/victor-ramirez.jpg.asset.json";
 import sonia from "@/assets/sonia-berumen.jpg.asset.json";
@@ -90,14 +90,7 @@ export function ProductPaths() {
             View business plans <ArrowRight />
           </a>
           <div className="sf-product-photo business-photo">
-            <img
-              src="/product-photos/business-cards-in-hands.webp"
-              alt="Hands holding custom TapAway cards for Fish Hook Seafood and Las Islas"
-              width="1024"
-              height="1536"
-              loading="lazy"
-              decoding="async"
-            />
+            <ProductPhoto kind="business" />
           </div>
         </article>
         <article className="sf-product personal">
@@ -114,14 +107,7 @@ export function ProductPaths() {
             Get two cards · $39 <ArrowRight />
           </Link>
           <div className="sf-product-photo personal-photo">
-            <img
-              src="/product-photos/personal-networking-and-meme-cards.webp"
-              alt="Custom TapAway examples: Jorge Monroy networking card and a John Pork meme card"
-              width="1024"
-              height="1536"
-              loading="lazy"
-              decoding="async"
-            />
+            <ProductPhoto kind="personal" />
           </div>
         </article>
       </div>
@@ -257,7 +243,7 @@ export function StorefrontFooter() {
             </p>
           </div>
           <div className="sf-footer-links">
-            <a href="/#pricing">Business plans</a>
+            <Link to="/#pricing">Business plans</Link>
             <Link to="/personal">Personal</Link>
             <Link to="/examples">Examples</Link>
             <Link to="/support">Get help</Link>
@@ -276,7 +262,7 @@ export function StorefrontFooter() {
             <Link to="/terms">Terms</Link>
             <Link to="/privacy">Privacy</Link>
             <Link to="/refund">Refund policy</Link>
-            <button onClick={openConsentSettings}>Cookie settings</button>
+            <Link to="/cookie-policy">Cookies & storage</Link>
           </div>
         </div>
       </div>

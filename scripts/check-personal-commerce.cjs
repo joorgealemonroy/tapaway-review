@@ -95,8 +95,8 @@ function draft(hosted=false,id=randomUUID()) { return {version:1,id,checkoutToke
 async function main(){
   for(const plan of ['solo','venue'])for(const interval of ['month','year'])await pass(`business ${plan}/${interval}: one subscription with matching Card Club interval`,async()=>{
     const s=environment(), handler=await load('supabase/functions/payment-first-checkout/index.ts',s);
-    const res=await handler(request({checkoutVersion:2,plan,interval,cardClub:true,business:{name:'QA Pizza',city:'Claremont, CA',link:'example.com',goal:'Orders'}})); assert.equal(res.status,200);
-    const p=s.calls.checkout[0];assert.equal(p.mode,'subscription');assert.equal(p.line_items.length,2);assert.equal(p.subscription_data.trial_period_days,14);assert.equal(p.metadata.card_club_billing,'included');
+    const res=await handler(request({checkoutVersion:2,plan,interval,cardClub:true,trybeVisitorId:'retired-tracking',attribution:{fbclid:'retired-click',utm_source:'qa'},business:{name:'QA Pizza',city:'Claremont, CA',link:'example.com',goal:'Orders'}})); assert.equal(res.status,200);
+    const p=s.calls.checkout[0];assert.equal(p.metadata.trybe_visitor_id,undefined);assert.equal(p.metadata.fbclid,undefined);assert.equal(p.subscription_data.metadata.trybe_visitor_id,undefined);assert.equal(p.mode,'subscription');assert.equal(p.line_items.length,2);assert.equal(p.subscription_data.trial_period_days,14);assert.equal(p.metadata.card_club_billing,'included');
     if(interval==='year'){assert.equal(p.line_items[1].price_data.unit_amount,6000);assert.equal(p.line_items[1].price_data.recurring.interval,'year');}else assert.equal(p.line_items[1].price,'price_card_club');
     assert.equal(s.db.rows('checkout_intents')[0].business_details.name,'QA Pizza'); assert.equal(s.calls.separate.length,0);
   });
@@ -163,7 +163,7 @@ async function main(){
   });
   await pass('AI fifth question succeeds, sixth is server-blocked; human handoff is still available',async()=>{
     const s=environment(),h=await load('supabase/functions/storefront-support/index.ts',s),visitor=randomUUID();
-    for(let i=0;i<5;i++)assert.equal((await h(request({mode:'ai',visitor,message:'What is TapAway?'}))).status,200);
+    for(let i=0;i<5;i++)assert.equal((await h(request({mode:'ai',visitor,message:'Tell me about a way to connect after a conference.'}))).status,200);
     const sixth=await h(request({mode:'ai',visitor,message:'Another question'}));assert.equal(sixth.status,429);assert.equal((await sixth.json()).remaining,0);assert.equal(s.calls.ai.length,5);
     assert.match(s.calls.ai[0].messages[0].content,/4 business cards: \$20\/month/);
     assert.equal((await h(request({mode:'team',visitor,name:'QA',email:'qa@example.invalid',message:'Please help',history:[]}))).status,200);assert.equal(s.db.rows('support_requests').length,1);assert.equal(s.calls.emails.length,1);
@@ -177,7 +177,7 @@ async function main(){
     const a=await h(request({mode:'ai',visitor,message:'How much is the 4-card business plan?'}));assert.equal(a.status,200);const b=await a.json();assert.match(b.answer,/\$20\/month/);assert.match(b.answer,/\$199\/year/);assert.equal(b.source,'reviewed_faq');assert.equal(b.remaining,4);
     s.context.fetch=async()=>new Response(JSON.stringify({choices:[{finish_reason:'length',message:{content:'Your hub includes:'}}]}));
     const c=await h(request({mode:'ai',visitor,message:'What does the $5 personal hub include?'}));assert.equal(c.status,200);const d=await c.json();assert.match(d.answer,/dashboard, analytics/);assert.equal(d.source,'reviewed_faq');assert.equal(d.remaining,3);
-    const e=await h(request({mode:'ai',visitor,message:'What is the tracking number for my order?'}));assert.equal(e.status,503);assert.equal((await e.json()).remaining,2);
+    const e=await h(request({mode:'ai',visitor,message:'Could you explain something outside your product information?'}));assert.equal(e.status,503);assert.equal((await e.json()).remaining,2);
     const f=await h(request({mode:'ai',visitor,message:'How do I design both sides of my cards?'}));assert.equal(f.status,200);const g=await f.json();assert.match(g.answer,/BEFORE you pay/);assert.match(g.answer,/online hub.*after payment/);assert.equal(g.remaining,1);
   });
   await pass('private artwork/admin mutations require a verified admin role',async()=>{

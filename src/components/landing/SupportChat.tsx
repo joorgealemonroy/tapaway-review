@@ -20,7 +20,7 @@ function visitorId() {
     return crypto.randomUUID();
   }
 }
-export function SupportChat() {
+export function SupportChat({ inline = false }: { inline?: boolean }) {
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<"ai" | "team">("ai");
   const [visitor] = useState(visitorId);
@@ -91,9 +91,9 @@ export function SupportChat() {
   };
   return (
     <>
-      <button className="sf-help" onClick={() => setOpen(true)}>
+      <button className={inline ? "sf-button" : "sf-help"} onClick={() => setOpen(true)}>
         <MessageCircle />
-        Have a question?
+        {inline ? "Ask the AI helper" : "Have a question?"}
       </button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent
@@ -155,6 +155,12 @@ export function SupportChat() {
                 ))}
                 {busy && <p role="status">Thinking…</p>}
               </div>
+              {messages.length === 0 && <div className="sf-chat-suggestions" aria-label="Question ideas">
+                {["What is an NFC card?", "Do I need a subscription?", "Can I use my Linktree?"].map(prompt => <button key={prompt} disabled={busy} onClick={() => {
+                  setQuestion(prompt);
+                  document.getElementById("support-question")?.focus();
+                }}>{prompt}</button>)}
+              </div>}
               <p className="sf-chat-meta">
                 {remaining} of 5 AI questions available today. AI can make
                 mistakes.
@@ -245,7 +251,7 @@ export function SupportChat() {
           )}
           <p className="sf-chat-meta">
             Please leave out passwords and payment details.{" "}
-            <Link to="/support">Help center</Link> ·{" "}
+            <Link to="/support" onClick={() => setOpen(false)}>Help center</Link> ·{" "}
             <a href="mailto:tap@tapaway.co">Email us</a>
           </p>
         </DialogContent>

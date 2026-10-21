@@ -28,7 +28,6 @@ const ATTR_KEYS = [
   "utm_campaign",
   "utm_content",
   "utm_term",
-  "fbclid",
   "src",
   "via",
   "landing_path",
@@ -136,12 +135,6 @@ serve(async (req) => {
     for (const k of ATTR_KEYS)
       if (typeof raw[k] === "string" && raw[k])
         attribution[k] = raw[k].slice(0, 250);
-    const trybe =
-      typeof body.trybeVisitorId === "string" &&
-      body.trybeVisitorId.length <= 128
-        ? body.trybeVisitorId
-        : "";
-
     // Test mode may return to the preview/localhost; live always returns to FRONTEND_URL.
     const ro = typeof body.returnOrigin === "string" ? body.returnOrigin : "";
     const origin =
@@ -215,7 +208,6 @@ serve(async (req) => {
       card_club_selected: String(cardClub),
       card_club_price_id: club?.id ?? "",
       checkout_source: "payment_first",
-      ...(trybe ? { trybe_visitor_id: trybe } : {}),
       ...attribution,
     };
     const qty = CARD_QUANTITY[plan];
