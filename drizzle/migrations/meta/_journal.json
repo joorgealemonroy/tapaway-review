@@ -183,6 +183,13 @@
       "when": 1792563996248,
       "tag": "0025_launch_hardening",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1792564788886,
+      "tag": "0026_claim_summary_privacy",
+      "breakpoints": true
     }
   ]
 }
