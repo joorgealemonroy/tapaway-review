@@ -1,5 +1,10 @@
 # Roadmap
 
+## Final narrow deployment (2026-10-21, c3ec6ab6)
+- [ ] Run the 16 isolated launch-handler checks and deploy only send-mass-sms; no real sends.
+- [ ] Recheck the two specified LIVE subscriptions and replacement billing, then conditionally repair only the exact local statuses using the supported data-change path.
+- [ ] Verify the two rows afterward; leave unmatched subscriptions unassociated, frontend unpublished and personal buying off.
+
 ## Reviewed follow-up deployment (2026-10-21, 4e317cda)
 - [x] Verify exact reviewed commit and deploy claim privacy migration once.
 - [x] Deploy payment-first webhook, claim checkout and discovered email-helper dependents; preserve all flags and frontend publication state.
