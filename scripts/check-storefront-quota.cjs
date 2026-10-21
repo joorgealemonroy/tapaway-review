@@ -94,7 +94,8 @@ function configuredLimits() {
   await db.query('INSERT INTO storefront_quotas(quota_key,uses) VALUES($1,2)',[preserved]);
   const migration=sqlFile('supabase/migrations/20261021200000_storefront_quota_limits.sql');
   await pass('Correction matches the deployment copy and preserves existing quota counters', async () => {
-    assert.equal(migration,sqlFile('drizzle/migrations/0031_storefront_quota_limits.sql'));
+    // The deployment recorder strips the final newline; SQL must match exactly.
+    assert.equal(migration.trimEnd(),sqlFile('drizzle/migrations/0031_storefront_quota_limits.sql').trimEnd());
     await db.exec(migration);
     assert.equal((await db.query('SELECT uses FROM storefront_quotas WHERE quota_key=$1',[preserved])).rows[0].uses,2);
   });
