@@ -42,9 +42,15 @@ interface EmailSendRow {
 }
 
 const PAGE_SIZE = 50;
+const PURCHASE_EMAILS = [
+  { key: "checkout_purchase", label: "Business welcome" },
+  { key: "checkout_verify", label: "Confirm account ownership" },
+  { key: "checkout_login", label: "Secure sign-in" },
+  { key: "personal_order", label: "Personal order thank-you" },
+];
 
 function templateLabel(key: string): string {
-  return TEMPLATE_CATALOG.find((t) => t.key === (key as TemplateKey))?.label ?? key;
+  return PURCHASE_EMAILS.find(t => t.key === key)?.label ?? TEMPLATE_CATALOG.find((t) => t.key === (key as TemplateKey))?.label ?? key;
 }
 
 function statusBadge(status: string) {
@@ -77,14 +83,16 @@ export default function EmailHistory() {
         .order("sent_at", { ascending: false })
         .limit(PAGE_SIZE);
       if (templateFilter !== "all") q = q.eq("template_key", templateFilter);
-      if (statusFilter !== "all") q = q.eq("status", statusFilter);
+      if (statusFilter === "sent") q = q.eq("status", "sent").or("delivery_status.is.null,delivery_status.eq.sent");
+      else if (["failed", "bounced"].includes(statusFilter)) q = q.or(`status.eq.${statusFilter},delivery_status.eq.${statusFilter}`);
+      else if (statusFilter !== "all") q = q.eq("delivery_status", statusFilter);
       const term = search.trim();
       if (term) q = q.ilike("to_email", `%${term}%`);
 
       const { data, error: qErr } = await q;
       if (qErr) {
         // PGRST205 = relation doesn't exist → backend hasn't shipped the table yet.
-        if (qErr.code === "PGRST205" || /email_sends/i.test(qErr.message ?? "")) {
+        if (qErr.code === "PGRST205" || qErr.code === "42P01") {
           setTableMissing(true);
         } else {
           setError(qErr.message);
@@ -203,7 +211,7 @@ export default function EmailHistory() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All templates</SelectItem>
-              {TEMPLATE_CATALOG.map((t) => (
+              {[...PURCHASE_EMAILS, ...TEMPLATE_CATALOG].map((t) => (
                 <SelectItem key={t.key} value={t.key}>
                   {t.label}
                 </SelectItem>
@@ -217,12 +225,16 @@ export default function EmailHistory() {
             <SelectContent>
               <SelectItem value="all">All statuses</SelectItem>
               <SelectItem value="sent">Accepted by email provider</SelectItem>
+              <SelectItem value="delivered">Delivered</SelectItem>
+              <SelectItem value="bounced">Bounced</SelectItem>
+              <SelectItem value="complained">Complaint</SelectItem>
               <SelectItem value="failed">Failed</SelectItem>
             </SelectContent>
           </Select>
         </div>
       </div>
 
+      <p className="text-xs text-slate-600 mb-3">Latest 50 matching emails. Accepted means sent to the email provider; delivered confirms the recipient’s mail server accepted it.</p>
       <div className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden">
         {body}
       </div>
@@ -254,7 +266,7 @@ export default function EmailHistory() {
               )}
               <div>
                 <dt className="text-[11px] uppercase tracking-wide text-white/40">Status</dt>
-                <dd>{statusBadge(selected.status)}</dd>
+                <dd>{statusBadge(selected.delivery_status || selected.status)}</dd>
               </div>
               {selected.resend_id && (
                 <div>

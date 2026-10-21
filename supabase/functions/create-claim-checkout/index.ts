@@ -132,7 +132,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    const origin = req.headers.get('origin') || Deno.env.get('FRONTEND_URL') || 'https://tapaway.co';
+    const origin = (Deno.env.get('FRONTEND_URL') || 'https://tapaway.co').replace(/\/$/, '');
     const hasCardClub = selectedPlan !== 'base';
 
     // Duplicate-purchase protection lives here, not in the idempotency key:

@@ -1,6 +1,7 @@
 // Stripe webhook for payment-first onboarding only. Source of truth for activation.
 // Nothing is written until the Stripe signature verifies AND the event's livemode
 // matches this deployment's mode (test events never touch live state and vice versa).
+import { syncLegacySubscription } from "../_shared/legacyBillingSync.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 import { admin, getStripe, ONBOARDING_VERSION, stripeMode, webhookSecret } from "../_shared/paymentFirst.ts";
@@ -76,7 +77,7 @@ serve(async (req) => {
     } else if (event.type === "invoice.paid") {
       const inv = event.data.object as Stripe.Invoice;
       const sub = invoiceSubscriptionId(inv as unknown as Record<string, any>);
-      if (sub) { await syncPersonalSubscription(stripe, sub); await syncBusinessSubscription(stripe, sub); }
+      if (sub) { await syncPersonalSubscription(stripe, sub); await syncBusinessSubscription(stripe, sub); await syncLegacySubscription(stripe, sub); }
       if (sub && inv.amount_paid > 0) {
         const { data: m } = await db.from("card_club_memberships").select("*").eq("card_club_stripe_subscription_id", sub).maybeSingle();
         const paidClubLine = m && (m.card_club_stripe_subscription_id !== m.main_stripe_subscription_id || inv.lines.data.some(line => invoiceLineMatchesClub(line, m)));
@@ -93,6 +94,7 @@ serve(async (req) => {
       if (sub && /^sub_[A-Za-z0-9]+$/.test(sub)) {
         await syncPersonalSubscription(stripe, sub);
         await syncBusinessSubscription(stripe, sub);
+        await syncLegacySubscription(stripe, sub);
         const { data: ms } = await db.from("card_club_memberships").select("*")
           .or(`card_club_stripe_subscription_id.eq.${sub},main_stripe_subscription_id.eq.${sub}`);
         for (const m of ms ?? []) await syncMembership(stripe, db, m);
