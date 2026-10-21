@@ -5714,6 +5714,10 @@ export type Database = {
         }[]
       }
       cleanup_expired_archives: { Args: never; Returns: undefined }
+      creator_booking_is_public: {
+        Args: { _profile_id: string }
+        Returns: boolean
+      }
       current_user_email: { Args: never; Returns: string }
       customer_read_notification: { Args: { _id: string }; Returns: undefined }
       expire_analytics_ip_hashes: { Args: never; Returns: undefined }
