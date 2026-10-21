@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_announcements: {
+        Row: {
+          audience: string
+          body: string
+          created_at: string
+          created_by: string
+          cta_label: string | null
+          cta_path: string | null
+          id: string
+          kind: string
+          recipient_ids: string[]
+          sent_at: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          audience: string
+          body: string
+          created_at?: string
+          created_by: string
+          cta_label?: string | null
+          cta_path?: string | null
+          id?: string
+          kind: string
+          recipient_ids?: string[]
+          sent_at?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          audience?: string
+          body?: string
+          created_at?: string
+          created_by?: string
+          cta_label?: string | null
+          cta_path?: string | null
+          id?: string
+          kind?: string
+          recipient_ids?: string[]
+          sent_at?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       admin_audit_log: {
         Row: {
           action: string
@@ -1856,6 +1904,53 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      customer_notifications: {
+        Row: {
+          announcement_id: string
+          body: string
+          created_at: string
+          cta_label: string | null
+          cta_path: string | null
+          id: string
+          kind: string
+          read_at: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          announcement_id: string
+          body: string
+          created_at?: string
+          cta_label?: string | null
+          cta_path?: string | null
+          id?: string
+          kind: string
+          read_at?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          announcement_id?: string
+          body?: string
+          created_at?: string
+          cta_label?: string | null
+          cta_path?: string | null
+          id?: string
+          kind?: string
+          read_at?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_notifications_announcement_id_fkey"
+            columns: ["announcement_id"]
+            isOneToOne: false
+            referencedRelation: "admin_announcements"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       email_sends: {
         Row: {
@@ -5488,6 +5583,30 @@ export type Database = {
         Args: { _days: number; _profile_id: string; _reason: string }
         Returns: undefined
       }
+      admin_gift_unbilled_hub: {
+        Args: { _id: string; _kind: string }
+        Returns: undefined
+      }
+      admin_notification_recipients: {
+        Args: { _audience: string }
+        Returns: string[]
+      }
+      admin_save_announcement: {
+        Args: {
+          _audience: string
+          _body: string
+          _cta_label: string
+          _cta_path: string
+          _id: string
+          _kind: string
+          _title: string
+        }
+        Returns: Json
+      }
+      admin_send_announcement: {
+        Args: { _id: string; _updated_at: string }
+        Returns: number
+      }
       admin_set_print_status: {
         Args: { _notes: string; _profile_id: string; _status: string }
         Returns: undefined
@@ -5504,6 +5623,8 @@ export type Database = {
         Args: { _personal_id: string; _restaurant_id: string }
         Returns: string
       }
+      admin_workspace_hubs: { Args: never; Returns: Json }
+      admin_workspace_insights: { Args: { _days?: number }; Returns: Json }
       audit_location_coverage_admin: {
         Args: never
         Returns: {
@@ -5546,6 +5667,7 @@ export type Database = {
       }
       cleanup_expired_archives: { Args: never; Returns: undefined }
       current_user_email: { Args: never; Returns: string }
+      customer_read_notification: { Args: { _id: string }; Returns: undefined }
       expire_analytics_ip_hashes: { Args: never; Returns: undefined }
       get_auth_user_by_email: {
         Args: { lookup_email: string }
