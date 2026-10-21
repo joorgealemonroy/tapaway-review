@@ -88,6 +88,8 @@ async function scenario(options = {}) {
     if(url.pathname.endsWith('/rpc/is_admin')){state.roleReads=(state.roleReads||0)+1;if(state.roleFails&&state.roleReads<=state.roleFails)return reply({message:'Temporary network failure'},503);return reply(!!state.admin);}
     if(url.pathname.endsWith('/rpc/admin_workspace_hubs')) {state.hubReads=(state.hubReads||0)+1;return state.hubFails&&state.hubReads<=state.hubFails?reply({message:'Temporary unavailable'},503):reply(state.adminHubs||adminHubs);}
     if(url.pathname.endsWith('/admin-billing-summary')){state.billingReads=(state.billingReads||0)+1;return state.billingFails&&state.billingReads<=state.billingFails?reply({error:'Temporary unavailable'},503):reply({mrr_cents:245050,active_count:42,trialing_count:2,past_due_count:0,excluded_count:0,updated_at:new Date().toISOString(),methodology:'Active recurring USD subscription run rate. Trials and gift accounts excluded.'});}
+    if(url.pathname.endsWith('/email-delivery-check')){state.emailChecks=(state.emailChecks||0)+1;return state.emailCheckFailure?reply({error:'Fixture unavailable'},503):reply({success:true,resendId:'mail_fixture'});}
+    if(url.pathname.endsWith('/email_sends'))return reply(state.emailSends||[]);
     if(url.pathname.endsWith('/admin-navigator'))return reply({destinations:['orders']});
     if(url.pathname.endsWith('/rpc/admin_workspace_insights'))return reply({site_views:2800,hub_views:600,visit_sessions:1200,link_clicks:123,excluded:50,raw_events:4000,updated_at:new Date().toISOString()});
     if(url.pathname.endsWith('/admin_announcements'))return reply(state.announcements||[]);
@@ -507,6 +509,22 @@ test('Admin: notification preview saves a draft without sending, and is mobile r
 test('Admin: insights separate views, sessions and excluded traffic without invented returning visitors',async()=>{
  const {page,go,close}=await scenario({admin:true,authenticated:true});await go('/admin/analytics');await expect(page.getByRole('heading',{name:'See what’s connecting.'})).toBeVisible();await expect(page.locator('.aw-quality')).toContainText('50 bot');await expect(page.locator('.aw-insight-stats')).toContainText('2,800');assert.equal(await page.getByRole('heading',{name:'Known returning visitors'}).count(),0);await close();
 });
+test('Admin email history: delivery check, clear status and mobile layout', async()=>{
+ const emailSends=[{id:'email_fixture',to_email:'delivered@resend.dev',template_key:'delivery_test',subject:'TapAway delivery check',status:'sent',delivery_status:'delivered',resend_id:'mail_fixture',sent_at:'2026-10-21T12:00:00Z'}];
+ const {page,state,go,close}=await scenario({admin:true,authenticated:true,emailSends});
+ for(const width of [320,390,1440]){
+   await page.setViewportSize({width,height:900});await go('/admin/emails');
+   await page.getByRole('tab',{name:'Sent',exact:true}).click();
+   await expect(page.getByRole('button',{name:'Send delivery check'})).toBeVisible();
+   await expect(page.getByText('Delivered',{exact:true})).toBeVisible();
+   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'No horizontal overflow at '+width);
+   await screenshot(page,'admin-email-history-'+width,true);
+ }
+ await page.getByRole('button',{name:'Send delivery check'}).click();await expect(page.getByText('Test accepted. Refresh in a moment to see its delivery status.')).toBeVisible();assert.equal(state.emailChecks,1);
+ state.emailCheckFailure=true;await page.getByRole('button',{name:'Send delivery check'}).click();await expect(page.getByText('Delivery check could not be sent. Please try later.')).toBeVisible();
+ await close();
+});
+
 test('Login: warm storefront styling and back button work on desktop and phone',async()=>{
  const {page,go,close}=await scenario();for(const width of [1440,390]){await page.setViewportSize({width,height:900});await go('/auth');await expect(page.getByRole('heading',{name:'Welcome back',exact:true})).toBeVisible();await expect(page.getByRole('link',{name:'Back to TapAway'})).toHaveAttribute('href','/');assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await screenshot(page,'login-'+width,true);}await page.getByRole('link',{name:'Back to TapAway'}).click();await expect(page.locator('.sf-nav')).toBeVisible();await close();
 });

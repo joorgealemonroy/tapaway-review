@@ -1,12 +1,20 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { Webhook } from 'https://esm.sh/svix@1.76.1';
+import { emailWebhookSecret } from '../_shared/emailWebhookSecret.ts';
+import { readLimitedText } from '../_shared/requestBody.ts';
 import { admin } from '../_shared/paymentFirst.ts';
 serve(async req => {
   if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 });
-  const secret = Deno.env.get('RESEND_WEBHOOK_SECRET');
+  // Reject malformed/stale headers before any configuration/provider lookup.
+  const timestamp = Number(req.headers.get('svix-timestamp'));
+  if (!req.headers.get('svix-id') || !req.headers.get('svix-signature') ||
+      !Number.isFinite(timestamp) || Math.abs(Date.now() / 1000 - timestamp) > 300) {
+    return new Response('Invalid signature', { status: 400 });
+  }
+  let raw: string;
+  try { raw = await readLimitedText(req, 100000); } catch { return new Response('Too large', { status: 413 }); }
+  const secret = await emailWebhookSecret(req);
   if (!secret) return new Response('Not configured', { status: 503 });
-  const raw = await req.text();
-  if (raw.length > 100000) return new Response('Too large', { status: 413 });
   let event: { type: string; created_at: string; data: { email_id?: string } };
   const eventId = req.headers.get('svix-id') || '';
   try { event = new Webhook(secret).verify(raw, {

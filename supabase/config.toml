@@ -168,3 +168,6 @@ verify_jwt = false
 
 [functions.email-delivery-webhook]
 verify_jwt = false
+
+[functions.email-delivery-check]
+verify_jwt = false

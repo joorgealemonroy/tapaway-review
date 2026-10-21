@@ -85,7 +85,7 @@ async function load(file, state) {
     build.onResolve({filter:/^https:\/\/deno\.land\/x\/xhr/},()=>({path:'xhr',namespace:'mock'}));
     build.onResolve({filter:/security\.ts$/},()=>({path:'security',namespace:'mock'}));
     build.onResolve({filter:/^https:\/\/deno\.land\/.*\/http\/server\.ts$/},()=>({path:'serve',namespace:'mock'}));
-    build.onLoad({filter:/.*/,namespace:'mock'},({path})=>({contents:path==='supabase'?'export const createClient=()=>globalThis.__db;':path==='payment'?paymentStub:path==='security'?'export const isAdmin=async()=>globalThis.__admin;export const requireUser=async()=>null;export const isSafeExternalUrl=()=>false;':path==='xhr'?'':'export const serve=handler=>globalThis.__handler=handler;',loader:'js'}));
+    build.onLoad({filter:/.*/,namespace:'mock'},({path})=>({contents:path==='supabase'?'export const createClient=()=>globalThis.__db;':path==='payment'?paymentStub:path==='security'?'export const isAdmin=async()=>globalThis.__admin;export const requireUser=async()=>globalThis.__auth || null;export const hasServiceRoleBearer=()=>!!globalThis.__serviceRole;export const isSafeExternalUrl=()=>false;':path==='xhr'?'':'export const serve=handler=>globalThis.__handler=handler;',loader:'js'}));
     build.onResolve({filter:/^https:\/\/esm.sh\/pdf-lib@/},()=>({path:require.resolve('pdf-lib')}));
     build.onResolve({filter:/^https:\/\/esm.sh\/svix@/},()=>({path:require.resolve(path.join(qa,'svix')),external:true}));
     build.onResolve({filter:/^https:\/\/esm.sh\/stripe@/},()=>({path:require.resolve(path.join(qa,'stripe')),external:true}));
