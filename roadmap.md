@@ -1,5 +1,10 @@
 # Roadmap
 
+## Final narrow deployment (2026-10-21, c3ec6ab6)
+- [x] Run the 16 isolated launch-handler checks: 16/16 passed with no external fixture traffic; deploy only send-mass-sms (submitted source SHA-256 f9e308d4d112521a90d4d8df64d435b41728bfa9c32a0a8f1b357d7c1429afff). No real sends.
+- [x] LIVE recheck confirmed sub_1UAtXuDg8DaTuVNZUPKMuBVn active and sub_1TLK42Dg8DaTuVNZsO9g1VIM canceled since 2026-05-04T16:42:40Z; both customers matched and each had only the specified subscription. Both local payment states were unknown_manual, not gifts. Executed the reviewed data-only SQL once via Cloud run_sql, not the DDL-only migration runner; no migration journal entry was created.
+- [x] Read back exactly the two rows: personal profile 1878025d-6a5c-462f-ba3e-9331f7d30a6d active; restaurant c668ed9e-398d-43d7-ab0f-58175c5b95ec canceled; subscription/customer IDs and payment states unchanged. Unmatched subscriptions remain unassociated; no frontend publication, feature-switch changes, messages, charges or Stripe writes.
+
 ## Reviewed follow-up deployment (2026-10-21, 4e317cda)
 - [x] Verify exact reviewed commit and deploy claim privacy migration once.
 - [x] Deploy payment-first webhook, claim checkout and discovered email-helper dependents; preserve all flags and frontend publication state.
