@@ -1,4 +1,4 @@
-BEGIN;
+-- Transaction boundary is managed by the Lovable migration runner.
 -- Owner workspace. No account reclassification, campaign sends, or billing mutations.
 CREATE OR REPLACE FUNCTION public.admin_workspace_hubs()
 RETURNS jsonb LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public AS $$
@@ -148,4 +148,3 @@ END $$;
 REVOKE ALL ON FUNCTION public.admin_workspace_insights(integer) FROM PUBLIC,anon;
 GRANT EXECUTE ON FUNCTION public.admin_workspace_insights(integer) TO authenticated;
 
-COMMIT;
