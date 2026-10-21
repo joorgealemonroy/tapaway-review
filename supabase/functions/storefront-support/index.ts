@@ -86,8 +86,8 @@ export function reviewedAnswer(question: string, pricing: string) {
   )
     return "Personal cards are $39 once for two, with free standard US shipping. They can open your existing Linktree, Linkme, social profile, or website with no ongoing TapAway fee. A TapAway hub is optional at $5/month. Third-party terms apply.";
   if (/cancel/.test(q)) return STOREFRONT_FAQS[4].answer;
-  if (/\$5|hosting|personal hub/.test(q))
-    return "The optional $5/month TapAway hub gives you a tapaway.co/yourname address (subject to availability), your dashboard, analytics, and editing access anytime. No website is needed. After payment, choose your address and customize your page. With your $39 card pair, the initial total is $44, then $5/month until canceled.";
+  if (/\$5|hosting|personal hub|add.*hub|hub.*(before|after|checkout|pay)/.test(q))
+    return "The optional $5/month TapAway hub gives you a tapaway.co/yourname address (subject to availability), your dashboard, analytics, and editing access anytime. No website is needed. Select this add-on in the card designer BEFORE checkout. After payment, customize that purchased hub in your dashboard. For changes to an existing card-only order, ask our team. With your $39 card pair, the initial total is $44, then $5/month until canceled.";
   const topic = /design|template|both sides|print/.test(q)
     ? 3
     : /cancel/.test(q)

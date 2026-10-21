@@ -10,6 +10,7 @@ const cases = [
   ['Existing Linktree owner', 'Can I use my Linktree without a subscription?', /\$39 once/, /no ongoing TapAway fee/],
   ['Existing Linkme owner', 'Can I keep my Linkme?', /Linkme/, /no ongoing TapAway fee/],
   ['No website yet', 'What does the $5 personal hub include?', /No website is needed/, /dashboard, analytics/],
+  ['Hub add-on timing', 'Can I add the hub after paying for my cards?', /BEFORE checkout/, /existing card-only order, ask our team/],
   ['Transparent initial total', 'When will I be charged?', /\$44 total/, /\$5\/month/],
   ['Designer', 'Can I customize both sides of my cards?', /BEFORE you pay/, /after payment/],
   ['NFC expert', 'Can NFC and QR open different links?', /same link/, /two cards can open different links/],
