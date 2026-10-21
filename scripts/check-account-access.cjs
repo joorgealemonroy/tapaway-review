@@ -110,6 +110,21 @@ const code = '352614';
     assert.equal((await h(webhookReq(payload))).status, 200); assert.equal((await h(webhookReq(payload, false))).status, 400);
     assert.equal(fetches, 1); assert.equal(events, 1);
   });
+  await pass('Secret-free list responses use authenticated retrieval of the exact webhook', async () => {
+    for (const wrongEndpoint of [false, true]) {
+      const s = await state(); const id = '11111111-1111-4111-8111-111111111111'; const calls = [];
+      const entry = { id, endpoint: s.env.SUPABASE_URL + '/functions/v1/email-delivery-webhook', status:'enabled' };
+      const rpc = s.db.rpc.bind(s.db); s.db.rpc = async (name,args) => name === 'record_email_delivery' ? {error:null} : rpc(name,args);
+      s.context.fetch = async (url, init) => {
+        calls.push(url); assert.equal(init.headers.Authorization, 'Bearer fixture');
+        if (url === 'https://api.resend.com/webhooks?limit=100') return new Response(JSON.stringify({data:[entry]}));
+        assert.equal(url, 'https://api.resend.com/webhooks/' + id);
+        return new Response(JSON.stringify({...entry,endpoint:wrongEndpoint?'https://wrong.invalid':entry.endpoint,signing_secret:secret}));
+      };
+      const h = await load('supabase/functions/email-delivery-webhook/index.ts', s);
+      assert.equal((await h(webhookReq(payload))).status, wrongEndpoint?503:200); assert.equal(calls.length, 2);
+    }
+  });
   await pass('Missing, foreign, duplicate or disabled webhook configuration fails closed', async () => {
     for (const kind of ['missing', 'foreign', 'duplicate', 'disabled', 'provider-error']) {
       const s = await state(), entry = { endpoint: s.env.SUPABASE_URL + '/functions/v1/email-delivery-webhook', status: 'enabled', signing_secret: secret };

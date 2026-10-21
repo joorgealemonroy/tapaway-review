@@ -28,7 +28,19 @@ export async function emailWebhookSecret(req: Request): Promise<string | null> {
       const matches = Array.isArray(body.data) ? body.data.filter((w: { endpoint?: string; status?: string }) => w.endpoint === target && w.status === 'enabled') : [];
       // Refuse ambiguous or paginated configuration instead of guessing a key.
       if (body.has_more || matches.length !== 1) return null;
-      const value = matches[0].signing_secret;
+      let webhook = matches[0];
+      // Some Resend API versions omit signing_secret from list responses.
+      // Retrieve the exact matched webhook; never derive a URL from a caller.
+      if (!webhook.signing_secret) {
+        if (typeof webhook.id !== 'string' || !/^[a-f0-9-]{36}$/i.test(webhook.id)) return null;
+        const detail = await fetch(`https://api.resend.com/webhooks/${encodeURIComponent(webhook.id)}`, {
+          headers: { Authorization: `Bearer ${key}` }, signal: AbortSignal.timeout(5000),
+        });
+        if (!detail.ok) return null;
+        webhook = await detail.json();
+        if (webhook.endpoint !== target || webhook.status !== 'enabled') return null;
+      }
+      const value = webhook.signing_secret;
       if (typeof value === 'string' && /^whsec_[A-Za-z0-9+/=_-]+$/.test(value)) secret = value;
       return secret;
     } catch { return null; }
