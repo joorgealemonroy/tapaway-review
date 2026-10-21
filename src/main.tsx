@@ -16,7 +16,7 @@ if (location.pathname.startsWith("/admin")) document.documentElement.dataset.adm
 
 // Dashboard preference must not darken public storefront loading screens.
 try {
-  if (localStorage.getItem('tapaway_dashboard_theme') !== 'light') document.documentElement.classList.add('dark');
+  document.documentElement.classList.remove("dark");
 } catch { /* Storage-blocked visitors can still use the storefront. */ }
 
 createRoot(document.getElementById("root")!).render(<App />);

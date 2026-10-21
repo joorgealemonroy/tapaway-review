@@ -1,3 +1,5 @@
+import { CustomerGuide } from "@/components/dashboard/customer/CustomerGuide";
+import "@/components/dashboard/customer/customer.css";
 import { PersonalHubGuide } from "@/components/personal/PersonalHubGuide";
 import { useState, useEffect, useRef, memo, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -989,7 +991,7 @@ const PersonalDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background overflow-x-hidden max-w-full">
+    <div className="customer-workspace min-h-screen bg-background overflow-x-hidden max-w-full">
       {showConfetti && <ConfettiEffect onComplete={() => setShowConfetti(false)} />}
       {isAdminView && (
         <AdminViewBanner name={adminViewName} backTo="/admin/personal-accounts" />
@@ -1285,9 +1287,10 @@ const PersonalDashboard = () => {
           </div>
 
         {profile.plan_type === "personal_hosted" && !isAdminView && <div className="mb-6"><PersonalHubGuide key={profile.id} profileId={profile.id} username={profile.username} onGoToTab={tab=>{setActiveTab(tab);window.scrollTo({top:0,behavior:"smooth"});}}/></div>}
+        <div className="mb-6"><CustomerGuide activeTab={activeTab} onNavigate={tab => { setActiveTab(tab); window.scrollTo({ top: 0, behavior: "smooth" }); }} /></div>
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={(tab) => { setActiveTab(tab); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="space-y-6">
-          <TabsList className={cn("hidden md:grid w-full", isTrialing ? "grid-cols-8" : "grid-cols-10")}>
+          <TabsList className={"hidden md:flex flex-wrap w-full h-auto gap-1 p-2"}>
             <TabsTrigger 
               id="tab-overview"
               value="overview" 

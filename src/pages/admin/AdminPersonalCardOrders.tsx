@@ -90,7 +90,7 @@ export default function AdminPersonalCardOrders() {
   if (loading || !isAdmin)
     return <div className="p-10">Checking admin access…</div>;
   return (
-    <div className="min-h-screen bg-[#0a0a0b] text-white px-4 pb-12">
+    <div className="min-h-screen bg-[#faf8f2] text-slate-900 px-4 pb-12">
       <div className="max-w-6xl mx-auto">
         <AdminPageHeader
           title="Personal card print queue"
@@ -101,7 +101,7 @@ export default function AdminPersonalCardOrders() {
             </Button>
           }
         />
-        <section className="rounded-xl border border-white/15 p-5 text-sm leading-7 mb-6">
+        <section className="rounded-xl border border-slate-200 p-5 text-sm leading-7 mb-6">
           <strong>Production setup</strong>
           <p>
             CR80 · 85.60 × 53.98 mm sideways, or 53.98 × 85.60 mm standing up. Print at 100%, no “fit to page.”
@@ -122,12 +122,12 @@ export default function AdminPersonalCardOrders() {
           </p>
         </section>
         {error && (
-          <p role="alert" className="text-red-200 p-4">
+          <p role="alert" className="text-red-700 p-4">
             {error}
           </p>
         )}
         {!busy && !error && !orders.length && (
-          <p className="text-white/70 p-8">
+          <p className="text-slate-600 p-8">
             Paid personal card orders will appear here after payment
             confirmation.
           </p>
@@ -136,15 +136,15 @@ export default function AdminPersonalCardOrders() {
           {orders.map((order) => (
             <article
               key={order.id}
-              className="border border-white/15 rounded-xl p-5"
+              className="border border-slate-200 rounded-xl p-5"
             >
               <div className="flex flex-wrap justify-between gap-3">
                 <div>
                   <h2 className="text-lg font-semibold">
                     {order.customer_name || "Personal card order"}
                   </h2>
-                  <p className="text-sm text-white/70">{order.email}</p>
-                  <p className="text-xs text-white/50 mt-1">
+                  <p className="text-sm text-slate-600">{order.email}</p>
+                  <p className="text-xs text-slate-600 mt-1">
                     {order.id} · {new Date(order.paid_at).toLocaleDateString()}{" "}
                     ·{" "}
                     {order.stripe_livemode
@@ -159,7 +159,7 @@ export default function AdminPersonalCardOrders() {
               <div className="grid sm:grid-cols-2 gap-5 my-5 text-sm">
                 <div>
                   <h3 className="font-semibold mb-2">Ship to</h3>
-                  <address className="not-italic whitespace-pre-line text-white/80">
+                  <address className="not-italic whitespace-pre-line text-slate-600">
                     {[
                       order.shipping_address?.name,
                       order.shipping_address?.line1,
@@ -192,7 +192,7 @@ export default function AdminPersonalCardOrders() {
                       </a>
                     </p>
                   ))}
-                  <p className="text-white/60">
+                  <p className="text-slate-600">
                     {order.hub_requested
                       ? "Optional $5/month hub"
                       : "One-time cards, external links"}

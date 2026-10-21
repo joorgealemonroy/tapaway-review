@@ -36,55 +36,24 @@ export interface SmsTemplate {
 }
 
 export const SMS_TEMPLATES: SmsTemplate[] = [
-  {
-    id: "review-request",
-    name: "Review request",
-    hint: "Ask happy customers for a Google review",
-    icon: Star,
-    body: "Enjoyed {businessName}? A quick review would mean a lot to us: {hubLink}",
-  },
-  {
-    id: "slow-day-deal",
-    name: "Slow-day flash deal",
-    hint: "Fill a quiet day with a same-day offer",
-    icon: Zap,
-    body: "Flash deal today only at {businessName}! Show this text to claim: {hubLink}",
-  },
-  {
-    id: "new-item",
-    name: "New item or service",
-    hint: "Announce something new on the menu or service list",
-    icon: Sparkles,
-    body: "Something new at {businessName}! Come check it out: {hubLink}",
-  },
-  {
-    id: "event-reminder",
-    name: "Event reminder",
-    hint: "Nudge your list about an upcoming event",
-    icon: CalendarDays,
-    body: "{businessName} event coming up! Details here: {hubLink}",
-  },
-  {
-    id: "holiday-greeting",
-    name: "Holiday greeting",
-    hint: "Warm note for the holidays",
-    icon: Heart,
-    body: "Happy holidays from {businessName}! Thanks for all your support: {hubLink}",
-  },
-  {
-    id: "win-back",
-    name: "We miss you",
-    hint: "Win back customers you haven't seen in a while",
-    icon: Gift,
-    body: "We miss you at {businessName}! Come see what's new: {hubLink}",
-  },
-  {
-    id: "announcement",
-    name: "Big announcement",
-    hint: "Grand opening, new location, new hours, big news",
-    icon: Megaphone,
-    body: "Big news from {businessName}! Get the details here: {hubLink}",
-  },
+  { id: "review-request", name: "Thank you + review", hint: "After a visit, invite honest feedback", icon: Star,
+    body: "Thanks for visiting {businessName}! How was your experience? Share an honest review here: {hubLink}" },
+  { id: "booking", name: "Barber or salon appointments", hint: "Help regulars find their next appointment", icon: CalendarDays,
+    body: "Time for a fresh look? Find your next appointment with {businessName}: {hubLink}" },
+  { id: "restaurant", name: "Dinner plans", hint: "Bring your menu to your regulars", icon: Heart,
+    body: "Let {businessName} take care of dinner. Browse the menu and plan your next visit: {hubLink}" },
+  { id: "coffee", name: "Coffee break", hint: "A friendly invitation from your cafe", icon: Heart,
+    body: "Your next coffee break is calling. Stop by {businessName} for a little pick-me-up. Find us: {hubLink}" },
+  { id: "auto", name: "Wraps or detailing", hint: "Invite customers to explore services", icon: Sparkles,
+    body: "Ready to give your ride some attention? Explore services and get in touch with {businessName}: {hubLink}" },
+  { id: "win-back", name: "Welcome back", hint: "Reconnect without inventing a discount", icon: Gift,
+    body: "It's been a while! We'd love to see you again at {businessName}. Plan your next visit: {hubLink}" },
+  { id: "halloween", name: "Halloween hello", hint: "A seasonal invitation, no made-up offer", icon: Sparkles,
+    body: "Happy Halloween from {businessName}! Make us part of your plans. Find our details here: {hubLink}" },
+  { id: "thanksgiving", name: "A little gratitude", hint: "Thank your community this Thanksgiving", icon: Heart,
+    body: "This Thanksgiving, we're grateful for you. Thanks for supporting {businessName} and shopping local! {hubLink}" },
+  { id: "christmas", name: "Christmas wishes", hint: "Keep it warm and personal", icon: Gift,
+    body: "Merry Christmas from {businessName}! Wishing you a wonderful season. Thanks for being part of our community. {hubLink}" },
 ];
 
 export interface SmsTemplateContext {
@@ -109,7 +78,7 @@ interface SmsTemplateGalleryProps {
   hubLink: string;
   /**
    * Called with the filled message and the template's id when the owner taps
-   * "Use this template". The id lets the tab know a review-request template
+   * "Use this draft". The id lets the tab know a review-request template
    * was used (the server enforces once-per-customer dedup for those sends).
    */
   onUse: (filledMessage: string, templateId: string) => void;
@@ -118,7 +87,7 @@ interface SmsTemplateGalleryProps {
 /**
  * Shared template gallery for both SMS tabs (Solo + business).
  * Compact accordion: tapping a template expands its filled preview with a
- * live character count; "Use this template" loads it into the composer
+ * live character count; "Use this draft" loads it into the composer
  * where the owner can edit before anything is ever sent.
  */
 const SmsTemplateGallery = ({ businessName, hubLink, onUse }: SmsTemplateGalleryProps) => {
@@ -126,7 +95,7 @@ const SmsTemplateGallery = ({ businessName, hubLink, onUse }: SmsTemplateGallery
 
   return (
     <Card className="p-4 sm:p-6">
-      <h3 className="font-semibold">Quick templates</h3>
+      <h3 className="font-semibold">Ready-to-use drafts</h3>
       <p className="text-xs text-muted-foreground mt-1 mb-2">
         Tap one to load it into the composer below, then make it yours. Nothing
         sends until you review and confirm it.
@@ -146,8 +115,8 @@ const SmsTemplateGallery = ({ businessName, hubLink, onUse }: SmsTemplateGallery
                     <Icon className="h-4 w-4 text-primary" />
                   </span>
                   <span className="min-w-0">
-                    <span className="block text-sm font-medium truncate">{t.name}</span>
-                    <span className="block text-xs text-muted-foreground truncate">{t.hint}</span>
+                    <span className="block text-sm font-medium">{t.name}</span>
+                    <span className="block text-xs text-muted-foreground leading-relaxed">{t.hint}</span>
                   </span>
                 </span>
                 <span
@@ -162,7 +131,7 @@ const SmsTemplateGallery = ({ businessName, hubLink, onUse }: SmsTemplateGallery
               </AccordionTrigger>
               <AccordionContent>
                 <div className="space-y-3 pt-1">
-                  <p className="text-sm bg-muted/60 rounded-lg p-3 whitespace-pre-wrap break-words">
+                  <p className="text-sm bg-emerald-50 text-slate-800 rounded-2xl p-4 whitespace-pre-wrap break-words">
                     {filled}
                   </p>
                   {tooLong && (
@@ -175,9 +144,9 @@ const SmsTemplateGallery = ({ businessName, hubLink, onUse }: SmsTemplateGallery
                     variant="outline"
                     size="sm"
                     className="min-h-[44px]"
-                    onClick={() => onUse(filled, t.id)}
+                    onClick={() => { onUse(filled, t.id); requestAnimationFrame(() => { const composer = document.querySelector<HTMLTextAreaElement>("textarea"); composer?.scrollIntoView({ behavior: "smooth", block: "center" }); composer?.focus({ preventScroll: true }); }); }}
                   >
-                    Use this template
+                    Use this draft
                   </Button>
                   {t.id === "review-request" && (
                     <p className="text-xs text-muted-foreground">

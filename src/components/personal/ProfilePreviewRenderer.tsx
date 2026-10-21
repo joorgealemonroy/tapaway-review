@@ -1,3 +1,4 @@
+import { lightHubBackground } from "@/lib/hubAppearance";
 import { memo, useMemo, useState } from "react";
 
 import { ExternalLink, Mail, UserPlus, Share2 } from "lucide-react";
@@ -129,7 +130,7 @@ function ProfilePreviewRendererComponent({
   // controls any header.
   const headerColor = profile.header_color || "#6366f1";
   // Default to black background
-  const backgroundColor = profile.background_color || "#000000";
+  const backgroundColor = lightHubBackground(profile.background_color);
   const isGradientBg = backgroundColor.startsWith('linear-gradient') || backgroundColor.startsWith('radial-gradient');
 
   // Premium dark base with brand glow for flat dark backgrounds

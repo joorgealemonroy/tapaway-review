@@ -1,3 +1,4 @@
+import { lightHubBackground } from "@/lib/hubAppearance";
 import { memo, useCallback, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 
@@ -886,7 +887,8 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
 
   // Set mobile browser theme-color meta tag to black for all profiles
   useEffect(() => {
-    const themeColor = "#000000";
+    document.documentElement.classList.remove("dark");
+    const themeColor = "#fffaf3";
     let meta = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement | null;
     if (!meta) {
       meta = document.createElement('meta');
@@ -920,7 +922,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
   // Must be called before early returns to comply with React Rules of Hooks
   const docBgColor = (() => {
     if (!data?.profile) return null;
-    const bg = data.profile.background_color || "#000000";
+    const bg = lightHubBackground(data.profile.background_color);
     if (bg.startsWith('linear-gradient') || bg.startsWith('radial-gradient')) {
       return getBaseColorFromGradient(bg);
     }
@@ -1159,8 +1161,8 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
   const effectiveLogoBand = logoBandColor || sampledLogoBand;
 
    // Default to black background (#000000) for users without a set background
-  const storedBgColor = profile.background_color || "#000000";
-  const profileBgStyle = (profile as any).bg_style as string | null;
+  const storedBgColor = lightHubBackground(profile.background_color);
+  const profileBgStyle: string | null = null;
   const storedBgIsFlat = !profileBgStyle &&
     !storedBgColor.startsWith('linear-gradient') && !storedBgColor.startsWith('radial-gradient');
   // Banner hubs whose stored background is a near-black default get the warm
@@ -1192,7 +1194,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
   // Dynamic text classes based on background
   // Use explicit colors (not theme-aware tokens) so text is always readable
   // against the inline background, regardless of system dark/light mode
-  const profileTextColor = (profile as any).text_color as string | null;
+  const profileTextColor: string | null = "#1a2923";
   const profileAccentColor = (profile as any).button_theme as string | null;
   // Guaranteed fallback so legacy profiles (null text_color) never have invisible text
   const safeTextColor = profileTextColor || (isDarkBg ? '#FFFFFF' : '#1A1A1A');

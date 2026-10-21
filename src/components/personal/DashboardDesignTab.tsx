@@ -61,9 +61,6 @@ const BG_PRESETS = [
   "#e0f2fe",
   "#ede9fe",
   "#fce7f3",
-  "#1a1a1a",
-  "#0a0a0a",
-  "#1e293b",
 ];
 
 const isSolidHex = (value: string) => /^#[0-9A-Fa-f]{6}$/.test(value);
@@ -87,6 +84,7 @@ export const DashboardDesignTab = ({
   const [pendingBgColor, setPendingBgColor] = useState(backgroundColor);
   const [bgColorInput, setBgColorInput] = useState(backgroundColor || "#ffffff");
   const [pendingHeaderType, setPendingHeaderType] = useState(headerType);
+  const [previousPhoto, setPreviousPhoto] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [uploading, setUploading] = useState<"photo" | "banner" | null>(null);
@@ -222,7 +220,7 @@ export const DashboardDesignTab = ({
         ctx.drawImage(img, 0, 0, width, height);
         canvas.toBlob(
           (blob) => { if (blob) resolve(blob); else reject(new Error("Compression failed")); },
-          "image/jpeg", 0.85
+          "image/png", 1
         );
       };
       img.onerror = (e) => { URL.revokeObjectURL(img.src); reject(e); };
@@ -247,8 +245,8 @@ export const DashboardDesignTab = ({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
       const filePath = target === "photo"
-        ? `${user.id}/${profileId}/profile.jpg`
-        : `${user.id}/${profileId}/banner.jpg`;
+        ? `${user.id}/${profileId}/profile-${crypto.randomUUID()}.${blob.type === "image/png" ? "png" : "jpg"}`
+        : `${user.id}/${profileId}/banner-${crypto.randomUUID()}.jpg`;
       const { error: uploadError } = await supabase.storage
         .from("personal-photos")
         .upload(filePath, blob, { upsert: true, contentType: blob.type || "image/jpeg" });
@@ -259,10 +257,11 @@ export const DashboardDesignTab = ({
       if (target === "photo") {
         const { error } = await supabase
           .from("personal_profiles")
-          .update({ profile_photo_url: urlWithBust })
+          .update({ profile_photo_url: urlWithBust, header_type: "logo" })
           .eq("id", profileId);
         if (error) throw error;
-        onUpdate({ profilePhotoUrl: urlWithBust });
+        setPreviousPhoto(profilePhotoUrl);
+        onUpdate({ profilePhotoUrl: urlWithBust, headerType: "logo" });
         toast.success("Profile photo updated!");
       } else {
         const { error } = await supabase
@@ -290,6 +289,7 @@ export const DashboardDesignTab = ({
     if (!file) return;
     const processed = await validateImageFile(file);
     if (!processed) return;
+    if (target === "photo") { await uploadCroppedBlob(processed, target); return; }
     setCropperSrc(URL.createObjectURL(processed));
     setCropperTarget(target);
     setCropperOpen(true);
@@ -363,13 +363,13 @@ export const DashboardDesignTab = ({
         <div>
           <h3 className="text-base font-semibold text-foreground">Profile photo</h3>
           <p className="text-sm text-muted-foreground mt-0.5">
-            This shows next to your name. Adjust it to frame it just right.
+            Your full logo stays visible, without cropping or stretching. Upload a clear PNG or photo; we handle the fit.
           </p>
         </div>
         <div className="flex items-center gap-4">
           <div className="relative h-20 w-20 shrink-0 rounded-full overflow-hidden bg-muted border border-border">
             {profilePhotoUrl ? (
-              <img src={profilePhotoUrl} alt="Profile" className="h-full w-full object-cover" />
+              <img src={profilePhotoUrl} alt="Profile" className="h-full w-full object-contain p-2" />
             ) : (
               <div className="h-full w-full flex items-center justify-center">
                 <Camera className="h-7 w-7 text-muted-foreground" />
@@ -390,17 +390,12 @@ export const DashboardDesignTab = ({
               )}
               {profilePhotoUrl ? "Upload new photo" : "Upload photo"}
             </Button>
-            {profilePhotoUrl && (
-              <Button
-                variant="ghost"
-                className="min-h-[44px] w-full sm:w-auto"
-                onClick={() => openAdjustCropper("photo")}
-                disabled={uploading !== null}
-              >
-                <Crop className="h-4 w-4 mr-2" />
-                Adjust framing
-              </Button>
-            )}
+            {previousPhoto && <Button variant="ghost" disabled={uploading !== null} onClick={async () => {
+              const { error } = await supabase.from("personal_profiles").update({ profile_photo_url: previousPhoto }).eq("id", profileId);
+              if (error) { toast.error("Could not restore your logo. Try again."); return; }
+              onUpdate({ profilePhotoUrl: previousPhoto }); setPreviousPhoto(null); toast.success("Previous logo restored");
+            }}>Restore previous logo</Button>}
+
           </div>
         </div>
         <input
@@ -410,71 +405,6 @@ export const DashboardDesignTab = ({
           onChange={(e) => handleFileSelect(e, "photo")}
           className="hidden"
         />
-      </section>
-
-      <div className="h-px bg-border" />
-
-      {/* Header style. The big photo banner look vs classic */}
-      <section className="space-y-4">
-        <div>
-          <h3 className="text-base font-semibold text-foreground">Header style</h3>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Photo banner shows your profile photo big at the top of the hub.
-          </p>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <button
-            onClick={() => handleHeaderTypeChange("banner")}
-            disabled={!profilePhotoUrl || uploading !== null}
-            className={`min-h-[120px] rounded-xl border-2 p-3 flex flex-col items-center gap-2 transition-all text-left ${
-              pendingHeaderType === "banner"
-                ? "border-primary bg-primary/5"
-                : "border-border hover:border-muted-foreground/40"
-            } ${!profilePhotoUrl ? "opacity-50" : ""}`}
-          >
-            <span className="w-full h-14 rounded-lg overflow-hidden bg-muted flex items-center justify-center">
-              {profilePhotoUrl ? (
-                <img src={profilePhotoUrl} alt="" className="w-full h-full object-cover" />
-              ) : (
-                <ImageIcon className="h-5 w-5 text-muted-foreground" />
-              )}
-            </span>
-            <span className="text-sm font-semibold">Photo banner</span>
-            <span className="text-xs text-muted-foreground text-center leading-tight">
-              Big image up top, like the best-looking hubs
-            </span>
-          </button>
-          <button
-            onClick={() => handleHeaderTypeChange("classic")}
-            disabled={uploading !== null}
-            className={`min-h-[120px] rounded-xl border-2 p-3 flex flex-col items-center gap-2 transition-all text-left ${
-              pendingHeaderType !== "banner"
-                ? "border-primary bg-primary/5"
-                : "border-border hover:border-muted-foreground/40"
-            }`}
-          >
-            <span className="w-full h-14 rounded-lg bg-muted flex items-center justify-center">
-              {profilePhotoUrl ? (
-                <img
-                  src={profilePhotoUrl}
-                  alt=""
-                  className="h-10 w-10 rounded-full object-cover border-2 border-background"
-                />
-              ) : (
-                <span className="h-10 w-10 rounded-full bg-muted-foreground/20" />
-              )}
-            </span>
-            <span className="text-sm font-semibold">Classic</span>
-            <span className="text-xs text-muted-foreground text-center leading-tight">
-              Round photo with your links below
-            </span>
-          </button>
-        </div>
-        {!profilePhotoUrl && (
-          <p className="text-xs text-muted-foreground">
-            Add a profile photo above to unlock the photo banner.
-          </p>
-        )}
       </section>
 
       <div className="h-px bg-border" />
@@ -564,7 +494,7 @@ export const DashboardDesignTab = ({
         <div>
           <h3 className="text-base font-semibold text-foreground">Page background</h3>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Pick a color for your page, or enter your own.
+            Choose a soft background. Your content stays readable in every palette.
           </p>
         </div>
 
@@ -599,49 +529,7 @@ export const DashboardDesignTab = ({
           )}
         </div>
 
-        <div className="flex items-center gap-3">
-          <Label htmlFor="bg-custom-color" className="sr-only">Custom background color</Label>
-          <input
-            id="bg-custom-color"
-            type="color"
-            value={isSolidHex(bgColorInput) ? bgColorInput : "#ffffff"}
-            onChange={(e) => {
-              setBgColorInput(e.target.value);
-              handleBgColorChange(e.target.value);
-            }}
-            className="h-12 w-12 shrink-0 rounded-lg border border-border cursor-pointer bg-transparent p-1"
-            aria-label="Pick a custom color"
-          />
-          <div className="relative flex-1">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-mono text-sm pointer-events-none">
-              #
-            </span>
-            <Input
-              type="text"
-              inputMode="text"
-              autoCapitalize="characters"
-              spellCheck={false}
-              placeholder="FFFFFF"
-              aria-label="Custom color hex code"
-              value={bgColorInput.replace(/^#/, "")}
-              onChange={(e) => setBgColorInput(`#${e.target.value.replace(/[^0-9A-Fa-f]/g, "").slice(0, 6)}`)}
-              onBlur={() => {
-                if (isSolidHex(bgColorInput)) {
-                  handleBgColorChange(bgColorInput);
-                } else {
-                  // Snap back to the saved value on invalid input.
-                  setBgColorInput(pendingBgColor && isSolidHex(pendingBgColor) ? pendingBgColor : "#ffffff");
-                  toast.error("Enter a 6-digit hex color, like #1a1a2e");
-                }
-              }}
-              className="h-12 pl-8 font-mono text-base md:text-sm uppercase"
-            />
-          </div>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          Dark colors work best with light text, light colors with dark text. Your
-          page adjusts text automatically.
-        </p>
+        <p className="text-sm text-muted-foreground">Each palette keeps your text readable. Spacing and image proportions are handled for you.</p>
       </section>
 
       {/* Founding Creator Badge Toggle */}

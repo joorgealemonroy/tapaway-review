@@ -1,3 +1,5 @@
+import "@/components/dashboard/customer/customer.css";
+import { CustomerGuide } from "@/components/dashboard/customer/CustomerGuide";
 import { useEffect, useState, lazy, Suspense } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { AdminViewBanner } from "@/components/admin/AdminViewBanner";
@@ -192,16 +194,10 @@ const DashboardBusiness = () => {
   const [isTestAccountFlag, setIsTestAccountFlag] = useState(false);
   const [isGrandfathered, setIsGrandfathered] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
-  const [theme, setTheme] = useState(() => localStorage.getItem('tapaway_dashboard_theme') || 'dark');
+  useEffect(() => { document.documentElement.classList.remove("dark"); }, []);
   // Tab the user asked for while another tab still has unsaved edits.
   const [pendingTab, setPendingTab] = useState<string | null>(null);
 
-  const toggleTheme = () => {
-    const next = theme === 'dark' ? 'light' : 'dark';
-    setTheme(next);
-    localStorage.setItem('tapaway_dashboard_theme', next);
-    document.documentElement.classList.toggle('dark', next === 'dark');
-  };
 
   /**
    * Unsaved-changes protection: Menu and Settings register dirty-checkers
@@ -566,7 +562,7 @@ const DashboardBusiness = () => {
   if (!restaurant) {
     return <div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>;
   }
-  return <div className="min-h-screen bg-background pb-20 md:pb-0">
+  return <div className="customer-workspace min-h-screen bg-background pb-20 md:pb-0">
       {isAdminView && (
         <AdminViewBanner name={adminViewName} backTo="/admin" />
       )}
@@ -580,9 +576,6 @@ const DashboardBusiness = () => {
           </button>
           <div className="flex items-center gap-3">
             
-            <Button variant="ghost" size="icon" onClick={toggleTheme} className="rounded-full" aria-label="Toggle theme">
-              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-            </Button>
             {restaurant?.custom_slug && <Button variant="outline" size="sm" className="hidden md:inline-flex" onClick={() => window.open(`/${restaurant.custom_slug}`, "_blank")}>
                 <ExternalLink className="w-4 h-4 mr-2" />
                 View Hub
@@ -692,6 +685,7 @@ const DashboardBusiness = () => {
             </div>
 
             <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4 md:space-y-6">
+              {!isDemoView && <CustomerGuide legacy activeTab={activeTab} onNavigate={handleTabChange} />}
               <div className="overflow-x-auto -mx-3 md:mx-0 px-3 md:px-0 hidden md:block">
                 {restaurant.custom_slug === 'avmealpreps' || restaurant.type === 'meal_prep' ? (
                   <TabsList className={`inline-flex min-w-full md:grid md:w-full ${isDemoView ? 'md:grid-cols-1' : 'md:grid-cols-3'} h-auto gap-1`}>

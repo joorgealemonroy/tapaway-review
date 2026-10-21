@@ -442,6 +442,41 @@ const adminHubs=[
 {id:'33333333-3333-4333-8333-333333333333',kind:'business',name:'Tutti Mangia',slug:'tuttimangiaitalianchophouse',payment_state:'paying',subscription_status:'active',stripe_subscription_id:'sub_fixture',is_approved:true,created_at:'2026-10-18T12:00:00Z',views:203,clicks:80,photo_url:null},
 {id:'44444444-4444-4444-8444-444444444444',kind:'personal',name:'A new connection',slug:'newconnection',payment_state:'unknown_manual',subscription_status:'trialing',stripe_subscription_id:null,is_approved:false,created_at:'2026-10-17T12:00:00Z',views:0,clicks:0,photo_url:null}
 ];
+test('Customer refresh: mobile navigation, safe design and guided help', async()=>{
+  const profile={id:'22222222-2222-4222-8222-222222222222',user_id:fakeUser.id,username:'qa',full_name:'QA Business',email:fakeUser.email,plan_type:'yearly',subscription_status:'active',onboarding_source:'payment_first_v1',stripe_customer_id:'cus_fixture',stripe_subscription_id:'sub_fixture',is_approved:true,created_at:'2025-01-01T00:00:00Z'};
+  const {page,state,go,close}=await scenario({authenticated:true,profile});
+  await page.setViewportSize({width:390,height:844});await go('/dashboard?type=lite');
+  await page.getByRole('button',{name:'Ask TapAway',exact:true}).click();
+  await page.getByRole('textbox',{name:'Ask TapAway',exact:true}).fill('How do I upload my logo?');
+  await page.getByRole('button',{name:'Ask question',exact:true}).click();
+  await expect(page.getByRole('status')).toContainText('full logo');
+  await page.getByRole('button',{name:'Take me there'}).click();
+  await expect(page.getByRole('heading',{name:'Page background',exact:true})).toBeVisible();
+  assert.equal(await page.getByLabel('Pick a custom color').count(),0);
+  assert.equal(await page.getByRole('button',{name:'Adjust framing',exact:true}).count(),0);
+  assert.equal(await page.evaluate(()=>document.documentElement.classList.contains('dark')),false);
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+  await screenshot(page,'customer-design-mobile',true);
+  await page.getByRole('button',{name:'Ask TapAway',exact:true}).click();
+  await page.getByRole('button',{name:'Text customers',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'Ready-to-use drafts'})).toBeVisible();
+  await page.getByRole('button',{name:/Barber or salon appointments/}).click();
+  await expect(page.getByText(/Time for a fresh look/)).toBeVisible();
+  await page.getByRole('button',{name:'Use this draft',exact:true}).click();
+  assert.equal(state.messageSends||0,0);await screenshot(page,'customer-sms-mobile',true);await close();
+});
+test('Customer refresh: admin preview gates approval without publishing', async()=>{
+  const profile={id:'22222222-2222-4222-8222-222222222222',user_id:fakeUser.id,username:'qa',full_name:'QA Draft',is_approved:false,pipeline_status:'draft',created_at:'2026-10-20T00:00:00Z'};
+  const {page,go,close}=await scenario({authenticated:true,admin:true,profile});
+  await go('/admin/fulfillment');await expect(page.getByRole('button',{name:'Approve demo'})).toBeDisabled();
+  await page.getByRole('button',{name:'Preview hub',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'Review hub before approval'})).toBeVisible();
+  await expect(page.getByText('QA Draft',{exact:true}).last()).toBeVisible();
+  await screenshot(page,'admin-order-preview');
+  await page.getByRole('button',{name:"I've reviewed this hub"}).click();
+  await expect(page.getByRole('button',{name:'Approve demo'})).toBeEnabled();await close();
+});
+
 test('Admin: owner overview uses verified billing and keeps gifted trials out of reminders',async()=>{
  const {page,state,go,close}=await scenario({admin:true,authenticated:true});await go('/admin');
  await expect(page.getByRole('heading',{name:/Good to see you, Jorge/})).toBeVisible();await expect(page.locator('.aw-revenue')).toContainText('$2,450.50');await expect(page.getByRole('progressbar')).toHaveAttribute('aria-valuenow','24.505');assert.equal(await page.getByText(/trial.*expired|extend trial/i).count(),0);
