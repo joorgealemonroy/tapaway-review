@@ -134,6 +134,8 @@ export function track(
   options: TrackOptions = {},
 ): void {
   if (typeof window === "undefined") return;
+  // Only server-verified billing events may claim a financial conversion.
+  if (["trial_start_confirmed", "paid_conversion", "subscription_renewal", "purchase", "purchase_completed"].includes(event)) return;
 
   const path = stripQuery(options.path ?? window.location.pathname);
   const guardKey = `${event}|${path}|${options.hubId ?? ""}`;

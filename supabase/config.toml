@@ -158,3 +158,10 @@ verify_jwt = false
 
 [functions.personal-card-admin]
 verify_jwt = false
+
+# These handlers verify the caller with auth.getUser and a server admin role.
+[functions.admin-billing-summary]
+verify_jwt = false
+
+[functions.admin-navigator]
+verify_jwt = false

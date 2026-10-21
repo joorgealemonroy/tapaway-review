@@ -1,0 +1,36 @@
+/* Isolated PostgreSQL checks. No production accounts or messages are modified. */
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
+const {PGlite}=require(path.join(process.env.QA_MODULES,'@electric-sql/pglite'));
+const admin='11111111-1111-4111-8111-111111111111',a='22222222-2222-4222-8222-222222222222',b='33333333-3333-4333-8333-333333333333',gift='44444444-4444-4444-8444-444444444444',paid='55555555-5555-4555-8555-555555555555';
+let checks=0;
+(async()=>{
+const db=new PGlite();await db.exec(`CREATE ROLE anon;CREATE ROLE authenticated;CREATE SCHEMA auth;CREATE TABLE auth.users(id uuid PRIMARY KEY);CREATE TABLE user_roles(user_id uuid,role text);
+CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql AS $$ SELECT nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
+CREATE FUNCTION public.is_admin() RETURNS boolean LANGUAGE sql SECURITY DEFINER AS $$ SELECT EXISTS(SELECT 1 FROM user_roles WHERE user_id=auth.uid() AND role='admin') $$;
+GRANT USAGE ON SCHEMA auth TO authenticated;GRANT EXECUTE ON FUNCTION auth.uid() TO authenticated;
+CREATE TABLE personal_profiles(id uuid PRIMARY KEY,user_id uuid,full_name text,username text,payment_state text,subscription_status text,stripe_subscription_id text,is_approved boolean,created_at timestamptz DEFAULT now(),profile_photo_url text);
+CREATE TABLE restaurants(id uuid PRIMARY KEY,owner_id uuid,restaurant_name text,custom_slug text,payment_state text,subscription_status text,stripe_subscription_id text,is_approved boolean,created_at timestamptz DEFAULT now(),logo_url text);
+CREATE TABLE personal_card_orders(user_id uuid,status text,stripe_livemode boolean);
+CREATE TABLE analytics_hits(hub_id uuid,event_name text,session_id text,hub_kind text,path text,is_validated boolean,traffic_class text,occurred_at timestamptz DEFAULT now());`);
+await db.exec(fs.readFileSync(path.join(__dirname,'../supabase/migrations/20261021090000_admin_workspace.sql'),'utf8'));
+await db.query('INSERT INTO auth.users VALUES ($1),($2),($3)',[admin,a,b]);await db.query("INSERT INTO user_roles VALUES ($1,'admin')",[admin]);
+await db.query("INSERT INTO personal_profiles(id,user_id,full_name,username,payment_state,subscription_status,is_approved) VALUES($1,$2,'Gift hub','gift','unknown_manual','trialing',true)",[gift,a]);
+await db.query("INSERT INTO restaurants(id,owner_id,restaurant_name,custom_slug,payment_state,subscription_status,stripe_subscription_id,is_approved) VALUES($1,$2,'Paid hub','paid','paying','active','sub_real',true)",[paid,b]);
+await db.query("INSERT INTO personal_card_orders VALUES($1,'paid',true),($2,'paid',true)",[a,admin]);
+const asUser=async(id,role='authenticated')=>{await db.exec('RESET ROLE');await db.query("SELECT set_config('request.jwt.claim.sub',$1,false)",[id]);await db.exec(`SET ROLE ${role}`);};
+await asUser(a,'anon');await assert.rejects(()=>db.query('SELECT admin_workspace_hubs()'),/permission denied/);checks++;
+await asUser(a);await assert.rejects(()=>db.query('SELECT admin_workspace_hubs()'),/Admin access/);await assert.rejects(()=>db.query("SELECT admin_save_announcement(null,'x','y','update','all',null,null)"),/Admin access/);await assert.rejects(()=>db.query("SELECT admin_notification_recipients('all')"),/permission denied/);checks++;
+await asUser(admin);const hubs=(await db.query('SELECT admin_workspace_hubs() d')).rows[0].d;assert.equal(hubs.length,2);assert.equal(hubs.find(x=>x.id===gift).subscription_status,'trialing');checks++;
+await db.query('SELECT admin_gift_unbilled_hub($1,$2)',[gift,'personal']);await assert.rejects(()=>db.query('SELECT admin_gift_unbilled_hub($1,$2)',[paid,'business']),/linked billing/);checks++;
+const save=async(id=null,title='A useful update',audience='all')=>(await db.query('SELECT admin_save_announcement($1,$2,$3,$4,$5,$6,$7) d',[id,title,'Your links are ready.','update',audience,'/dashboard','Open dashboard'])).rows[0].d;
+const draft=await save();assert.equal(draft.recipient_count,2,'deduped customers, admin excluded');assert.equal(draft.recipient_ids,undefined);assert.equal((await db.query('SELECT count(*) n FROM customer_notifications')).rows[0].n,0);checks++;
+const subscribers=await save(null,'Subscribers','subscribers');assert.equal(subscribers.recipient_count,1);checks++;
+await assert.rejects(()=>db.query("SELECT admin_save_announcement(null,'x','y','update','all','//evil.invalid','Go')"),/check constraint/);checks++;
+const changed=await save(draft.id,'Updated draft');await assert.rejects(()=>db.query('SELECT admin_send_announcement($1,$2)',[draft.id,draft.updated_at]),/Draft changed/);checks++;
+assert.equal((await db.query('SELECT admin_send_announcement($1,$2) n',[changed.id,changed.updated_at])).rows[0].n,2);assert.equal((await db.query('SELECT admin_send_announcement($1,$2) n',[changed.id,changed.updated_at])).rows[0].n,2);await assert.rejects(()=>save(changed.id),/already sent/);checks++;
+await asUser(a);let mine=(await db.query('SELECT * FROM customer_notifications')).rows;assert.equal(mine.length,1);assert.equal(mine[0].user_id,a);await db.query('SELECT customer_read_notification($1)',[mine[0].id]);assert.ok((await db.query('SELECT read_at FROM customer_notifications')).rows[0].read_at);await assert.rejects(()=>db.query("UPDATE customer_notifications SET title='hacked'"),/permission denied/);assert.equal((await db.query('SELECT * FROM admin_announcements')).rows.length,0);checks++;
+await asUser(b);assert.equal((await db.query('SELECT * FROM customer_notifications')).rows.length,1);assert.equal((await db.query('SELECT read_at FROM customer_notifications')).rows[0].read_at,null);checks++;
+await db.exec('RESET ROLE');await db.query("INSERT INTO analytics_hits VALUES ($1,'hub_view','v1','personal','/gift',true,'human',now()),($1,'link_click','v1','personal','/gift',true,'human',now()),($1,'hub_view','bot','personal','/gift',false,'bot',now()),(null,'page_view','v2','site','/',true,'human',now()),(null,'page_view','v3','site','/gift',true,'human',now()),(null,'purchase','v4','site','/',true,'human',now())",[gift]);
+await asUser(admin);const insights=(await db.query('SELECT admin_workspace_insights(30) d')).rows[0].d;assert.equal(insights.site_views,1);assert.equal(insights.hub_views,1);assert.equal(insights.link_clicks,1);assert.equal(insights.excluded,1);assert.equal(insights.conversion_events,undefined);await assert.rejects(()=>db.query('SELECT admin_workspace_insights(0)'),/Invalid/);checks++;
+await db.close();console.log(`PASS ${checks} database checks: permissions, gifts, deduped audiences, draft previews, stale review, idempotent sends, private inboxes, immutable content and validated analytics.`);
+})().catch(e=>{console.error(e);process.exitCode=1});

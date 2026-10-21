@@ -10,6 +10,7 @@ export const storefrontLoaders = {
 export const isStorefrontPath = (path: string) =>
   [
     "/",
+    "/auth",
     "/business",
     "/personal",
     "/personal/design",
@@ -75,7 +76,7 @@ export function StorefrontRouteSurface() {
   useLayoutEffect(() => {
     document.documentElement.style.setProperty(
       "--app-bg",
-      isStorefrontPath(pathname) ? "#ffffff" : "hsl(var(--background))",
+      isStorefrontPath(pathname) ? "#ffffff" : pathname.startsWith("/admin") ? "#f8f9f5" : "hsl(var(--background))",
     );
     if (!isStorefrontPath(pathname)) return;
     if (!hash) {

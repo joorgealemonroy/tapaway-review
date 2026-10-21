@@ -12,6 +12,8 @@ import { clearRetiredTracking } from "./lib/retiredTracking";
 clearRetiredTracking();
 if (isStorefrontPath(location.pathname)) document.documentElement.style.setProperty("--app-bg", "#fff");
 
+if (location.pathname.startsWith("/admin")) document.documentElement.dataset.adminSurface = "true";
+
 // Dashboard preference must not darken public storefront loading screens.
 try {
   if (localStorage.getItem('tapaway_dashboard_theme') !== 'light') document.documentElement.classList.add('dark');

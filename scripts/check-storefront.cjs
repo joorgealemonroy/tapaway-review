@@ -22,6 +22,7 @@ const test = (name, run) => cases.push({ name, run });
 async function scenario(options = {}) {
   const context = await browser.newContext({viewport:{width:1440,height:1000},serviceWorkers:'block'});
   const state = { catalog: structuredClone(catalog), checkout: [], support: [], chat: [], personalOrders: [], aiCount: 0, notifications: 0, errors: [], resources: [], external: [], documents: [], welcome:'sign_in', setup:{step:'business',business_name:null,business_address:null,shipping_address:null,logo_url:null}, setupWrites:[], setupReads:[], clubRequests:[], billingRequests:[], profileWrites:[], nfcWrites:[], ...options };
+  const sessionUser=options.admin?{...fakeUser,email:"tap@tapaway.co"}:fakeUser;
   await context.addInitScript(({saved,authenticated,backendHost,fakeUser}) => {
     // No consent seed: checks exercise a genuine first visit.
     if(saved) localStorage.setItem('tapaway_onboarding_data',JSON.stringify(saved));
@@ -30,7 +31,7 @@ async function scenario(options = {}) {
       const token=[{alg:'HS256',typ:'JWT'},{sub:fakeUser.id,exp,role:'authenticated'},'fixture'].map((v,i)=>i<2?btoa(JSON.stringify(v)).replaceAll('=',''):v).join('.');
       localStorage.setItem(`sb-${backendHost.split('.')[0]}-auth-token`,JSON.stringify({access_token:token,refresh_token:'fixture',expires_at:exp,expires_in:3600,token_type:'bearer',user:fakeUser}));
     }
-  },{saved:options.saved,authenticated:options.authenticated,backendHost,fakeUser});
+  },{saved:options.saved,authenticated:options.authenticated,backendHost,fakeUser:sessionUser});
   await context.route('**/*', async route => {
     const request = route.request();
     const url = new URL(request.url());
@@ -80,11 +81,21 @@ async function scenario(options = {}) {
     }
     if(url.pathname.endsWith('/support-notification')) { state.notifications++;return reply({ok:true}); }
     if(url.pathname.endsWith('/request-dashboard-access'))return state.sendLinkFailure ? reply({error:'Fixture unavailable'},503) : reply({ok:true});
-    if(url.pathname.endsWith('/auth/v1/user'))return reply(fakeUser);
+    if(url.pathname.endsWith('/auth/v1/user'))return options.authenticated?reply(sessionUser):reply({message:'No session'},401);
     if(url.pathname.endsWith('/rpc/is_username_available'))return reply(request.postDataJSON().check_username!=='taken');
     if(url.pathname.endsWith('/nfc_cards')&&request.method()==='PATCH'){state.nfcWrites.push(request.postDataJSON());return reply(null);}
     if(url.pathname.endsWith('/personal_profiles')&&request.method()==='PATCH'){state.profileWrites.push(request.postDataJSON());Object.assign(state.profile,request.postDataJSON());return reply(null);}
-    if(url.pathname.endsWith('/rpc/is_admin'))return reply(false);
+    if(url.pathname.endsWith('/rpc/is_admin')){state.roleReads=(state.roleReads||0)+1;if(state.roleFails&&state.roleReads<=state.roleFails)return reply({message:'Temporary network failure'},503);return reply(!!state.admin);}
+    if(url.pathname.endsWith('/rpc/admin_workspace_hubs')) {state.hubReads=(state.hubReads||0)+1;return state.hubFails&&state.hubReads<=state.hubFails?reply({message:'Temporary unavailable'},503):reply(state.adminHubs||adminHubs);}
+    if(url.pathname.endsWith('/admin-billing-summary')){state.billingReads=(state.billingReads||0)+1;return state.billingFails&&state.billingReads<=state.billingFails?reply({error:'Temporary unavailable'},503):reply({mrr_cents:245050,active_count:42,trialing_count:2,past_due_count:0,excluded_count:0,updated_at:new Date().toISOString(),methodology:'Active recurring USD subscription run rate. Trials and gift accounts excluded.'});}
+    if(url.pathname.endsWith('/admin-navigator'))return reply({destinations:['orders']});
+    if(url.pathname.endsWith('/rpc/admin_workspace_insights'))return reply({site_views:2800,hub_views:600,visit_sessions:1200,link_clicks:123,excluded:50,raw_events:4000,updated_at:new Date().toISOString()});
+    if(url.pathname.endsWith('/admin_announcements'))return reply(state.announcements||[]);
+    if(url.pathname.endsWith('/rpc/admin_save_announcement')){const x=request.postDataJSON();const draft={id:'draft_fixture',title:x._title,body:x._body,kind:x._kind,audience:x._audience,cta_path:x._cta_path,cta_label:x._cta_label,status:'draft',updated_at:new Date().toISOString(),recipient_count:3};state.announcements=[draft];state.savedMessages=(state.savedMessages||0)+1;return reply(draft);}
+    if(url.pathname.endsWith('/rpc/admin_send_announcement')){state.messageSends=(state.messageSends||0)+1;return reply(3);}
+    if(url.pathname.endsWith('/customer_notifications'))return reply(state.customerNotices||[]);
+    if(url.pathname.endsWith('/rpc/customer_read_notification'))return reply(null);
+
     if(url.pathname.endsWith('/personal_profiles') && state.profile) return reply(request.headers()['accept']?.includes('vnd.pgrst.object') ? state.profile : [state.profile]);
     if(url.pathname.includes('/rest/v1/')) {
       return reply(request.headers()['accept']?.includes('vnd.pgrst.object') ? null : []);
@@ -424,6 +435,45 @@ test('Support page offers the same assistant, question ideas, human contact and 
   await page.getByRole('button',{name:'Ask AI',exact:true}).click();await expect(page.getByRole('log')).toContainText('$39 for two');assert.equal(state.chat[0].message,'What is an NFC card?');
   await page.getByRole('button',{name:'Talk to our team',exact:true}).click();await expect(page.getByLabel('Email for our reply')).toBeVisible();await expect(page.getByText('A real person will reply by email.',{exact:false})).toBeVisible();assert.equal(state.notifications,0);
   await page.getByRole('button',{name:'Close help'}).click();await expect(page.getByRole('link',{name:'Email our team',exact:true})).toHaveAttribute('href','mailto:tap@tapaway.co');await close();
+});
+
+const adminHubs=[
+{id:'22222222-2222-4222-8222-222222222222',kind:'personal',name:'Sugarbloom Cakery',slug:'sugarbloomcakery',payment_state:'complimentary',subscription_status:'trialing',stripe_subscription_id:null,is_approved:true,created_at:'2026-10-19T12:00:00Z',views:140,clicks:42,photo_url:null},
+{id:'33333333-3333-4333-8333-333333333333',kind:'business',name:'Tutti Mangia',slug:'tuttimangiaitalianchophouse',payment_state:'paying',subscription_status:'active',stripe_subscription_id:'sub_fixture',is_approved:true,created_at:'2026-10-18T12:00:00Z',views:203,clicks:80,photo_url:null},
+{id:'44444444-4444-4444-8444-444444444444',kind:'personal',name:'A new connection',slug:'newconnection',payment_state:'unknown_manual',subscription_status:'trialing',stripe_subscription_id:null,is_approved:false,created_at:'2026-10-17T12:00:00Z',views:0,clicks:0,photo_url:null}
+];
+test('Admin: owner overview uses verified billing and keeps gifted trials out of reminders',async()=>{
+ const {page,state,go,close}=await scenario({admin:true,authenticated:true});await go('/admin');
+ await expect(page.getByRole('heading',{name:/Good to see you, Jorge/})).toBeVisible();await expect(page.locator('.aw-revenue')).toContainText('$2,450.50');await expect(page.getByRole('progressbar')).toHaveAttribute('aria-valuenow','24.505');assert.equal(await page.getByText(/trial.*expired|extend trial/i).count(),0);
+ assert.equal(await page.getByRole('navigation',{name:'Admin navigation'}).getByRole('link').count(),6);await screenshot(page,'admin-overview-desktop',true);await close();
+});
+test('Admin: mobile layout and menu stay within the viewport',async()=>{
+ const {page,go,close}=await scenario({admin:true,authenticated:true});for(const width of [320,390,768]){await page.setViewportSize({width,height:844});await go('/admin');await expect(page.getByRole('heading',{name:/Good to see/})).toBeVisible();assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),JSON.stringify(await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth,wide:[...document.querySelectorAll("body *")].filter(e=>e.getBoundingClientRect().right>innerWidth+1).slice(0,12).map(e=>({tag:e.tagName,cls:e.className,right:e.getBoundingClientRect().right}))}))));if(width===390)await screenshot(page,'admin-overview-mobile',true);}
+ await page.getByRole('button',{name:'Open admin menu'}).click();await expect(page.getByRole('dialog')).toBeVisible();await page.getByRole('dialog').getByRole('link',{name:'Hubs & accounts'}).click();await expect(page.getByRole('heading',{name:'Hubs & accounts',exact:true})).toBeVisible();await expect(page.getByRole('dialog')).toHaveCount(0);await close();
+});
+test('Admin: transient role and billing failures recover without losing the workspace',async()=>{
+ const {page,state,go,close}=await scenario({admin:true,authenticated:true,roleFails:1,billingFails:1});await go('/admin');await expect(page.locator('.aw-revenue')).toContainText('$2,450.50',{timeout:15000});assert.ok(state.roleReads>=2);assert.equal(state.billingReads,2);await close();
+});
+test('Admin: failed billing stays honest and can be retried',async()=>{
+ const {page,state,go,close}=await scenario({admin:true,authenticated:true,billingFails:10});await go('/admin');await expect(page.getByRole('button',{name:'Retry billing'})).toBeVisible({timeout:15000});assert.ok(!(await page.locator('.aw-revenue').innerText()).includes('$0'));state.billingFails=0;await page.getByRole('button',{name:'Retry billing'}).click();await expect(page.locator('.aw-revenue')).toContainText('$2,450.50');await close();
+});
+test('Admin: customer role cannot load admin data',async()=>{
+ const {page,state,go,close}=await scenario({authenticated:true});await go('/admin');await expect(page.getByRole('heading',{name:'Admin access required'})).toBeVisible();assert.equal(state.hubReads,undefined);assert.equal(state.billingReads,undefined);await close();
+});
+test('Admin: one directory includes drafts, gifts, accurate labels and direct editor links',async()=>{
+ const {page,go,close}=await scenario({admin:true,authenticated:true});await go('/admin?section=accounts');await expect(page.locator('.aw-directory-row')).toHaveCount(3);await expect(page.getByText('Gift account',{exact:true})).toBeVisible();await expect(page.getByText('No subscription',{exact:true})).toBeVisible();await page.getByRole('textbox',{name:'Search hubs'}).fill('sugar bloom');await expect(page.locator('.aw-directory-row')).toHaveCount(1);await expect(page.getByRole('link',{name:'Edit hub'})).toHaveAttribute('href','/dashboard?admin_view_personal='+adminHubs[0].id);await screenshot(page,'admin-hub-directory');await close();
+});
+test('Admin: instant search and AI route only to existing destinations',async()=>{
+ const {page,go,close}=await scenario({admin:true,authenticated:true});await go('/admin');await page.getByRole('button',{name:'Quick find',exact:true}).click();await page.getByRole('textbox',{name:'Find a hub or tool'}).fill('sugar');await expect(page.getByRole('button',{name:/Sugarbloom Cakery/})).toBeVisible();await page.getByRole('textbox',{name:'Find a hub or tool'}).fill('where do I print my cards');await page.getByRole('button',{name:'Ask AI to find it'}).click();await page.getByRole('button',{name:/Orders & printing/}).click();await expect(page.getByRole('heading',{name:/get cards out the door/})).toBeVisible();await close();
+});
+test('Admin: notification preview saves a draft without sending, and is mobile readable',async()=>{
+ const {page,state,go,close}=await scenario({admin:true,authenticated:true});await page.setViewportSize({width:390,height:844});await go('/admin?section=messages');await page.getByLabel('Headline',{exact:true}).fill('Fresh updates for your hub');await page.getByLabel('Your message',{exact:true}).fill('Your new links are ready to share.');await page.getByRole('button',{name:'Preview & review'}).click();await expect(page.getByRole('dialog')).toContainText('3 customer inboxes');assert.equal(state.savedMessages,1);assert.equal(state.messageSends,undefined);await screenshot(page,'admin-message-preview');await page.getByRole('button',{name:'Keep editing'}).click();assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await close();
+});
+test('Admin: insights separate views, sessions and excluded traffic without invented returning visitors',async()=>{
+ const {page,go,close}=await scenario({admin:true,authenticated:true});await go('/admin/analytics');await expect(page.getByRole('heading',{name:'See what’s connecting.'})).toBeVisible();await expect(page.locator('.aw-quality')).toContainText('50 bot');await expect(page.locator('.aw-insight-stats')).toContainText('2,800');assert.equal(await page.getByRole('heading',{name:'Known returning visitors'}).count(),0);await close();
+});
+test('Login: warm storefront styling and back button work on desktop and phone',async()=>{
+ const {page,go,close}=await scenario();for(const width of [1440,390]){await page.setViewportSize({width,height:900});await go('/auth');await expect(page.getByRole('heading',{name:'Welcome back',exact:true})).toBeVisible();await expect(page.getByRole('link',{name:'Back to TapAway'})).toHaveAttribute('href','/');assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await screenshot(page,'login-'+width,true);}await page.getByRole('link',{name:'Back to TapAway'}).click();await expect(page.locator('.sf-nav')).toBeVisible();await close();
 });
 
 (async()=>{

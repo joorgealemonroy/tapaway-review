@@ -1,3 +1,5 @@
+import AdminWorkspace from "@/components/admin/AdminWorkspace";
+import CustomerNotifications from "@/components/dashboard/CustomerNotifications";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -117,7 +119,7 @@ const Welcome = lazy(() => import("./pages/Welcome"));
 // Keep the storefront's light surface even on a cold, slow route load.
 const PageLoader = () => {
   const { pathname } = useLocation();
-  return <div className={`min-h-screen flex flex-col gap-4 items-center justify-center ${isStorefrontPath(pathname) ? "storefront sf-route-loading" : "bg-background"}`} role="status">
+  return <div className={`min-h-screen flex flex-col gap-4 items-center justify-center ${(isStorefrontPath(pathname) || pathname.startsWith("/admin")) ? "storefront sf-route-loading" : "bg-background"}`} role="status">
     <Loader2 className="h-6 w-6 animate-spin" aria-hidden="true" />
     <span className="text-sm">Loading TapAway…</span>
   </div>;
@@ -160,7 +162,7 @@ const App = () => {
             <Suspense fallback={<PageLoader />}>
               <RepImpersonationOverlay />
               <SiteAnalytics />
-              <Routes>
+              <CustomerNotifications /><AdminWorkspace><Routes>
 
               <Route path="/" element={<Index />} />
                 <Route path="/business" element={<Navigate to="/" replace />} />
@@ -275,7 +277,7 @@ const App = () => {
                 
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
-              </Routes>
+              </Routes></AdminWorkspace>
             </Suspense>
           </ErrorBoundary>
         </AuthProvider>

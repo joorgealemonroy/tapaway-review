@@ -1,14 +1,14 @@
 import { useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { track, setInternalActor } from "@/lib/analytics";
 
 /**
  * Site-wide page-view, time-on-page and scroll-depth tracking.
  *
  * Mounted once inside the router. Private dashboard/admin/auth routes are not
- * tracked at all, so no private route ever enters analytics. Authenticated
- * TapAway sessions are labelled internal rather than counted as customers.
+ * tracked at all, so no private route ever enters analytics. Verified staff sessions are excluded; signed-in customers still count.
  */
 const PRIVATE_PREFIXES = [
   "/dashboard",
@@ -27,19 +27,23 @@ function isPrivate(path: string): boolean {
 
 const SiteAnalytics = () => {
   const location = useLocation();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const { isAdmin, loading: roleLoading } = useAdminAccess();
   const startedAt = useRef<number>(Date.now());
   const maxScroll = useRef(0);
   const lastPath = useRef<string | null>(null);
 
 
   useEffect(() => {
-    setInternalActor(!!user);
-  }, [user]);
+    setInternalActor(isAdmin || ["admin", "sales_rep"].includes(user?.app_metadata?.role || ""));
+  }, [user, isAdmin]);
 
   useEffect(() => {
     const path = location.pathname;
-    if (isPrivate(path)) return;
+    if (authLoading || roleLoading) return;
+    // Dynamic hub routes emit their own hub_view; never count the same opening twice.
+    const sitePaths = ["/", "/personal", "/personal/design", "/support", "/about", "/faq", "/restaurants", "/barbershops", "/salons", "/cafes", "/auto-shops", "/terms", "/privacy", "/refund"];
+    if (isPrivate(path) || !sitePaths.includes(path)) return;
 
     // Route change = one page view. The client guard plus the server-side
     // dedupe window make remounts and refreshes non-duplicating.
@@ -77,7 +81,7 @@ const SiteAnalytics = () => {
       window.removeEventListener("pagehide", flush);
       flush();
     };
-  }, [location.pathname]);
+  }, [location.pathname, authLoading, roleLoading, isAdmin]);
 
   return null;
 };

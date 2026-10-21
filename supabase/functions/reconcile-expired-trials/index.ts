@@ -64,6 +64,8 @@ serve(async (req) => {
       .from(table)
       .select('id, stripe_subscription_id')
       .eq('subscription_status', 'trialing')
+      .neq('payment_state', 'complimentary')
+      .not('stripe_subscription_id', 'is', null)
       .lt('trial_ends_at', cutoff);
 
     if (error) {
@@ -79,14 +81,12 @@ serve(async (req) => {
         try {
           const sub = await stripe.subscriptions.retrieve(row.stripe_subscription_id);
           next = mapStripeStatus(sub.status);
-        } catch {
-          // Subscription gone in Stripe (deleted without webhook delivery).
-          next = 'canceled';
+        } catch (error) {
+          // A timeout or Stripe outage is not a cancellation. Keep the account unchanged.
+          if ((error as {code?:string}).code === 'resource_missing') next = 'canceled';
+          else results.errors.push(`${table}:${row.id}: Stripe could not be checked`);
         }
-      } else {
-        // Trial expired with no billing relationship: never converted.
-        next = 'past_due';
-      }
+      } // Unbilled/gift accounts are never reconciled as failed trials.
 
       if (next && next !== 'trialing') {
         const { error: updErr } = await admin
