@@ -1,5 +1,14 @@
 # Roadmap
 
+## Launch hardening deployment (2026-10-21)
+- [x] Apply reviewed launch-hardening schema once; verify guards, RPC predicates, grants and RLS.
+- [x] Deploy all shared-helper dependents and explicitly requested entrypoints without publishing frontend.
+- [x] Run isolated Stripe checkout/paid lifecycle, commerce, launch-handler and database checks.
+- [x] Verify live Stripe webhook subscriptions, auth redirects, sender DNS and unchanged feature gates.
+- [ ] Configure Resend delivery endpoint and persist signing secret: blocked by unavailable secure runtime-to-Cloud secret transfer.
+- [ ] Send branded test-sink email and verify delivery/log correlation: blocked by signing-secret setup and unavailable runtime service-role logging credentials.
+- [ ] Verify hosted TEST Checkout through activation and email/access before enabling personal buying; personal buying remains off.
+
 - [x] Temporarily hide every /examples entry point (desktop/mobile nav, hero, dashboard mock) while keeping the page reachable by direct URL.
 - [ ] Complete homepage pricing/navigation/theme and honest offer copy using the verified catalog.
 - [ ] Align onboarding summaries, accessible fields, selection persistence and final disclosures.
