@@ -176,6 +176,13 @@
       "when": 1792545289334,
       "tag": "0024_admin_workspace",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1792563996248,
+      "tag": "0025_launch_hardening",
+      "breakpoints": true
     }
   ]
 }
