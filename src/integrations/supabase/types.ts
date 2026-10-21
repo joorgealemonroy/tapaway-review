@@ -1358,6 +1358,8 @@ export type Database = {
       }
       checkout_intents: {
         Row: {
+          activated_at: string | null
+          activation_started_at: string | null
           attribution: Json
           billing_interval: string
           business_details: Json | null
@@ -1382,9 +1384,13 @@ export type Database = {
           user_created_by_purchase: boolean
           user_id: string | null
           verify_email_sent_at: string | null
+          welcome_email_sent_at: string | null
+          welcome_email_started_at: string | null
           welcome_session_issued_at: string | null
         }
         Insert: {
+          activated_at?: string | null
+          activation_started_at?: string | null
           attribution?: Json
           billing_interval: string
           business_details?: Json | null
@@ -1409,9 +1415,13 @@ export type Database = {
           user_created_by_purchase?: boolean
           user_id?: string | null
           verify_email_sent_at?: string | null
+          welcome_email_sent_at?: string | null
+          welcome_email_started_at?: string | null
           welcome_session_issued_at?: string | null
         }
         Update: {
+          activated_at?: string | null
+          activation_started_at?: string | null
           attribution?: Json
           billing_interval?: string
           business_details?: Json | null
@@ -1436,6 +1446,8 @@ export type Database = {
           user_created_by_purchase?: boolean
           user_id?: string | null
           verify_email_sent_at?: string | null
+          welcome_email_sent_at?: string | null
+          welcome_email_started_at?: string | null
           welcome_session_issued_at?: string | null
         }
         Relationships: []
@@ -1952,8 +1964,34 @@ export type Database = {
           },
         ]
       }
+      email_delivery_events: {
+        Row: {
+          event_id: string
+          occurred_at: string
+          received_at: string
+          resend_id: string
+          status: string
+        }
+        Insert: {
+          event_id: string
+          occurred_at: string
+          received_at?: string
+          resend_id: string
+          status: string
+        }
+        Update: {
+          event_id?: string
+          occurred_at?: string
+          received_at?: string
+          resend_id?: string
+          status?: string
+        }
+        Relationships: []
+      }
       email_sends: {
         Row: {
+          delivery_status: string | null
+          delivery_updated_at: string | null
           error: string | null
           id: string
           opened_at: string | null
@@ -1966,6 +2004,8 @@ export type Database = {
           to_email: string
         }
         Insert: {
+          delivery_status?: string | null
+          delivery_updated_at?: string | null
           error?: string | null
           id?: string
           opened_at?: string | null
@@ -1978,6 +2018,8 @@ export type Database = {
           to_email: string
         }
         Update: {
+          delivery_status?: string | null
+          delivery_updated_at?: string | null
           error?: string | null
           id?: string
           opened_at?: string | null
@@ -3194,6 +3236,8 @@ export type Database = {
           tracking: string | null
           updated_at: string
           user_id: string | null
+          welcome_email_sent_at: string | null
+          welcome_email_started_at: string | null
         }
         Insert: {
           activated_at?: string | null
@@ -3224,6 +3268,8 @@ export type Database = {
           tracking?: string | null
           updated_at?: string
           user_id?: string | null
+          welcome_email_sent_at?: string | null
+          welcome_email_started_at?: string | null
         }
         Update: {
           activated_at?: string | null
@@ -3254,6 +3300,8 @@ export type Database = {
           tracking?: string | null
           updated_at?: string
           user_id?: string | null
+          welcome_email_sent_at?: string | null
+          welcome_email_started_at?: string | null
         }
         Relationships: []
       }
@@ -5866,6 +5914,17 @@ export type Database = {
         }
         Returns: boolean
       }
+      hub_access_allowed: {
+        Args: {
+          _approved: boolean
+          _created: string
+          _payment: string
+          _status: string
+          _subscription: string
+          _trial_end: string
+        }
+        Returns: boolean
+      }
       hub_analytics_summary: {
         Args: { _hub_id: string; _since?: string; _until?: string }
         Returns: {
@@ -5903,6 +5962,15 @@ export type Database = {
       profile_has_active_card: { Args: { _user_id: string }; Returns: boolean }
       recompute_closer_pool: {
         Args: { _period_label: string; _rep_id: string }
+        Returns: undefined
+      }
+      record_email_delivery: {
+        Args: {
+          _event_id: string
+          _occurred_at: string
+          _resend_id: string
+          _status: string
+        }
         Returns: undefined
       }
       record_sms_optin: {
