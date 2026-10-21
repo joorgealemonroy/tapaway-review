@@ -1954,8 +1954,6 @@ export type Database = {
       }
       email_sends: {
         Row: {
-          delivery_status: string | null
-          delivery_updated_at: string | null
           error: string | null
           id: string
           opened_at: string | null
@@ -1968,8 +1966,6 @@ export type Database = {
           to_email: string
         }
         Insert: {
-          delivery_status?: string | null
-          delivery_updated_at?: string | null
           error?: string | null
           id?: string
           opened_at?: string | null
@@ -1982,8 +1978,6 @@ export type Database = {
           to_email: string
         }
         Update: {
-          delivery_status?: string | null
-          delivery_updated_at?: string | null
           error?: string | null
           id?: string
           opened_at?: string | null
