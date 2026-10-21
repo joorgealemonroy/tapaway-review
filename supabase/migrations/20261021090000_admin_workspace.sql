@@ -1,3 +1,4 @@
+BEGIN;
 -- Owner workspace. No account reclassification, campaign sends, or billing mutations.
 CREATE OR REPLACE FUNCTION public.admin_workspace_hubs()
 RETURNS jsonb LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public AS $$
@@ -46,27 +47,29 @@ CREATE TABLE public.admin_announcements (
  cta_label text CHECK(cta_label IS NULL OR length(cta_label) BETWEEN 1 AND 60),
  recipient_ids uuid[] NOT NULL DEFAULT '{}',
  status text NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','sent')),
- created_by uuid NOT NULL REFERENCES auth.users(id),
+ created_by uuid NOT NULL, -- Auth user identifier; no application FK into the managed auth schema.
  created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), sent_at timestamptz,
  CHECK ((cta_path IS NULL) = (cta_label IS NULL))
 );
+REVOKE ALL ON public.admin_announcements FROM PUBLIC,anon,authenticated;
+GRANT ALL ON public.admin_announcements TO service_role;
+GRANT SELECT ON public.admin_announcements TO authenticated;
 ALTER TABLE public.admin_announcements ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Admins read announcements" ON public.admin_announcements FOR SELECT TO authenticated USING(public.is_admin());
-REVOKE ALL ON public.admin_announcements FROM anon,authenticated;
-GRANT SELECT ON public.admin_announcements TO authenticated;
 CREATE TABLE public.customer_notifications (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
  announcement_id uuid NOT NULL REFERENCES public.admin_announcements(id),
- user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+ user_id uuid NOT NULL, -- RLS binds this identifier to the verified auth.uid().
  title text NOT NULL, body text NOT NULL, kind text NOT NULL, cta_path text, cta_label text,
  created_at timestamptz NOT NULL DEFAULT now(), read_at timestamptz,
  UNIQUE(announcement_id,user_id)
 );
 CREATE INDEX customer_notifications_inbox ON public.customer_notifications(user_id,created_at DESC);
+REVOKE ALL ON public.customer_notifications FROM PUBLIC,anon,authenticated;
+GRANT ALL ON public.customer_notifications TO service_role;
+GRANT SELECT ON public.customer_notifications TO authenticated;
 ALTER TABLE public.customer_notifications ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Customers read own inbox" ON public.customer_notifications FOR SELECT TO authenticated USING(user_id=auth.uid());
-REVOKE ALL ON public.customer_notifications FROM anon,authenticated;
-GRANT SELECT ON public.customer_notifications TO authenticated;
 
 CREATE FUNCTION public.admin_notification_recipients(_audience text)
 RETURNS uuid[] LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$
@@ -144,3 +147,5 @@ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION public.admin_workspace_insights(integer) FROM PUBLIC,anon;
 GRANT EXECUTE ON FUNCTION public.admin_workspace_insights(integer) TO authenticated;
+
+COMMIT;

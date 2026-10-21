@@ -30,4 +30,8 @@ Insights and directory counts use analytics_hits, validated human traffic, and s
 - Frontend and changed edge-handler TypeScript checks; production Vite build.
 - Targeted existing storefront regression checks.
 
+Provider readiness: all six functions deployed and compiled at 87dd489. The actual Stripe 22.6.0/API 2026-08-26.dahlia read-only probe returned 35 total live subscriptions, 9 supported paid-active subscriptions, zero current trials and zero unsupported pricing contracts. The real AI gateway returned the allowlisted orders destination. These were direct provider checks, not authenticated endpoint tests.
+
+The migration uses plain auth user identifiers (no foreign keys into the managed auth schema), explicit service-role grants, browser SELECT-only grants and RLS in one transaction. Send still validates recipients against existing auth users.
+
 Backend migration: 20261021090000_admin_workspace.sql. Functions: admin-billing-summary, admin-navigator, track, trial-followup, trial-ending-email, reconcile-expired-trials. Production frontend remains unpublished; review in Lovable first. Existing personal commerce live gate remains unchanged.
