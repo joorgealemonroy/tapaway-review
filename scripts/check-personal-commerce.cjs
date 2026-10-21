@@ -50,6 +50,7 @@ class Query {
     const rows = this.db.rows(this.table); let found = rows.filter(r => this.filters.every(f => f(r)));
     if (this.action === 'insert' || this.action === 'upsert') {
       found = []; for (const input of Array.isArray(this.value) ? this.value : [this.value]) {
+        if (this.table === 'review_request_sends' && rows.some(r => r.phone_hash === input.phone_hash && r.profile_id === input.profile_id && r.restaurant_id === input.restaurant_id)) return Promise.resolve({data:null,error:{code:'23505',message:'Duplicate review request'}}).then(resolve,reject);
         const key = this.options?.onConflict || 'id', existing = rows.find(r => input[key] != null && r[key] === input[key]);
         if (existing && this.action === 'insert') return Promise.resolve({ data: null, error: { message: 'Duplicate' } }).then(resolve,reject);
         if (existing) { if (!this.options.ignoreDuplicates) Object.assign(existing, plain(input)); found.push(existing); }
