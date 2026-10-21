@@ -3032,6 +3032,7 @@ export type Database = {
           created_at: string
           email: string
           expires_at: string
+          failed_attempts: number
           id: string
           verified_at: string | null
         }
@@ -3040,6 +3041,7 @@ export type Database = {
           created_at?: string
           email: string
           expires_at: string
+          failed_attempts?: number
           id?: string
           verified_at?: string | null
         }
@@ -3048,6 +3050,7 @@ export type Database = {
           created_at?: string
           email?: string
           expires_at?: string
+          failed_attempts?: number
           id?: string
           verified_at?: string | null
         }
@@ -5948,6 +5951,10 @@ export type Database = {
         Args: { check_username: string }
         Returns: boolean
       }
+      issue_account_otp: {
+        Args: { _code_hash: string; _email: string }
+        Returns: string
+      }
       legacy_allowance_status: {
         Args: { _key: string; _since: string }
         Returns: {
@@ -6084,6 +6091,10 @@ export type Database = {
           inserted: number
           updated: number
         }[]
+      }
+      verify_account_otp: {
+        Args: { _code_hash: string; _consume?: boolean; _email: string }
+        Returns: boolean
       }
     }
     Enums: {

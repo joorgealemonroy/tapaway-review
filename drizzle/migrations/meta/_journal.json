@@ -197,6 +197,13 @@
       "when": 1792566432090,
       "tag": "0027_private_profile_records",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1792598028671,
+      "tag": "0028_account_verification_guard",
+      "breakpoints": true
     }
   ]
 }
