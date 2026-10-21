@@ -9,8 +9,10 @@ import {
   type Hub,
 } from "@/lib/admin/workspace";
 import { toast } from "sonner";
+import RequireHubPaymentDialog, { type HubPaymentTarget } from "./RequireHubPaymentDialog";
 export default function AdminHubs() {
   const hubs = useAdminHubs();
+  const [paymentTarget, setPaymentTarget] = useState<HubPaymentTarget>(null);
   const [search, setSearch] = useState(""),
     [filter, setFilter] = useState("all"),
     [busy, setBusy] = useState("");
@@ -20,7 +22,8 @@ export default function AdminHubs() {
       (h) =>
         (filter === "all" ||
           (filter === "gift" && h.payment_state === "complimentary") ||
-          (filter === "live" && h.is_approved) ||
+          (filter === "live" && h.is_approved && h.payment_state !== "payment_required") ||
+          (filter === "payment" && h.payment_state === "payment_required") ||
           (filter === "draft" && !h.is_approved)) &&
         (!q ||
           `${h.name}${h.slug}`
@@ -87,6 +90,7 @@ export default function AdminHubs() {
           <option value="live">Live hubs</option>
           <option value="draft">Drafts & review</option>
           <option value="gift">Gift accounts</option>
+          <option value="payment">Payment required</option>
         </select>
       </div>
       {hubs.isError && (
@@ -121,10 +125,10 @@ export default function AdminHubs() {
             <div className="aw-hub-badges">
               <span
                 className={
-                  h.is_approved ? "aw-badge aw-badge-green" : "aw-badge"
+                  h.is_approved && h.payment_state !== "payment_required" ? "aw-badge aw-badge-green" : "aw-badge"
                 }
               >
-                {h.is_approved ? "Live" : "Draft / review"}
+                {h.payment_state === "payment_required" ? "Paused" : h.is_approved ? "Live" : "Draft / review"}
               </span>
               <span className="aw-caption">{billingLabel(h)}</span>
             </div>
@@ -136,7 +140,7 @@ export default function AdminHubs() {
                 <strong>{h.clicks.toLocaleString()}</strong> clicks
               </span>
             </div>
-            <div className="aw-hub-actions">
+            <div className="aw-hub-actions flex-wrap">
               <Link className="aw-small-button" to={hubEditPath(h)}>
                 Edit hub <ArrowUpRight size={15} />
               </Link>
@@ -152,7 +156,7 @@ export default function AdminHubs() {
                 </a>
               )}
               {!h.stripe_subscription_id &&
-                h.payment_state !== "complimentary" && (
+                h.payment_state !== "complimentary" && h.payment_state !== "payment_required" && (
                   <button
                     className="aw-icon-button"
                     disabled={busy === h.id}
@@ -163,6 +167,11 @@ export default function AdminHubs() {
                     <Gift size={17} />
                   </button>
                 )}
+              {h.kind === "personal" && h.is_approved && !h.stripe_subscription_id && h.payment_state !== "complimentary" && h.payment_state !== "payment_required" && (
+                <button className="aw-small-button" onClick={() => setPaymentTarget({ id: h.id, name: h.name, slug: h.slug })}>
+                  Require payment
+                </button>
+              )}
             </div>
           </article>
         ))}
@@ -176,6 +185,7 @@ export default function AdminHubs() {
         “No subscription” means no Stripe subscription is linked. Use the gift
         icon only for accounts you’ve given free access.
       </p>
+      <RequireHubPaymentDialog target={paymentTarget} onClose={() => setPaymentTarget(null)} onSaved={async () => { await hubs.refetch(); }} />
     </>
   );
 }

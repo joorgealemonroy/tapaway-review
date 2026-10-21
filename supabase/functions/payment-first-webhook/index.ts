@@ -7,6 +7,7 @@ import Stripe from "https://esm.sh/stripe@14.21.0";
 import { admin, getStripe, ONBOARDING_VERSION, stripeMode, webhookSecret } from "../_shared/paymentFirst.ts";
 import { activatePersonalOrder, syncPersonalSubscription, PERSONAL_VERSION } from "../_shared/personalCards.ts";
 import { activateCheckout, syncMembership, syncBusinessSubscription } from "../_shared/paymentFirstActivation.ts";
+import { activateHubPayment, syncHubPaymentSubscription, holdHubPaymentForCharge, HUB_PAYMENT_VERSION } from "../_shared/hubPaymentActivation.ts";
 
 /** Subscription id on an invoice across Stripe API versions. */
 export function invoiceSubscriptionId(inv: Record<string, any>): string | null {
@@ -74,10 +75,11 @@ serve(async (req) => {
       const s = event.data.object as Stripe.Checkout.Session;
       if (s.metadata?.onboarding_version === ONBOARDING_VERSION) await activateCheckout(stripe, s);
       if (s.metadata?.commerce_version === PERSONAL_VERSION) await activatePersonalOrder(stripe, s);
+      if (s.metadata?.commerce_version === HUB_PAYMENT_VERSION) await activateHubPayment(stripe, s);
     } else if (event.type === "invoice.paid") {
       const inv = event.data.object as Stripe.Invoice;
       const sub = invoiceSubscriptionId(inv as unknown as Record<string, any>);
-      if (sub) { await syncPersonalSubscription(stripe, sub); await syncBusinessSubscription(stripe, sub); await syncLegacySubscription(stripe, sub); }
+      if (sub && !(await syncHubPaymentSubscription(stripe, sub))) { await syncPersonalSubscription(stripe, sub); await syncBusinessSubscription(stripe, sub); await syncLegacySubscription(stripe, sub); }
       if (sub && inv.amount_paid > 0) {
         const { data: m } = await db.from("card_club_memberships").select("*").eq("card_club_stripe_subscription_id", sub).maybeSingle();
         const paidClubLine = m && (m.card_club_stripe_subscription_id !== m.main_stripe_subscription_id || inv.lines.data.some(line => invoiceLineMatchesClub(line, m)));
@@ -92,9 +94,11 @@ serve(async (req) => {
       const obj = event.data.object as unknown as Record<string, any>;
       const sub = obj.object === "invoice" ? invoiceSubscriptionId(obj) : (obj.id as string);
       if (sub && /^sub_[A-Za-z0-9]+$/.test(sub)) {
-        await syncPersonalSubscription(stripe, sub);
-        await syncBusinessSubscription(stripe, sub);
-        await syncLegacySubscription(stripe, sub);
+        if (!(await syncHubPaymentSubscription(stripe, sub))) {
+          await syncPersonalSubscription(stripe, sub);
+          await syncBusinessSubscription(stripe, sub);
+          await syncLegacySubscription(stripe, sub);
+        }
         const { data: ms } = await db.from("card_club_memberships").select("*")
           .or(`card_club_stripe_subscription_id.eq.${sub},main_stripe_subscription_id.eq.${sub}`);
         for (const m of ms ?? []) await syncMembership(stripe, db, m);
@@ -102,11 +106,17 @@ serve(async (req) => {
     }
     if (["charge.refunded", "charge.dispute.created"].includes(event.type)) {
       const obj = event.data.object as unknown as Record<string, any>;
-      const charge = event.type === "charge.dispute.created" ? await stripe.charges.retrieve(typeof obj.charge === "string" ? obj.charge : obj.charge.id) : obj;
+      const chargeId = event.type === "charge.dispute.created" ? (typeof obj.charge === "string" ? obj.charge : obj.charge?.id) : obj.id;
+      if (typeof chargeId !== "string" || !chargeId) throw new Error("Missing charge reference");
+      // Retrieve using our pinned API version. A newer event envelope may omit
+      // invoice, and a stale refund event is not the current refund state.
+      const charge = await stripe.charges.retrieve(chargeId);
+      if (charge.livemode !== event.livemode) throw new Error("Charge environment mismatch");
       const payment = typeof charge.payment_intent === "string" ? charge.payment_intent : charge.payment_intent?.id;
       const invoiceId = typeof charge.invoice === "string" ? charge.invoice : charge.invoice?.id;
       const invoice = invoiceId ? await stripe.invoices.retrieve(invoiceId) : null;
       const subscription = invoice ? invoiceSubscriptionId(invoice as unknown as Record<string, any>) : null;
+      await holdHubPaymentForCharge(stripe, event.type, event.id, charge, subscription);
       // A later $5 hosting refund must not refund or stop the original physical-card order.
       const originalPurchase = !invoice || invoice.billing_reason === "subscription_create";
       if (originalPurchase && (payment || subscription)) {

@@ -171,3 +171,6 @@ verify_jwt = false
 
 [functions.email-delivery-check]
 verify_jwt = false
+
+[functions.hub-payment-request]
+verify_jwt = false

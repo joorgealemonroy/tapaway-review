@@ -147,6 +147,28 @@ serve(async (req) => {
 // New personal-card commerce is owned by payment-first-webhook. Never run legacy
     // trial verification, business commissions, or plan downgrades on these orders.
     const commerceObject = event.data.object as unknown as Record<string, any>;
+    // Hub reactivation has its own paid-invoice validation and atomic fulfillment.
+    // Never let the legacy checkout path create a restaurant or grant an account.
+    let hubPayment = commerceObject.metadata?.commerce_version === 'hub_payment_v1'
+      || commerceObject.subscription_details?.metadata?.commerce_version === 'hub_payment_v1'
+      || commerceObject.parent?.subscription_details?.metadata?.commerce_version === 'hub_payment_v1';
+    const hubSubscription = commerceObject.object === 'subscription' ? commerceObject.id
+      : typeof commerceObject.subscription === 'string' ? commerceObject.subscription
+      : commerceObject.subscription?.id || commerceObject.parent?.subscription_details?.subscription;
+    if (!hubPayment && typeof hubSubscription === 'string' && /^sub_[A-Za-z0-9]+$/.test(hubSubscription)) {
+      const { data: ownedRequest, error: requestError } = await idempotencyAdmin.from('hub_payment_requests')
+        .select('profile_id').eq('stripe_subscription_id', hubSubscription).maybeSingle();
+      if (requestError) throw requestError;
+      hubPayment = !!ownedRequest;
+      if (!hubPayment && commerceObject.object === 'invoice') {
+        const current = await stripe.subscriptions.retrieve(hubSubscription);
+        hubPayment = current.metadata?.commerce_version === 'hub_payment_v1';
+      }
+    }
+    if (hubPayment) {
+      if (ownsClaim) await markStripeEventProcessed();
+      return new Response(JSON.stringify({ received: true, skipped: 'hub_payment' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
     let personalCommerce = commerceObject.metadata?.commerce_version === 'personal_cards_v1'
       || commerceObject.subscription_details?.metadata?.commerce_version === 'personal_cards_v1'
       || commerceObject.parent?.subscription_details?.metadata?.commerce_version === 'personal_cards_v1';

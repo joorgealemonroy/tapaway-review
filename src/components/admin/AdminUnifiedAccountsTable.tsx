@@ -17,6 +17,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import HubAnalyticsDialog, { HubAnalyticsTarget } from "@/components/admin/HubAnalyticsDialog";
 import CloseSaleDialog, { CloseSaleTarget } from "@/components/admin/CloseSaleDialog";
+import RequireHubPaymentDialog, { type HubPaymentTarget } from "@/components/admin/RequireHubPaymentDialog";
 import { toast } from "sonner";
 import {
   ArrowLeftRight,
@@ -47,6 +48,7 @@ type UnifiedRow = {
   slug: string | null;
   plan_type: string | null;
   subscription_status: string | null;
+  stripe_subscription_id?: string | null;
   /** 'complimentary' = gifted: never billed, never broadcast-chased. */
   payment_state?: string | null;
   is_approved: boolean | null;
@@ -191,6 +193,7 @@ const AdminUnifiedAccountsTable = () => {
 
   const [analyticsTarget, setAnalyticsTarget] = useState<HubAnalyticsTarget | null>(null);
   const [closeSaleTarget, setCloseSaleTarget] = useState<CloseSaleTarget>(null);
+  const [paymentTarget, setPaymentTarget] = useState<HubPaymentTarget>(null);
 
 
   useEffect(() => {
@@ -217,7 +220,7 @@ const AdminUnifiedAccountsTable = () => {
         const { data: restaurants, error: rErr } = await supabase
           .from("restaurants")
           .select(
-            "id, restaurant_name, custom_slug, plan_type, subscription_status, payment_state, is_approved, created_at, updated_at, logo_url"
+            "id, restaurant_name, custom_slug, plan_type, subscription_status, stripe_subscription_id, payment_state, is_approved, created_at, updated_at, logo_url"
           );
         if (rErr) throw rErr;
 
@@ -225,7 +228,7 @@ const AdminUnifiedAccountsTable = () => {
         const { data: profiles, error: pErr } = await supabase
           .from("personal_profiles")
           .select(
-            "id, user_id, username, full_name, plan_type, subscription_status, payment_state, is_approved, pipeline_status, created_at, updated_at, profile_photo_url, sales_rep_id, created_by_rep_id, card_print_pdf_path"
+            "id, user_id, username, full_name, plan_type, subscription_status, stripe_subscription_id, payment_state, is_approved, pipeline_status, created_at, updated_at, profile_photo_url, sales_rep_id, created_by_rep_id, card_print_pdf_path"
           );
         if (pErr) throw pErr;
 
@@ -275,6 +278,7 @@ const AdminUnifiedAccountsTable = () => {
           slug: r.custom_slug ?? null,
           plan_type: r.plan_type ?? null,
           subscription_status: r.subscription_status ?? null,
+          stripe_subscription_id: r.stripe_subscription_id ?? null,
           payment_state: (r as { payment_state?: string | null }).payment_state ?? null,
           is_approved: r.is_approved ?? null,
           created_at: r.created_at ?? null,
@@ -300,6 +304,7 @@ const AdminUnifiedAccountsTable = () => {
             slug: p.username ?? null,
             plan_type: p.plan_type ?? null,
             subscription_status: p.subscription_status ?? null,
+            stripe_subscription_id: p.stripe_subscription_id ?? null,
             payment_state: (p as { payment_state?: string | null }).payment_state ?? null,
             is_approved: p.is_approved ?? null,
             created_at: p.created_at ?? null,
@@ -962,7 +967,7 @@ const AdminUnifiedAccountsTable = () => {
                           : "bg-white/[0.04] text-white/50"
                       }`}
                     >
-                      {r.subscription_status ?? "Not available"}
+                      {r.payment_state === "payment_required" ? "Payment required" : r.subscription_status ?? "Not available"}
                     </span>
                     {r.payment_state === "complimentary" && (
                       <span
@@ -1013,7 +1018,7 @@ const AdminUnifiedAccountsTable = () => {
                       {/* Complimentary toggle. One tap, any account */}
                       <Button
                         onClick={() => toggleComplimentary(r)}
-                        disabled={gifting === r.id}
+                        disabled={gifting === r.id || r.payment_state === "payment_required"}
                         size="icon"
                         variant="ghost"
                         className={`h-10 w-10 ${
@@ -1097,7 +1102,12 @@ const AdminUnifiedAccountsTable = () => {
                           <FileText className="h-3.5 w-3.5" />
                         </Button>
                       )}
-                      {r.kind === "lite" && r.subscription_status !== "active" && (
+                      {r.kind === "lite" && r.is_approved && !r.stripe_subscription_id && r.payment_state !== "complimentary" && r.payment_state !== "payment_required" && (
+                        <Button onClick={() => setPaymentTarget({ id: r.id, name: r.name, slug: r.slug })} size="sm" variant="outline" className="h-10 px-3 text-xs">
+                          Require payment
+                        </Button>
+                      )}
+                      {r.kind === "lite" && r.subscription_status !== "active" && r.payment_state !== "payment_required" && (
                         <Button
                           onClick={() => setCloseSaleTarget({ id: r.id, name: r.name })}
                           size="sm"
@@ -1174,7 +1184,7 @@ const AdminUnifiedAccountsTable = () => {
                           : "bg-white/[0.04] text-white/50"
                       }`}
                     >
-                      {r.subscription_status ?? "Not available"}
+                      {r.payment_state === "payment_required" ? "Payment required" : r.subscription_status ?? "Not available"}
                     </span>
                     {(r.pipeline ?? "live") !== "live" && (
                       <span className={`inline-flex items-center px-1.5 py-px rounded-full text-[10px] ${PIPELINE_META[r.pipeline ?? "live"].cls}`}>
@@ -1188,7 +1198,7 @@ const AdminUnifiedAccountsTable = () => {
                   <div className="text-[10px] text-white/40">taps</div>
                 </div>
               </div>
-              <div className="flex items-center gap-1.5 mt-2.5">
+              <div className="flex flex-wrap items-center gap-1.5 mt-2.5">
                 <Button
                   onClick={() => openDashboard(r)}
                   size="sm"
@@ -1230,7 +1240,12 @@ const AdminUnifiedAccountsTable = () => {
                 >
                   {notifying === r.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <BellRing className="h-4 w-4" />}
                 </Button>
-                {r.kind === "lite" && r.subscription_status !== "active" && (
+                {r.kind === "lite" && r.is_approved && !r.stripe_subscription_id && r.payment_state !== "complimentary" && r.payment_state !== "payment_required" && (
+                        <Button onClick={() => setPaymentTarget({ id: r.id, name: r.name, slug: r.slug })} size="sm" variant="outline" className="h-10 px-3 text-xs">
+                          Require payment
+                        </Button>
+                      )}
+                      {r.kind === "lite" && r.subscription_status !== "active" && r.payment_state !== "payment_required" && (
                   <Button
                     onClick={() => setCloseSaleTarget({ id: r.id, name: r.name })}
                     size="sm"
@@ -1251,6 +1266,9 @@ const AdminUnifiedAccountsTable = () => {
 
       <HubAnalyticsDialog target={analyticsTarget} onClose={() => setAnalyticsTarget(null)} />
       <CloseSaleDialog target={closeSaleTarget} onClose={() => setCloseSaleTarget(null)} />
+      <RequireHubPaymentDialog target={paymentTarget} onClose={() => setPaymentTarget(null)} onSaved={profileId => {
+        setRows(current => current.map(row => row.id === profileId && row.kind === "lite" ? { ...row, payment_state: "payment_required" } : row));
+      }} />
     </div>
   );
 

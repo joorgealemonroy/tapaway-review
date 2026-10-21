@@ -207,7 +207,9 @@ export const adminDestinations = [
 export const hubEditPath = (hub: Hub) =>
   `/dashboard?${hub.kind === "business" ? "admin_view" : "admin_view_personal"}=${encodeURIComponent(hub.id)}`;
 export const billingLabel = (hub: Hub) =>
-  hub.payment_state === "complimentary"
+  hub.payment_state === "payment_required"
+    ? "Payment required"
+    : hub.payment_state === "complimentary"
     ? "Gift account"
     : !hub.stripe_subscription_id
       ? "No subscription"

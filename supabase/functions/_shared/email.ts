@@ -395,6 +395,8 @@ export interface SendEmailOptions {
   /** Optional account correlation. Powers dedup checks without extra queries. */
   profileId?: string | null;
   attachments?: Array<{ filename: string; content: string }>;
+  /** Stable operation key for safely retrying transactional provider requests. */
+  idempotencyKey?: string;
 }
 
 export interface SendEmailResult {
@@ -438,6 +440,7 @@ export async function sendEmailAndLog(opts: SendEmailOptions): Promise<SendEmail
       headers: {
         Authorization: `Bearer ${resendApiKey}`,
         "Content-Type": "application/json",
+        ...(opts.idempotencyKey ? { "Idempotency-Key": opts.idempotencyKey } : {}),
       },
       body: JSON.stringify({
         from: opts.from || Deno.env.get("EMAIL_FROM") || DEFAULT_FROM,

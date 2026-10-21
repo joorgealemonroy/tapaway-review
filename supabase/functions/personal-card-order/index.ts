@@ -17,6 +17,7 @@ import {
   publicLink,
 } from "../_shared/personalCards.ts";
 import { hashValue, takeQuota } from "../_shared/storefrontRateLimit.ts";
+import { readLimitedText } from "../_shared/requestBody.ts";
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 const plain = (x: unknown, max: number) =>
   typeof x === "string" && x.length <= max ? x.trim() : "";
@@ -27,14 +28,21 @@ serve(async (req) => {
     claimedRevision: string | null = null;
   const db = admin();
   try {
-    const raw = await req.text();
-    if (raw.length > 19000000)
-      return json(
-        { error: "Artwork is too large. Try fewer image files." },
-        413,
-      );
-    const body = JSON.parse(raw),
-      stripe = getStripe();
+    // Reject excessive requests before reading a potentially large artwork body.
+    // Status checks and checkout attempts retain their separate, tighter limits.
+    if ((await takeQuota(req, "personal-request", 150)) < 0)
+      return json({ error: "Please try again later." }, 429);
+    let body;
+    try {
+      body = JSON.parse(await readLimitedText(req, 19000000));
+      if (!body || typeof body !== "object" || Array.isArray(body))
+        return json({ error: "Invalid order request." }, 400);
+    } catch (error) {
+      return error instanceof Error && error.message === "Request too large"
+        ? json({ error: "Artwork is too large. Try fewer image files." }, 413)
+        : json({ error: "Invalid order request." }, 400);
+    }
+    const stripe = getStripe();
     if (body.action === "status") {
       if (!/^cs_(test_|live_)?[A-Za-z0-9]{10,220}$/.test(body.sessionId || ""))
         return json({ error: "Invalid order link." }, 400);
@@ -351,7 +359,6 @@ serve(async (req) => {
     const session = await stripe.checkout.sessions.create(
       {
         mode: hubPrice ? "subscription" : "payment",
-        payment_method_types: ["card"],
         ...(hubPrice
           ? {
               subscription_data: {

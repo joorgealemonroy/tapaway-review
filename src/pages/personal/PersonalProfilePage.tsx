@@ -1041,13 +1041,13 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
   // Loading skeleton - minimal, fast to render
   if (loading) {
     return (
-      <div className="min-h-screen bg-black">
-        <div className="h-32 bg-white/10 animate-pulse" />
+      <div className="min-h-screen bg-[#faf8f1]">
+        <div className="h-32 bg-[#e5ecdF] animate-pulse" />
         <div className="max-w-md mx-auto px-4 -mt-16 pb-12">
-          <div className="h-28 w-28 rounded-full bg-white/10 animate-pulse border-4 border-black" />
+          <div className="h-28 w-28 rounded-full bg-[#e5ecdf] animate-pulse border-4 border-[#faf8f1]" />
           <div className="mt-4 space-y-2">
-            <div className="h-6 w-40 bg-white/10 animate-pulse rounded" />
-            <div className="h-4 w-24 bg-white/10 animate-pulse rounded" />
+            <div className="h-6 w-40 bg-[#e5ecdf] animate-pulse rounded" />
+            <div className="h-4 w-24 bg-[#e5ecdf] animate-pulse rounded" />
           </div>
         </div>
       </div>

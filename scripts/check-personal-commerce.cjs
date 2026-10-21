@@ -227,7 +227,8 @@ async function main(){
     const s=environment(),h=await load('supabase/functions/payment-first-webhook/index.ts',s);
     const order={id:randomUUID(),stripe_livemode:false,stripe_subscription_id:'sub_personal',status:'paid',production_status:'needs_review'};s.db.rows('personal_card_orders').push(order);
     s.stripe.invoices={retrieve:async id=>({id,subscription:'sub_personal',billing_reason:id==='in_initial'?'subscription_create':'subscription_cycle'})};
-    const deliver=async(id,invoice,refunded)=>{const payload=JSON.stringify({id,type:'charge.refunded',created:Math.floor(Date.now()/1000),livemode:false,data:{object:{id:'ch_fixture',payment_intent:'pi_fixture',invoice,refunded}}});return h(new Request('https://functions.invalid/webhook',{method:'POST',headers:{'stripe-signature':stripeVerifier.webhooks.generateTestHeaderString({payload,secret:'whsec_fixture'})},body:payload}));};
+    let currentCharge;s.stripe.charges={retrieve:async()=>currentCharge};
+    const deliver=async(id,invoice,refunded)=>{currentCharge={id:'ch_fixture',livemode:false,payment_intent:'pi_fixture',invoice,refunded};const payload=JSON.stringify({id,type:'charge.refunded',created:Math.floor(Date.now()/1000),livemode:false,data:{object:currentCharge}});return h(new Request('https://functions.invalid/webhook',{method:'POST',headers:{'stripe-signature':stripeVerifier.webhooks.generateTestHeaderString({payload,secret:'whsec_fixture'})},body:payload}));};
     assert.equal((await deliver('evt_renewal_refund','in_renewal',true)).status,200);assert.equal(order.status,'paid');assert.equal(order.production_status,'needs_review');
     assert.equal((await deliver('evt_partial_refund','in_initial',false)).status,200);assert.equal(order.status,'paid');assert.equal(order.production_status,'on_hold');
     assert.equal((await deliver('evt_initial_refund','in_initial',true)).status,200);assert.equal(order.status,'refunded');
