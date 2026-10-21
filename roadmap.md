@@ -3,9 +3,11 @@
 ## Reviewed follow-up deployment (2026-10-21, 4e317cda)
 - [x] Verify exact reviewed commit and deploy claim privacy migration once.
 - [x] Deploy payment-first webhook, claim checkout and discovered email-helper dependents; preserve all flags and frontend publication state.
-- [ ] Run isolated database, launch-handler and commerce checks; audit runtime dependencies.
-- [ ] Complete one hosted Stripe TEST checkout and isolated activation, or clean up and record the browser blocker.
-- [ ] Confirm safe shared-logger test-send availability; document Resend signing-secret setup without creating an orphan endpoint.
+- [x] Run isolated checks: database 11/11, launch handlers 13/13, commerce 24/24, browser fixtures 44/44; production dependency audit reports zero vulnerabilities.
+- [x] Attempt one hosted Stripe TEST checkout; browser submit remained on Stripe without a completion/error, API reported open/unpaid; verify refused activation and cleanup expired the session. No CAPTCHA/protection bypass.
+- [x] Inspect shared-logger send paths: no authenticated sink-only path available without account state or other recipients. No email sent; signing secret absent and no provider endpoint created.
+- [ ] Resend delivery setup requires owner to create the delivery webhook in Resend and enter its signing secret in Project Settings → Secrets; delivery correlation remains unverified.
+- [ ] Hosted TEST payment and isolated activation remain unverified after the browser submission blocker; real email/access/login checks are separate. Personal buying remains off.
 
 ## Launch hardening deployment (2026-10-21)
 - [x] Apply reviewed launch-hardening schema once; verify guards, RPC predicates, grants and RLS.
