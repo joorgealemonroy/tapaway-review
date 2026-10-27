@@ -35,7 +35,7 @@ function preloadCriticalImages(data: ProfileData): void {
 
   urls.forEach(url => {
     const optimized = getOptimizedImageUrl(url, 640, 85);
-    const existing = document.querySelector(`link[rel="preload"][href="${optimized}"]`);
+    const existing = Array.from(document.querySelectorAll<HTMLLinkElement>('link[rel="preload"]')).some(link => link.getAttribute("href") === optimized);
     if (existing) return;
     const link = document.createElement('link');
     link.rel = 'preload';

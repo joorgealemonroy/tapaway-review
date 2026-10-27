@@ -1,9 +1,10 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Resend } from "https://esm.sh/resend@2.0.0";
+import { sendEmailAndLog } from "../_shared/email.ts";
+import { takeQuota } from "../_shared/storefrontRateLimit.ts";
+import { readLimitedText } from "../_shared/requestBody.ts";
 import { escapeHtml, sanitizeText, validateFieldLengths } from "../_shared/sanitize.ts";
 import { checkRateLimit, getRateLimitKey, rateLimitResponse } from "../_shared/rateLimit.ts";
 
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,6 +13,7 @@ const corsHeaders = {
 };
 
 interface SupportNotificationRequest {
+  website?: string;
   requestType: string;
   name: string;
   businessName: string;
@@ -35,6 +37,8 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  if (req.method !== "POST") return new Response("Method not allowed", { status: 405, headers: corsHeaders });
+
   // Anti-spam throttle: 5 support emails per IP per hour.
   if (!checkRateLimit(getRateLimitKey(req, "support-notification"), 5, 60 * 60 * 1000)) {
     return rateLimitResponse(corsHeaders);
@@ -42,17 +46,24 @@ const handler = async (req: Request): Promise<Response> => {
 
 
   try {
-    const data: SupportNotificationRequest = await req.json();
+    const data: SupportNotificationRequest = JSON.parse(await readLimitedText(req, 16000));
 
     // M-10 honeypot: bots fill the hidden "website" field. Silently pretend
     // success so the bot learns nothing (no email is sent).
-    if (typeof (data as Record<string, unknown>).website === "string" &&
-        ((data as Record<string, unknown>).website as string).trim().length > 0) {
+    if (typeof data?.website === "string" &&
+        (data?.website as string).trim().length > 0) {
       return new Response(
         JSON.stringify({ success: true }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    if (!data || typeof data.name !== "string" || !data.name.trim() || typeof data.email !== "string" ||
+        data.email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email) || !REQUEST_TYPE_LABELS[data.requestType])
+      return new Response(JSON.stringify({ error: "Add your name, email and request type." }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    data.email = data.email.trim().toLowerCase();
+    if (await takeQuota(req, "support-email-network", 5) < 0 || await takeQuota(req, "support-email-recipient", 3, data.email) < 0 ||
+        await takeQuota(req, "support-email-global", 500, "all") < 0) return rateLimitResponse(corsHeaders);
 
     // Server-side length validation
     const tooLong = validateFieldLengths({
@@ -104,7 +115,8 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Send notification to internal team
-    const internalEmailResponse = await resend.emails.send({
+    const internalEmailResponse = await sendEmailAndLog({
+      templateKey: "support_request",
       from: Deno.env.get("EMAIL_FROM") || "TapAway <notifications@tapaway.co>",
       to: [supportEmail],
       subject: `[Support] ${REQUEST_TYPE_LABELS[data.requestType] || safeRequestType} - ${safeBusinessName}`,
@@ -165,13 +177,14 @@ const handler = async (req: Request): Promise<Response> => {
           </p>
         </div>
       `,
-      reply_to: data.email,
+      replyTo: data.email,
     });
 
-    console.log("Internal notification sent:", internalEmailResponse);
+    if (!internalEmailResponse.ok) throw new Error("Support notification unavailable");
 
     // Send confirmation to the customer
-    const customerEmailResponse = await resend.emails.send({
+    const customerEmailResponse = await sendEmailAndLog({
+      templateKey: "support_confirmation",
       from: Deno.env.get("EMAIL_FROM") || "TapAway <notifications@tapaway.co>",
       to: [data.email],
       subject: `We received your TapAway support request`,
@@ -212,7 +225,7 @@ const handler = async (req: Request): Promise<Response> => {
       `,
     });
 
-    console.log("Customer confirmation sent:", customerEmailResponse);
+    if (!customerEmailResponse.ok) console.warn("Support confirmation was not accepted; internal request delivered");
 
     return new Response(
       JSON.stringify({ success: true }),
@@ -224,7 +237,7 @@ const handler = async (req: Request): Promise<Response> => {
   } catch (error: any) {
     console.error("Error in support-notification function:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: "Could not send your request. Please try again or email tap@tapaway.co." }),
       {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },

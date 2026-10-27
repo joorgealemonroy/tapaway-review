@@ -1,3 +1,4 @@
+import { readLimitedText } from "../_shared/requestBody.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { checkRateLimit, getRateLimitKey, rateLimitResponse } from "../_shared/rateLimit.ts";
@@ -62,7 +63,9 @@ serve(async (req) => {
     return json({ error: "Bridge not configured" }, 500);
   }
   const providedKey = req.headers.get("x-api-key") ?? "";
-  if (!providedKey || providedKey !== expectedKey) return unauthorized();
+  if (!providedKey || providedKey.length !== expectedKey.length) return unauthorized();
+  let keyDiff = 0; for (let i = 0; i < expectedKey.length; i++) keyDiff |= providedKey.charCodeAt(i) ^ expectedKey.charCodeAt(i);
+  if (keyDiff !== 0) return unauthorized();
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -126,7 +129,7 @@ serve(async (req) => {
 
     // ── POST /restaurants (create) ──
     if (req.method === "POST" && segments[0] === "restaurants" && segments.length === 1) {
-      const body = await req.json().catch(() => null);
+      const body = await readLimitedText(req, 16000).then(JSON.parse).catch(() => null);
       if (!body || typeof body !== "object") return json({ error: "Invalid JSON body" }, 400);
 
       const { restaurant_name, email, phone, stripe_customer_id, stripe_subscription_id, google_place_id } = body as Record<string, unknown>;
@@ -165,11 +168,11 @@ serve(async (req) => {
         subscription_status: "pending_setup",
         onboarding_completed: false,
       };
-      if (email) insert.email = email.trim().toLowerCase();
-      if (phone) insert.phone = phone.trim();
+      if (typeof email === "string") insert.email = email.trim().toLowerCase();
+      if (typeof phone === "string") insert.phone = phone.trim();
       if (stripe_customer_id) insert.stripe_customer_id = stripe_customer_id;
       if (stripe_subscription_id) insert.stripe_subscription_id = stripe_subscription_id;
-      if (google_place_id) {
+      if (typeof google_place_id === "string") {
         insert.google_place_id = google_place_id.trim();
         insert.google_review_url = `https://search.google.com/local/writereview?placeid=${(google_place_id as string).trim()}`;
       }
@@ -198,7 +201,7 @@ serve(async (req) => {
         return json({ error: "Invalid restaurant id" }, 400);
       }
 
-      const body = await req.json().catch(() => null);
+      const body = await readLimitedText(req, 16000).then(JSON.parse).catch(() => null);
       if (!body || typeof body !== "object") return json({ error: "Invalid JSON body" }, 400);
 
       const update: Record<string, unknown> = {};
@@ -260,7 +263,7 @@ serve(async (req) => {
 
 /** Log to admin_audit_log under the super admin identity so the NOT NULL admin_user_id is satisfied. */
 async function auditLog(
-  adminClient: ReturnType<typeof createClient>,
+  adminClient: ReturnType<typeof createClient<any>>,
   action: string,
   targetId: string,
   details: Record<string, unknown>,

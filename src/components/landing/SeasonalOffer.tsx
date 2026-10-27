@@ -5,7 +5,7 @@ import { MoonStar, ArrowRight, X } from "lucide-react";
 import {
   HALLOWEEN_START,
   HALLOWEEN_END,
-} from "../../../supabase/functions/_shared/storefrontOffers";
+} from "../../../shared/storefrontOffers";
 const DISMISS_KEY = "tapaway-halloween-2026-dismissed";
 function useHalloweenTime() {
   const [now, setNow] = useState(Date.now);

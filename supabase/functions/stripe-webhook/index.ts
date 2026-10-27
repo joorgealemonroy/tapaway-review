@@ -1,8 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Stripe from 'https://esm.sh/stripe@14.21.0';
 import { checkRateLimit, getRateLimitKey, rateLimitResponse } from "../_shared/rateLimit.ts";
-import { sendTemplatedEmail } from "../_shared/email.ts";
+import { sendEmailAndLog, sendTemplatedEmail, wrapEmail } from "../_shared/email.ts";
+import { escapeHtml } from "../_shared/sanitize.ts";
 import { ONBOARDING_CATALOG_RULES } from "../_shared/onboardingCatalog.ts";
+import { readLimitedText } from "../_shared/requestBody.ts";
+import { fulfillCreatorCheckout, revokeCreatorPurchase } from "../_shared/creatorMarketplaceFulfillment.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -16,6 +19,7 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+  if (req.method !== 'POST') return new Response('Method not allowed', { status: 405, headers: corsHeaders });
 
   // Per-IP throttle to blunt forged-signature flooding (600/min for bursty Stripe traffic).
   if (!checkRateLimit(getRateLimitKey(req, "stripe-webhook"), 600, 60 * 1000)) {
@@ -39,7 +43,9 @@ serve(async (req) => {
       });
     }
 
-    const body = await req.text();
+    let body: string;
+    try { body = await readLimitedText(req, 1048576); }
+    catch { return new Response('Webhook body too large', { status: 413, headers: corsHeaders }); }
     
     let event: Stripe.Event;
     try {
@@ -56,6 +62,9 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+    // This legacy endpoint uses STRIPE_SECRET_KEY and only manages production.
+    // TEST commerce has a separate verified endpoint and isolated state.
+    if (event.livemode !== true) return new Response('Wrong environment', { status: 400, headers: corsHeaders });
 
     console.log('[stripe-webhook] Received event:', event.type);
 
@@ -118,8 +127,8 @@ serve(async (req) => {
         const claimAgeMs = Date.now() - new Date(claim.claimed_at).getTime();
         if (claimAgeMs < STALE_CLAIM_MS) {
           console.log('[stripe-webhook] Event in flight on another delivery:', event.id);
-          return new Response(JSON.stringify({ received: true, in_flight: true }), {
-            status: 200,
+        return new Response(JSON.stringify({ received: true, in_flight: true }), {
+            status: 503,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           });
         }
@@ -134,8 +143,8 @@ serve(async (req) => {
           .select('event_id');
         if (!tookOver || tookOver.length === 0) {
           console.log('[stripe-webhook] Lost stale-claim race:', event.id);
-          return new Response(JSON.stringify({ received: true, deduped: true }), {
-            status: 200,
+          return new Response(JSON.stringify({ received: true, in_flight: true }), {
+            status: 503,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           });
         }
@@ -147,6 +156,15 @@ serve(async (req) => {
 // New personal-card commerce is owned by payment-first-webhook. Never run legacy
     // trial verification, business commissions, or plan downgrades on these orders.
     const commerceObject = event.data.object as unknown as Record<string, any>;
+    if (['checkout.session.completed', 'checkout.session.async_payment_succeeded'].includes(event.type)
+      && commerceObject.metadata?.type === 'creator_marketplace') {
+      const result = await fulfillCreatorCheckout(stripe, idempotencyAdmin, commerceObject as Stripe.Checkout.Session);
+      await markStripeEventProcessed();
+      return new Response(JSON.stringify({ received: true, ...result }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+    if (['charge.refunded', 'charge.dispute.created'].includes(event.type)) {
+      await revokeCreatorPurchase(stripe, idempotencyAdmin, event.type, commerceObject);
+    }
     // Hub reactivation has its own paid-invoice validation and atomic fulfillment.
     // Never let the legacy checkout path create a restaurant or grant an account.
     let hubPayment = commerceObject.metadata?.commerce_version === 'hub_payment_v1'
@@ -185,24 +203,16 @@ serve(async (req) => {
       return new Response(JSON.stringify({ received: true, skipped: 'personal_cards' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-if (event.type === 'checkout.session.completed') {
-      const session = event.data.object as Stripe.Checkout.Session;
+if (event.type === 'checkout.session.completed' && !['in_person_close', 'card_addon', 'card_onetime'].includes(commerceObject.metadata?.type)) {
+      const session = await stripe.checkout.sessions.retrieve(commerceObject.id);
+      if (!session.livemode || session.status !== 'complete') throw new Error('Legacy checkout is not complete in the current environment');
       // Payment-first purchases are activated only by payment-first-webhook.
       if (session.metadata?.onboarding_version === 'payment_first_v1') {
         if (ownsClaim) await markStripeEventProcessed();
         return new Response(JSON.stringify({ received: true, skipped: 'payment_first' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
       
-      console.log('[stripe-webhook] Processing checkout session:', {
-        id: session.id,
-        customer: session.customer,
-        customer_email: session.customer_email,
-        subscription: session.subscription,
-        metadata: session.metadata,
-        shipping_details: (session as any).shipping_details,
-        shipping: (session as any).shipping,
-        customer_details: session.customer_details,
-      });
+      console.log('[stripe-webhook] Processing checkout session:', session.id);
 
       const customerEmail = session.customer_email || session.customer_details?.email;
       const customerId = session.customer as string;
@@ -267,7 +277,7 @@ if (event.type === 'checkout.session.completed') {
         const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
           email: customerEmail,
           password: randomPassword,
-          email_confirm: true,
+          email_confirm: false,
           user_metadata: {
             must_set_password: true,
           },
@@ -916,265 +926,13 @@ if (event.type === 'checkout.session.completed') {
     }
 
     // ============================================================
-    // CREATOR MARKETPLACE PURCHASE HANDLING
-    // ============================================================
-    if (event.type === 'checkout.session.completed') {
-      const session = event.data.object as Stripe.Checkout.Session;
-      
-      if (session.metadata?.type === 'creator_marketplace' && session.metadata?.product_id) {
-        console.log('[stripe-webhook] Processing creator marketplace purchase');
-        
-        const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-        const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-        const supabaseAdmin = await import('https://esm.sh/@supabase/supabase-js@2.39.7').then(
-          mod => mod.createClient(supabaseUrl, supabaseServiceKey, {
-            auth: { autoRefreshToken: false, persistSession: false },
-          })
-        );
-
-        const buyerEmail = session.customer_email || session.customer_details?.email || '';
-        const accessToken = crypto.randomUUID();
-        const expiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString(); // 72 hours
-
-        const { error: insertError } = await supabaseAdmin
-          .from('creator_purchases')
-          .insert({
-            product_id: session.metadata.product_id,
-            buyer_email: buyerEmail,
-            stripe_session_id: session.id,
-            access_token: accessToken,
-            access_expires_at: expiresAt,
-          });
-
-        if (insertError) {
-          console.error('[stripe-webhook] Failed to create purchase record:', insertError);
-        } else {
-          console.log('[stripe-webhook] Created marketplace purchase with access token');
-
-          // ---- Handle booking confirmation ----
-          const bookingId = session.metadata?.booking_id;
-          if (bookingId) {
-            const { error: bookingUpdateError } = await supabaseAdmin
-              .from('bookings')
-              .update({ status: 'paid', stripe_session_id: session.id, updated_at: new Date().toISOString() })
-              .eq('id', bookingId);
-
-            if (bookingUpdateError) {
-              console.error('[stripe-webhook] Failed to update booking status:', bookingUpdateError);
-            } else {
-              console.log('[stripe-webhook] Booking marked as paid:', bookingId);
-
-              // Send booking confirmation emails
-              (async () => {
-                try {
-                  const resendApiKey = Deno.env.get('RESEND_API_KEY');
-                  if (!resendApiKey) return;
-
-                  const emailFromRaw = Deno.env.get('EMAIL_FROM') || 'no-reply@tapaway.co';
-                  const emailFrom = emailFromRaw.includes('<') ? emailFromRaw : `TapAway <${emailFromRaw}>`;
-
-                  // Get booking details
-                  const { data: bookingData } = await supabaseAdmin
-                    .from('bookings')
-                    .select('booking_date, start_time, timezone, buyer_email')
-                    .eq('id', bookingId)
-                    .single();
-
-                  if (!bookingData) return;
-
-                  const { data: productData } = await supabaseAdmin
-                    .from('creator_products')
-                    .select('title, duration_minutes, creator_id')
-                    .eq('id', session.metadata!.product_id)
-                    .single();
-
-                  if (!productData) return;
-
-                  const { data: creatorProfile } = await supabaseAdmin
-                    .from('personal_profiles')
-                    .select('user_id, username, full_name')
-                    .eq('id', productData.creator_id)
-                    .single();
-
-                  if (!creatorProfile) return;
-
-                  const { data: creatorUser } = await supabaseAdmin.auth.admin.getUserById(creatorProfile.user_id);
-                  const creatorEmail = creatorUser?.user?.email;
-
-                  const dateFormatted = new Date(bookingData.booking_date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-                  const timeFormatted = bookingData.start_time.slice(0, 5);
-                  const tzLabel = (bookingData as any).timezone || 'UTC';
-
-                  // Email to creator
-                  if (creatorEmail) {
-                    await fetch('https://api.resend.com/emails', {
-                      method: 'POST',
-                      headers: { 'Authorization': `Bearer ${resendApiKey}`, 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        from: emailFrom,
-                        to: [creatorEmail],
-                        subject: `New Booking! 📅: ${productData.title}`,
-                        html: `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;"><h1 style="font-size:22px;color:#111;">New Booking! 📅</h1><p style="color:#555;font-size:15px;line-height:1.6;"><strong>${(bookingData as any).buyer_email}</strong> has paid and booked:</p><div style="background:#f8f8f8;border-radius:8px;padding:16px;margin:16px 0;"><p style="margin:0 0 4px;font-weight:600;">${productData.title}</p><p style="margin:0;color:#555;">${dateFormatted} at ${timeFormatted} (${tzLabel})</p><p style="margin:4px 0 0;color:#555;">${productData.duration_minutes || 30} minutes</p></div></div>`,
-                      }),
-                    });
-                    console.log('[stripe-webhook] Booking email sent to creator');
-                  }
-
-                  // Email to buyer
-                  if ((bookingData as any).buyer_email) {
-                    await fetch('https://api.resend.com/emails', {
-                      method: 'POST',
-                      headers: { 'Authorization': `Bearer ${resendApiKey}`, 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        from: emailFrom,
-                        to: [(bookingData as any).buyer_email],
-                        subject: `Booking Confirmed! 📅: ${productData.title}`,
-                        html: `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;"><h1 style="font-size:22px;color:#111;">Your Booking is Confirmed! ✅</h1><p style="color:#555;font-size:15px;line-height:1.6;">You've booked <strong>${productData.title}</strong> with ${creatorProfile.full_name}.</p><div style="background:#f8f8f8;border-radius:8px;padding:16px;margin:16px 0;"><p style="margin:0 0 4px;font-weight:600;">${dateFormatted}</p><p style="margin:0;color:#555;">${timeFormatted} (${tzLabel}) · ${productData.duration_minutes || 30} min</p></div><p style="color:#999;font-size:13px;">The creator will reach out with meeting details.</p></div>`,
-                      }),
-                    });
-                    console.log('[stripe-webhook] Booking email sent to buyer');
-                  }
-                } catch (emailErr) {
-                  console.error('[stripe-webhook] Booking email error (non-blocking):', emailErr);
-                }
-              })();
-            }
-          }
-
-          // ---- Fire-and-forget: send buyer + creator emails via Resend ----
-          (async () => {
-            try {
-              const resendApiKey = Deno.env.get('RESEND_API_KEY');
-              const emailFromRaw = Deno.env.get('EMAIL_FROM') || 'no-reply@tapaway.co';
-              const emailFrom = emailFromRaw.includes('<') ? emailFromRaw : `TapAway <${emailFromRaw}>`;
-              const frontendUrl = Deno.env.get('FRONTEND_URL') || 'https://tapaway.co';
-
-              if (!resendApiKey) {
-                console.warn('[stripe-webhook] RESEND_API_KEY not set, skipping emails');
-                return;
-              }
-
-              // Look up product details for the email
-              const { data: product } = await supabaseAdmin
-                .from('creator_products')
-                .select('title, price_cents, creator_id')
-                .eq('id', session.metadata!.product_id)
-                .single();
-
-              if (!product) {
-                console.error('[stripe-webhook] Product not found for email');
-                return;
-              }
-
-              const priceFormatted = `$${(product.price_cents / 100).toFixed(2)}`;
-              const downloadUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/download-product?token=${accessToken}`;
-
-              // 1. BUYER EMAIL
-              if (buyerEmail) {
-                const buyerHtml = `
-                  <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 520px; margin: 0 auto; padding: 32px 24px; background: #ffffff;">
-                    <img src="${frontendUrl}/tapaway-logo-email.png" alt="TapAway" style="height: 32px; margin-bottom: 24px;" />
-                    <h1 style="font-size: 22px; color: #111; margin: 0 0 8px;">Your purchase is ready!</h1>
-                    <p style="color: #555; font-size: 15px; line-height: 1.6; margin: 0 0 24px;">
-                      Thank you for purchasing <strong>${product.title}</strong> for ${priceFormatted}.
-                    </p>
-                    <a href="${downloadUrl}" style="display: inline-block; background: #111; color: #fff; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px;">
-                      Download Now
-                    </a>
-                    <p style="color: #999; font-size: 13px; margin-top: 20px;">
-                      This download link expires in 72 hours. If you need help, reply to this email.
-                    </p>
-                  </div>
-                `;
-
-                const buyerRes = await fetch('https://api.resend.com/emails', {
-                  method: 'POST',
-                  headers: { 'Authorization': `Bearer ${resendApiKey}`, 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    from: emailFrom,
-                    to: [buyerEmail],
-                    subject: `Your purchase: ${product.title}`,
-                    html: buyerHtml,
-                  }),
-                });
-                if (!buyerRes.ok) {
-                  console.error('[stripe-webhook] Buyer email failed:', await buyerRes.text());
-                } else {
-                  console.log('[stripe-webhook] Buyer email sent to', buyerEmail);
-                }
-              }
-
-              // 2. CREATOR NOTIFICATION EMAIL
-              // Look up creator's email via personal_profiles → auth.users
-              const { data: creatorProfile } = await supabaseAdmin
-                .from('personal_profiles')
-                .select('user_id, username')
-                .eq('id', product.creator_id)
-                .single();
-
-              if (creatorProfile) {
-                const { data: creatorUser } = await supabaseAdmin.auth.admin.getUserById(creatorProfile.user_id);
-                const creatorEmail = creatorUser?.user?.email;
-
-                if (creatorEmail) {
-                  const maskedBuyer = buyerEmail
-                    ? buyerEmail.replace(/(.{2}).*(@.*)/, '$1***$2')
-                    : 'a buyer';
-
-                  const creatorHtml = `
-                    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 520px; margin: 0 auto; padding: 32px 24px; background: #ffffff;">
-                      <img src="${frontendUrl}/tapaway-logo-email.png" alt="TapAway" style="height: 32px; margin-bottom: 24px;" />
-                      <h1 style="font-size: 22px; color: #111; margin: 0 0 8px;">You made a sale! 🎉</h1>
-                      <p style="color: #555; font-size: 15px; line-height: 1.6; margin: 0 0 16px;">
-                        <strong>${maskedBuyer}</strong> just purchased your product:
-                      </p>
-                      <div style="background: #f8f8f8; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
-                        <p style="margin: 0 0 4px; font-weight: 600; color: #111;">${product.title}</p>
-                        <p style="margin: 0; color: #22c55e; font-weight: 700; font-size: 18px;">${priceFormatted}</p>
-                      </div>
-                      <a href="${frontendUrl}/dashboard" style="display: inline-block; background: #111; color: #fff; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px;">
-                        View Dashboard
-                      </a>
-                    </div>
-                  `;
-
-                  const creatorRes = await fetch('https://api.resend.com/emails', {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${resendApiKey}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      from: emailFrom,
-                      to: [creatorEmail],
-                      subject: `You made a sale! 🎉: ${product.title}`,
-                      html: creatorHtml,
-                    }),
-                  });
-                  if (!creatorRes.ok) {
-                    console.error('[stripe-webhook] Creator email failed:', await creatorRes.text());
-                  } else {
-                    console.log('[stripe-webhook] Creator email sent to', creatorEmail);
-                  }
-                }
-              }
-            } catch (emailErr) {
-              console.error('[stripe-webhook] Email sending error (non-blocking):', emailErr);
-            }
-          })();
-        }
-      }
-    }
-
-    // ============================================================
     // IN-PERSON CLOSE. Activate a prebuilt solo hub after payment
     // Source of truth for activation. Idempotent + state verified.
     // ============================================================
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as Stripe.Checkout.Session;
       if (session.metadata?.type === 'in_person_close' && session.metadata?.hub_type === 'personal_profile') {
-        try {
-          await handleInPersonClose(stripe, session);
-        } catch (err) {
-          console.error('[stripe-webhook][in_person_close] Failed:', err);
-        }
+        await handleInPersonClose(stripe, session);
       }
     }
 
@@ -1908,70 +1666,53 @@ async function sha256Hex(input: string): Promise<string> {
   return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-/** Look up an existing auth identity by verified email (exact, normalized). */
+/** Resolve an identity exactly. This does not prove ownership of its inbox. */
 async function findAuthUserByEmail(email: string): Promise<{ id: string } | null> {
-  const url = `${Deno.env.get('SUPABASE_URL')}/auth/v1/admin/users?filter=${encodeURIComponent(email)}&per_page=50`;
-  const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-  const res = await fetch(url, { headers: { apikey: key, Authorization: `Bearer ${key}` } });
-  if (!res.ok) return null;
-  const body = await res.json();
-  const users = (body?.users ?? []) as Array<{ id: string; email?: string }>;
-  const match = users.find((u) => (u.email ?? '').trim().toLowerCase() === email);
-  return match ? { id: match.id } : null;
+  const admin = await sbAdmin();
+  const { data, error } = await admin.rpc('get_auth_user_by_email', { lookup_email: email.trim().toLowerCase() });
+  if (error) throw error;
+  return Array.isArray(data) && data[0]?.id ? { id: data[0].id } : null;
 }
 
-async function sendDashboardAccessEmail(userId: string, email: string, businessName: string) {
+async function sendDashboardAccessEmail(userId: string, businessName: string, profileId: string) {
   const admin = await sbAdmin();
+  const verifiedOwner = await admin.auth.admin.getUserById(userId);
+  if (verifiedOwner.error || !verifiedOwner.data?.user?.email) throw verifiedOwner.error || new Error('Owner email unavailable');
+  const email = verifiedOwner.data.user.email;
   const raw = Array.from(crypto.getRandomValues(new Uint8Array(32)))
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
   const tokenHash = await sha256Hex(raw);
-  await admin.from('magic_link_tokens').delete().eq('user_id', userId);
-  await admin.from('magic_link_tokens').insert({
+  const removed = await admin.from('magic_link_tokens').delete().eq('user_id', userId);
+  if (removed.error) throw removed.error;
+  const stored = await admin.from('magic_link_tokens').insert({
     user_id: userId,
     email,
     token_hash: tokenHash,
     expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
   });
+  if (stored.error) throw stored.error;
 
   const baseUrl = Deno.env.get('FRONTEND_URL') || 'https://tapaway.co';
   const link = `${baseUrl}/auth/magic?token=${raw}`;
-  const resendKey = Deno.env.get('RESEND_API_KEY');
-  if (!resendKey) {
-    console.error('[stripe-webhook][in_person_close] RESEND_API_KEY missing. Access email not sent');
-    return;
-  }
-
-  const html = `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#0a0a0a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:520px;margin:0 auto;padding:40px 20px;">
-    <tr><td style="text-align:center;padding-bottom:32px;"><img src="https://tapaway.co/tapaway-logo-email.png" alt="TapAway" width="120" /></td></tr>
-    <tr><td style="background:#1a1a1a;border-radius:16px;padding:40px 32px;text-align:center;border:1px solid #2a2a2a;">
-      <h1 style="margin:0 0 16px 0;font-size:24px;color:#ffffff;">Access your TapAway dashboard</h1>
-      <p style="margin:0 0 32px 0;font-size:16px;color:#a1a1a1;line-height:1.6;">Your ${businessName} account is active. Tap below to open your dashboard. No password needed.</p>
-      <a href="${link}" style="display:inline-block;background:#6BCB77;color:#000;font-size:16px;font-weight:600;padding:14px 32px;border-radius:8px;text-decoration:none;">Access My Dashboard</a>
-      <p style="margin:24px 0 0 0;font-size:13px;color:#666;">This link works for 7 days. You can set a password later in your account settings.</p>
-    </td></tr>
-    <tr><td style="text-align:center;padding-top:32px;"><p style="margin:0;font-size:12px;color:#4a4a4a;">Need help? Email tap@tapaway.co</p></td></tr>
-  </table></body></html>`;
+  const html = wrapEmail({
+    preheader: 'Your TapAway dashboard is ready.',
+    headline: 'Welcome to your TapAway dashboard',
+    introHtml: `<p>Your <strong>${escapeHtml(businessName)}</strong> account is active. Open your dashboard to update your hub and see how your cards are working.</p>`,
+    bodyHtml: '', ctaLabel: 'Open my dashboard', ctaUrl: escapeHtml(link),
+    footerNote: 'This private link works for 7 days. You can set a password in your account settings. Questions? Reply and we will help.',
+  });
 
   const text = `Your ${businessName} TapAway account is active.\n\nOpen your dashboard (no password needed):\n${link}\n\nThis link works for 7 days. Need help? tap@tapaway.co`;
 
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${resendKey}` },
-    body: JSON.stringify({
-      from: Deno.env.get('EMAIL_FROM') || 'TapAway <no-reply@tapaway.co>',
-      to: [email],
-      subject: 'Access Your TapAway Dashboard',
-      html,
-      text,
-      reply_to: 'tap@tapaway.co',
-    }),
-  });
-  if (!res.ok) console.error('[stripe-webhook][in_person_close] Resend error:', await res.text());
+  const sent = await sendEmailAndLog({ to: email, subject: 'Access Your TapAway Dashboard', html, text,
+    templateKey: 'in_person_dashboard_access', profileId, replyTo: 'tap@tapaway.co' });
+  if (!sent.ok) throw new Error('Dashboard access email unavailable; retry');
 }
 
 async function handleInPersonClose(stripe: Stripe, session: Stripe.Checkout.Session) {
+  session = await stripe.checkout.sessions.retrieve(session.id);
+  if (!session.livemode || session.metadata?.type !== 'in_person_close') throw new Error('In-person checkout mismatch');
   const hubId = session.metadata?.hub_id;
   if (!hubId) return;
 
@@ -1987,6 +1728,9 @@ async function handleInPersonClose(stripe: Stripe, session: Stripe.Checkout.Sess
   }
 
   const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+  const subscriptionCustomer = typeof subscription.customer === 'string' ? subscription.customer : subscription.customer?.id;
+  if (!subscription.livemode || subscriptionCustomer !== customerId || subscription.metadata?.type !== 'in_person_close'
+    || subscription.metadata.hub_id !== hubId) throw new Error('In-person subscription binding mismatch');
   if (!['active', 'trialing'].includes(subscription.status)) {
     console.log('[stripe-webhook][in_person_close] Not activating. Subscription state', subscription.status);
     return;
@@ -2009,31 +1753,27 @@ async function handleInPersonClose(stripe: Stripe, session: Stripe.Checkout.Sess
     return;
   }
 
-  // Idempotency: a replayed event for the same subscription is a no-op.
-  if (hub.stripe_subscription_id === subscriptionId && hub.subscription_status === 'active') {
-    console.log('[stripe-webhook][in_person_close] Already activated. No-op', hubId);
-    return;
-  }
+  // Event claims provide replay protection. A retry after an email failure must
+  // still deliver access even when the paid hub update already succeeded.
   // Never attach a second live subscription to the same hub.
   if (hub.stripe_subscription_id && hub.stripe_subscription_id !== subscriptionId && hub.subscription_status === 'active') {
     console.error('[stripe-webhook][in_person_close] Hub already has another active subscription', hubId);
     return;
   }
 
-  // --- 2. Ownership by verified Stripe email -------------------------------
+  // --- 2. Preserve existing ownership; new identities still need inbox proof -------------------------------
   const rawEmail = session.customer_details?.email || session.customer_email || '';
   const email = rawEmail.trim().toLowerCase();
   let ownerUserId: string | null = hub.user_id ?? null;
-  let emailedTo: string | null = null;
 
-  if (email) {
+  if (email && !hub.user_id) {
     const existing = await findAuthUserByEmail(email);
     if (existing) {
       ownerUserId = existing.id;
     } else {
       const { data: created, error: createErr } = await admin.auth.admin.createUser({
         email,
-        email_confirm: true,
+        email_confirm: false,
         user_metadata: { source: 'in_person_close', hub_id: hubId },
       });
       if (createErr) {
@@ -2046,9 +1786,10 @@ async function handleInPersonClose(stripe: Stripe, session: Stripe.Checkout.Sess
 
   const planType = interval === 'year' ? 'yearly' : 'monthly';
   const cardClub = session.metadata?.card_club === 'true';
+  if (!ownerUserId) throw new Error('Paid hub owner unavailable; retry');
 
   const update: Record<string, unknown> = {
-    subscription_status: 'active',
+    subscription_status: subscription.status,
     pipeline_status: 'active',
     plan_type: planType,
     has_card_addon: cardClub,
@@ -2061,27 +1802,25 @@ async function handleInPersonClose(stripe: Stripe, session: Stripe.Checkout.Sess
   // Only ever attach ownership; never reassign an existing owner to someone else.
   if (ownerUserId && !hub.user_id) update.user_id = ownerUserId;
 
-  const { error: updErr } = await admin.from('personal_profiles').update(update).eq('id', hubId);
-  if (updErr) {
-    // stripe_price_id may not exist on this table. Retry without it.
+  const save = () => {
+    let query = admin.from('personal_profiles').update(update).eq('id', hubId);
+    query = hub.user_id ? query.eq('user_id', hub.user_id) : query.is('user_id', null);
+    query = hub.stripe_subscription_id ? query.eq('stripe_subscription_id', hub.stripe_subscription_id) : query.is('stripe_subscription_id', null);
+    return query.select('id,user_id,is_approved,subscription_status').maybeSingle();
+  };
+  let saved = await save();
+  if (saved.error && ['42703', 'PGRST204'].includes(saved.error.code)) {
+    // Older deployments may not yet have the optional price correlation column.
     delete update.stripe_price_id;
-    const { error: retryErr } = await admin.from('personal_profiles').update(update).eq('id', hubId);
-    if (retryErr) {
-      console.error('[stripe-webhook][in_person_close] Update failed:', retryErr.message);
-      return;
-    }
+    saved = await save();
   }
+  if (saved.error || !saved.data) throw saved.error || new Error('Hub ownership or subscription changed; retry');
+  // A reversal trigger may have clamped this stale activation while it waited.
+  if (!saved.data.is_approved || !['active', 'trialing'].includes(saved.data.subscription_status)) return;
 
   console.log('[stripe-webhook][in_person_close] Hub activated', { hubId, subscriptionId, planType });
 
   // --- 3. Passwordless dashboard access ------------------------------------
-  if (ownerUserId && email) {
-    try {
-      await sendDashboardAccessEmail(ownerUserId, email, hub.full_name || hub.username || 'your business');
-      emailedTo = email;
-    } catch (err) {
-      console.error('[stripe-webhook][in_person_close] Access email failed:', err);
-    }
-  }
-  console.log('[stripe-webhook][in_person_close] Access email', emailedTo ? `sent to ${emailedTo}` : 'not sent');
+  await sendDashboardAccessEmail(ownerUserId, hub.full_name || hub.username || 'your business', hub.id);
+  console.log('[stripe-webhook][in_person_close] Access email delivered', { hubId });
 }

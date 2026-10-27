@@ -61,7 +61,7 @@ async function scenario(options = {}) {
       if(state.welcome==='network_error')return route.abort();
       const data=request.postDataJSON();
       if(data.action==='send_link')return state.sendLinkFailure ? reply({error:'Fixture unavailable'},503) : reply({ok:true});
-      return reply({status:state.welcome,emailHint:'s***@example.invalid'});
+      return reply({status:state.welcome,emailHint:'s***@example.invalid',...(state.unexpectedAuthToken?{token_hash:'fixture-unexpected-auth-token'}:{})});
     }
     if(url.pathname.endsWith('/payment-first-onboarding')) {
       const data=request.postDataJSON();
@@ -73,14 +73,17 @@ async function scenario(options = {}) {
       if(data.action==='shipping')Object.assign(state.setup,{shipping_address:data.address,step:'done'});
       return reply({session:state.setup,...state.membership});
     }
+    if(url.pathname.endsWith('/create-card-order')) { const data=request.postDataJSON();if(data.flow==='fetch_address')return reply({address:{name:'QA Shopper',line1:'123 Fixture St',line2:'',city:'Fixture',state:'CA',postal_code:'92101',country:'US'}});state.freeCardCalls ||= [];state.freeCardCalls.push(data);if(state.freeCardFailure)return reply({error:'Fixture card request unavailable'},503);return reply({success:true,requestId:'fixture-request',duplicate:false,remaining:2}); }
     if(url.pathname.endsWith('/card-club-request')) { state.clubRequests.push(request.postDataJSON()); return reply({ok:true}); }
     if(url.pathname.endsWith('/manage-personal-subscription')) { state.billingRequests.push(request.postDataJSON()); return reply({url:base+'/qa-checkout'}); }
+    if(url.pathname.endsWith('/public-intake')) { const data=request.postDataJSON(); if(data.action==='support') {state.support.push([data]); return state.supportFailure ? reply({error:'Fixture unavailable'},503) : reply({success:true});} return reply({success:true}); }
     if(url.pathname.endsWith('/support_requests')) {
       state.support.push(request.postDataJSON());
       return state.supportFailure ? reply({message:'Fixture unavailable'},503) : reply(null,201);
     }
     if(url.pathname.endsWith('/support-notification')) { state.notifications++;return reply({ok:true}); }
     if(url.pathname.endsWith('/request-dashboard-access'))return state.sendLinkFailure ? reply({error:'Fixture unavailable'},503) : reply({ok:true});
+    if(url.pathname.endsWith('/auth/v1/verify')) { state.authVerifications=(state.authVerifications||0)+1; return reply({error:'invalid_token',error_description:'Fixture expired recovery token'},403); }
     if(url.pathname.endsWith('/auth/v1/user'))return options.authenticated?reply(sessionUser):reply({message:'No session'},401);
     if(url.pathname.endsWith('/rpc/is_username_available'))return reply(request.postDataJSON().check_username!=='taken');
     if(url.pathname.endsWith('/nfc_cards')&&request.method()==='PATCH'){state.nfcWrites.push(request.postDataJSON());return reply(null);}
@@ -151,6 +154,8 @@ test('Canceled checkout restores Stripe cycle, quantity and chosen Card Club; er
   await page.getByRole('textbox',{name:'City & state',exact:true}).fill('Claremont, CA');
   await page.getByRole('button',{name:'Start my business trial'}).click();
   await expect(page.getByRole('heading',{name:'Fixture checkout reached'})).toBeVisible();
+  assert.equal(state.checkout[0].checkoutAttemptId,state.checkout[1].checkoutAttemptId,'A failed checkout must reuse the same attempt');
+  assert.match(state.checkout[0].checkoutAttemptId,/^[0-9a-f-]{36}$/i);
   await close();
 });
 
@@ -344,7 +349,7 @@ test('Welcome connection failure offers recovery without a second purchase',asyn
   await expect(page.getByText(/don't pay again/)).toBeVisible();
   state.welcome='verify_email';
   await page.getByRole('button',{name:'Check my order again'}).click();
-  await expect(page.getByRole('heading',{name:'Check your email to continue'})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'Thank you. Check your email to continue.'})).toBeVisible();
   assert.equal(state.checkout.length,0);
   await close();
 });
@@ -527,6 +532,86 @@ test('Admin email history: delivery check, clear status and mobile layout', asyn
 
 test('Login: warm storefront styling and back button work on desktop and phone',async()=>{
  const {page,go,close}=await scenario();for(const width of [1440,390]){await page.setViewportSize({width,height:900});await go('/auth');await expect(page.getByRole('heading',{name:'Welcome back',exact:true})).toBeVisible();await expect(page.getByRole('link',{name:'Back to TapAway'})).toHaveAttribute('href','/');assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await screenshot(page,'login-'+width,true);}await page.getByRole('link',{name:'Back to TapAway'}).click();await expect(page.locator('.sf-nav')).toBeVisible();await close();
+});
+
+
+test('Security: payment return requires inbox proof and keeps resend errors honest on mobile and desktop',async()=>{
+  const {page,state,go,close}=await scenario({welcome:'verify_email',unexpectedAuthToken:true,sendLinkFailure:true});
+  for(const width of [320,390,1440]) {
+    await page.setViewportSize({width,height:900});await go('/welcome?session_id=fixture-security');
+    await expect(page.getByRole('heading',{name:'Thank you. Check your email to continue.'})).toBeVisible();
+    await expect(page.getByText(/Open it to verify your email/)).toBeVisible();
+    assert.equal(state.authVerifications||0,0,'Checkout return must never exchange an auth token');
+    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+    await screenshot(page,'security-welcome-'+width,true);
+  }
+  await page.getByText('Need another setup link?',{exact:true}).click();
+  await page.getByLabel('Email',{exact:true}).fill('shopper@example.invalid');
+  await page.getByRole('button',{name:'Email me a sign-in link'}).click();
+  await expect(page.getByRole('alert')).toContainText('We couldn’t send the link');
+  state.sendLinkFailure=false;await page.getByRole('button',{name:'Email me a sign-in link'}).click();
+  await expect(page.getByText("If there's an order for that email, a sign-in link is on its way.")).toBeVisible();
+  await close();
+});
+
+test('Security: legacy checkout reference cannot expose password setup and access-link failures stay retryable',async()=>{
+  const {page,state,go,close}=await scenario({sendLinkFailure:true});
+  for(const width of [390,1440]) {
+    await page.setViewportSize({width,height:900});
+    await go('/auth?redirect='+encodeURIComponent('/onboarding?session_id=fixture-secret-reference'));
+    await expect(page.getByRole('heading',{name:'Welcome back',exact:true})).toBeVisible();
+    await expect(page.getByRole('button',{name:/set.*password/i})).toHaveCount(0);
+    assert.ok(!state.external.some(url=>url.includes('lookup-stripe-session')),'Checkout identifiers do not authorize account lookup');
+    await page.getByLabel('Email address',{exact:true}).fill('shopper@example.invalid');
+    await page.getByRole('button',{name:'Get dashboard access',exact:true}).click();
+    await expect(page.getByText("We couldn't send your link. Please try again or contact support.")).toBeVisible();
+    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+    await screenshot(page,'security-auth-'+width,true);
+  }
+  state.sendLinkFailure=false;await page.getByRole('button',{name:'Get dashboard access',exact:true}).click();
+  await expect(page.getByText("If there's an account for that email, a secure link is on its way. Check your inbox.")).toBeVisible();
+  await close();
+});
+
+test('Security: rejected recovery link cannot change an already signed-in account',async()=>{
+  const {page,state,go,close}=await scenario({authenticated:true});
+  for(const width of [390,1440]) {
+    await page.setViewportSize({width,height:900});await go('/auth/set-password?token_hash=fixture-rejected-recovery');
+    await expect(page.getByText(/This link has expired or has already been used/)).toBeVisible();
+    await expect(page.locator('input[type=password]')).toHaveCount(0);
+    assert.ok(!page.url().includes('token_hash'),'Captured recovery credentials leave the URL');
+    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+    await screenshot(page,'security-recovery-'+width,true);
+  }
+  assert.ok(state.authVerifications>=2);await close();
+});
+
+test('Security: control-character login redirect stays within TapAway',async()=>{
+  const profile={id:'22222222-2222-4222-8222-222222222222',user_id:fakeUser.id,username:'qa',full_name:'QA Personal',email:fakeUser.email,plan_type:'personal_hosted',subscription_status:'active',onboarding_source:'personal_cards_v1',stripe_customer_id:'cus_fixture',stripe_subscription_id:'sub_fixture',is_approved:true,created_at:'2025-01-01T00:00:00Z'};
+  const {page,state,go,close}=await scenario({authenticated:true,profile});
+  await go('/auth?redirect='+encodeURIComponent('/\n/fixture-evil.invalid'));
+  await expect(page).toHaveURL(/\/dashboard/);assert.equal(new URL(page.url()).origin,base);
+  assert.ok(!state.external.some(url=>url.includes('fixture-evil.invalid')));await close();
+});
+
+
+test('Security: legacy card requests reuse retry keys, reject double clicks and rotate after changed payload or success',async()=>{
+  const profile={id:'22222222-2222-4222-8222-222222222222',user_id:fakeUser.id,username:'qa',full_name:'QA Legacy',email:fakeUser.email,plan_type:'yearly',subscription_status:'active',onboarding_source:'legacy',has_card_addon:true,stripe_customer_id:'cus_fixture',stripe_subscription_id:'sub_fixture',is_approved:true,created_at:'2025-01-01T00:00:00Z'};
+  const {page,state,go,close}=await scenario({authenticated:true,profile,freeCardFailure:true});
+  await page.setViewportSize({width:390,height:900});await go('/dashboard?type=lite');
+  await page.getByRole('button',{name:'More',exact:true}).click();
+  await page.getByRole('button',{name:/^Cards/}).click();
+  const confirm=page.getByRole('button',{name:'Confirm Request',exact:true});await expect(confirm).toBeEnabled();
+  await page.evaluate(()=>{const button=[...document.querySelectorAll('button')].find(b=>b.textContent.includes('Confirm Request'));button.click();button.click();});
+  await expect.poll(()=>state.freeCardCalls?.length||0).toBe(1);await expect(confirm).toBeEnabled();
+  await confirm.click();await expect.poll(()=>state.freeCardCalls.length).toBe(2);await expect(confirm).toBeEnabled();
+  assert.equal(state.freeCardCalls[0].requestKey,state.freeCardCalls[1].requestKey);assert.match(state.freeCardCalls[0].requestKey,/^[0-9a-f-]{36}$/i);
+  await page.getByRole('button',{name:'Increase quantity'}).click();state.freeCardFailure=false;
+  await confirm.click();await expect.poll(()=>state.freeCardCalls.length).toBe(3);await expect(confirm).toBeEnabled();
+  assert.notEqual(state.freeCardCalls[1].requestKey,state.freeCardCalls[2].requestKey);assert.equal(state.freeCardCalls[2].quantity,2);
+  await confirm.click();await expect.poll(()=>state.freeCardCalls.length).toBe(4);
+  assert.notEqual(state.freeCardCalls[3].requestKey,state.freeCardCalls[2].requestKey);assert.equal(state.freeCardCalls[3].quantity,1);
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await screenshot(page,'security-legacy-card-request-mobile',true);await close();
 });
 
 (async()=>{

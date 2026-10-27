@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,343 +10,170 @@ interface BookingCalendarProps {
   productId: string;
   durationMinutes: number;
   priceCents: number;
-  onBook: (bookingId: string) => void;
-  booking?: boolean;
 }
-
 interface AvailabilitySlot {
   day_of_week: number;
-  start_time: string; // "HH:MM:SS"
+  start_time: string;
   end_time: string;
   timezone: string;
 }
-
 interface Booking {
   booking_date: string;
   start_time: string;
   status: string;
   created_at: string;
+  reserved_until: string | null;
+  starts_at: string;
+  ends_at: string;
 }
 
-// Convert a time string "HH:MM:SS" on a given date from one timezone to another
-function convertTime(dateStr: string, timeStr: string, fromTz: string, toTz: string): Date {
-  const [hours, minutes] = timeStr.split(":").map(Number);
-  // Create a date string in the source timezone
-  const dateTimeStr = `${dateStr}T${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:00`;
-  
-  // Use Intl to figure out the offset
-  const formatter = new Intl.DateTimeFormat("en-US", {
-    timeZone: fromTz,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  });
-
-  // Parse the date assuming it's in fromTz
-  // We create the date in UTC first, then adjust
-  const utcDate = new Date(dateTimeStr + "Z");
-  
-  // Get the offset of fromTz at this moment
-  const fromParts = formatter.formatToParts(utcDate);
-  const fromObj: Record<string, string> = {};
-  fromParts.forEach(p => { fromObj[p.type] = p.value; });
-  
-  // Build the actual UTC time by working backwards from the timezone
-  // Simple approach: use the Date constructor with timezone info
-  const tempDate = new Date(`${dateStr}T${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:00`);
-  
-  // Get offset in minutes for the source timezone
-  const sourceOffset = getTimezoneOffset(fromTz, tempDate);
-  const utcMs = tempDate.getTime() + sourceOffset * 60000;
-  
-  return new Date(utcMs);
+/** Resolve a creator's wall-clock time without using the visitor's UTC offset. */
+function creatorTime(date: string, time: string, timezone: string): number {
+  try {
+    const target = Date.parse(`${date}T${time.slice(0, 5)}:00Z`);
+    const formatter = new Intl.DateTimeFormat("en-CA", { timeZone: timezone,
+      year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" });
+    let candidate = target;
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const parts = Object.fromEntries(formatter.formatToParts(new Date(candidate)).map(p => [p.type, p.value]));
+      const rendered = Date.parse(`${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}Z`);
+      if (rendered === target) return candidate;
+      candidate += target - rendered;
+    }
+    return NaN; // A nonexistent daylight-saving time is not a selectable slot.
+  } catch { return NaN; } // Invalid owner settings must not crash the public page.
 }
-
-// Get timezone offset in minutes (positive = behind UTC)
-function getTimezoneOffset(tz: string, date: Date): number {
-  const utcStr = date.toLocaleString("en-US", { timeZone: "UTC" });
-  const tzStr = date.toLocaleString("en-US", { timeZone: tz });
-  const utcDate = new Date(utcStr);
-  const tzDate = new Date(tzStr);
-  return (utcDate.getTime() - tzDate.getTime()) / 60000;
-}
-
-function formatTimeLocal(date: Date): string {
-  return date.toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  });
-}
-
-function toDateString(date: Date): string {
+function dateString(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
-
-// Convert a local Date to "HH:MM:SS" in creator's timezone
-function toCreatorTime(utcMs: number, creatorTz: string): string {
-  const d = new Date(utcMs);
-  const parts = new Intl.DateTimeFormat("en-GB", {
-    timeZone: creatorTz,
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  }).formatToParts(d);
-  const obj: Record<string, string> = {};
-  parts.forEach(p => { obj[p.type] = p.value; });
-  return `${obj.hour}:${obj.minute}:${obj.second || "00"}`;
+function clockString(utcMs: number, timezone: string) {
+  const parts = Object.fromEntries(new Intl.DateTimeFormat("en-GB", { timeZone: timezone,
+    hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" }).formatToParts(new Date(utcMs)).map(p => [p.type, p.value]));
+  return `${parts.hour}:${parts.minute}:${parts.second}`;
+}
+async function checkoutRequestKey(productId: string, binding: string) {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(binding));
+  const fingerprint = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, "0")).join("");
+  const storageKey = `tapaway-booking-request:${productId}`;
+  try {
+    const previous = JSON.parse(sessionStorage.getItem(storageKey) || "null");
+    if (previous?.fingerprint === fingerprint && typeof previous.key === "string"
+      && /^[0-9a-f-]{36}$/i.test(previous.key) && Date.now() - previous.createdAt < 35 * 60 * 1000) return previous.key as string;
+  } catch { /* Session storage can be unavailable in private browsing. */ }
+  const key = crypto.randomUUID();
+  try { sessionStorage.setItem(storageKey, JSON.stringify({ key, fingerprint, createdAt: Date.now() })); } catch { /* The in-memory request still remains stable. */ }
+  return key;
 }
 
-// Get date string in creator's timezone from a UTC timestamp
-function toCreatorDateString(utcMs: number, creatorTz: string): string {
-  const d = new Date(utcMs);
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: creatorTz,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(d);
-  const obj: Record<string, string> = {};
-  parts.forEach(p => { obj[p.type] = p.value; });
-  return `${obj.year}-${obj.month}-${obj.day}`;
-}
-
-export function BookingCalendar({ creatorId, productId, durationMinutes, priceCents, onBook }: BookingCalendarProps) {
+export function BookingCalendar({ creatorId, productId, durationMinutes, priceCents }: BookingCalendarProps) {
   const [availability, setAvailability] = useState<AvailabilitySlot[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
-  const [selectedSlot, setSelectedSlot] = useState<{ utcMs: number } | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date>();
+  const [selectedSlot, setSelectedSlot] = useState<{ utcMs: number; timezone: string } | null>(null);
   const [buyerEmail, setBuyerEmail] = useState("");
   const [loading, setLoading] = useState(true);
+  const [slotsLoading, setSlotsLoading] = useState(false);
   const [booking, setBooking] = useState(false);
+  const [error, setError] = useState("");
+  const [retry, setRetry] = useState(0);
+  const [slotsRetry, setSlotsRetry] = useState(0);
+  const inFlight = useRef(false);
+  const attempt = useRef<{ binding: string; key: string } | null>(null);
+  const creatorTimezone = availability[0]?.timezone || "UTC";
+  const date = selectedDate ? dateString(selectedDate) : "";
 
-  const buyerTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-
-  // Load availability
   useEffect(() => {
-    supabase
-      .from("creator_availability")
-      .select("day_of_week, start_time, end_time, timezone")
-      .eq("creator_id", creatorId)
-      .then(({ data }) => {
-        if (data) setAvailability(data as AvailabilitySlot[]);
+    let active = true;
+    setLoading(true); setError(""); setSelectedDate(undefined); setSelectedSlot(null);
+    void supabase.from("creator_availability").select("day_of_week,start_time,end_time,timezone")
+      .eq("creator_id", creatorId).then(({ data, error: loadError }) => {
+        if (!active) return;
+        if (loadError) setError("We couldn’t load available times. Please try again.");
+        setAvailability(loadError ? [] : (data || []) as AvailabilitySlot[]);
         setLoading(false);
       });
-  }, [creatorId]);
+    return () => { active = false; };
+  }, [creatorId, retry]);
 
-  // Load bookings for selected date range (fetch all for the month)
   useEffect(() => {
-    if (!selectedDate) return;
-    const dateStr = toDateString(selectedDate);
-    
-    supabase
-      .from("bookings_public")
-      .select("booking_date, start_time, status, created_at")
-      .eq("product_id", productId)
-      .eq("booking_date", dateStr)
-      .then(({ data }) => {
-        if (data) setBookings(data as Booking[]);
+    if (!date) return;
+    let active = true;
+    setSlotsLoading(true); setSelectedSlot(null); setBookings([]); setError("");
+    // This service returns occupied time ranges only. Customer email addresses
+    // and private booking IDs never leave the database through this calendar.
+    const readSlots = supabase.rpc.bind(supabase) as unknown as (name: string, args: Record<string, string>) => Promise<{ data: Booking[] | null; error: unknown }>;
+    void readSlots("get_public_booking_slots", { _product_id: productId, _from: date, _to: date })
+      .then(({ data, error: loadError }) => {
+        if (!active) return;
+        if (loadError) setError("We couldn’t check these times. Please try again.");
+        setBookings(loadError ? [] : data || []); setSlotsLoading(false);
       });
-  }, [selectedDate, productId]);
+    return () => { active = false; };
+  }, [date, productId, slotsRetry]);
 
-  // Available days of week
   const availableDays = useMemo(() => new Set(availability.map(a => a.day_of_week)), [availability]);
-
-  // Disable dates with no availability
-  const disabledDates = (date: Date) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    if (date < today) return true;
-    return !availableDays.has(date.getDay());
-  };
-
-  // Generate slots for selected date
   const slots = useMemo(() => {
-    if (!selectedDate || availability.length === 0) return [];
-
-    const dayOfWeek = selectedDate.getDay();
-    const avail = availability.find(a => a.day_of_week === dayOfWeek);
-    if (!avail) return [];
-
-    const dateStr = toDateString(selectedDate);
-    const creatorTz = avail.timezone;
-
-    // Convert creator's start/end times to UTC
-    const startUtc = convertTime(dateStr, avail.start_time, creatorTz, "UTC");
-    const endUtc = convertTime(dateStr, avail.end_time, creatorTz, "UTC");
-
-    const slotDurationMs = durationMinutes * 60 * 1000;
-    const generated: Array<{ utcMs: number; label: string; booked: boolean }> = [];
-
-    let cursor = startUtc.getTime();
-    const endMs = endUtc.getTime();
-    const now = Date.now();
-    const fifteenMinAgo = now - 15 * 60 * 1000;
-
-    while (cursor + slotDurationMs <= endMs) {
-      // Skip past slots
-      if (cursor > now) {
-        // Check if booked
-        const slotCreatorTime = toCreatorTime(cursor, creatorTz);
-        const slotCreatorDate = toCreatorDateString(cursor, creatorTz);
-        
-        const isBooked = bookings.some(b => {
-          if (b.booking_date !== slotCreatorDate) return false;
-          if (b.start_time !== slotCreatorTime) return false;
-          if (b.status === "paid") return true;
-          // Pending but recent (< 15 min). Also blocked
-          if (b.status === "pending") {
-            const createdAt = new Date(b.created_at).getTime();
-            return createdAt > fifteenMinAgo;
-          }
-          return false;
-        });
-
-        // Format in buyer's local time
-        const buyerDate = new Date(cursor);
-        const label = formatTimeLocal(buyerDate);
-
-        generated.push({ utcMs: cursor, label, booked: isBooked });
+    if (!selectedDate || !Number.isInteger(durationMinutes) || durationMinutes < 1 || durationMinutes > 480) return [];
+    const generated: Array<{ utcMs: number; timezone: string; label: string; booked: boolean }> = [];
+    const length = durationMinutes * 60000, now = Date.now();
+    for (const available of availability.filter(a => a.day_of_week === selectedDate.getDay())) {
+      const start = creatorTime(date, available.start_time, available.timezone);
+      const end = creatorTime(date, available.end_time, available.timezone);
+      if (!Number.isFinite(start) || !Number.isFinite(end)) continue;
+      for (let cursor = start; cursor + length <= end; cursor += length) {
+        if (cursor <= now) continue;
+        const booked = bookings.some(b => (b.status === "paid" || b.status === "pending" && Date.parse(b.reserved_until || "") > now)
+          && Date.parse(b.starts_at) < cursor + length && Date.parse(b.ends_at) > cursor);
+        generated.push({ utcMs: cursor, timezone: available.timezone, booked,
+          label: new Date(cursor).toLocaleTimeString("en-US", { timeZone: available.timezone, hour: "numeric", minute: "2-digit" }) });
       }
-      cursor += slotDurationMs;
     }
-
-    return generated;
-  }, [selectedDate, availability, bookings, durationMinutes]);
+    return generated.filter((slot, index, all) => all.findIndex(s => s.utcMs === slot.utcMs) === index).sort((a, b) => a.utcMs - b.utcMs);
+  }, [selectedDate, date, availability, bookings, durationMinutes]);
 
   const handleBook = async () => {
-    if (!selectedSlot || !buyerEmail.trim()) return;
-    
-    setBooking(true);
+    if (!selectedSlot || !date || inFlight.current || slotsLoading || !/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(buyerEmail.trim())) return;
+    inFlight.current = true; setBooking(true); setError("");
     try {
-      const avail = availability.find(a => a.day_of_week === selectedDate?.getDay());
-      const creatorTz = avail?.timezone || "UTC";
-      
-      const creatorDate = toCreatorDateString(selectedSlot.utcMs, creatorTz);
-      const creatorTime = toCreatorTime(selectedSlot.utcMs, creatorTz);
-
-      // Insert pending booking
-      const { data: bookingData, error } = await supabase
-        .from("bookings")
-        .insert({
-          product_id: productId,
-          creator_id: creatorId,
-          buyer_email: buyerEmail.trim(),
-          booking_date: creatorDate,
-          start_time: creatorTime,
-          timezone: creatorTz,
-          status: "pending",
-        } as any)
-        .select("id")
-        .single();
-
-      if (error) throw error;
-      if (bookingData) {
-        onBook((bookingData as any).id);
-      }
-    } catch (err) {
-      console.error("Booking error:", err);
-    } finally {
-      setBooking(false);
+      const email = buyerEmail.trim().toLowerCase();
+      const startTime = clockString(selectedSlot.utcMs, selectedSlot.timezone);
+      const binding = JSON.stringify([productId, email, date, startTime, selectedSlot.timezone]);
+      if (attempt.current?.binding !== binding) attempt.current = { binding, key: await checkoutRequestKey(productId, binding) };
+      const { data, error: checkoutError } = await supabase.functions.invoke("create-product-checkout", {
+        body: { productId, buyerEmail: email, booking: { date, startTime, timezone: selectedSlot.timezone, requestKey: attempt.current.key } },
+      });
+      if (checkoutError || !data?.url) throw new Error(data?.error || "We couldn’t open checkout. This time may have just been taken. Please try again or choose another time.");
+      const url = new URL(data.url);
+      if (url.protocol !== "https:" || url.hostname !== "checkout.stripe.com") throw new Error("Secure checkout is unavailable. Please try again.");
+      window.location.assign(url.href);
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : "We couldn’t open checkout. Please try again.");
+      inFlight.current = false; setBooking(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
-  if (availability.length === 0) {
-    return (
-      <div className="text-center py-6">
-        <p className="text-sm text-muted-foreground">No availability set yet. Check back later!</p>
-      </div>
-    );
-  }
-
+  if (loading) return <div className="flex items-center justify-center py-8" role="status" aria-label="Loading available times"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
+  if (!availability.length) return <div className="space-y-3 py-6 text-center"><p className="text-sm text-muted-foreground">{error || "No availability set yet. Check back later!"}</p>{error && <button type="button" onClick={() => setRetry(n => n + 1)} className="min-h-11 text-sm font-medium underline">Try again</button>}</div>;
   return (
     <div className="space-y-4">
-      {/* Calendar */}
-      <div className="flex justify-center">
-        <Calendar
-          mode="single"
-          selected={selectedDate}
-          onSelect={(date) => {
-            setSelectedDate(date);
-            setSelectedSlot(null);
-          }}
-          disabled={disabledDates}
-          fromDate={new Date()}
-          className="rounded-xl border"
-        />
-      </div>
-
-      {/* Time slots */}
-      {selectedDate && (
-        <div className="space-y-3">
-          <p className="text-sm font-medium text-foreground">
-            Available times ({buyerTz.replace(/_/g, " ")})
-          </p>
-          {slots.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No available slots for this date.</p>
-          ) : (
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-              {slots.map((slot) => (
-                <button
-                  key={slot.utcMs}
-                  disabled={slot.booked}
-                  onClick={() => setSelectedSlot(slot)}
-                  className={cn(
-                    "px-3 py-2.5 rounded-lg text-sm font-medium transition-all border",
-                    slot.booked
-                      ? "bg-muted text-muted-foreground/50 border-transparent cursor-not-allowed line-through"
-                      : selectedSlot?.utcMs === slot.utcMs
-                        ? "bg-primary text-primary-foreground border-primary"
-                        : "bg-card border-border hover:border-primary/50 text-foreground"
-                  )}
-                >
-                  {slot.label}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Email + Book button */}
-      {selectedSlot && (
-        <div className="space-y-3 pt-2">
-          <Input
-            type="email"
-            placeholder="Your email address"
-            value={buyerEmail}
-            onChange={(e) => setBuyerEmail(e.target.value)}
-            className="w-full"
-          />
-          <button
-            onClick={handleBook}
-            disabled={booking || !buyerEmail.includes("@")}
-            className="w-full px-6 py-3 bg-primary text-primary-foreground rounded-xl font-semibold hover:opacity-90 transition-opacity text-base disabled:opacity-50"
-          >
-            {booking ? (
-              <Loader2 className="h-4 w-4 animate-spin mx-auto" />
-            ) : (
-              `Pay $${(priceCents / 100).toFixed(2)} to Lock In`
-            )}
-          </button>
-          <p className="text-xs text-center text-muted-foreground">
-            {formatTimeLocal(new Date(selectedSlot.utcMs))} · {durationMinutes} min
-          </p>
-        </div>
-      )}
+      <p className="text-sm text-muted-foreground">Dates and times are shown in {creatorTimezone.replace(/_/g, " ")}.</p>
+      <div className="flex justify-center"><Calendar mode="single" selected={selectedDate}
+        onSelect={value => { if (!booking) { setSelectedDate(value); setSelectedSlot(null); setError(""); } }}
+        disabled={value => booking || value < new Date(new Date().setHours(0, 0, 0, 0)) || !availableDays.has(value.getDay())}
+        fromDate={new Date()} className="rounded-xl border" /></div>
+      {selectedDate && <div className="space-y-3"><p className="text-sm font-medium text-foreground">Choose a time</p>
+        {slotsLoading ? <p className="text-sm text-muted-foreground" role="status">Checking available times…</p> : slots.length === 0 ? <p className="text-sm text-muted-foreground">No available times for this date.</p> :
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">{slots.map(slot => <button type="button" key={slot.utcMs} disabled={slot.booked || booking || !!error && !selectedSlot}
+            onClick={() => { setSelectedSlot(slot); setError(""); }}
+            className={cn("min-h-11 rounded-lg border px-3 py-2.5 text-sm font-medium transition-all", slot.booked ? "cursor-not-allowed border-transparent bg-muted text-muted-foreground/50 line-through" : selectedSlot?.utcMs === slot.utcMs ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-foreground hover:border-primary/50")}>
+            {slot.label}</button>)}</div>}
+      </div>}
+      {error && <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800"><p role="alert">{error}</p><button type="button" className="mt-2 min-h-10 font-medium underline" onClick={() => setSlotsRetry(n => n + 1)}>Check times again</button></div>}
+      {selectedSlot && <div className="space-y-3 pt-2"><label className="block text-sm font-medium" htmlFor={`booking-email-${productId}`}>Your email address</label><Input id={`booking-email-${productId}`} type="email" autoComplete="email" maxLength={254} value={buyerEmail} disabled={booking} onChange={event => setBuyerEmail(event.target.value)} />
+        <button type="button" onClick={handleBook} disabled={booking || slotsLoading || !/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(buyerEmail.trim())}
+          className="min-h-12 w-full rounded-xl bg-primary px-6 py-3 text-base font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50">
+          {booking ? <span className="inline-flex items-center justify-center gap-2"><Loader2 className="h-4 w-4 animate-spin" />Opening secure checkout…</span> : `Continue to payment · $${(priceCents / 100).toFixed(2)}`}
+        </button><p className="text-center text-xs text-muted-foreground">{durationMinutes} minutes. Your booking is confirmed after payment.</p></div>}
     </div>
   );
 }

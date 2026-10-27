@@ -20,6 +20,7 @@ export async function activateCheckout(stripe: Stripe, session: Stripe.Checkout.
   const { data: intent, error: lookupError } = await db.from("checkout_intents").select("*").eq("id", session.metadata.checkout_intent_id).maybeSingle();
   if (lookupError || !intent) throw lookupError || new Error("Checkout intent missing; retry activation");
   if (intent.stripe_checkout_session_id !== session.id || (intent.activated_at && intent.stripe_livemode !== session.livemode)) throw new Error("Checkout intent mismatch");
+  if (intent.payment_hold_at) return { onHold: true };
   const mainSub = subId(session.subscription as string | Stripe.Subscription | null);
   const customer = custId(session.customer as string | Stripe.Customer | null);
   const email = (session.customer_details?.email || "").trim().toLowerCase();
@@ -52,8 +53,11 @@ export async function activateCheckout(stripe: Stripe, session: Stripe.Checkout.
       }
     }
     const patch = { status, email, stripe_livemode: session.livemode, user_id: userId, user_created_by_purchase: created, stripe_customer_id: customer, stripe_subscription_id: mainSub, paid_at: intent.paid_at || new Date().toISOString() };
-    const saved = await db.from("checkout_intents").update(patch).eq("id", intent.id);
-    if (saved.error) throw saved.error;
+    const saved = await db.from("checkout_intents").update(patch).eq("id", intent.id).select("status,payment_hold_at").single();
+    if (saved.error || !saved.data) throw saved.error || new Error("Checkout state unavailable");
+    // The database may have clamped this write after a refund raced the Stripe
+    // read. Use the guarded row before creating any account setup or add-on.
+    if (saved.data.payment_hold_at) return { onHold: true };
     const shipping = (session as any).shipping_details ?? (session as any).collected_information?.shipping_details;
     const onboarding = await db.from("onboarding_sessions").upsert({
       checkout_intent_id: intent.id, user_id: userId, stripe_subscription_id: mainSub,
@@ -81,8 +85,9 @@ export async function activateCheckout(stripe: Stripe, session: Stripe.Checkout.
       const checked = await db.from("card_club_memberships").select("status").eq("id", membership.data.id).single();
       if (checked.error || checked.data?.status === "activation_failed") throw checked.error || new Error("Card Club activation needs retry");
     }
-    const finished = await db.from("checkout_intents").update({ activated_at: new Date().toISOString(), activation_started_at: null }).eq("id", intent.id);
-    if (finished.error) throw finished.error;
+    const finished = await db.from("checkout_intents").update({ activated_at: new Date().toISOString(), activation_started_at: null }).eq("id", intent.id).select("status,payment_hold_at").single();
+    if (finished.error || !finished.data) throw finished.error || new Error("Checkout completion unavailable");
+    if (finished.data.payment_hold_at) return { onHold: true };
     await deliverBusinessWelcome(db, { ...intent, ...patch });
     return { status, userId };
   } catch (error) {
@@ -91,18 +96,21 @@ export async function activateCheckout(stripe: Stripe, session: Stripe.Checkout.
   }
 }
 async function deliverBusinessWelcome(db: Db, intent: Record<string, any>) {
-  if (intent.welcome_email_sent_at) return;
+  if (intent.welcome_email_sent_at || intent.payment_hold_at) return;
+  const current = await db.from("checkout_intents").select("payment_hold_at").eq("id",intent.id).single();
+  if (current.error) throw current.error;
+  if (current.data?.payment_hold_at) return;
   await deliverPurchaseEmail(db, "checkout_intents", intent.id, () => sendWelcomeLink(intent.email, intent.status === "pending_association" ? "verify" : "purchase"));
 }
 
 /** Retrieve current Stripe truth even for out-of-order lifecycle events. */
 export async function syncBusinessSubscription(stripe: Stripe, subscriptionId: string) {
   const db = admin();
-  const { data: intent, error } = await db.from("checkout_intents").select("id,stripe_livemode").eq("stripe_subscription_id", subscriptionId).maybeSingle();
+  const { data: intent, error } = await db.from("checkout_intents").select("id,stripe_livemode,payment_hold_at").eq("stripe_subscription_id", subscriptionId).maybeSingle();
   if (error) throw error;
   if (!intent || intent.stripe_livemode !== (stripeMode() === "live")) return;
   const sub = await stripe.subscriptions.retrieve(subscriptionId);
-  const updated = await db.from("personal_profiles").update({ subscription_status: intent.stripe_livemode ? sub.status : "pending", trial_ends_at: sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null }).eq("stripe_subscription_id", subscriptionId);
+  const updated = await db.from("personal_profiles").update({ subscription_status: intent.stripe_livemode ? intent.payment_hold_at ? "past_due" : sub.status : "pending", trial_ends_at: sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null }).eq("stripe_subscription_id", subscriptionId);
   if (updated.error) throw updated.error;
 }
 
@@ -111,6 +119,11 @@ export async function ensureCardClubSubscription(stripe: Stripe, db: Db, members
   const { data: m } = await db.from("card_club_memberships").select("*").eq("id", membershipId).single();
   if (!m || m.card_club_stripe_subscription_id || !["pending_activation", "activation_failed"].includes(m.status)) return m;
   try {
+    if (m.checkout_intent_id) {
+      const held = await db.from("checkout_intents").select("payment_hold_at").eq("id",m.checkout_intent_id).maybeSingle();
+      if (held.error) throw held.error;
+      if (held.data?.payment_hold_at) return m;
+    }
     const main = await stripe.subscriptions.retrieve(m.main_stripe_subscription_id);
     if (main.metadata.card_club_billing === "included") {
       const item = main.items.data.find(i => {
@@ -151,6 +164,15 @@ export async function ensureCardClubSubscription(stripe: Stripe, db: Db, members
 /** Recomputes Card Club status from Stripe truth. Active only when paid and main plan is valid. */
 export async function syncMembership(stripe: Stripe, db: Db, m: Record<string, any>) {
   if (["declined", "cancelled"].includes(m.status) || !m.card_club_stripe_subscription_id) return;
+  if (m.checkout_intent_id) {
+    const held = await db.from("checkout_intents").select("payment_hold_at").eq("id",m.checkout_intent_id).maybeSingle();
+    if (held.error) throw held.error;
+    if (held.data?.payment_hold_at) {
+      const stopped = await db.from("card_club_memberships").update({status:"past_due"}).eq("id",m.id);
+      if (stopped.error) throw stopped.error;
+      return;
+    }
+  }
   const [cc, main] = await Promise.all([
     stripe.subscriptions.retrieve(m.card_club_stripe_subscription_id),
     stripe.subscriptions.retrieve(m.main_stripe_subscription_id),
@@ -178,10 +200,17 @@ export async function syncMembership(stripe: Stripe, db: Db, m: Record<string, a
 
 /** Creates (once) the unapproved draft hub that represents a payment-first order. */
 export async function ensureDraftProfile(db: Db, intentId: string, userId: string, businessName?: string) {
-  const { data: sess } = await db.from("onboarding_sessions").select("id, personal_profile_id, shipping_address, stripe_subscription_id").eq("checkout_intent_id", intentId).maybeSingle();
+  const { data: sess, error: sessionError } = await db.from("onboarding_sessions").select("id, user_id, personal_profile_id, shipping_address, stripe_subscription_id").eq("checkout_intent_id", intentId).maybeSingle();
+  if (sessionError) throw sessionError;
   if (!sess) return null;
+  if (sess.user_id && sess.user_id !== userId) throw new Error("Setup belongs to another account");
   if (sess.personal_profile_id) {
-    if (businessName) await db.from("personal_profiles").update({ full_name: businessName }).eq("id", sess.personal_profile_id).eq("is_approved", false);
+    const existing = await db.from("personal_profiles").select("id").eq("id", sess.personal_profile_id).eq("user_id", userId).maybeSingle();
+    if (existing.error || !existing.data) throw existing.error || new Error("Hub belongs to another account");
+    if (businessName) {
+      const named = await db.from("personal_profiles").update({ full_name: businessName }).eq("id", sess.personal_profile_id).eq("user_id", userId).eq("is_approved", false);
+      if (named.error) throw named.error;
+    }
     return sess.personal_profile_id as string;
   }
   const { data: intent } = await db.from("checkout_intents").select("plan, billing_interval, email, stripe_customer_id, stripe_livemode, business_details").eq("id", intentId).single();

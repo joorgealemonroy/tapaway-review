@@ -60,7 +60,7 @@ export const validateUrl = (url: string | null, type: keyof typeof urlValidation
   const result = schema.safeParse(url);
   
   if (!result.success) {
-    return { valid: false, error: result.error.errors[0]?.message };
+    return { valid: false, error: result.error.issues[0]?.message };
   }
   
   return { valid: true };

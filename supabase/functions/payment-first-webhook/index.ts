@@ -1,6 +1,7 @@
 // Stripe webhook for payment-first onboarding only. Source of truth for activation.
 // Nothing is written until the Stripe signature verifies AND the event's livemode
 // matches this deployment's mode (test events never touch live state and vice versa).
+import { readLimitedText } from "../_shared/requestBody.ts";
 import { syncLegacySubscription } from "../_shared/legacyBillingSync.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
@@ -36,6 +37,7 @@ function invoiceLineMatchesClub(line: Stripe.InvoiceLineItem, membership: Record
 }
 
 serve(async (req) => {
+  if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
   const secret = webhookSecret();
   if (!secret) {
     console.error("[payment-first-webhook] signing secret missing for mode", stripeMode());
@@ -43,7 +45,8 @@ serve(async (req) => {
   }
   const sig = req.headers.get("stripe-signature");
   if (!sig) return new Response("Missing signature", { status: 400 });
-  const raw = await req.text();
+  let raw: string;
+  try { raw = await readLimitedText(req, 1048576); } catch { return new Response("Webhook body too large", { status: 413 }); }
   const stripe = getStripe();
   let event: Stripe.Event;
   try {
@@ -73,7 +76,7 @@ serve(async (req) => {
   try {
     if (event.type === "checkout.session.completed" || event.type === "checkout.session.async_payment_succeeded") {
       const s = event.data.object as Stripe.Checkout.Session;
-      if (s.metadata?.onboarding_version === ONBOARDING_VERSION) await activateCheckout(stripe, s);
+      if (s.metadata?.onboarding_version === ONBOARDING_VERSION) await activateCheckout(stripe, await stripe.checkout.sessions.retrieve(s.id));
       if (s.metadata?.commerce_version === PERSONAL_VERSION) await activatePersonalOrder(stripe, s);
       if (s.metadata?.commerce_version === HUB_PAYMENT_VERSION) await activateHubPayment(stripe, s);
     } else if (event.type === "invoice.paid") {
@@ -116,6 +119,10 @@ serve(async (req) => {
       const invoiceId = typeof charge.invoice === "string" ? charge.invoice : charge.invoice?.id;
       const invoice = invoiceId ? await stripe.invoices.retrieve(invoiceId) : null;
       const subscription = invoice ? invoiceSubscriptionId(invoice as unknown as Record<string, any>) : null;
+      if (payment && (event.type === "charge.dispute.created" || charge.refunded || charge.amount_refunded > 0)) {
+        const held = await db.rpc("record_payment_reversal", { _mode: stripeMode(), _payment_intent_id: payment, _subscription_id: subscription, _reason: event.type === "charge.dispute.created" ? "disputed" : charge.refunded ? "refunded" : "partial_refund" });
+        if (held.error) throw held.error;
+      }
       await holdHubPaymentForCharge(stripe, event.type, event.id, charge, subscription);
       // A later $5 hosting refund must not refund or stop the original physical-card order.
       const originalPurchase = !invoice || invoice.billing_reason === "subscription_create";
@@ -124,8 +131,13 @@ serve(async (req) => {
         const status = event.type === "charge.dispute.created" ? "disputed" : charge.refunded ? "refunded" : undefined;
         let query = db.from("personal_card_orders").update({ ...(status ? { status } : {}), production_status: "on_hold" }).eq("stripe_livemode", event.livemode);
         query = subscription ? query.eq("stripe_subscription_id", subscription) : query.eq("stripe_payment_intent_id", payment);
-        const { error } = await query;
+        const { data: heldOrders, error } = await query.select("personal_profile_id,stripe_subscription_id");
         if (error) throw error;
+        for (const held of heldOrders || []) {
+          if (!held.personal_profile_id || !held.stripe_subscription_id) continue;
+          const stopped = await db.from("personal_profiles").update({ is_approved: false, subscription_status: "past_due" }).eq("id", held.personal_profile_id).eq("stripe_subscription_id", held.stripe_subscription_id);
+          if (stopped.error) throw stopped.error;
+        }
       }
     }
     const { error: markedError } = await db.from("processed_stripe_events").update({ status: "processed" }).eq("event_id", claimId).eq("status", "claimed");

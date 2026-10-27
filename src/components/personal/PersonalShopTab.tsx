@@ -193,8 +193,6 @@ export function PersonalShopTab({
   const [loadingSales, setLoadingSales] = useState(false);
 
   // Test mode state
-  const [testCheckoutUrls, setTestCheckoutUrls] = useState<Record<string, string>>({});
-  const [generatingCheckout, setGeneratingCheckout] = useState<string | null>(null);
   const [testConsoleOpen, setTestConsoleOpen] = useState(false);
   const [testPurchases, setTestPurchases] = useState<CreatorPurchase[]>([]);
   const [previousPurchaseCount, setPreviousPurchaseCount] = useState(0);
@@ -406,43 +404,6 @@ export function PersonalShopTab({
       console.error("Connect error:", err);
       toast.error("Failed to start Stripe setup");
       setConnecting(false);
-    }
-  };
-
-  const handleSimulateConnect = async () => {
-    const fakeAccountId = `acct_test_${crypto.randomUUID().slice(0, 8)}`;
-    const { error } = await supabase
-      .from("personal_profiles")
-      .update({ 
-        stripe_connect_account_id: fakeAccountId, 
-        is_stripe_onboarded: true 
-      } as any)
-      .eq("id", profileId);
-
-    if (error) {
-      toast.error("Failed to simulate connect: " + error.message);
-    } else {
-      toast.success(`Simulated Stripe Connect: ${fakeAccountId}`);
-      onProfileUpdate();
-    }
-  };
-
-  const handleGenerateTestCheckout = async (productId: string) => {
-    setGeneratingCheckout(productId);
-    try {
-      const { data, error } = await supabase.functions.invoke("create-product-checkout", {
-        body: { productId, testMode: true },
-      });
-      if (error) throw error;
-      if (data?.url) {
-        setTestCheckoutUrls(prev => ({ ...prev, [productId]: data.url }));
-        toast.success("Test checkout link generated!");
-      }
-    } catch (err: any) {
-      console.error("Test checkout error:", err);
-      toast.error(err.message || "Failed to generate test checkout");
-    } finally {
-      setGeneratingCheckout(null);
     }
   };
 
@@ -731,26 +692,6 @@ export function PersonalShopTab({
               </p>
             )}
 
-            {/* Dev-only: Simulate Connect */}
-            {isDev && (
-              <div className="border-t border-dashed border-amber-500/30 pt-4 mt-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <FlaskConical className="h-4 w-4 text-amber-500" />
-                  <span className="text-xs font-semibold text-amber-500 uppercase tracking-wide">Dev Only</span>
-                </div>
-                <Button 
-                  onClick={handleSimulateConnect}
-                  variant="outline"
-                  className="w-full border-amber-500/50 text-amber-600 hover:bg-amber-500/10"
-                >
-                  <FlaskConical className="h-4 w-4 mr-2" />
-                  Simulate Stripe Connect (Test)
-                </Button>
-                <p className="text-xs text-muted-foreground mt-1.5">
-                  Bypasses real Stripe onboarding. Sets a fake acct_test_xxx ID.
-                </p>
-              </div>
-            )}
           </CardContent>
         </Card>
       </div>
@@ -1250,57 +1191,6 @@ export function PersonalShopTab({
                   </div>
                 </div>
 
-                {/* Dev-only: Generate Test Checkout */}
-                {isDev && (
-                  <div className="mt-3 pt-3 border-t border-dashed border-amber-500/30">
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleGenerateTestCheckout(product.id)}
-                        disabled={generatingCheckout === product.id}
-                        className="border-amber-500/50 text-amber-600 hover:bg-amber-500/10 text-xs"
-                      >
-                        {generatingCheckout === product.id ? (
-                          <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                        ) : (
-                          <FlaskConical className="h-3 w-3 mr-1" />
-                        )}
-                        Generate Test Checkout
-                      </Button>
-                    </div>
-                    {testCheckoutUrls[product.id] && (
-                      <div className="mt-2 space-y-1.5">
-                        <div className="flex items-center gap-1.5">
-                          <Input 
-                            value={testCheckoutUrls[product.id]} 
-                            readOnly 
-                            className="text-xs font-mono h-8 bg-muted"
-                          />
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-8 w-8 flex-shrink-0"
-                            onClick={() => copyToClipboard(testCheckoutUrls[product.id])}
-                          >
-                            <Copy className="h-3 w-3" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-8 w-8 flex-shrink-0"
-                            onClick={() => window.open(testCheckoutUrls[product.id], "_blank")}
-                          >
-                            <ExternalLink className="h-3 w-3" />
-                          </Button>
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          Use test card: <code className="bg-muted px-1 rounded">4242 4242 4242 4242</code> | Any future exp | Any CVC
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
               </CardContent>
             </Card>
           ))}

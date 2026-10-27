@@ -34,6 +34,7 @@ const RepApply = () => {
   const navigate = useNavigate();
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [website, setWebsite] = useState('');
 
   const [form, setForm] = useState({
     name: '',
@@ -59,22 +60,11 @@ const RepApply = () => {
     setSubmitting(true);
 
     try {
-      const { error } = await supabase.from('rep_applications').insert({
-        name: form.name.trim(),
-        email: form.email.trim().toLowerCase(),
-        phone: form.phone.trim() || null,
-        message: form.message.trim() || null,
-        status: 'pending',
-      });
-
-      if (error) {
-        if (error.code === '23505') {
-          toast.error('An application with this email already exists');
-        } else {
-          throw error;
-        }
-        return;
-      }
+      const { data, error } = await supabase.functions.invoke('public-intake', { body: {
+        action: 'rep_application', name: form.name.trim(), email: form.email.trim().toLowerCase(),
+        phone: form.phone.trim(), message: form.message.trim(), website,
+      } });
+      if (error || !data?.success) throw new Error(data?.error || 'Please try again.');
 
       setSubmitted(true);
     } catch (error) {
@@ -146,6 +136,7 @@ const RepApply = () => {
 
       <RepCard className="p-6 sm:p-8">
         <form onSubmit={handleSubmit} className="space-y-5">
+          <input name="website" value={website} onChange={e => setWebsite(e.target.value)} tabIndex={-1} aria-hidden="true" autoComplete="off" className="absolute h-0 w-0 overflow-hidden opacity-0" />
           <div>
             <Label htmlFor="name" className="text-white/70 text-xs font-medium tracking-wide uppercase">
               Full name

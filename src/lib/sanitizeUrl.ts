@@ -1,16 +1,32 @@
 /**
- * Sanitize a URL to prevent javascript:, data:, vbscript: injection.
- * Only allows safe protocols: http, https, mailto, tel, sms.
- * Also allows instagram:// deep links used by the platform.
- * Returns "#" for any unsafe URL.
+ * Validate an absolute web destination before an automatic redirect or popup.
+ * Reject executable schemes, ambiguous parsing and embedded credentials.
+ * Returns null for an invalid destination.
  */
+export function getSafeExternalUrl(url: string | null | undefined): string | null {
+  if (typeof url !== "string" || /[\u0000-\u001f\u007f\\]/.test(url)) return null;
+  const trimmed = url.trim();
+  if (!/^https?:\/\//i.test(trimmed)) return null;
+  try {
+    const parsed = new URL(trimmed);
+    if (!parsed.hostname || parsed.username || parsed.password) return null;
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return null;
+    return parsed.href;
+  } catch {
+    return null;
+  }
+}
+
+/** Safe href for a user-activated web, contact or supported social app link. */
 export function sanitizeUrl(url: string | null | undefined): string {
-  if (!url) return "#";
+  if (typeof url !== "string" || /[\u0000-\u001f\u007f\\]/.test(url)) return "#";
   const trimmed = url.trim();
   if (!trimmed) return "#";
 
+  if (/^https?:/i.test(trimmed)) return getSafeExternalUrl(trimmed) ?? "#";
+
   // Allow safe protocols (incl. mobile app deep links)
-  if (/^(https?|mailto|tel|sms|instagram|fb|snssdk1128|intent):\/?\/?/i.test(trimmed)) {
+  if (/^(mailto|tel|sms|instagram|fb|snssdk1128|intent):/i.test(trimmed)) {
     return trimmed;
   }
 

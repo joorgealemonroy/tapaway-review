@@ -1,3 +1,4 @@
+import { readLimitedText } from "../_shared/requestBody.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 
@@ -74,16 +75,12 @@ Deno.serve(async (req) => {
     _user_id: callerUserId,
     _role: "admin",
   });
-  let allowed = isAdmin === true;
-  if (!allowed) {
-    const email = userData?.user?.email?.toLowerCase() ?? "";
-    allowed = email === "tap@tapaway.co";
-  }
+  const allowed = isAdmin === true;
   if (!allowed) return json({ error: "Forbidden" }, 403);
 
   let body: Record<string, unknown>;
   try {
-    body = await req.json();
+    body = JSON.parse(await readLimitedText(req, 32768));
   } catch {
     return json({ error: "Invalid JSON" }, 400);
   }

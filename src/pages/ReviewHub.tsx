@@ -10,6 +10,7 @@ import { ExpiredHubGate } from "@/components/hub/ExpiredHubGate";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { Smartphone } from "lucide-react";
 import { getHubTheme, safeColor, contrastOn, DEFAULT_PRIMARY } from "@/lib/hubThemes";
+import { sanitizeUrl, getSafeExternalUrl } from "@/lib/sanitizeUrl";
 
 interface Restaurant {
   id: string;
@@ -215,13 +216,7 @@ const ReviewHub = () => {
   };
 
   const isSafeUrl = (url: string | null): boolean => {
-    if (!url) return false;
-    try {
-      const parsed = new URL(url);
-      return ['http:', 'https:', 'instagram:'].includes(parsed.protocol);
-    } catch {
-      return false;
-    }
+    return sanitizeUrl(url) !== "#" && /^(https?:\/\/|instagram:\/\/)/i.test(url?.trim() || "");
   };
 
   /** Always return a URL that works: web URL on desktop, app deep link on mobile. */
@@ -515,9 +510,9 @@ const ReviewHub = () => {
                   }}>
                     {eng.content}
                   </p>
-                  {eng.options?.link && (
+                  {getSafeExternalUrl(eng.options?.link) && (
                     <a
-                      href={eng.options.link}
+                      href={getSafeExternalUrl(eng.options.link)!}
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={() => trackEvent('promotion_click')}
@@ -694,7 +689,7 @@ const ReviewHub = () => {
           {/* GOOGLE REVIEW */}
           {isSafeUrl(restaurant.google_review_url) && (
             <a 
-              href={restaurant.google_review_url!}
+              href={sanitizeUrl(restaurant.google_review_url)}
               target="_blank" 
               rel="noopener noreferrer"
               onClick={() => trackEvent('google_click')}
@@ -733,7 +728,7 @@ const ReviewHub = () => {
           {/* YELP */}
           {isSafeUrl(restaurant.yelp_review_url) && (
             <a 
-              href={restaurant.yelp_review_url!}
+              href={sanitizeUrl(restaurant.yelp_review_url)}
               target="_blank" 
               rel="noopener noreferrer"
               onClick={() => trackEvent('yelp_click')}
@@ -764,7 +759,7 @@ const ReviewHub = () => {
           {/* INSTAGRAM */}
           {isSafeUrl(restaurant.instagram_url) && (
             <a 
-              href={getInstagramDeepLink(restaurant.instagram_url!)}
+              href={sanitizeUrl(getInstagramDeepLink(restaurant.instagram_url!))}
               target="_blank" 
               rel="noopener noreferrer"
               onClick={() => trackEvent('instagram_click')}
@@ -794,7 +789,7 @@ const ReviewHub = () => {
           {/* DIRECTIONS */}
           {isSafeUrl(restaurant.directions_url) && (
             <a 
-              href={restaurant.directions_url!}
+              href={sanitizeUrl(restaurant.directions_url)}
               target="_blank" 
               rel="noopener noreferrer"
               onClick={() => trackEvent('directions_click')}

@@ -5,15 +5,19 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "build:dev": "vite build --mode development",
+    "build": "npm run security:source && vite build && npm run security:artifacts",
+    "build:dev": "npm run security:source && vite build --mode development && npm run security:artifacts",
     "check:hubs": "node scripts/check-public-hubs.mjs",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "security:source": "node scripts/check-release-security.mjs",
+    "security:artifacts": "node scripts/check-release-security.mjs --artifacts",
+    "security:test": "node scripts/check-build-security.mjs",
+    "test:release": "node scripts/check-release-regressions.cjs"
   },
   "dependencies": {
     "@googlemaps/markerclusterer": "^2.6.2",
-    "@hookform/resolvers": "^3.10.0",
+    "@hookform/resolvers": "5.2.2",
     "@lovable.dev/cloud-auth-js": "^1.0.0",
     "@radix-ui/react-accordion": "^1.2.11",
     "@radix-ui/react-alert-dialog": "^1.1.14",
@@ -74,7 +78,7 @@
     "tailwind-merge": "^2.6.0",
     "three": "0.160.0",
     "vaul": "^0.9.9",
-    "zod": "^3.25.76"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",
@@ -84,9 +88,9 @@
     "@types/react": "^18.3.23",
     "@types/react-dom": "^18.3.7",
     "@types/three": "0.160.0",
-    "@vitejs/plugin-react-swc": "^3.11.0",
+    "@vitejs/plugin-react-swc": "3.11.0",
     "autoprefixer": "^10.4.21",
-    "drizzle-kit": "^0.31.10",
+    "drizzle-kit": "0.31.11",
     "drizzle-orm": "^0.45.2",
     "eslint": "^9.32.0",
     "eslint-plugin-react-hooks": "^5.2.0",
@@ -99,6 +103,15 @@
     "tailwindcss-animate": "^1.0.7",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.38.0",
-    "vite": "^5.4.19"
-  }
+    "vite": "6.4.5"
+  },
+  "overrides": {
+    "@esbuild-kit/core-utils": {
+      "esbuild": "^0.25.4"
+    },
+    "@tailwindcss/typography": {
+      "postcss-selector-parser": "^6.1.5"
+    }
+  },
+  "packageManager": "npm@11.9.0"
 }

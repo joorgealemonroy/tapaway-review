@@ -59,19 +59,10 @@ const PersonalSignupComplete = () => {
         const savedDataStr = localStorage.getItem("personal_signup_data") || sessionStorage.getItem("personal_signup_data");
         // SECURITY: passwords are no longer stored in browser storage across the Stripe redirect.
         // After payment, we always send a magic link to complete sign-in.
-        const savedPassword: string | null = null;
         
         let savedData: SavedSignupData | null = null;
         if (savedDataStr) {
           savedData = JSON.parse(savedDataStr);
-          console.log("[PersonalSignupComplete] Retrieved saved signup data:", {
-            email: savedData?.email,
-            hasPhoto: !!savedData?.profilePhotoBase64,
-            linksCount: savedData?.links?.length || 0,
-            headerType: savedData?.headerType,
-          });
-        } else {
-          console.log("[PersonalSignupComplete] No saved signup data found");
         }
 
         // Step 2: Verify payment with backend, passing signup email
@@ -92,13 +83,6 @@ const PersonalSignupComplete = () => {
           throw err;
         }
 
-        console.log("[PersonalSignupComplete] Verification succeeded:", {
-          username: data.username,
-          userId: data.userId,
-          planType: data.planType,
-          email: data.email,
-        });
-
         const verifiedUsername = data.username;
         const verifiedUserId = data.userId;
         const verifiedPlanType = data.planType || "yearly";
@@ -114,40 +98,10 @@ const PersonalSignupComplete = () => {
 
         setStep("finalizing");
 
-        // Step 3: Try to sign in the user
-        let signedIn = false;
-        if (savedPassword && data.email) {
-          // Try setting password first (non-fatal if it fails. Existing users already have one)
-          try {
-            await supabase.functions.invoke("set-user-password", {
-              body: {
-                userId: verifiedUserId,
-                password: savedPassword,
-                sessionId,
-              },
-            });
-            console.log("[PersonalSignupComplete] Password set successfully");
-          } catch (err) {
-            console.warn("[PersonalSignupComplete] Set password failed (non-fatal):", err);
-          }
-
-          // Always attempt sign-in regardless of set-password result
-          try {
-            const { error: signInError } = await supabase.auth.signInWithPassword({
-              email: data.email,
-              password: savedPassword,
-            });
-
-            if (!signInError) {
-              signedIn = true;
-              console.log("[PersonalSignupComplete] User signed in successfully");
-            } else {
-              console.warn("[PersonalSignupComplete] Sign in failed:", signInError.message);
-            }
-          } catch (err) {
-            console.warn("[PersonalSignupComplete] Auth error:", err);
-          }
-        }
+        // Checkout confirmation is not proof of account ownership. Only the
+        // already authenticated owner can apply saved dashboard content here.
+        const { data: ownerData, error: ownerError } = await supabase.auth.getUser();
+        const signedIn = !ownerError && ownerData.user?.id === verifiedUserId;
 
         // Step 4: Upload profile photo if we have one
         let profilePhotoUrl: string | null = null;
@@ -174,10 +128,9 @@ const PersonalSignupComplete = () => {
                 .from("personal-photos")
                 .getPublicUrl(filePath);
               profilePhotoUrl = `${publicUrl}?t=${Date.now()}`;
-              console.log("[PersonalSignupComplete] Profile photo uploaded");
             }
           } catch (err) {
-            console.warn("[PersonalSignupComplete] Photo upload error:", err);
+            console.warn("[PersonalSignupComplete] Photo upload error:");
           }
         }
 
@@ -206,11 +159,10 @@ const PersonalSignupComplete = () => {
                   .from("personal-photos")
                   .getPublicUrl(headerPath);
                 headerImageUrl = `${publicUrl}?t=${Date.now()}`;
-                console.log("[PersonalSignupComplete] Header image uploaded");
               }
             }
           } catch (err) {
-            console.warn("[PersonalSignupComplete] Header upload error:", err);
+            console.warn("[PersonalSignupComplete] Header upload error:");
           }
         }
 
@@ -257,8 +209,6 @@ const PersonalSignupComplete = () => {
             .update(updateData)
             .eq("id", profile.id);
 
-          console.log("[PersonalSignupComplete] Profile updated with theme settings", { hasCardAddon: !!savedData.addExtraCard });
-
           // Step 7: Delete existing links and create new ones
           if (savedData.links && savedData.links.length > 0) {
             // Delete any existing links first (prevents duplicates on refresh)
@@ -286,8 +236,6 @@ const PersonalSignupComplete = () => {
             await supabase
               .from("personal_links")
               .insert(linksToInsert);
-
-            console.log("[PersonalSignupComplete] Links created:", linksToInsert.length);
           }
 
           // Step 7b: Create blocks from saved data
@@ -310,8 +258,6 @@ const PersonalSignupComplete = () => {
             await supabase
               .from("personal_blocks")
               .insert(blocksToInsert);
-
-            console.log("[PersonalSignupComplete] Blocks created:", blocksToInsert.length);
           }
         }
 
@@ -345,53 +291,14 @@ const PersonalSignupComplete = () => {
                 .update({ referred_by: referralCode } as any)
                 .eq("id", profile.id);
 
-              console.log("[PersonalSignupComplete] Affiliate referral logged");
-
-              // Create commission immediately for FREE signups only
-              // Paid plans get their commission via stripe-webhook when trial converts to active
-              const storedPlanType = savedData?.planType || verifiedPlanType;
-              if (referralRow && storedPlanType === "free") {
+              // Financial rewards are created only by the server after
+              // validating eligibility; browser signup data is not authority.
+              if (referralRow) {
                 try {
-                  // Count prior referrals for this affiliate to determine tier
-                  const { count: referralCount } = await supabase
-                    .from("affiliate_referrals")
-                    .select("id", { count: "exact", head: true })
-                    .eq("affiliate_id", affiliate.id);
-
-                  // Get affiliate settings for tiered rates
-                  const { data: affSettings } = await supabase
-                    .from("affiliate_settings")
-                    .select("commission_free_base, commission_free_bonus, bonus_threshold")
-                    .limit(1)
-                    .single();
-
-                  const threshold = affSettings?.bonus_threshold ?? 25;
-                  const amount = (referralCount ?? 0) > threshold
-                    ? Number(affSettings?.commission_free_bonus ?? 5)
-                    : Number(affSettings?.commission_free_base ?? 3);
-
-                  await supabase
-                    .from("affiliate_commissions")
-                    .insert({
-                      affiliate_id: affiliate.id,
-                      referral_id: referralRow.id,
-                      amount,
-                      status: "pending",
-                    } as any);
-
-                  console.log(`[PersonalSignupComplete] Created $${amount} free-signup commission`);
-                } catch (commErr) {
-                  console.warn("[PersonalSignupComplete] Commission creation failed (non-fatal):", commErr);
-                }
-
-                // Trigger abuse check (fire and forget)
-                try {
-                  supabase.functions.invoke("check-affiliate-abuse", {
+                  await supabase.functions.invoke("check-affiliate-abuse", {
                     body: {
                       referralId: referralRow.id,
                       affiliateId: affiliate.id,
-                      ipAddress: data.clientIp || null,
-                      referredEmail: data.email,
                     },
                   });
                 } catch {
@@ -400,7 +307,7 @@ const PersonalSignupComplete = () => {
               }
             }
           } catch (refErr) {
-            console.warn("[PersonalSignupComplete] Referral logging failed (non-fatal):", refErr);
+            console.warn("[PersonalSignupComplete] Referral logging failed (non-fatal):");
           }
           localStorage.removeItem("tapaway_ref");
           sessionStorage.removeItem("tapaway_ref");
@@ -435,7 +342,7 @@ const PersonalSignupComplete = () => {
 
         setStep("success");
       } catch (err) {
-        console.error("[PersonalSignupComplete] Error:", err);
+        console.error("[PersonalSignupComplete] Error:");
         const wasCardCheck = (err as { cardCheckFailed?: boolean })?.cardCheckFailed === true;
         setCardCheckFailed(wasCardCheck);
         setError(err instanceof Error ? err.message : "Failed to verify payment");

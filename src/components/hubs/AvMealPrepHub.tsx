@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { getSafeExternalUrl, sanitizeUrl } from "@/lib/sanitizeUrl";
 
 interface Restaurant {
   id: string;
@@ -124,22 +125,18 @@ export const AvMealPrepHub = ({ restaurant, trackEvent }: AvMealPrepHubProps) =>
   };
 
   const handleOrderClick = () => {
-    if (restaurant.meal_order_url) {
+    const url = getSafeExternalUrl(restaurant.meal_order_url);
+    if (url) {
       trackEvent("avm_order_click", { source: "global" });
-      window.open(restaurant.meal_order_url, "_blank");
-    }
-  };
-
-  const handleInstagramClick = () => {
-    if (restaurant.instagram_url) {
-      trackEvent("avm_instagram_click");
-      window.open(restaurant.instagram_url, "_blank");
+      window.open(url, "_blank", "noopener,noreferrer");
     }
   };
 
   const handleTrainerClick = (bundle: TrainerBundle) => {
+    const url = getSafeExternalUrl(bundle.cta_url);
+    if (!url) return;
     trackEvent("avm_trainer_bundle_click", { bundleId: bundle.id, title: bundle.title });
-    window.open(bundle.cta_url, "_blank");
+    window.open(url, "_blank", "noopener,noreferrer");
   };
 
   const handleShare = async () => {
@@ -332,14 +329,14 @@ export const AvMealPrepHub = ({ restaurant, trackEvent }: AvMealPrepHubProps) =>
         {/* Actions */}
         <section className="card">
           <div className="row">
-            {restaurant.meal_order_url && (
+            {getSafeExternalUrl(restaurant.meal_order_url) && (
               <button className="btn btn-order" onClick={handleOrderClick}>
                 <span>📦</span> Order / Subscribe
               </button>
             )}
 
             {/* Trainer Bundles */}
-            {trainerBundles.map((bundle) => (
+            {trainerBundles.filter(bundle => getSafeExternalUrl(bundle.cta_url)).map((bundle) => (
               <button
                 key={bundle.id}
                 className="btn btn-trainer"
@@ -349,12 +346,12 @@ export const AvMealPrepHub = ({ restaurant, trackEvent }: AvMealPrepHubProps) =>
               </button>
             ))}
 
-            {restaurant.instagram_url && (
+            {sanitizeUrl(restaurant.instagram_url) !== "#" && restaurant.instagram_url && (
               <a
-                href={restaurant.instagram_url}
+                href={sanitizeUrl(restaurant.instagram_url)}
                 target="_blank"
-                rel="noopener"
-                onClick={handleInstagramClick}
+                rel="noopener noreferrer"
+                onClick={() => trackEvent("avm_instagram_click")}
                 style={{
                   display: "flex",
                   alignItems: "center",

@@ -1,12 +1,14 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Resend } from "https://esm.sh/resend@2.0.0";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sendEmailAndLog } from "../_shared/email.ts";
+import { requireUser, isAdmin, adminClient } from "../_shared/security.ts";
+import { readLimitedText } from "../_shared/requestBody.ts";
+import { takeQuota } from "../_shared/storefrontRateLimit.ts";
 import { escapeHtml } from "../_shared/sanitize.ts";
 
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
+  "Cache-Control": "no-store",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
@@ -20,10 +22,16 @@ serve(async (req: Request): Promise<Response> => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  if (req.method !== "POST") return new Response(JSON.stringify({ error: "POST required" }), { status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   try {
-    const { payout_id }: PayoutNotificationRequest = await req.json();
+    const auth = await requireUser(req);
+    if (!auth || !await isAdmin(auth.user.id)) return new Response(JSON.stringify({ error: "Admin access required" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (await takeQuota(req, "payout-notification", 40, auth.user.id) < 0) return new Response(JSON.stringify({ error: "Please try again later" }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    let body: PayoutNotificationRequest;
+    try { body = JSON.parse(await readLimitedText(req, 4096)); } catch { return new Response(JSON.stringify({ error: "Invalid request" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }); }
+    const payout_id = body?.payout_id;
 
-    if (!payout_id) {
+    if (typeof payout_id !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(payout_id)) {
       console.error("Missing payout_id in request");
       return new Response(
         JSON.stringify({ error: "payout_id is required" }),
@@ -32,9 +40,7 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     // Create Supabase client with service role for full access
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = adminClient();
 
     // Fetch payout record
     const { data: payout, error: payoutError } = await supabase
@@ -143,7 +149,7 @@ serve(async (req: Request): Promise<Response> => {
               <strong>Date:</strong> ${paidAt}
             </li>
             <li style="padding: 8px 0; font-size: 15px;">
-              <strong>Bank:</strong> ending in ****${payoutAccount.account_last4}
+              <strong>Bank:</strong> ending in ****${escapeHtml(payoutAccount.account_last4)}
             </li>
           </ul>
         </div>
@@ -171,7 +177,7 @@ Your TapAway commission payout has just been sent.
 • Amount: $${amount}
 • Status: Sent
 • Date: ${paidAt}
-• Bank: ending in ****${payoutAccount.account_last4}
+• Bank: ending in ****${escapeHtml(payoutAccount.account_last4)}
 
 Payouts are processed every Tuesday at 12:00 PM Pacific and can take 1–3 business days to show up in your account depending on your bank.
 
@@ -180,7 +186,9 @@ If anything looks off, reply to this email and we'll check it out.
 – TapAway`;
 
     // Send email via Resend
-    const { error: emailError } = await resend.emails.send({
+    const result = await sendEmailAndLog({
+      templateKey: "rep_payout",
+      idempotencyKey: `payout-notification:${payout_id}`,
       from: emailFrom,
       to: [repEmail],
       subject: "Your TapAway payout is on the way 💸",
@@ -188,7 +196,7 @@ If anything looks off, reply to this email and we'll check it out.
       text: textContent,
     });
 
-    if (emailError) {
+    if (!result.ok) {
       console.error("Failed to send payout notification email");
       return new Response(
         JSON.stringify({ error: "Failed to send email" }),
@@ -197,12 +205,12 @@ If anything looks off, reply to this email and we'll check it out.
     }
 
     // Mark email as sent to prevent duplicates
-    await supabase
+    const { error: markError } = await supabase
       .from("rep_payout_history")
       .update({ email_sent_at: new Date().toISOString() })
       .eq("id", payout_id);
 
-    console.log("Payout notification email sent successfully");
+    if (markError) throw new Error("Delivery record unavailable");
 
     return new Response(
       JSON.stringify({ success: true, message: "Email sent" }),
@@ -210,9 +218,9 @@ If anything looks off, reply to this email and we'll check it out.
     );
 
   } catch (error: any) {
-    console.error("Error in send-payout-notification:", error.message);
+    console.error("Payout notification unavailable");
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: "Notification temporarily unavailable" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

@@ -32,10 +32,10 @@ export function installAuthGuard(): void {
 
     originals[method] = authAny[method];
 
-    authAny[method] = (...args: unknown[]) => {
+    authAny[method] = () => {
       console.error(
         `[AUTH_GUARD] Blocked supabase.auth.${method}(). These methods trigger default Lovable/Supabase emails.`,
-        { ts: new Date().toISOString(), args }
+        { ts: new Date().toISOString() }
       );
       // Return a resolved error so callers don't explode unexpectedly
       return Promise.resolve({

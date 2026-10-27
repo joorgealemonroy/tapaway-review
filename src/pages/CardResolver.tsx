@@ -9,6 +9,7 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { CardOnboarding } from "@/components/card/CardOnboarding";
+import { getSafeExternalUrl } from "@/lib/sanitizeUrl";
 
 type CardStatus = "loading" | "not_found" | "unclaimed" | "redirecting";
 type ActivationStep = "idle" | "email" | "otp" | "password" | "claiming";
@@ -93,11 +94,24 @@ const CardResolver = () => {
       }
 
       if (card.status === "claimed" && card.destination_value) {
-        setCardStatus("redirecting");
         if (card.destination_type === "profile") {
-          navigate(`/${card.destination_value}`, { replace: true, state: { type: 'personal' } });
+          const slug = card.destination_value;
+          if (!/^[a-z0-9_-]+$/i.test(slug)) {
+            setCardStatus("not_found");
+            return;
+          }
+          setCardStatus("redirecting");
+          navigate(`/${encodeURIComponent(slug)}`, { replace: true, state: { type: 'personal' } });
         } else if (card.destination_type === "external_url") {
-          window.location.href = card.destination_value;
+          const destination = getSafeExternalUrl(card.destination_value);
+          if (!destination) {
+            setCardStatus("not_found");
+            return;
+          }
+          setCardStatus("redirecting");
+          window.location.assign(destination);
+        } else {
+          setCardStatus("not_found");
         }
         return;
       }

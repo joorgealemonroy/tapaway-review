@@ -1,3 +1,4 @@
+import { readLimitedText } from "../_shared/requestBody.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import {
   admin,
@@ -111,9 +112,9 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
   try {
-    const raw = await req.text();
-    if (raw.length > 16000) return json({ error: "Message too long" }, 413);
-    const body = JSON.parse(raw);
+    let body;
+    try { body = JSON.parse(await readLimitedText(req, 16000)); } catch { return json({ error: "Message too long or invalid." }, 400); }
+    if (!body || typeof body !== "object" || Array.isArray(body)) return json({ error: "Invalid request." }, 400);
     if (body.website) return json({ sent: true });
     const visitor = clean(body.visitor, 36);
     if (!/^[a-f0-9-]{36}$/i.test(visitor))
@@ -138,7 +139,7 @@ serve(async (req) => {
         message = clean(body.message, 2000);
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !name || !message)
         return json({ error: "Add your name, email, and question." }, 400);
-      if ((await takeQuota(req, "support-team-ip", 5)) < 0)
+      if ((await takeQuota(req, "support-team-ip", 5)) < 0 || (await takeQuota(req, "support-team-global", 500, "all")) < 0)
         return json(
           { error: "Please email tap@tapaway.co for more help today." },
           429,

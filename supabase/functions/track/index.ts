@@ -1,3 +1,5 @@
+import { readLimitedText } from "../_shared/requestBody.ts";
+import { takeQuota } from "../_shared/storefrontRateLimit.ts";
 // Hardened analytics ingest. The ONLY write path into public.analytics_hits.
 // Browsers never touch the table directly and never see service-role creds.
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -168,8 +170,10 @@ Deno.serve(async (req) => {
   }
 
   try {
+    if (await takeQuota(req, "track-network", 2000) < 0 || await takeQuota(req, "track-global", 20000, "all") < 0)
+      return new Response(JSON.stringify({ error: "Rate limited" }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     // ---- payload size limit -------------------------------------------
-    const raw = await req.text();
+    const raw = await readLimitedText(req, MAX_BODY_BYTES);
     if (raw.length > MAX_BODY_BYTES) {
       return new Response(JSON.stringify({ error: "Payload too large" }), {
         status: 413,

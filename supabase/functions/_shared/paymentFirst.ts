@@ -48,8 +48,8 @@ export function webhookSecret(): string | undefined {
 /** Retrieves and validates a configured price. Never trusts client values. */
 export async function verifiedPrice(stripe: Stripe, key: `${Plan}_${Interval}` | "card_club") {
   const rule = PRICES[stripeMode()][key];
-  const price = await stripe.prices.retrieve(rule.id);
-  if (!price.active || price.currency !== "usd" || price.unit_amount !== rule.amount || price.recurring?.interval !== rule.interval) {
+  const price = await stripe.prices.retrieve(rule.id, { expand: ["product"] });
+  if (!price.active || price.currency !== "usd" || price.unit_amount !== rule.amount || price.recurring?.interval !== rule.interval || price.recurring?.interval_count !== 1 || price.livemode !== (stripeMode() === "live") || (typeof price.product !== "string" && (!("active" in price.product) || !price.product.active))) {
     throw new Error(`Price mapping invalid for ${key}`);
   }
   return { id: price.id, amount: rule.amount, interval: rule.interval, product: typeof price.product === "string" ? price.product : price.product.id };
@@ -119,4 +119,4 @@ export async function paymentFirstAllowed(req: Request): Promise<boolean> {
   return !!data?.test_access_key && data.test_access_key === key;
 }
 export const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json" } });
+  new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json", "Cache-Control": "no-store" } });

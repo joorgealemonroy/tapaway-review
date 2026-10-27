@@ -1,6 +1,7 @@
 import { memo } from "react";
 import { ExternalLink } from "lucide-react";
 import { getPlatformConfig } from "@/lib/platformLinks";
+import { sanitizeUrl } from "@/lib/sanitizeUrl";
 
 interface ProLink {
   id: string;
@@ -62,17 +63,19 @@ export const ProHubTemplate = memo(({
   // Brand color used only as a subtle glow, not as the full background
   const brandColor = backgroundColor || '#6366f1';
   
-  const activeLinks = links.filter(l => l.is_active !== false);
+  const activeLinks = links.filter(l => l.is_active !== false && sanitizeUrl(l.url) !== "#");
   
   // Separate social tiles from standard links
   const socialTiles = activeLinks.filter(l => l.thumbnail_bg_url && l.grid_size === 'half');
   const standardLinks = activeLinks.filter(l => !l.thumbnail_bg_url || l.grid_size !== 'half');
 
   const handleClick = (url: string) => {
+    const safeUrl = sanitizeUrl(url);
+    if (safeUrl === "#") return;
     if (onLinkClick) {
-      onLinkClick(url);
+      onLinkClick(safeUrl);
     } else {
-      window.open(url, '_blank', 'noopener');
+      window.open(safeUrl, '_blank', 'noopener,noreferrer');
     }
   };
 

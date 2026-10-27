@@ -1,8 +1,8 @@
 import { takeQuota } from "../_shared/storefrontRateLimit.ts";
 import { allowAccessEmail, normalizedEmail, readAccessBody } from "../_shared/accountAccess.ts";
 // /welcome return from Stripe. Verifies the session server-side.
-// New account from this purchase: one short-lived sign-in token, issued once, within 2 hours.
-// Existing account: never signs in; ownership must be confirmed through the emailed link.
+// Checkout proves payment, not ownership of the payer-entered email address.
+// Both new and existing customers confirm ownership through the emailed link.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { checkRateLimit, getRateLimitKey, rateLimitResponse } from "../_shared/rateLimit.ts";
 import { admin, cors, getStripe, json, ONBOARDING_VERSION, sendWelcomeLink } from "../_shared/paymentFirst.ts";
@@ -42,18 +42,12 @@ serve(async (req) => {
 
     const { data: intent } = await db.from("checkout_intents").select("*").eq("stripe_checkout_session_id", sessionId).maybeSingle();
     if (!intent) return json({ status: "processing" });
+    if (intent.payment_hold_at) return json({ error: "This payment needs review. Please contact tap@tapaway.co for help." }, 409);
     const emailHint = intent.email ? maskEmail(intent.email) : null;
     if (intent.status === "pending_association" || intent.status === "needs_review") return json({ status: "verify_email", emailHint });
     if (intent.status !== "associated") return json({ status: "processing" });
 
-    const fresh = intent.paid_at && Date.now() - new Date(intent.paid_at).getTime() < 2 * 60 * 60 * 1000;
-    if (!intent.user_created_by_purchase || !fresh || intent.welcome_session_issued_at) return json({ status: "sign_in", emailHint });
-    const { data: claimed } = await db.from("checkout_intents").update({ welcome_session_issued_at: new Date().toISOString() })
-      .eq("id", intent.id).is("welcome_session_issued_at", null).select("id");
-    if (!claimed?.length) return json({ status: "sign_in", emailHint });
-    const { data: link, error } = await db.auth.admin.generateLink({ type: "magiclink", email: intent.email });
-    if (error || !link?.properties?.hashed_token) return json({ status: "sign_in", emailHint });
-    return json({ status: "ready", token_hash: link.properties.hashed_token, emailHint });
+    return json({ status: "verify_email", emailHint });
   } catch (e) {
     console.error("[payment-first-welcome] failed", e instanceof Error ? e.message : e);
     return json({ error: "Something went wrong. Please refresh." }, 500);

@@ -1,1 +1,1 @@
-export { STOREFRONT_FAQS } from "../../supabase/functions/_shared/storefrontKnowledge";
+export { STOREFRONT_FAQS } from "../../shared/storefrontKnowledge";

@@ -7,12 +7,16 @@ export async function customerAiAllowed(req: Request, userId: string, restaurant
   const { data: role, error: roleError } = await db.from('user_roles').select('role').eq('user_id', userId).eq('role', 'admin').maybeSingle();
   if (roleError) throw roleError;
   if (!role) {
-    let query = db.from('restaurants').select('subscription_status,payment_state,trial_ends_at,stripe_subscription_id').eq('owner_id', userId);
+    let query = db.from('restaurants').select('id').eq('owner_id', userId);
     if (restaurantId) query = query.eq('id', restaurantId);
     const { data: accounts, error } = await query.limit(20);
     if (error) throw error;
-    const entitled = (accounts || []).some(a => a.payment_state === 'complimentary' || a.subscription_status === 'active' ||
-      (a.subscription_status === 'trialing' && a.stripe_subscription_id && a.trial_ends_at && Date.parse(a.trial_ends_at) > Date.now()));
+    let entitled = false;
+    for (const account of accounts || []) {
+      const { data: active, error: accessError } = await db.rpc('restaurant_is_active', { _restaurant_id: account.id });
+      if (accessError) throw accessError;
+      if (active === true) { entitled = true; break; }
+    }
     if (!entitled) return false;
   }
   if (await takeQuota(req, 'customer-ai-account', 30, userId) < 0) return false;

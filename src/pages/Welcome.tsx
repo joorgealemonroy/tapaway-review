@@ -12,7 +12,7 @@ import { track } from "@/lib/analytics";
 import { getOnboardingData } from "@/lib/onboardingData";
 import { Brand } from "@/components/landing/LandingNav";
 import "@/components/landing/storefront.css";
-import { verifyTokenHash } from "@/lib/authGuard";
+import { clearCheckoutAttempt } from "@/lib/checkoutAttempt";
 
 type Address = { name?: string | null; line1?: string | null; line2?: string | null; city?: string | null; state?: string | null; postal_code?: string | null };
 type OnboardingState = {
@@ -61,17 +61,11 @@ export default function Welcome() {
       const existing = await token();
       if (!sessionId) { if (existing) await refresh(); else setPhase("sign_in"); return; }
       for (let attempt = 0; attempt < 6 && !cancelled; attempt++) {
-        const { ok, data } = await callFunction<{ status?: string; token_hash?: string; emailHint?: string }>("payment-first-welcome", { session_id: sessionId });
+        const { ok, data } = await callFunction<{ status?: string; emailHint?: string }>("payment-first-welcome", { session_id: sessionId }, existing);
         if (cancelled) return;
         if (!ok) { setPhase("recover"); return; }
         if (data.emailHint) setEmailHint(data.emailHint);
-        if (!tracked.current && ["ready", "verify_email", "sign_in"].includes(data.status || "")) { tracked.current = true; track("purchase_completed", { hubKind: "site" }); }
-        if (data.status === "ready" && data.token_hash) {
-          const { error: e } = await verifyTokenHash(data.token_hash, "email");
-          if (!e) { await refresh(); return; }
-          console.warn("welcome sign-in failed", e.message);
-          setPhase("sign_in"); return;
-        }
+        if (!tracked.current && ["verify_email", "sign_in"].includes(data.status || "")) { tracked.current = true; clearCheckoutAttempt(); }
         if (data.status === "verify_email") { setPhase("verify_email"); return; }
         if (data.status === "sign_in") { if (existing) await refresh(); else setPhase("sign_in"); return; }
         if (data.status === "not_paid") { track("purchase_failed", { hubKind: "site" }); setPhase("error"); return; }
@@ -95,7 +89,7 @@ export default function Welcome() {
         {phase === "processing" && <Centered><Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="mt-4 text-hero-foreground/70">Your order is still being confirmed. This can take a minute. If you completed checkout, check your email for a setup link. You do not need to place another order.</p></Centered>}
         {(phase === "processing" || phase === "recover") && <div className="mt-6 space-y-4">{phase === "recover" && <><h1 className="text-2xl font-bold">Let's reconnect to your order.</h1><p className="text-sm text-muted-foreground">We couldn't confirm your order right now. If you completed checkout, don't pay again. Retry here or open the setup link in your email.</p></>}<Button className="w-full h-12" onClick={() => setRetryAttempt(n => n + 1)}>Check my order again</Button><Link className="block text-center text-sm underline" to="/support#question">Get help with my order</Link></div>}
         {phase === "error" && <Centered><h1 className="text-2xl font-bold">Checkout not completed</h1><p className="mt-3 text-hero-foreground/70">Your checkout was not completed. You can return to your order and try again.</p><Button asChild className="mt-6 h-12 w-full"><Link to="/onboarding?flow=payment_first">Try again</Link></Button></Centered>}
-        {phase === "verify_email" && <Centered><Mail className="h-10 w-10 text-primary" /><h1 className="mt-4 text-2xl font-bold">Check your email to continue</h1><p className="mt-3 text-hero-foreground/70">Your payment went through. You already have a TapAway account{emailHint ? ` at ${emailHint}` : ""}, so we sent a link to confirm it's you. Open it to attach this order and finish setup.</p></Centered>}
+        {phase === "verify_email" && <><Centered><Mail className="h-10 w-10 text-primary" /><h1 className="mt-4 text-2xl font-bold">Thank you. Check your email to continue.</h1><p className="mt-3 text-hero-foreground/70">Your order is confirmed. We sent a secure setup link{emailHint ? ` to ${emailHint}` : " to your checkout email"}. Open it to verify your email and finish setting up TapAway.</p></Centered><details className="mt-6"><summary className="min-h-11 cursor-pointer text-center text-sm underline">Need another setup link?</summary><div className="mt-4"><SignIn emailHint={emailHint} /></div></details></>}
         {phase === "sign_in" && <SignIn emailHint={emailHint} />}
         {phase === "flow" && step === "business" && <BusinessStep busy={busy} error={error} onSubmit={async (b) => { setBusy(true); const r = await refresh({ action: "business", ...b }); setBusy(false); if (r) track(b.notFound ? "business_not_found" : "business_selected", { hubKind: "site" }); }} />}
         {phase === "flow" && step === "logo" && <LogoStep busy={busy} error={error} onSubmit={async (logoUrl) => { setBusy(true); const r = await refresh({ action: "logo", logoUrl }); setBusy(false); if (r) track(logoUrl ? "logo_uploaded" : "logo_skipped", { hubKind: "site" }); }} />}

@@ -1,4 +1,5 @@
-import { takeQuota } from "../_shared/storefrontRateLimit.ts";
+import { hashValue, takeQuota } from "../_shared/storefrontRateLimit.ts";
+import { readLimitedText } from "../_shared/requestBody.ts";
 // Public checkout for payment-first onboarding. No TapAway account needed.
 // The browser sends only plan, interval and Card Club yes/no; the server picks prices.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
@@ -36,6 +37,7 @@ const ATTR_KEYS = [
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
+  if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
   if (!(await paymentFirstAllowed(req)))
     return json({ error: "Not available." }, 404);
   if (
@@ -48,7 +50,11 @@ serve(async (req) => {
     return rateLimitResponse(cors);
   try {
     if (await takeQuota(req, "payment-first-checkout", 20) < 0) return json({ error: "Too many requests. Please try later or contact tap@tapaway.co." }, 429);
-    const body = await req.json().catch(() => ({}));
+    let body;
+    try { body = JSON.parse(await readLimitedText(req, 16384)); }
+    catch { return json({ error: "Invalid checkout request." }, 400); }
+    if (!body || typeof body !== "object" || Array.isArray(body)) return json({ error: "Invalid checkout request." }, 400);
+    if (body.checkoutAttemptId != null && (typeof body.checkoutAttemptId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(body.checkoutAttemptId))) return json({ error: "Refresh checkout and try again." }, 400);
     if (body.checkoutVersion != null && body.checkoutVersion !== 2)
       return json(
         { error: "Checkout has been updated. Refresh the page and try again." },
@@ -169,9 +175,20 @@ serve(async (req) => {
     }
 
     const db = admin();
-    const { data: intent, error } = await db
+    const attemptHash = await hashValue(`${stripeMode()}:${body.checkoutAttemptId || crypto.randomUUID()}`);
+    const requestHash = await hashValue(JSON.stringify({ plan, interval, cardClub, combined, business }));
+    const findAttempt = () => db.from("checkout_intents").select("*").eq("checkout_attempt_hash", attemptHash).maybeSingle();
+    const previous = await findAttempt();
+    if (previous.error) throw previous.error;
+    let intent = previous.data;
+    if (!intent) {
+      const inserted = await db
       .from("checkout_intents")
       .insert({
+        checkout_attempt_hash: attemptHash,
+        checkout_request_hash: requestHash,
+        checkout_attempt_started_at: new Date().toISOString(),
+        checkout_return_origin: origin,
         plan,
         billing_interval: interval,
         card_quantity: CARD_QUANTITY[plan],
@@ -187,10 +204,24 @@ serve(async (req) => {
             : "onboarding",
         attribution,
       })
-      .select("id")
+      .select("*")
       .single();
-    if (error || !intent)
-      throw new Error(`intent insert failed: ${error?.message}`);
+      if (inserted.error && inserted.error.code !== "23505") throw inserted.error;
+      intent = inserted.data;
+      if (!intent) { const raced = await findAttempt(); if (raced.error) throw raced.error; intent = raced.data; }
+    }
+    if (!intent) throw new Error("Checkout attempt unavailable");
+    if (intent.checkout_request_hash !== requestHash || intent.stripe_livemode !== (stripeMode() === "live")) return json({ code: "checkout_changed", error: "Your checkout choices changed. Please try again." }, 409);
+    const checkoutOrigin = intent.checkout_return_origin || frontendUrl();
+    if (intent.stripe_checkout_session_id) {
+      const existing = await stripe.checkout.sessions.retrieve(intent.stripe_checkout_session_id);
+      if (existing.metadata?.checkout_intent_id !== intent.id || existing.metadata?.onboarding_version !== ONBOARDING_VERSION || existing.livemode !== intent.stripe_livemode) throw new Error("Checkout binding mismatch");
+      if (existing.status === "open" && existing.url) return json({ url: existing.url, mode: stripeMode() });
+      if (existing.status === "complete") return json({ url: `${checkoutOrigin}/welcome?session_id=${encodeURIComponent(existing.id)}`, mode: stripeMode() });
+      if (existing.status === "expired") return json({ code: "checkout_expired", error: "This checkout expired. Please try again." }, 409);
+      throw new Error("Checkout status unavailable");
+    }
+    if (Date.now() - Date.parse(intent.checkout_attempt_started_at) >= 23 * 60 * 60 * 1000) return json({ error: "We need to confirm an earlier checkout attempt. Contact tap@tapaway.co before starting another payment." }, 409);
 
     const meta: Record<string, string> = {
       checkout_intent_id: intent.id,
@@ -211,7 +242,7 @@ serve(async (req) => {
       card_club_selected: String(cardClub),
       card_club_price_id: club?.id ?? "",
       checkout_source: "payment_first",
-      ...attribution,
+      ...(intent.attribution || {}),
     };
     const qty = CARD_QUANTITY[plan];
     const total = `$${(main.amount + (cardClub && combined ? (interval === "year" ? 6000 : 500) : 0)) / 100}/${interval}`;
@@ -229,14 +260,14 @@ serve(async (req) => {
       /^tap\+pftest[a-z0-9]+@tapaway\.co$/.test(body.testEmail)
     ) {
       const clock = await stripe.testHelpers.testClocks.create({
-        frozen_time: Math.floor(Date.now() / 1000),
+        frozen_time: Math.floor(Date.parse(intent.checkout_attempt_started_at) / 1000),
         name: `pf ${intent.id}`,
-      });
+      }, { idempotencyKey: `pf_clock_${intent.id}` });
       const c = await stripe.customers.create({
         email: body.testEmail,
         test_clock: clock.id,
         metadata: { payment_first_test: "true" },
-      });
+      }, { idempotencyKey: `pf_customer_${intent.id}` });
       customer = c.id;
       meta.test_clock_id = clock.id;
     }
@@ -261,8 +292,8 @@ serve(async (req) => {
               ]
           : []),
       ],
-      success_url: `${origin}/welcome?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/onboarding?plan=${plan}&cycle=${interval}&canceled=1`,
+      success_url: `${checkoutOrigin}/welcome?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${checkoutOrigin}/onboarding?plan=${plan}&cycle=${interval}&canceled=1`,
       billing_address_collection: "required",
       shipping_address_collection: { allowed_countries: ["US"] },
       phone_number_collection: { enabled: !combined },
@@ -280,14 +311,21 @@ serve(async (req) => {
           message: `TapAway ${qty} Cards: ${TRIAL_DAYS} days free, then ${total}, renewing ${interval === "year" ? "yearly" : "monthly"} until canceled.${clubText} Cancel before the trial ends to avoid the first charge. Terms: https://tapaway.co/terms Refunds: https://tapaway.co/refund`,
         },
       },
-    });
-    await db
+    }, { idempotencyKey: `pf_checkout_${intent.id}` });
+    if (session.livemode !== intent.stripe_livemode) throw new Error("Checkout environment mismatch");
+    const saved = await db
       .from("checkout_intents")
       .update({
         stripe_checkout_session_id: session.id,
         status: "checkout_started",
       })
-      .eq("id", intent.id);
+      .eq("id", intent.id).is("stripe_checkout_session_id", null).select("id");
+    if (saved.error) throw saved.error;
+    if (!saved.data?.length) {
+      const rebound = await findAttempt();
+      if (rebound.error || rebound.data?.stripe_checkout_session_id !== session.id) throw rebound.error || new Error("Checkout persistence failed");
+    }
+    if (!session.url) throw new Error("Checkout URL unavailable");
     return json({ url: session.url, mode: stripeMode() });
   } catch (e) {
     console.error(

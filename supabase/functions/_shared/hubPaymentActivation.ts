@@ -13,8 +13,20 @@ async function paidInvoice(stripe: Stripe, sub: Stripe.Subscription): Promise<bo
   if (!id) return false;
   const invoice = typeof sub.latest_invoice === "object" && sub.latest_invoice
     ? sub.latest_invoice : await stripe.invoices.retrieve(id);
-  return invoice.status === "paid" && invoice.paid === true && invoice.currency === "usd"
-    && invoice.amount_paid >= soloPrice.amount && idOf(invoice.customer) === idOf(sub.customer);
+  if (invoice.status !== "paid" || invoice.paid !== true || invoice.livemode !== true || invoice.currency !== "usd"
+    || invoice.amount_paid < soloPrice.amount || idOf(invoice.customer) !== idOf(sub.customer)
+    || idOf(invoice.subscription) !== sub.id) return false;
+  const paymentId = idOf(invoice.payment_intent);
+  if (!paymentId) return false;
+  const payment = await stripe.paymentIntents.retrieve(paymentId, { expand: ["latest_charge"] });
+  if (!payment.livemode || payment.status !== "succeeded" || payment.currency !== "usd"
+    || payment.amount_received < soloPrice.amount || idOf(payment.customer) !== idOf(sub.customer)) return false;
+  const chargeId = idOf(payment.latest_charge);
+  if (!chargeId) return false;
+  const charge = typeof payment.latest_charge === "object" && payment.latest_charge
+    ? payment.latest_charge : await stripe.charges.retrieve(chargeId);
+  return charge.livemode === true && charge.paid === true && idOf(charge.payment_intent) === paymentId
+    && !charge.refunded && !charge.disputed && charge.amount_refunded === 0;
 }
 
 /** Validate the current subscription, not an earlier paid checkout snapshot. */
@@ -56,7 +68,9 @@ export async function activateHubPayment(stripe: Stripe, supplied: Stripe.Checko
     _profile_id: profileId, _request_version: version, _session_id: session.id,
     _subscription_id: subscriptionId, _customer_id: customerId, _billing_email: email,
   });
-  if (result.error || result.data?.activated !== true) throw result.error || new Error("Hub payment fulfillment was not saved");
+  if (result.error) throw result.error;
+  if (result.data?.held === true || result.data?.reviewRequired === true) return { skipped: "payment_review" };
+  if (result.data?.activated !== true) throw new Error("Hub payment fulfillment was not saved");
   await deliverHubPaymentReceipt(db, profileId, version, email);
   return { activated: true };
 }

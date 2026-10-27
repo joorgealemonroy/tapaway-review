@@ -1,3 +1,4 @@
+import { safeFetch } from "../_shared/safeFetch.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -169,15 +170,8 @@ async function probe(
   let attempts = 0;
   const attempt = async (method: "HEAD" | "GET") => {
     attempts++;
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
-    try {
-      // redirect: "follow" only follows http(s); the SSRF guard above already
-      // rejected private destinations for the initial hop.
-      return await fetch(url, { method, redirect: "follow", headers: FETCH_HEADERS, signal: controller.signal });
-    } finally {
-      clearTimeout(timer);
-    }
+    return await safeFetch(url, { method, headers: FETCH_HEADERS, allowHttp: true,
+      timeoutMs: TIMEOUT_MS, maxBytes: 1, truncate: true });
   };
 
   let lastError = "";

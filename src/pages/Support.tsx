@@ -169,18 +169,11 @@ const Support = () => {
     if (website) return; // Ignore the honeypot before writing a support request.
     const name = override?.name || account?.name || "";
     const email = override?.email || account?.email || user?.email || "";
-    const { error } = await supabase.from("support_requests").insert([
-      {
-        request_type: requestType,
-        name: name || "Website visitor",
-        business_name: account?.businessName || "",
-        email,
-        description,
-        request_details: JSON.parse(JSON.stringify(details ?? {})),
-        user_id: user?.id || undefined,
-      },
-    ]);
-    if (error) throw error;
+    const { data, error } = await supabase.functions.invoke("public-intake", { body: {
+      action: "support", requestType, name: name || "Website visitor", businessName: account?.businessName || "",
+      email, description, requestDetails: details ?? {}, website,
+    } });
+    if (error || !data?.success) throw new Error(data?.error || "Please try again.");
 
     await supabase.functions.invoke("support-notification", {
       body: {

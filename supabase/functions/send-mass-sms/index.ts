@@ -58,13 +58,6 @@ function json(status: number, body: unknown) {
 }
 
 
-function canSend(row: Record<string, any>) {
-  if (row.payment_state === "complimentary" || row.subscription_status === "active") return true;
-  if (row.subscription_status !== "trialing" || !row.is_approved) return false;
-  if (row.stripe_subscription_id) return !!row.trial_ends_at && Date.parse(row.trial_ends_at) > Date.now();
-  return !!row.created_at && Date.parse(row.created_at) <= Date.parse("2026-10-21T03:34:37Z");
-}
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return json(405, { error: "Method not allowed" });
@@ -145,8 +138,19 @@ Deno.serve(async (req) => {
       _role: "admin",
     });
 
+    const isReviewRequest = reviewTemplateFlag || REVIEW_REQUEST_RE.test(message);
+    const consentColumn = isReviewRequest ? "sms_transactional_opt_in" : "sms_marketing_opt_in";
     let senderName = "TapAway";
     let phones: string[] = [];
+    let recipientTable = "";
+    let recipientOwnerColumn = "";
+    const contactVariants = new Map<string, string[]>();
+    const collectContactVariants = (recipients: { phone: unknown }[]) => {
+      for (const recipient of recipients) if (typeof recipient.phone === "string") {
+        const normalized = normalizePhone(recipient.phone);
+        contactVariants.set(normalized, [...(contactVariants.get(normalized) || []), recipient.phone]);
+      }
+    };
     let campaignTable = "";
     let campaignRow: Record<string, any> = {};
 
@@ -160,21 +164,29 @@ Deno.serve(async (req) => {
       if (profileErr) return json(500, { error: "Profile lookup failed" });
       if (!profile) return json(404, { error: "Profile not found" });
       if (profile.user_id !== userId && !isAdmin) return json(403, { error: "Forbidden" });
-      if (!isAdmin && !canSend(profile)) return json(403, { error: "Your messaging tools need an active plan. Open Billing or contact TapAway." });
+      if (!isAdmin) {
+        const { data: active, error: accessError } = await admin.rpc("personal_profile_is_active", { _profile_id: profileId });
+        if (accessError) return json(503, { error: "Messaging access is temporarily unavailable." });
+        if (active !== true) return json(403, { error: "Your messaging tools need an active plan. Open Billing or contact TapAway." });
+      }
 
       const { data: recipients, error: recErr } = await admin
         .from("personal_email_captures")
         .select("phone")
         .eq("profile_id", profileId)
         .eq("sms_opt_in", true)
+        .eq(consentColumn, true)
         .not("phone", "is", null);
       if (recErr) return json(500, { error: "Failed to load recipients" });
 
+      recipientTable = "personal_email_captures";
+      recipientOwnerColumn = "profile_id";
+      collectContactVariants(recipients ?? []);
       phones = Array.from(
         new Set(
           (recipients ?? [])
-            .map((r: any) => (typeof r.phone === "string" ? r.phone.trim() : ""))
-            .filter((p: string) => p.length > 0),
+            .map((r: any) => (typeof r.phone === "string" ? normalizePhone(r.phone) : ""))
+            .filter((p: string) => /^\+\d{7,15}$/.test(p)),
         ),
       );
 
@@ -200,21 +212,29 @@ Deno.serve(async (req) => {
       if (rErr) return json(500, { error: "Restaurant lookup failed" });
       if (!restaurant) return json(404, { error: "Restaurant not found" });
       if (restaurant.owner_id !== userId && !isAdmin) return json(403, { error: "Forbidden" });
-      if (!isAdmin && !canSend(restaurant)) return json(403, { error: "Your messaging tools need an active plan. Open Billing or contact TapAway." });
+      if (!isAdmin) {
+        const { data: active, error: accessError } = await admin.rpc("restaurant_is_active", { _restaurant_id: restaurantId });
+        if (accessError) return json(503, { error: "Messaging access is temporarily unavailable." });
+        if (active !== true) return json(403, { error: "Your messaging tools need an active plan. Open Billing or contact TapAway." });
+      }
 
       const { data: recipients, error: recErr } = await admin
         .from("restaurant_sms_subscribers")
         .select("phone")
         .eq("restaurant_id", restaurantId)
         .eq("sms_opt_in", true)
+        .eq(consentColumn, true)
         .not("phone", "is", null);
       if (recErr) return json(500, { error: "Failed to load recipients" });
 
+      recipientTable = "restaurant_sms_subscribers";
+      recipientOwnerColumn = "restaurant_id";
+      collectContactVariants(recipients ?? []);
       phones = Array.from(
         new Set(
           (recipients ?? [])
-            .map((r: any) => (typeof r.phone === "string" ? r.phone.trim() : ""))
-            .filter((p: string) => p.length > 0),
+            .map((r: any) => (typeof r.phone === "string" ? normalizePhone(r.phone) : ""))
+            .filter((p: string) => /^\+\d{7,15}$/.test(p)),
         ),
       );
 
@@ -230,7 +250,6 @@ Deno.serve(async (req) => {
       };
     }
 
-    const isReviewRequest = reviewTemplateFlag || REVIEW_REQUEST_RE.test(message);
 
     // ---- Review-request dedup: one SMS per phone number per business, ever.
     // Check the send log BEFORE sending; numbers already texted a review
@@ -314,6 +333,13 @@ Deno.serve(async (req) => {
           let reserved = false;
           const phoneHash = isReviewRequest ? await hashPhone(normalizePhone(to)) : null;
           try {
+            // Consent can be revoked after the initial audience snapshot. Recheck
+            // the same program immediately before each individual provider send.
+            const { data: currentConsent, error: consentError } = await admin.from(recipientTable)
+              .select("phone").eq(recipientOwnerColumn, ownerId).eq("sms_opt_in", true)
+              .eq(consentColumn, true).in("phone", contactVariants.get(to) || []).limit(1);
+            if (consentError) throw new Error("Consent lookup unavailable");
+            if (!currentConsent?.length) return null;
             if (await takeQuota(req, "sms-recipient-account", 500, userId) < 0 || await takeQuota(req, "sms-recipient-global", 2000, "all-accounts") < 0) return false;
             // Reserve BEFORE sending: a unique business/phone constraint prevents
             // concurrent requests from texting the same review request twice.
@@ -346,7 +372,7 @@ Deno.serve(async (req) => {
             }
             return true;
           } catch (e) {
-            console.error(`Twilio send to ${to} error`, e);
+            console.error("Twilio campaign message could not be delivered");
             return false;
           }
         }),
@@ -371,7 +397,6 @@ Deno.serve(async (req) => {
     });
   } catch (err) {
     console.error("send-mass-sms unexpected error", err);
-    const msg = err instanceof Error ? err.message : "Unknown error";
-    return json(500, { error: msg });
+    return json(500, { error: "Messaging is temporarily unavailable. Please try again." });
   }
 });

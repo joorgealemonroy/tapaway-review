@@ -1,3 +1,4 @@
+import { readLimitedText } from "../_shared/requestBody.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -29,11 +30,6 @@ async function verifyAdmin(
     return { isAdmin: false, userId: null };
   }
 
-  // Check if user is admin by email
-  if (user.email === "tap@tapaway.co") {
-    return { isAdmin: true, userId: user.id };
-  }
-
   // Check user_roles table
   const { data: roleData } = await supabase
     .from("user_roles")
@@ -47,12 +43,7 @@ async function verifyAdmin(
 
 // Generate a random password
 function generateTempPassword(): string {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
-  let password = "";
-  for (let i = 0; i < 16; i++) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return password;
+  return crypto.randomUUID() + crypto.randomUUID();
 }
 
 Deno.serve(async (req) => {
@@ -96,7 +87,7 @@ Deno.serve(async (req) => {
       headerColor = "#6BCB77",
       backgroundColor = "#000000",
       // pfpPosition always defaults to "center" - no longer configurable
-    } = await req.json();
+    } = JSON.parse(await readLimitedText(req, 128000));
 
     // Validate required fields
     if (!email || !fullName || !username) {
@@ -127,7 +118,7 @@ Deno.serve(async (req) => {
     // Check if email is already used
     const { data: existingUser } = await supabase.auth.admin.listUsers();
     const emailExists = existingUser?.users?.some(
-      (u) => u.email?.toLowerCase() === email.toLowerCase()
+      (u: { id: string; email?: string }) => u.email?.toLowerCase() === email.toLowerCase()
     );
 
     if (emailExists) {

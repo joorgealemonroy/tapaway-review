@@ -2,6 +2,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.81.1";
 import { checkRateLimit, getRateLimitKey, rateLimitResponse } from "../_shared/rateLimit.ts";
 import { requireUser, isAdmin } from "../_shared/security.ts";
+import { readLimitedText } from "../_shared/requestBody.ts";
+import { takeQuota } from "../_shared/storefrontRateLimit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -37,6 +39,8 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  if (req.method !== "POST") return new Response("Method not allowed", { status: 405, headers: corsHeaders });
+
   // Rate limit: 20 requests per hour per IP
   const rlKey = getRateLimitKey(req, "check-affiliate-abuse");
   if (!checkRateLimit(rlKey, 20, 60 * 60 * 1000)) {
@@ -60,9 +64,11 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { referralId, affiliateId, ipAddress, referredEmail } = await req.json();
-
-    if (!referralId || !affiliateId) {
+    let body;
+    try { body = JSON.parse(await readLimitedText(req, 4096)); } catch { return new Response(JSON.stringify({ error: "Invalid request" }), { status: 400, headers: corsHeaders }); }
+    const { referralId, affiliateId } = body || {};
+    const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (typeof referralId !== "string" || !uuid.test(referralId) || typeof affiliateId !== "string" || !uuid.test(affiliateId)) {
       return new Response(
         JSON.stringify({ error: "referralId and affiliateId required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -71,12 +77,13 @@ serve(async (req) => {
 
     // The referral must belong to the claimed affiliate, and the caller must
     // be the affiliate owner, the referred user, or an admin.
-    const { data: referral } = await supabase
+    const { data: referral, error: referralError } = await supabase
       .from("affiliate_referrals")
       .select("id, affiliate_id, referred_user_id")
       .eq("id", referralId)
       .maybeSingle();
 
+    if (referralError) throw new Error("Referral lookup unavailable");
     if (!referral || referral.affiliate_id !== affiliateId) {
       return new Response(
         JSON.stringify({ error: "Referral not found" }),
@@ -101,35 +108,27 @@ serve(async (req) => {
       );
     }
 
+    if (await takeQuota(req, "affiliate-review-user", 20, caller.user.id) < 0 ||
+        await takeQuota(req, "affiliate-review-global", 500, "all") < 0) return rateLimitResponse(corsHeaders);
+    // A durable one-per-referral claim also prevents concurrent duplicate flags.
+    if (await takeQuota(req, "affiliate-review-referral", 1, referral.id) < 0)
+      return new Response(JSON.stringify({ flags_created: 0 }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const { data: referredAuth, error: authError } = await supabase.auth.admin.getUserById(referral.referred_user_id);
+    if (authError || !referredAuth.user) throw new Error("Referral identity unavailable");
+    const referredEmail = referredAuth.user.email;
     const flags: Array<{ flag_type: string; details: string }> = [];
-
-    // 1. Duplicate IP check (same affiliate, same IP, last 30 days)
-    if (ipAddress) {
-      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-      const { data: dupeIps } = await supabase
-        .from("affiliate_referrals")
-        .select("id")
-        .eq("affiliate_id", affiliateId)
-        .eq("ip_address", ipAddress)
-        .neq("id", referralId)
-        .gte("created_at", thirtyDaysAgo);
-
-      if (dupeIps && dupeIps.length > 0) {
-        flags.push({
-          flag_type: "duplicate_ip",
-          details: `IP ${ipAddress} used by ${dupeIps.length + 1} referrals from this affiliate in last 30 days`,
-        });
-      }
-    }
+    // Historical referral IPs were supplied by browsers. They are not verified
+    // abuse evidence, so neither a caller's IP nor those values can plant flags.
 
     // 2. Rapid signup check (3+ from same affiliate in last hour)
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-    const { data: recentSignups } = await supabase
+    const { data: recentSignups, error: recentError } = await supabase
       .from("affiliate_referrals")
       .select("id")
       .eq("affiliate_id", affiliateId)
       .gte("created_at", oneHourAgo);
 
+    if (recentError) throw new Error("Referral review unavailable");
     if (recentSignups && recentSignups.length >= 3) {
       flags.push({
         flag_type: "rapid_signup",
@@ -148,9 +147,14 @@ serve(async (req) => {
       }
     }
 
-    // Insert flags into database
-    if (flags.length > 0) {
-      const flagRows = flags.map((f) => ({
+    // Existing flags remain resolved or unresolved; repeated review never
+    // recreates them or overwrites an administrator’s decision.
+    const { data: existing, error: existingError } = await supabase.from("affiliate_abuse_flags").select("flag_type").eq("referral_id", referralId);
+    if (existingError) throw new Error("Referral review unavailable");
+    const existingTypes = new Set((existing || []).map(row => row.flag_type));
+    const newFlags = flags.filter(flag => !existingTypes.has(flag.flag_type));
+    if (newFlags.length > 0) {
+      const flagRows = newFlags.map((f) => ({
         referral_id: referralId,
         flag_type: f.flag_type,
         details: f.details,
@@ -161,20 +165,18 @@ serve(async (req) => {
         .insert(flagRows);
 
       if (insertError) {
-        console.error("[check-affiliate-abuse] Insert error:", insertError);
+        throw new Error("Referral review could not be saved");
       }
     }
 
-    console.log(`[check-affiliate-abuse] Checked referral ${referralId}: ${flags.length} flags`);
-
     return new Response(
-      JSON.stringify({ flags_created: flags.length, flags }),
+      JSON.stringify({ flags_created: newFlags.length }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
     console.error("[check-affiliate-abuse] Error:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      JSON.stringify({ error: "Referral review is temporarily unavailable." }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

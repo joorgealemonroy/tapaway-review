@@ -1,3 +1,4 @@
+import { readLimitedText } from "../_shared/requestBody.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -61,7 +62,7 @@ Deno.serve(async (req) => {
       _role: "admin",
     });
     if (!allowed) return json({ error: "Forbidden" }, 403);
-    const body = await req.json();
+    const body = JSON.parse(await readLimitedText(req, 4096));
     if (
       typeof body.query !== "string" ||
       !body.query.trim() ||

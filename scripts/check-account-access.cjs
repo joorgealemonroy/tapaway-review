@@ -88,7 +88,7 @@ const code = '352614';
     await issue(); const s = await state(); s.db.users.set(account, { id: 'qa-user', email: account });
     const h = await load('supabase/functions/verify-custom-otp/index.ts', s);
     assert.equal((await h(request({ email: account, code, password: 'short' }))).status, 400);
-    const responses = await Promise.all([h(request({ email: account, code, password: 'fixture-password-123' })), h(request({ email: account, code, password: 'different-password-123' }))]);
+    const responses = await Promise.all([h(request({ email: account, code, password: 'fixture-password-123' })), h(request({ email: account, code, password: 'fixture-different-password-123' }))]);
     assert.deepEqual(responses.map(r => r.status).sort(), [200, 400]); assert.equal(s.calls.updates.length, 1);
   });
   await pass('Ambiguous Auth failure consumes the code and tells the customer to request another', async () => {

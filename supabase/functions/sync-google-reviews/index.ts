@@ -1,3 +1,5 @@
+import { readLimitedText } from "../_shared/requestBody.ts";
+import { takeQuota } from "../_shared/storefrontRateLimit.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.81.1";
 import { requireUser, isAdmin, jsonResponse } from "../_shared/security.ts";
@@ -17,7 +19,7 @@ serve(async (req) => {
     const auth = await requireUser(req);
     if (!auth) return jsonResponse({ error: 'Unauthorized' }, 401, corsHeaders);
 
-    const { restaurant_id } = await req.json();
+    const { restaurant_id } = JSON.parse(await readLimitedText(req, 4096));
 
     if (!restaurant_id) {
       return new Response(
@@ -96,6 +98,9 @@ serve(async (req) => {
       }
     }
 
+    if (await takeQuota(req, "review-sync-resource", 3, restaurant_id) < 0 || await takeQuota(req, "review-sync-global", 1000, "all") < 0)
+      return new Response(JSON.stringify({ error: "Please try again later." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
     // Fetch from Google Places API (New) - request newest reviews
     console.log('Fetching Google reviews for place:', restaurant.google_place_id);
     
@@ -103,6 +108,7 @@ serve(async (req) => {
     const googleUrl = `https://places.googleapis.com/v1/places/${restaurant.google_place_id}`;
     
     const googleResponse = await fetch(googleUrl, {
+      signal: AbortSignal.timeout(10000), redirect: "error",
       headers: {
         'X-Goog-Api-Key': googleApiKey,
         'X-Goog-FieldMask': 'rating,userRatingCount,reviews',

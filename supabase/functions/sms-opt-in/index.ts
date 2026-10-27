@@ -1,3 +1,5 @@
+import { readLimitedText } from "../_shared/requestBody.ts";
+import { takeQuota } from "../_shared/storefrontRateLimit.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 import { checkRateLimit, getRateLimitKey, rateLimitResponse } from "../_shared/rateLimit.ts";
@@ -29,6 +31,8 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
+
   // SMS signup is spam-prone: 10 submissions per hour per IP.
   if (!checkRateLimit(getRateLimitKey(req, "sms-opt-in"), 10, 60 * 60 * 1000)) {
     return rateLimitResponse(corsHeaders);
@@ -40,7 +44,7 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const body = (await req.json().catch(() => null)) as Record<string, unknown> | null;
+    const body = JSON.parse(await readLimitedText(req, 8000)) as Record<string, unknown> | null;
     if (!body) return json({ ok: false, error: "Invalid JSON body." }, 400);
 
     // Honeypot: bots fill the hidden "website" field. Silently pretend success
@@ -68,6 +72,9 @@ serve(async (req) => {
     if (!marketingConsent && !transactionalConsent) {
       return json({ ok: false, error: "Please check at least one consent box." }, 400);
     }
+
+    if (await takeQuota(req, "sms-optin-network", 10) < 0 || await takeQuota(req, "sms-optin-phone", 3, phone.replace(/\D/g, "")) < 0 ||
+        await takeQuota(req, "sms-optin-global", 2000, "all") < 0) return rateLimitResponse(corsHeaders);
 
     // Restaurant must exist.
     const { data: restaurant } = await supabase

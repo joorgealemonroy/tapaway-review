@@ -1,6 +1,6 @@
 import BuildingDashboard from "@/components/dashboard/BuildingDashboard";
 import { Link } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -48,6 +48,8 @@ export const CardsTab = ({ profileId, paymentFirst = false, userId, hasCardAddon
   const [requests, setRequests] = useState<CardRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const freeRequestAttempt = useRef<{ payload: string; key: string } | null>(null);
+  const freeRequestInFlight = useRef(false);
   const [quantity, setQuantity] = useState(1);
   const [editingAddress, setEditingAddress] = useState(false);
   // One-time 3-pack price by plan. Deliberately steep so the $5/mo Card Club
@@ -134,23 +136,30 @@ export const CardsTab = ({ profileId, paymentFirst = false, userId, hasCardAddon
   };
 
   const handleFreeRequest = async () => {
-    if (!validateAddress()) return;
+    if (freeRequestInFlight.current || !validateAddress()) return;
     if (quantity > remaining) {
       toast.error(`You can only request ${remaining} more cards this month`);
       return;
     }
+    const payload = JSON.stringify({ profileId, quantity, shipping: address });
+    if (freeRequestAttempt.current?.payload !== payload) {
+      freeRequestAttempt.current = { payload, key: crypto.randomUUID() };
+    }
+    freeRequestInFlight.current = true;
     setSubmitting(true);
     try {
-      const { error } = await supabase.functions.invoke("create-card-order", {
-        body: { flow: "free_request", profile_id: profileId, quantity, shipping: address },
+      const { data, error } = await supabase.functions.invoke("create-card-order", {
+        body: { flow: "free_request", profile_id: profileId, quantity, shipping: address, requestKey: freeRequestAttempt.current.key },
       });
-      if (error) throw error;
+      if (error || data?.error) throw error || new Error(data.error);
+      freeRequestAttempt.current = null;
       toast.success("Card request submitted!");
       setQuantity(1);
       void loadRequests();
     } catch (err: any) {
       toast.error(err.message || "Failed to submit request");
     } finally {
+      freeRequestInFlight.current = false;
       setSubmitting(false);
     }
   };

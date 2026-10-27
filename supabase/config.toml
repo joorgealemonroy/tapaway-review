@@ -174,3 +174,15 @@ verify_jwt = false
 
 [functions.hub-payment-request]
 verify_jwt = false
+
+[functions.restore-admin]
+verify_jwt = false
+
+[functions.seed-test-accounts]
+verify_jwt = false
+
+[functions.submit-lead]
+verify_jwt = false
+
+[functions.public-intake]
+verify_jwt = false

@@ -49,6 +49,7 @@ export const SmsOptInDrawer = ({
   const [marketingConsent, setMarketingConsent] = useState(false);
   const [transactionalConsent, setTransactionalConsent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [website, setWebsite] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,41 +68,12 @@ export const SmsOptInDrawer = ({
 
     setSubmitting(true);
     try {
-      const optInAt = new Date().toISOString();
-      const { error } = await supabase.from("personal_email_captures").insert({
-        profile_id: profileId,
-        name: parsed.data.name,
-        phone: parsed.data.phone,
-        email: null,
-        // Legacy field. True if the user opted into either program.
-        sms_opt_in: marketingConsent || transactionalConsent,
-        sms_opt_in_at: optInAt,
-        sms_marketing_opt_in: marketingConsent,
-        sms_marketing_opt_in_at: marketingConsent ? optInAt : null,
-        sms_transactional_opt_in: transactionalConsent,
-        sms_transactional_opt_in_at: transactionalConsent ? optInAt : null,
-      } as any);
-
-      if (error) throw error;
-
-      // A2P 10DLC audit trail. Store the exact consent copy shown per campaign.
-      await supabase.from("sms_signup_submissions" as any).insert({
-        name: parsed.data.name,
-        phone: parsed.data.phone,
-        // Legacy field mirrors whichever campaign was chosen (marketing wins).
-        consent_text: marketingConsent
-          ? SMS_MARKETING_CONSENT_TEXT
-          : SMS_TRANSACTIONAL_CONSENT_TEXT,
-        consent_at: optInAt,
-        marketing_consent_text: marketingConsent ? SMS_MARKETING_CONSENT_TEXT : null,
-        marketing_consent_at: marketingConsent ? optInAt : null,
-        transactional_consent_text: transactionalConsent
-          ? SMS_TRANSACTIONAL_CONSENT_TEXT
-          : null,
-        transactional_consent_at: transactionalConsent ? optInAt : null,
-        user_agent: navigator.userAgent,
-        source: `personal-hub:${profileId}`,
-      } as any);
+      const { data, error } = await supabase.functions.invoke("public-intake", { body: {
+        action: "capture", profileId, website, name: parsed.data.name, phone: parsed.data.phone,
+        marketingConsent, transactionalConsent, marketingText: SMS_MARKETING_CONSENT_TEXT,
+        transactionalText: SMS_TRANSACTIONAL_CONSENT_TEXT,
+      } });
+      if (error || !data?.success) throw new Error(data?.error || "Please try again.");
 
       toast.success("You're on the list! 🎉");
       setName("");
@@ -143,6 +115,7 @@ export const SmsOptInDrawer = ({
 
   const formContent = (
     <form onSubmit={handleSubmit} className="space-y-4 px-4 pb-6">
+        <input name="website" value={website} onChange={e => setWebsite(e.target.value)} tabIndex={-1} aria-hidden="true" autoComplete="off" className="absolute h-0 w-0 overflow-hidden opacity-0" />
       {trustChips}
       <div className="space-y-2">
         <Label htmlFor="sms-name">Full Name</Label>

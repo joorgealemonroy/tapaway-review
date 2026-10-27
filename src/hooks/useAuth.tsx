@@ -77,27 +77,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     toast.success("Signed in successfully!");
     
-    // Priority routing:
-    // 1. Super admin (tap@tapaway.co) → always go to /admin
-    // 2. Test accounts (tester*@tapaway.co or test@me.com) → go to /admin for testing
-    // 3. Normal users → check onboarding status, then dashboard or onboarding
-    const emailLower = email.toLowerCase();
-    
-    if (emailLower === 'tap@tapaway.co') {
-      // Super admin: always redirect to admin dashboard
-      navigate("/admin");
-    } else if (emailLower === 'test@me.com' || (emailLower.includes('@tapaway.co') && emailLower.includes('tester'))) {
-      // Test accounts: ensure linked, then redirect to admin
-      if (data.user && emailLower === "test@me.com") {
-        try {
-          const { error: assignError } = await supabase.functions.invoke('assign-test-owner');
-          if (assignError) {
-            console.error('[signIn] Failed to assign test restaurant:', assignError);
-          }
-        } catch (err) {
-          console.error('[signIn] Error calling assign-test-owner:', err);
-        }
-      }
+    // The server's role record is the only authority for admin routing.
+    const { data: isAdmin, error: roleError } = await supabase.rpc("is_admin");
+    if (!roleError && isAdmin === true) {
       navigate("/admin");
     } else {
       // Check if affiliate-only (no dashboard account)

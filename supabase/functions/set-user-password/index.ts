@@ -1,179 +1,28 @@
+// Password changes require an independently authenticated account. A paid
+// Checkout session and mutable user metadata are never identity evidence.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { checkRateLimit, getRateLimitKey, rateLimitResponse } from "../_shared/rateLimit.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-serve(async (req) => {
-  // Handle CORS preflight
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
-  // Rate limit: 5 requests per 15 minutes per IP
-  const rlKey = getRateLimitKey(req, "set-user-password");
-  if (!checkRateLimit(rlKey, 5, 15 * 60 * 1000)) {
-    return rateLimitResponse(corsHeaders);
-  }
-
+import { requireUser } from "../_shared/security.ts";
+import { readAccessBody } from "../_shared/accountAccess.ts";
+import { takeQuota } from "../_shared/storefrontRateLimit.ts";
+const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type" };
+const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json", "Cache-Control": "no-store" } });
+serve(async req => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+  if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
   try {
-    const { userId, password, sessionId } = await req.json();
-
-    if (!userId || !password) {
-      return new Response(
-        JSON.stringify({ error: "User ID and password are required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Stripe sessionId is REQUIRED to bind password-set to a valid checkout
-    if (!sessionId) {
-      return new Response(
-        JSON.stringify({ error: "Session ID is required for identity verification" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Basic password validation
-    if (password.length < 8) {
-      return new Response(
-        JSON.stringify({ error: "Password must be at least 8 characters" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    console.log(`[set-user-password] Setting password for user: ${userId}`);
-
-    // Initialize Supabase admin client
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    // First, verify the user exists and has must_set_password flag
-    const { data: user, error: getUserError } = await supabase.auth.admin.getUserById(userId);
-    
-    if (getUserError || !user?.user) {
-      console.error("[set-user-password] User not found:", getUserError);
-      return new Response(
-        JSON.stringify({ error: "User not found" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Verify this user actually needs to set their password
-    const hasExplicitFlag = user.user.user_metadata?.must_set_password === true;
-    const hasNeverSignedIn = !user.user.last_sign_in_at;
-    
-    if (!hasExplicitFlag && !hasNeverSignedIn) {
-      console.error("[set-user-password] User already has a password (has signed in before and no flag)");
-      return new Response(
-        JSON.stringify({ error: "This user already has a password set" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-    
-    console.log(`[set-user-password] User needs password - explicit flag: ${hasExplicitFlag}, never signed in: ${hasNeverSignedIn}`);
-
-    // BLOCKING: Verify Stripe session belongs to this user
-    const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeSecretKey) {
-      console.error("[set-user-password] STRIPE_SECRET_KEY not configured");
-      return new Response(
-        JSON.stringify({ error: "Server configuration error" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    try {
-      const Stripe = (await import("https://esm.sh/stripe@14.21.0")).default;
-      const stripe = new Stripe(stripeSecretKey, { apiVersion: "2023-10-16" });
-      const session = await stripe.checkout.sessions.retrieve(sessionId);
-
-      if (!session || session.payment_status !== "paid") {
-        console.error("[set-user-password] Stripe session not paid or not found");
-        return new Response(
-          JSON.stringify({ error: "Invalid or unpaid session" }),
-          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      // Verify session email matches user email (allow billing email mismatch for Apple Pay etc.)
-      const sessionEmail = session.customer_details?.email || session.customer_email;
-      const sessionMetadataEmail = session.metadata?.signup_email || session.metadata?.email;
-      const userEmail = user.user.email?.toLowerCase();
-
-      // Check if any email from the session matches the user
-      const emailsToCheck = [sessionEmail, sessionMetadataEmail].filter(Boolean).map((e: string) => e.toLowerCase());
-      
-      if (emailsToCheck.length === 0) {
-        console.error("[set-user-password] No email found in Stripe session");
-        return new Response(
-          JSON.stringify({ error: "Could not verify session ownership" }),
-          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      if (!emailsToCheck.includes(userEmail || "")) {
-        // Log but allow if metadata email matches. Billing email may differ (Apple Pay, Google Pay)
-        console.warn("[set-user-password] Stripe session emails don't match user email:", emailsToCheck, "vs", userEmail);
-        // Check customer ID as fallback
-        const stripeCustomerId = user.user.user_metadata?.stripe_customer_id || 
-                                  user.user.app_metadata?.stripe_customer_id;
-        if (stripeCustomerId && session.customer === stripeCustomerId) {
-          console.log("[set-user-password] Matched via Stripe customer ID");
-        } else {
-          console.error("[set-user-password] Session does not belong to this user");
-          return new Response(
-            JSON.stringify({ error: "Session does not match this account" }),
-            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-      }
-
-      console.log("[set-user-password] Stripe session verified successfully");
-    } catch (stripeError) {
-      console.error("[set-user-password] Stripe verification failed:", stripeError);
-      return new Response(
-        JSON.stringify({ error: "Failed to verify payment session" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Update the user's password and clear the must_set_password flag
-    const { error: updateError } = await supabase.auth.admin.updateUserById(userId, {
-      password: password,
-      user_metadata: {
-        ...user.user.user_metadata,
-        must_set_password: false,
-      },
-    });
-
-    if (updateError) {
-      console.error("[set-user-password] Failed to update password:", updateError);
-      return new Response(
-        JSON.stringify({ error: "Failed to set password" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    console.log(`[set-user-password] Password set successfully for user: ${userId}`);
-
-    return new Response(
-      JSON.stringify({ 
-        success: true,
-        email: user.user.email,
-      }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  } catch (error: unknown) {
-    console.error("[set-user-password] Error:", error);
-    const errorMessage = error instanceof Error ? error.message : "Failed to set password";
-    return new Response(
-      JSON.stringify({ error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    const body = await readAccessBody(req).catch(() => null);
+    if (!body) return json({ error: "Invalid request." }, 400);
+    const auth = await requireUser(req);
+    if (!auth?.user?.email_confirmed_at) return json({ error: "Confirm your email and sign in before setting a password.", requiresEmailVerification: true }, 401);
+    if (body.userId != null && body.userId !== auth.user.id) return json({ error: "Sign in to the account you want to update." }, 403);
+    if (typeof body.password !== "string" || body.password.length < 8 || body.password.length > 128) return json({ error: "Use a password between 8 and 128 characters." }, 400);
+    if (await takeQuota(req, "authenticated-password-change", 5, auth.user.id) < 0) return json({ error: "Please try again later." }, 429);
+    // User-scoped Auth preserves GoTrue's own reauthentication and password rules.
+    const result = await auth.userClient.auth.updateUser({ password: body.password,
+      data: { ...auth.user.user_metadata, must_set_password: false } });
+    if (result.error) return json({ error: "We could not change your password. Sign in again or use the email recovery link." }, 400);
+    return json({ success: true });
+  } catch {
+    return json({ error: "We could not change your password. Please try again." }, 503);
   }
 });

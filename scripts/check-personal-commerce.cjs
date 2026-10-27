@@ -26,6 +26,12 @@ class Database {
     if (name === 'storefront_take_quota') { const used = this.quota.get(args._key) || 0; if (used >= args._limit) return { data: -1 }; this.quota.set(args._key, used + 1); return { data: used + 1 }; }
     if (name === 'get_auth_user_by_email') return { data: this.users.has(args.lookup_email) ? [this.users.get(args.lookup_email)] : [], error: null };
     if (name === 'claim_stripe_event') { const rows = this.rows('processed_stripe_events'), row = rows.find(r => r.event_id === args.p_event_id); if (row) return { data: [{ claimed: false, existing_status: row.status, claimed_at: row.processed_at }] }; rows.push({ event_id: args.p_event_id, status: 'claimed', processed_at: new Date().toISOString() }); return { data: [{ claimed: true }] }; }
+    if (name === 'record_payment_reversal') {
+      const rows=this.rows('payment_reversal_holds');if(!rows.some(r=>r.mode===args._mode&&r.stripe_payment_intent_id===args._payment_intent_id))rows.push({mode:args._mode,stripe_payment_intent_id:args._payment_intent_id,stripe_subscription_id:args._subscription_id,reason:args._reason});
+      for(const p of this.rows('creator_purchases').filter(r=>r.stripe_payment_intent_id===args._payment_intent_id)){p.payment_status=args._reason==='disputed'?'disputed':args._reason==='refunded'?'refunded':'payment_review';p.access_expires_at=new Date(Date.now()-1000).toISOString();}
+      for(const o of this.rows('personal_card_orders').filter(r=>r.stripe_payment_intent_id===args._payment_intent_id)){o.production_status='on_hold';if(args._reason!=='partial_refund')o.status=args._reason;}
+      return {data:{recorded:true},error:null};
+    }
     if (name === 'is_username_available') return { data: true };
     throw new Error('Unexpected RPC ' + name);
   }
@@ -50,6 +56,7 @@ class Query {
     const rows = this.db.rows(this.table); let found = rows.filter(r => this.filters.every(f => f(r)));
     if (this.action === 'insert' || this.action === 'upsert') {
       found = []; for (const input of Array.isArray(this.value) ? this.value : [this.value]) {
+        if (this.table === 'checkout_intents' && input.checkout_attempt_hash && rows.some(r => r.checkout_attempt_hash === input.checkout_attempt_hash)) return Promise.resolve({data:null,error:{code:'23505',message:'Duplicate checkout attempt'}}).then(resolve,reject);
         if (this.table === 'review_request_sends' && rows.some(r => r.phone_hash === input.phone_hash && r.profile_id === input.profile_id && r.restaurant_id === input.restaurant_id)) return Promise.resolve({data:null,error:{code:'23505',message:'Duplicate review request'}}).then(resolve,reject);
         const key = this.options?.onConflict || 'id', existing = rows.find(r => input[key] != null && r[key] === input[key]);
         if (existing && this.action === 'insert') return Promise.resolve({ data: null, error: { message: 'Duplicate' } }).then(resolve,reject);
@@ -58,12 +65,17 @@ class Query {
       }
     } else if (this.action === 'update') found.forEach(r => Object.assign(r, plain(this.value)));
     else if (this.action === 'delete') this.db.tables.set(this.table, rows.filter(r => !found.includes(r)));
+    if(['insert','upsert','update'].includes(this.action))for(const row of found){
+      const hold=this.db.rows('payment_reversal_holds').find(h=>h.stripe_payment_intent_id===row.stripe_payment_intent_id && (this.table==='creator_purchases'?h.mode==='live':h.mode===(row.stripe_livemode?'live':'test')));
+      if(hold&&this.table==='creator_purchases'){row.payment_status=hold.reason==='disputed'?'disputed':hold.reason==='refunded'?'refunded':'payment_review';row.access_expires_at=new Date(Date.now()-1000).toISOString();}
+      if(hold&&this.table==='personal_card_orders'){row.production_status='on_hold';if(hold.reason!=='partial_refund')row.status=hold.reason;}
+    }
     return Promise.resolve({ data: this.object ? found[0] || null : found, error: null }).then(resolve,reject);
   } catch(e) { return Promise.reject(e).then(resolve,reject); } }
 }
 function environment() {
   const db = new Database(); const calls = { checkout: [], separate: [], canceled: [], ai: [], emails: [] }; const sessions = new Map(); const subscriptions = new Map();
-  const env = { PERSONAL_CARDS_ENABLED: 'true', PERSONAL_CARDS_PRICE_ID_TEST: 'price_cards', PERSONAL_HUB_PRICE_ID_TEST: 'price_hub', LOVABLE_API_KEY: 'qa_only', SUPABASE_SERVICE_ROLE_KEY: 'qa_hash_only' };
+  const env = { PERSONAL_CARDS_ENABLED: 'true', PERSONAL_CARDS_PRICE_ID_TEST: 'price_cards', PERSONAL_HUB_PRICE_ID_TEST: 'price_hub', LOVABLE_API_KEY: 'qa_only', SUPABASE_SERVICE_ROLE_KEY: 'fixture_hash_only' };
   const stripe = {
     webhooks: stripeVerifier.webhooks,
     prices: { retrieve: async price => ({ id: price, active: true, livemode: false, currency: 'usd', unit_amount: price === 'price_cards' ? 3900 : 500, recurring: price === 'price_cards' ? null : { interval: 'month', interval_count: 1 }, product: { id: 'product_' + price, active: true } }) },
@@ -72,6 +84,12 @@ function environment() {
       retrieve: async id => { if(!sessions.has(id))throw new Error('Missing session');return sessions.get(id); },
       expire: async id => { const s=sessions.get(id);if(s.status==='complete')throw new Error('Already complete');s.status='expired';return s; },
     } },
+    paymentIntents: { retrieve: async id => {
+      const session=[...sessions.values()].find(s=>s.payment_intent===id || (id==='pi_fixture_personal' && s.subscription==='sub_personal'));
+      if(!session)throw new Error('Missing payment fixture '+id);
+      return {id,livemode:false,status:'succeeded',currency:'usd',amount_received:session.amount_total,customer:session.customer,latest_charge:{id:'ch_fixture_personal',livemode:false,paid:true,payment_intent:id,amount_refunded:0,refunded:false,disputed:false}};
+    } },
+    invoices: { retrieve: async id => ({id,status:'paid',amount_paid:4400,customer:'cus_personal',subscription:'sub_personal',payment_intent:'pi_fixture_personal'}) },
     subscriptions: { retrieve: async id => { if (!subscriptions.has(id)) throw new Error('Missing subscription '+id); return subscriptions.get(id); }, create: async params => { calls.separate.push(params); return {id:'sub_legacyclub',items:{data:[{id:'si_legacyclub'}]}}; }, cancel: async id => { calls.canceled.push(id); return {}; } },
   };
   const context = vm.createContext({ console, Error, TypeError, Date, Request, Response, Headers, TextEncoder, TextDecoder, URL, URLSearchParams, AbortSignal, Uint8Array, ArrayBuffer, crypto: webcrypto, atob, btoa, setTimeout, clearTimeout, Buffer, require, __db: db, __stripe: stripe, __mode: 'test', __allowed: true, __admin: false, __user: null, __send: async (...args) => { calls.emails.push(args); return true; }, Deno: { env: { get: name => env[name] } }, fetch: async (url, init) => { assert.equal(url,'https://ai.gateway.lovable.dev/v1/chat/completions','No real network calls permitted'); calls.ai.push(JSON.parse(init.body)); return new Response(JSON.stringify({choices:[{message:{content:'Two cards cost $39 once.'}}]}),{headers:{'Content-Type':'application/json'}}); } });
@@ -138,7 +156,7 @@ async function main(){
     const s=environment(),h=await load('supabase/functions/personal-card-order/index.ts',s),victimId=randomUUID(),d=draft(true,victimId);
     s.db.rows('personal_profiles').push({id:victimId,user_id:'other_user',full_name:'Existing profile'});
     assert.equal((await h(request({action:'create',draft:d,pdf}))).status,200);const p=s.calls.checkout[0];assert.equal(p.mode,'subscription');assert.equal(p.line_items.length,2);assert.equal(p.subscription_data.trial_period_days,undefined);assert.deepEqual(p.line_items.map(x=>x.price),['price_cards','price_hub']);
-    const order=s.db.rows('personal_card_orders')[0];assert.notEqual(order.personal_profile_id,victimId);const session=[...s.sessions.values()][0];Object.assign(session,{status:'complete',payment_status:'paid',amount_total:4400,currency:'usd',subscription:'sub_personal',customer:'cus_personal',customer_details:{email:'buyer@example.invalid',name:'QA Buyer'},shipping_details:{name:'QA Buyer',address:{line1:'1 QA St',city:'QA',state:'CA',postal_code:'90000',country:'US'}}});s.subscriptions.set('sub_personal',{status:'active',metadata:{commerce_version:'personal_cards_v1'}});
+    const order=s.db.rows('personal_card_orders')[0];assert.notEqual(order.personal_profile_id,victimId);const session=[...s.sessions.values()][0];Object.assign(session,{status:'complete',payment_status:'paid',amount_total:4400,currency:'usd',subscription:'sub_personal',invoice:'in_fixture_personal',customer:'cus_personal',customer_details:{email:'buyer@example.invalid',name:'QA Buyer'},shipping_details:{name:'QA Buyer',address:{line1:'1 QA St',city:'QA',state:'CA',postal_code:'90000',country:'US'}}});s.subscriptions.set('sub_personal',{id:'sub_personal',livemode:false,customer:'cus_personal',status:'active',latest_invoice:'in_fixture_personal',items:{data:[{quantity:1,price:{id:'price_hub'}}]},metadata:{commerce_version:'personal_cards_v1'}});
     delete s.context.__handler;const api=await load('supabase/functions/_shared/personalCards.ts',s);await api.activatePersonalOrder(s.stripe,session);await api.activatePersonalOrder(s.stripe,session);
     assert.equal(order.production_status,'needs_review');assert.equal(s.db.rows('personal_profiles').length,2);assert.equal(s.db.rows('personal_profiles')[0].full_name,'Existing profile');assert.equal(s.db.rows('personal_links')[0].profile_id,order.personal_profile_id);assert.equal(s.db.rows('personal_profiles')[1].plan_type,'personal_hosted');assert.equal(s.db.rows('card_club_memberships').length,0);assert.equal(s.calls.emails.length,1);
     s.subscriptions.get('sub_personal').status='canceled';await api.syncPersonalSubscription(s.stripe,'sub_personal');assert.equal(s.db.rows('personal_profiles')[1].subscription_status,'pending');assert.equal(s.db.rows('personal_profiles')[1].is_approved,false);assert.equal(s.db.rows('personal_profiles')[0].subscription_status,undefined);
@@ -156,7 +174,7 @@ async function main(){
   });
   await pass('hosted checkout needs no prefilled name or links; paid activation starts a blank editable hub',async()=>{
     const s=environment(),h=await load('supabase/functions/personal-card-order/index.ts',s),d=draft(true);d.hubName='';d.hubLinks='';assert.equal((await h(request({action:'create',draft:d,pdf}))).status,200);
-    const session=[...s.sessions.values()][0];Object.assign(session,{status:'complete',payment_status:'paid',amount_total:4400,currency:'usd',subscription:'sub_personal',customer:'cus_personal',customer_details:{email:'buyer@example.invalid',name:'QA Buyer'},shipping_details:{name:'QA Buyer',address:{line1:'1 QA St',city:'QA',state:'CA',postal_code:'90000',country:'US'}}});s.subscriptions.set('sub_personal',{status:'active',metadata:{commerce_version:'personal_cards_v1'}});
+    const session=[...s.sessions.values()][0];Object.assign(session,{status:'complete',payment_status:'paid',amount_total:4400,currency:'usd',subscription:'sub_personal',invoice:'in_fixture_personal',customer:'cus_personal',customer_details:{email:'buyer@example.invalid',name:'QA Buyer'},shipping_details:{name:'QA Buyer',address:{line1:'1 QA St',city:'QA',state:'CA',postal_code:'90000',country:'US'}}});s.subscriptions.set('sub_personal',{id:'sub_personal',livemode:false,customer:'cus_personal',status:'active',latest_invoice:'in_fixture_personal',items:{data:[{quantity:1,price:{id:'price_hub'}}]},metadata:{commerce_version:'personal_cards_v1'}});
     delete s.context.__handler;const api=await load('supabase/functions/_shared/personalCards.ts',s);await api.activatePersonalOrder(s.stripe,session);assert.equal(s.db.rows('personal_profiles')[0].full_name,'QA Buyer');assert.equal(s.db.rows('personal_links').length,0);assert.equal(s.db.rows('personal_profiles')[0].plan_type,'personal_hosted');
   });
   await pass('Google business listing details persist without asking for the address twice',async()=>{

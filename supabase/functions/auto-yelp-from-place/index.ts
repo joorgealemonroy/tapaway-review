@@ -1,3 +1,5 @@
+import { readLimitedText } from "../_shared/requestBody.ts";
+import { takeQuota } from "../_shared/storefrontRateLimit.ts";
 // supabase/functions/auto-yelp-from-place/index.ts
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
@@ -412,7 +414,7 @@ serve(async (req) => {
       );
     }
 
-    const payload = (await req.json()) as AutoYelpPayload;
+    const payload = (JSON.parse(await readLimitedText(req, 4096))) as AutoYelpPayload;
     if (!payload.restaurantId) {
       return new Response(
         JSON.stringify({ success: false, error: "Missing restaurantId" }),
@@ -449,6 +451,9 @@ serve(async (req) => {
         }
       );
     }
+
+    if (await takeQuota(req, "yelp-import-resource", 4, payload.restaurantId) < 0 || await takeQuota(req, "yelp-import-global", 500, "all") < 0)
+      return new Response(JSON.stringify({ error: "Please try again later." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     console.log(`[auto-yelp-from-place] Processing restaurant: ${payload.restaurantId}`);
     const updated = await autoYelpForRestaurant(payload.restaurantId);

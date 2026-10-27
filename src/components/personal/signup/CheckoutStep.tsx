@@ -168,7 +168,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
   const isFreePlan = formData.planType === "free" || formData.planType === "vip";
 
 
-  const logAffiliateReferral = async (userId: string, profileId: string, planType: string) => {
+  const logAffiliateReferral = async (userId: string, profileId: string) => {
     const referralCode = sessionStorage.getItem("tapaway_ref") || localStorage.getItem("tapaway_ref");
     if (!referralCode) return;
 
@@ -199,48 +199,13 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
         .update({ referred_by: referralCode } as any)
         .eq("id", profileId);
 
-      console.log("[CheckoutStep] Affiliate referral logged");
-
-      // Create commission for free signups
-      if (referralRow && planType === "free") {
+      // Commission eligibility and amounts are decided by the server only.
+      if (referralRow) {
         try {
-          const { count: referralCount } = await supabase
-            .from("affiliate_referrals")
-            .select("id", { count: "exact", head: true })
-            .eq("affiliate_id", affiliate.id);
-
-          const { data: affSettings } = await supabase
-            .from("affiliate_settings")
-            .select("commission_free_base, commission_free_bonus, bonus_threshold")
-            .limit(1)
-            .single();
-
-          const threshold = affSettings?.bonus_threshold ?? 25;
-          const amount = (referralCount ?? 0) > threshold
-            ? Number(affSettings?.commission_free_bonus ?? 5)
-            : Number(affSettings?.commission_free_base ?? 3);
-
-          await supabase
-            .from("affiliate_commissions")
-            .insert({
-              affiliate_id: affiliate.id,
-              referral_id: referralRow.id,
-              amount,
-              status: "pending",
-            } as any);
-
-          console.log(`[CheckoutStep] Created $${amount} free-signup commission`);
-        } catch (commErr) {
-          console.warn("[CheckoutStep] Commission creation failed (non-fatal):", commErr);
-        }
-
-        // Fire abuse check (non-fatal)
-        try {
-          supabase.functions.invoke("check-affiliate-abuse", {
+          await supabase.functions.invoke("check-affiliate-abuse", {
             body: {
               referralId: referralRow.id,
               affiliateId: affiliate.id,
-              referredEmail: formData.email,
             },
           });
         } catch {
@@ -579,7 +544,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
 
       // Affiliate referral logging for free-plan signups (paid plans go through PersonalSignupComplete -> stripe-webhook)
       if (isFreePlan) {
-        await logAffiliateReferral(signInData.user.id, profileResult.id, formData.planType);
+        await logAffiliateReferral(signInData.user.id, profileResult.id);
       }
 
       // Welcome emails are sent server-side only now (send-personal-welcome-emails
@@ -768,7 +733,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
 
       // Affiliate referral logging for free-plan signups
       if (isFreePlan) {
-        await logAffiliateReferral(user.id, profileResult.id, formData.planType);
+        await logAffiliateReferral(user.id, profileResult.id);
       }
 
       // Cleanup
@@ -1077,7 +1042,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
 
       // Affiliate referral logging for free-plan signups
       if (isFreePlan) {
-        await logAffiliateReferral(signInData.user.id, profileResult.id, formData.planType);
+        await logAffiliateReferral(signInData.user.id, profileResult.id);
       }
 
       // Welcome emails are sent server-side only now; client must not invoke

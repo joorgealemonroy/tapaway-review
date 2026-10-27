@@ -16,7 +16,7 @@ async function fixture() {
   const metadata = { commerce_version: 'hub_payment_v1', profile_id: PROFILE, request_version: VERSION };
   const session = { id: 'cs_live_fixture', livemode: true, mode: 'subscription', status: 'complete', payment_status: 'paid',
     metadata, customer: 'cus_fixture', subscription: 'sub_fixture', customer_details: { email: 'payer@example.invalid' } };
-  const invoice = { id: 'in_fixture', livemode: true, subscription: 'sub_fixture', status: 'paid', paid: true, amount_paid: 2000, currency: 'usd', customer: 'cus_fixture' };
+  const invoice = { id: 'in_fixture', livemode: true, subscription: 'sub_fixture', status: 'paid', paid: true, amount_paid: 2000, currency: 'usd', customer: 'cus_fixture', payment_intent: 'pi_fixture' };
   const subscription = { id: 'sub_fixture', livemode: true, status: 'active', customer: 'cus_fixture', metadata, latest_invoice: invoice,
     items: { data: [{ quantity: 1, price: { id: 'price_1UF9UkDg8DaTuVNZfeu06iQ6', unit_amount: 2000, currency: 'usd', recurring: { interval: 'month', interval_count: 1 } } }] } };
   const request = { profile_id: PROFILE, request_version: VERSION, stripe_checkout_session_id: session.id, fulfilled_at: null };
@@ -25,15 +25,27 @@ async function fixture() {
   s.sessions.set(session.id, session); s.subscriptions.set(subscription.id, subscription);
   s.db.rows('hub_payment_requests').push(request); s.db.rows('personal_profiles').push(profile);
   s.stripe.invoices = { retrieve: async id => { assert.equal(id, invoice.id); return invoice; } };
+  const charge = { id:'ch_fixture',livemode:true,paid:true,payment_intent:'pi_fixture',amount_refunded:0,refunded:false,disputed:false };
+  const payment = { id:'pi_fixture',livemode:true,status:'succeeded',currency:'usd',amount_received:2000,customer:'cus_fixture',latest_charge:charge };
+  s.stripe.paymentIntents = { retrieve: async id => { assert.equal(id,payment.id);return payment; } };
+
   const rpc = s.db.rpc.bind(s.db); let activations = 0;
   s.db.rpc = async (name, args) => {
+    if (name === 'record_payment_reversal') {
+      const result = await rpc(name,args);
+      if(args._subscription_id === request.stripe_subscription_id) {
+        request.payment_hold_at ||= new Date().toISOString();request.payment_hold_reason=args._reason;
+        Object.assign(profile,{payment_state:'past_due',subscription_status:'past_due',is_approved:false});
+      }
+      return result;
+    }
     if (name === 'hold_hub_payment_by_subscription') {
       assert.equal(args._subscription_id, request.stripe_subscription_id);
       request.payment_hold_at ||= new Date().toISOString(); request.payment_hold_reason ||= args._reason;
-      profile.payment_state = 'payment_required'; return { data: true, error: null };
+      Object.assign(profile,{payment_state:'past_due',subscription_status:'past_due',is_approved:false}); return { data: true, error: null };
     }
     if (name !== 'fulfill_hub_payment') return rpc(name, args);
-    if (request.payment_hold_at) return { error: new Error('Payment requires admin review') };
+    if (request.payment_hold_at) return {data:{activated:false,held:true,reviewRequired:true},error:null};
     if (s.fulfillFailure) { s.fulfillFailure = false; return { data: null, error: new Error('Injected fulfillment failure') }; }
     assert.equal(args._profile_id, PROFILE); assert.equal(args._request_version, VERSION); assert.equal(args._session_id, request.stripe_checkout_session_id);
     if (!request.fulfilled_at) {
@@ -50,7 +62,7 @@ async function fixture() {
     return new Response(JSON.stringify({ id: 'email_fixture' }), { status: 200 });
   };
   const api = await load('supabase/functions/_shared/hubPaymentActivation.ts', s);
-  return { s, api, session, subscription, invoice, request, profile, activations: () => activations };
+  return { s, api, session, subscription, invoice, payment, charge, request, profile, activations: () => activations };
 }
 
 async function signedWebhook(f) {
@@ -119,6 +131,18 @@ function chargeFixture(f, refunded = true) {
       const f = await fixture(); Object.assign(f.invoice, patch); await f.api.activateHubPayment(f.s.stripe, f.session); assert.equal(f.activations(), 0);
     }
   });
+  await pass('Refunded, disputed or mismatched current charges cannot reactivate a paused hub', async () => {
+    for (const patch of [{refunded:true},{disputed:true},{amount_refunded:1},{paid:false},{payment_intent:'pi_other'},{livemode:false}]) {
+      const f=await fixture();Object.assign(f.charge,patch);await f.api.activateHubPayment(f.s.stripe,f.session);
+      assert.equal(f.activations(),0);assert.equal(f.s.calls.emails.length,0);
+    }
+  });
+  await pass('A reversal clamped by atomic fulfillment never emits a success receipt', async () => {
+    const f=await fixture(),rpc=f.s.db.rpc.bind(f.s.db);
+    f.s.db.rpc=async(name,args)=>name==='fulfill_hub_payment'?{data:{activated:false,held:true,reviewRequired:true},error:null}:rpc(name,args);
+    assert.equal((await f.api.activateHubPayment(f.s.stripe,f.session)).skipped,'payment_review');
+    assert.equal(f.activations(),0);assert.equal(f.s.calls.emails.length,0);
+  });
   await pass('Webhook retrieves current Checkout truth rather than trusting supplied paid fields', async () => {
     const f = await fixture(), stale = { ...f.session }; f.session.payment_status = 'unpaid';
     await f.api.activateHubPayment(f.s.stripe, stale); assert.equal(f.activations(), 0);
@@ -176,14 +200,21 @@ function chargeFixture(f, refunded = true) {
     f.s.db.rows('personal_profiles').push({ id: 'unrelated', payment_state: 'paying', subscription_status: 'active' });
     const charge = chargeFixture(f), send = await signedWebhook(f);
     assert.equal((await send('evt_full_refund', 'charge.refunded', charge)).status, 200);
-    assert.ok(f.request.payment_hold_at); assert.equal(f.request.payment_hold_reason, 'refunded'); assert.equal(f.profile.payment_state, 'payment_required');
+    assert.ok(f.request.payment_hold_at); assert.equal(f.request.payment_hold_reason, 'refunded'); assert.equal(f.profile.payment_state, 'past_due');
     assert.equal(f.s.db.rows('personal_profiles')[1].payment_state, 'paying'); assert.equal(f.s.calls.canceled.length, 0);
   });
-  await pass('Partial refunds use current Stripe state and do not suspend the hub', async () => {
+  await pass('Stale refund event without a current refund does not suspend the hub', async () => {
     const f = await fixture(); await f.api.activateHubPayment(f.s.stripe, f.session);
     const charge = chargeFixture(f, false), send = await signedWebhook(f);
     assert.equal((await send('evt_partial_refund', 'charge.refunded', { ...charge, refunded: true })).status, 200);
     assert.equal(f.request.payment_hold_at, undefined); assert.equal(f.profile.payment_state, 'paying');
+  });
+  await pass('A real partial refund holds hosted access for review without claiming a full refund', async () => {
+    const f=await fixture();await f.api.activateHubPayment(f.s.stripe,f.session);
+    const charge=chargeFixture(f,false);charge.amount_refunded=100;const send=await signedWebhook(f);
+    assert.equal((await send('evt_actual_partial','charge.refunded',charge)).status,200);
+    assert.equal(f.request.payment_hold_reason,'partial_refund');assert.equal(f.profile.payment_state,'past_due');
+    assert.equal(f.profile.is_approved,false);assert.equal(f.s.calls.canceled.length,0);
   });
   await pass('A refund on an unrelated subscription cannot hold this hub', async () => {
     const f = await fixture(); await f.api.activateHubPayment(f.s.stripe, f.session);
@@ -196,7 +227,7 @@ function chargeFixture(f, refunded = true) {
     const f = await fixture(); await f.api.activateHubPayment(f.s.stripe, f.session);
     const charge = chargeFixture(f, false), send = await signedWebhook(f);
     assert.equal((await send('evt_dispute_created', 'charge.dispute.created', { id: 'dp_fixture', charge: charge.id })).status, 200);
-    assert.equal(f.request.payment_hold_reason, 'disputed'); assert.equal(f.profile.payment_state, 'payment_required'); assert.equal(f.subscription.status, 'active');
+    assert.equal(f.request.payment_hold_reason, 'disputed'); assert.equal(f.profile.payment_state, 'past_due'); assert.equal(f.subscription.status, 'active');
   });
   await pass('Stale paid checkout and invoice events never release a payment hold or send a receipt', async () => {
     const f = await fixture(); f.s.emailFailure = true;
@@ -205,21 +236,21 @@ function chargeFixture(f, refunded = true) {
     assert.equal((await send('evt_refund_before_receipt', 'charge.refunded', charge)).status, 200);
     assert.equal((await send('evt_late_checkout', 'checkout.session.completed', f.session)).status, 200);
     assert.equal((await send('evt_late_invoice', 'invoice.paid', { ...f.invoice, object: 'invoice', lines: { data: [] } })).status, 200);
-    assert.equal(f.profile.payment_state, 'payment_required'); assert.equal(f.s.calls.emails.length, 1); assert.equal(f.request.welcome_email_sent_at, undefined);
+    assert.equal(f.profile.payment_state, 'past_due'); assert.equal(f.s.calls.emails.length, 1); assert.equal(f.request.welcome_email_sent_at, undefined);
     assert.equal(f.activations(), 1);
   });
   await pass('Stale event invoice fields cannot override current Stripe charge mapping', async () => {
     const f = await fixture(); await f.api.activateHubPayment(f.s.stripe, f.session);
     const charge = chargeFixture(f), send = await signedWebhook(f);
     assert.equal((await send('evt_invoice_stale', 'charge.refunded', { ...charge, invoice: 'in_old' })).status, 200);
-    assert.equal(f.profile.payment_state, 'payment_required'); assert.ok(f.request.payment_hold_at);
+    assert.equal(f.profile.payment_state, 'past_due'); assert.ok(f.request.payment_hold_at);
   });
   await pass('A refund event without invoice still holds the hub through the retrieved charge', async () => {
     const f = await fixture(); await f.api.activateHubPayment(f.s.stripe, f.session);
     const charge = chargeFixture(f), send = await signedWebhook(f);
     const { invoice: omitted, ...modernEvent } = charge;
     assert.equal((await send('evt_without_invoice', 'charge.refunded', modernEvent)).status, 200);
-    assert.equal(f.profile.payment_state, 'payment_required'); assert.equal(f.request.payment_hold_reason, 'refunded');
+    assert.equal(f.profile.payment_state, 'past_due'); assert.equal(f.request.payment_hold_reason, 'refunded');
   });
   console.log(`${count} hub payment activation checks passed. No external traffic.`);
 })().catch(error => { console.error(error); process.exitCode = 1; });

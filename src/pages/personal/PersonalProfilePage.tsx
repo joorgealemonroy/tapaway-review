@@ -440,6 +440,7 @@ const ProfileBlock = memo(function ProfileBlock({
   const [nameInput, setNameInput] = useState("");
   const [messageInput, setMessageInput] = useState("");
   const [smsOptIn, setSmsOptIn] = useState(false);
+  const [captureWebsite, setCaptureWebsite] = useState("");
   const [smsDrawerOpen, setSmsDrawerOpen] = useState(false);
   
   const content = block.content as Record<string, string>;
@@ -478,19 +479,13 @@ const ProfileBlock = memo(function ProfileBlock({
     try {
       const phoneTrimmed = phoneInput.trim();
       const optedIn = smsOptIn && !!phoneTrimmed;
-      const { error } = await supabase
-        .from("personal_email_captures")
-        .insert({
-          profile_id: profileId,
-          email: emailInput.trim() || null,
-          phone: phoneTrimmed || null,
-          name: nameInput.trim() || null,
-          message: messageInput.trim() || null,
-          sms_opt_in: optedIn,
-          sms_opt_in_at: optedIn ? new Date().toISOString() : null,
-        } as any);
-      
-      if (error) throw error;
+      const { data, error } = await supabase.functions.invoke("public-intake", { body: {
+        action: "capture", profileId, website: captureWebsite, email: emailInput.trim(), phone: phoneTrimmed,
+        name: nameInput.trim(), message: messageInput.trim(), marketingConsent: optedIn,
+        transactionalConsent: false,
+        marketingText: "Send me exclusive updates and offers via text message. Msg & data rates may apply. Reply STOP to opt out.",
+      } });
+      if (error || !data?.success) throw new Error(data?.error || "Please try again.");
       setEmailSubmitted(true);
       toast.success("Thanks! Your info has been submitted.");
     } catch (err) {
@@ -645,6 +640,7 @@ const ProfileBlock = memo(function ProfileBlock({
       
       return (
         <form onSubmit={handleEmailSubmit} className={`w-full p-5 rounded-xl border space-y-3 ${isDarkBg ? 'bg-white/10 border-white/20' : 'bg-card border-border'}`}>
+          <input name="website" value={captureWebsite} onChange={e => setCaptureWebsite(e.target.value)} tabIndex={-1} aria-hidden="true" autoComplete="off" className="absolute h-0 w-0 overflow-hidden opacity-0" />
           <div className="text-center">
             <h3 className={`font-semibold ${textClass}`}>{headline}</h3>
             <p className={`text-sm ${mutedClass} mt-1`}>{description}</p>
@@ -873,7 +869,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
 
     const injected: HTMLLinkElement[] = [];
     urls.forEach(url => {
-      const existing = document.querySelector(`link[rel="preload"][href="${url}"]`);
+      const existing = Array.from(document.querySelectorAll<HTMLLinkElement>('link[rel="preload"]')).some(link => link.getAttribute("href") === url);
       if (existing) return;
       const link = document.createElement('link');
       link.rel = 'preload';

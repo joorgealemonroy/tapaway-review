@@ -1,3 +1,4 @@
+import { readLimitedText } from "../_shared/requestBody.ts";
 // Public Twilio inbound-message webhook.
 // Listens for STOP/UNSUBSCRIBE/CANCEL/QUIT/END replies and flips
 // sms_opt_in = false in BOTH personal_email_captures and
@@ -48,7 +49,9 @@ async function verifyTwilioSignature(
   );
   const sig = await crypto.subtle.sign("HMAC", key, enc.encode(data));
   const b64 = btoa(String.fromCharCode(...new Uint8Array(sig)));
-  return b64 === signature;
+  if (b64.length !== signature.length) return false;
+  let diff = 0; for (let i = 0; i < b64.length; i++) diff |= b64.charCodeAt(i) ^ signature.charCodeAt(i);
+  return diff === 0;
 }
 
 Deno.serve(async (req) => {
@@ -62,7 +65,7 @@ Deno.serve(async (req) => {
 
 
   try {
-    const raw = await req.text();
+    const raw = await readLimitedText(req, 16000);
     const params = new URLSearchParams(raw);
     const from = (params.get("From") ?? "").trim();
     const body = (params.get("Body") ?? "").trim();
@@ -72,10 +75,10 @@ Deno.serve(async (req) => {
     const authToken = Deno.env.get("TWILIO_AUTH_TOKEN");
     const signature = req.headers.get("x-twilio-signature") || "";
     if (authToken && signature) {
-      const url = req.headers.get("x-forwarded-url") || req.url;
+      const url = Deno.env.get("TWILIO_WEBHOOK_URL") || `${Deno.env.get("SUPABASE_URL")}/functions/v1/twilio-webhook`;
       const ok = await verifyTwilioSignature(authToken, signature, url, params);
       if (!ok) {
-        console.warn("twilio-webhook signature verification failed", { from });
+        console.warn("twilio-webhook signature verification failed");
         return twiml(200); // Silent 200. Do NOT leak validity signal.
       }
     } else {
@@ -83,7 +86,6 @@ Deno.serve(async (req) => {
       return twiml(200);
     }
 
-    console.log("twilio-webhook inbound", { from, body });
 
     if (!from || !OPT_OUT_KEYWORDS.has(keyword)) {
       return twiml(200);
@@ -118,7 +120,7 @@ Deno.serve(async (req) => {
       console.error("twilio-webhook personal update failed", personalRes.error);
     } else {
       console.log(
-        `twilio-webhook opted out ${personalRes.data?.length ?? 0} personal row(s) for ${from}`,
+        `twilio-webhook opted out ${personalRes.data?.length ?? 0} personal row(s)`,
       );
     }
 
@@ -126,11 +128,11 @@ Deno.serve(async (req) => {
       console.error("twilio-webhook restaurant update failed", restaurantRes.error);
     } else {
       console.log(
-        `twilio-webhook opted out ${restaurantRes.data?.length ?? 0} restaurant row(s) for ${from}`,
+        `twilio-webhook opted out ${restaurantRes.data?.length ?? 0} restaurant row(s)`,
       );
     }
 
-    return twiml(200);
+    return twiml(personalRes.error || restaurantRes.error ? 503 : 200);
   } catch (err) {
     console.error("twilio-webhook unexpected error", err);
     return twiml(200);
