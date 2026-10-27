@@ -4,7 +4,7 @@ import { execFileSync } from 'node:child_process';
 
 // These values identify public clients; none authorizes privileged operations.
 export const PUBLIC_ENV_NAMES = Object.freeze([
-  'VITE_SUPABASE_URL', 'VITE_SUPABASE_PUBLISHABLE_KEY', 'VITE_SUPABASE_PROJECT_ID',
+  'VITE_SUPABASE_URL', 'VITE_SUPABASE_PUBLISHABLE_KEY', 'VITE_SUPABASE_ANON_KEY', 'VITE_SUPABASE_PROJECT_ID',
   'VITE_GOOGLE_MAPS_API_KEY', 'VITE_GOOGLE_MAPS_MAP_ID', 'VITE_STRIPE_PUBLISHABLE_KEY',
 ]);
 const publicNames = new Set(PUBLIC_ENV_NAMES);
@@ -72,7 +72,7 @@ export function validatePublicEnv(env) {
     if (!name.startsWith('VITE_') || value === '') continue;
     if (!publicNames.has(name)) { findings.push({ file: 'build environment', line: 1, kind: `unapproved-public-variable:${name}` }); continue; }
     findings.push(...scanText(value, name));
-    if (name === 'VITE_SUPABASE_PUBLISHABLE_KEY' && !(/^sb_publishable_[A-Za-z0-9_-]+$/.test(value) || jwtPayload(value)?.role === 'anon')) findings.push({file:name,line:1,kind:'expected-public-anon-or-publishable-key'});
+    if (['VITE_SUPABASE_PUBLISHABLE_KEY', 'VITE_SUPABASE_ANON_KEY'].includes(name) && !(/^sb_publishable_[A-Za-z0-9_-]+$/.test(value) || jwtPayload(value)?.role === 'anon')) findings.push({file:name,line:1,kind:'expected-public-anon-or-publishable-key'});
     if (name === 'VITE_STRIPE_PUBLISHABLE_KEY' && !/^pk_(?:live|test)_[A-Za-z0-9]+$/.test(value)) findings.push({file:name,line:1,kind:'expected-stripe-publishable-key'});
     if (name === 'VITE_SUPABASE_URL') { try { const u = new URL(value); if (u.protocol !== 'https:' || u.username || u.password || u.search || u.hash) throw 0; } catch { findings.push({file:name,line:1,kind:'invalid-public-api-origin'}); } }
   }

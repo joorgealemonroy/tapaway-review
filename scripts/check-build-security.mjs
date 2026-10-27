@@ -27,6 +27,12 @@ try {
   await pass('Browser Google keys cannot reuse a server Google credential', () => {
     assert.ok(validatePublicEnv({VITE_GOOGLE_MAPS_API_KEY:'fixture-google',GOOGLE_PLACES_API_KEY_SERVER:'fixture-google'}).some(x=>x.kind==='google-browser-key-reuses-server-credential'));
   });
+  await pass('Platform anonymous-key alias accepts public keys and rejects privileged or user credentials', () => {
+    assert.equal(validatePublicEnv({VITE_SUPABASE_ANON_KEY:token({role:'anon'})}).length,0);
+    for (const role of ['service_role','authenticated']) assert.ok(validatePublicEnv({VITE_SUPABASE_ANON_KEY:token({role})}).length);
+    assert.ok(validatePublicEnv({VITE_SUPABASE_ANON_KEY:'invalid-key'}).length);
+    assert.ok(validatePublicEnv({VITE_SUPABASE_ANON_KEY:token({role:'anon',sub:'fixture-user'})}).length);
+  });
   await pass('Exact server secrets and common encoded representations are detected', () => {
     const value='sensitive-'+crypto.randomUUID();
     const knownSecrets=collectKnownSecrets({SERVER_API_KEY:value,VITE_GOOGLE_MAPS_API_KEY:'fixture-public-map-key'});
