@@ -58,6 +58,19 @@ function socket(s, responses) {
     });return req;
   };
 }
+function nativeSocket(s, responses) {
+  s.nativeConnections=[];
+  s.context.Deno.connect=async options=>{
+    const response=responses.shift();if(!response)throw new Error('Unexpected native connection');
+    const bytes=Buffer.from(response.raw||'');let at=0;
+    const connection={options,response,written:[],closed:false,
+      write:async input=>{connection.written.push(Buffer.from(input));return input.length;},
+      read:async output=>{if(response.stall)return new Promise(()=>{});if(at>=bytes.length)return null;const size=Math.min(output.length,response.fragment||bytes.length,bytes.length-at);output.set(bytes.subarray(at,at+size));at+=size;return size;},
+      close:()=>{connection.closed=true;},
+    };s.nativeConnections.push(connection);return connection;
+  };
+  s.context.Deno.startTls=async(connection,options)=>{connection.tls=options;if(connection.response.tlsFailure)throw new Error('invalid peer certificate: name mismatch');return connection;};
+}
 function tokenFixture(s, rep=false) {
   const token='fixture-token-'+randomUUID(); const userId=randomUUID();
   s.db.rows(rep?'rep_setup_tokens':'magic_link_tokens').push({id:randomUUID(),user_id:userId,email:'fixture@example.invalid',token,token_hash:createHash('sha256').update(token).digest('hex'),used_at:null,expires_at:new Date(Date.now()+600000).toISOString()});
@@ -106,6 +119,19 @@ async function main(){
   await check('each redirect revalidates DNS, clamps body size and enforces timeout',async()=>{
     const s=state();let lookups=0;s.context.__lookup=async()=>[++lookups===1?{address:'93.184.216.34',family:4}:{address:'127.0.0.1',family:4}];socket(s,[{status:302,headers:{location:'/next'}}]);const api=await load('supabase/functions/_shared/safeFetch.ts',s);await assert.rejects(()=>api.safeFetch('https://example.com'));assert.equal(s.sockets.length,1);
     s.context.__lookup=async()=>[{address:'93.184.216.34',family:4}];socket(s,[{body:'123456'}]);await assert.rejects(()=>api.safeFetch('https://example.com',{maxBytes:3}));socket(s,[{body:'123456'}]);assert.equal(await (await api.safeFetch('https://example.com',{maxBytes:3,truncate:true})).text(),'123');socket(s,[{stall:true}]);await assert.rejects(()=>api.safeFetch('https://example.com',{timeoutMs:10}));
+  });
+  await check('native Edge transport pins TCP IP and independently verifies original TLS hostname',async()=>{
+    const s=state();nativeSocket(s,[{fragment:1,raw:'HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\nContent-Type: text/plain\r\n\r\n3\r\nfix\r\n4;example=1\r\nture\r\n0\r\n\r\n'}]);const api=await load('supabase/functions/_shared/safeFetch.ts',s);const r=await api.safeFetch('https://example.com/path?x=1',{headers:{Authorization:'fixture-secret',Cookie:'fixture-cookie',Host:'localhost',Accept:'text/plain'}});assert.equal(await r.text(),'fixture');const c=s.nativeConnections[0];assert.equal(c.options.hostname,'93.184.216.34');assert.equal(c.tls.hostname,'example.com');assert.deepEqual(Array.from(c.tls.alpnProtocols),['http/1.1']);const request=Buffer.concat(c.written).toString();assert.match(request,/Host: example.com/);assert(!request.includes('fixture-secret'));assert(!request.includes('fixture-cookie'));assert.equal(c.closed,true);
+  });
+  await check('native TLS verification failure closes socket without sending application data',async()=>{
+    const s=state();nativeSocket(s,[{tlsFailure:true}]);const api=await load('supabase/functions/_shared/safeFetch.ts',s);await assert.rejects(()=>api.safeFetch('https://example.com'),/certificate/);assert.equal(s.nativeConnections[0].written.length,0);assert.equal(s.nativeConnections[0].closed,true);
+  });
+  await check('native HTTP parser rejects ambiguous framing and enforces body limits',async()=>{
+    for(const raw of ['HTTP/1.1 200 OK\r\nContent-Length: 2\r\nContent-Length: 9\r\n\r\nfixture','HTTP/1.1 200 OK\r\nContent-Length: 4\r\nTransfer-Encoding: chunked\r\n\r\n0\r\n\r\n','HTTP/1.1 200 OK\r\nContent-Length: 30\r\n\r\nshort','HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\ninvalid\r\n']){const s=state();nativeSocket(s,[{raw,fragment:2}]);const api=await load('supabase/functions/_shared/safeFetch.ts',s);await assert.rejects(()=>api.safeFetch('https://example.com'));assert.equal(s.nativeConnections[0].closed,true);}
+    const s=state();nativeSocket(s,[{raw:'HTTP/1.1 200 OK\r\nContent-Length: 6\r\n\r\n123456'},{raw:'HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n6\r\n123456\r\n0\r\n\r\n'}]);const api=await load('supabase/functions/_shared/safeFetch.ts',s);await assert.rejects(()=>api.safeFetch('https://example.com',{maxBytes:3}),/too large/);assert.equal(await(await api.safeFetch('https://example.com',{maxBytes:3,truncate:true})).text(),'123');
+  });
+  await check('native redirect revalidates DNS and timeout closes stalled sockets',async()=>{
+    const s=state();let lookups=0;s.context.__lookup=async()=>[{address:++lookups===1?'93.184.216.34':'127.0.0.1',family:4}];nativeSocket(s,[{raw:'HTTP/1.1 302 Found\r\nLocation: /next\r\n\r\n'}]);const api=await load('supabase/functions/_shared/safeFetch.ts',s);await assert.rejects(()=>api.safeFetch('https://example.com'));assert.equal(s.nativeConnections.length,1);assert.equal(s.nativeConnections[0].closed,true);s.context.__lookup=async()=>[{address:'93.184.216.34',family:4}];nativeSocket(s,[{stall:true}]);await assert.rejects(()=>api.safeFetch('https://example.com',{timeoutMs:10}),/timeout/);assert.equal(s.nativeConnections[0].closed,true);
   });
   await check('metadata import never returns script or credential-bearing image URLs',async()=>{
     const s=state();s.context.__user={id:'fixture-owner'};socket(s,[{body:'<title>Fixture</title><meta property="og:image" content="javascript:alert(1)"><link rel="icon" href="https://user:fixture-password@example.com/icon.png">'}]);const h=await load('supabase/functions/fetch-link-metadata/index.ts',s);const response=await h(invoke({url:'https://example.com'}));assert.equal(response.status,200);const body=await response.json();assert.equal(body.title,'Fixture');assert.equal(body.image,'');assert.equal(body.favicon,'https://example.com/favicon.ico');
