@@ -239,6 +239,27 @@
       "when": 1793155347939,
       "tag": "0033_retire_automatic_founding_grants",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1793157239533,
+      "tag": "0034_public_access_and_reservations",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1793157253833,
+      "tag": "0035_business_checkout_attempts",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1793157312018,
+      "tag": "0036_payment_reversal_holds",
+      "breakpoints": true
     }
   ]
 }
