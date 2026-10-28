@@ -10,7 +10,7 @@ const scripts = [
   'check-in-person-payment-security.cjs', 'check-legacy-card-payment.cjs', 'check-hub-payment-activation.cjs',
   'check-nonpayment-security.cjs', 'check-notification-security.cjs', 'check-launch-functions.cjs',
   'check-launch-followup.cjs', 'check-relaunch-database.cjs', 'check-payment-reversals-db.cjs',
-  'check-checkout-attempts-db.cjs', 'check-storefront-quota.cjs',
+  'check-checkout-attempts-db.cjs', 'check-storefront-quota.cjs', 'check-founding-grants-db.cjs',
 ];
 for (const script of scripts) {
   const result = spawnSync(process.execPath, [path.join(__dirname, script)], { stdio: 'inherit', env: process.env });
