@@ -521,10 +521,10 @@ export const LocationsMap = ({ locations }: { locations: BusinessLocation[] }) =
   if (!API_KEY) {
     return (
       <MapError
-        title="Google Maps browser key is missing"
+        title="Map preview is unavailable"
         lines={[
-          "VITE_GOOGLE_MAPS_API_KEY is not set for this build, so the Maps JavaScript API cannot be loaded.",
-          "Add the browser key to the project environment and reload this page.",
+          "Your locations are still available in the list. You can open an address in Google Maps for directions.",
+          "A separate, website-restricted browser key is required to enable this preview.",
         ]}
       />
     );

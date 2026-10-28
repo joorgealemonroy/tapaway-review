@@ -3,6 +3,7 @@ import { checkRateLimit, getRateLimitKey, rateLimitResponse } from "../_shared/r
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
+  'Cache-Control': 'no-store',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
@@ -21,7 +22,7 @@ serve(async (req) => {
     const url = new URL(req.url);
     const accessToken = url.searchParams.get('token');
 
-    if (!accessToken) {
+    if (!accessToken || !/^[a-f0-9-]{36}$/i.test(accessToken)) {
       return new Response('Missing access token', { status: 400, headers: corsHeaders });
     }
 
@@ -45,6 +46,9 @@ serve(async (req) => {
       return new Response('Invalid or expired download link', { status: 404, headers: corsHeaders });
     }
 
+    // Only a paid purchase may issue a fresh private-file URL. Reversal holds
+    // survive late paid events through the database guard.
+    if (purchase.payment_status !== 'paid') return new Response('This purchase needs review. Please contact support.', { status: 403, headers: corsHeaders });
     // Check expiry
     if (new Date(purchase.access_expires_at) < new Date()) {
       return new Response('This download link has expired', { status: 410, headers: corsHeaders });

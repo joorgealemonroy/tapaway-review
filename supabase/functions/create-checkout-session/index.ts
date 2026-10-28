@@ -58,17 +58,10 @@ serve(async (req) => {
     const stripe = new Stripe(stripeSecretKey, { apiVersion: '2023-10-16' });
 
     const body = await req.json();
-    const { email, userId, restaurantId, planType, billingInterval, hasProtection: hasProtectionFlag, promoToken, dashboardType, claimRestaurantId, noTrial, personalProfileId, successPath, trybeVisitorId, campaign } = body;
+    const { email, userId, restaurantId, planType, billingInterval, hasProtection: hasProtectionFlag, promoToken, dashboardType, claimRestaurantId, noTrial, personalProfileId, successPath, campaign } = body;
 
-    // Trybe creator-attribution visitor id (optional; only present once the
-    // consent-gated pixel has loaded). Stored on the subscription so every
-    // future renewal invoice can be attributed to the original creator.
-    const trybeVid =
-      typeof trybeVisitorId === 'string' && trybeVisitorId.length > 0 && trybeVisitorId.length <= 128
-        ? trybeVisitorId
-        : '';
     const campaignMetadata = campaign && typeof campaign === 'object' && !Array.isArray(campaign)
-      ? Object.fromEntries(['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'fbclid', 'src', 'via'].flatMap((key) => {
+      ? Object.fromEntries(['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'src', 'via'].flatMap((key) => {
           const value = (campaign as Record<string, unknown>)[key];
           return typeof value === 'string' && value.length > 0 ? [[key, value.slice(0, 250)]] : [];
         }))
@@ -270,7 +263,7 @@ serve(async (req) => {
       custom_text: {
         submit: { message: noTrial
           ? 'Your subscription is billed now and renews at the selected interval until canceled. Review the full total above. Terms: https://tapaway.co/terms Privacy: https://tapaway.co/privacy Refunds: https://tapaway.co/refund'
-          : `After your ${config.trialDays}-day trial, the full ${isYearly ? 'annual' : 'monthly'} total shown above is billed and renews ${isYearly ? 'yearly' : 'monthly'} until canceled. Cancel before the trial ends to avoid the first subscription charge.${isYearly ? ' Cancellation stops future renewals, not a refund of the current annual term.' : ''} Card verification requests a temporary $1 authorization, then cancellation without capture. Bank release times vary. Advertising consent is separate. Terms: https://tapaway.co/terms Privacy: https://tapaway.co/privacy Refunds: https://tapaway.co/refund` },
+          : `After your ${config.trialDays}-day trial, the full ${isYearly ? 'annual' : 'monthly'} total shown above is billed and renews ${isYearly ? 'yearly' : 'monthly'} until canceled. Cancel before the trial ends to avoid the first subscription charge.${isYearly ? ' Cancellation stops future renewals, not a refund of the current annual term.' : ''} Card verification requests a temporary $1 authorization, then cancellation without capture. Bank release times vary. Terms: https://tapaway.co/terms Privacy: https://tapaway.co/privacy Refunds: https://tapaway.co/refund` },
       },
       // Collect phone so we can text the client when their hub is ready.
       phone_number_collection: { enabled: true },
@@ -281,7 +274,6 @@ serve(async (req) => {
           onboarding_catalog: 'true',
           plan_type: isYearly ? `${validPlanType}_yearly` : validPlanType,
           billing_interval: isYearly ? 'year' : 'month',
-          ...(trybeVid ? { trybe_visitor_id: trybeVid } : {}),
           ...campaignMetadata,
         },
       },
@@ -299,7 +291,6 @@ serve(async (req) => {
         promo_token: promoToken || '',
         dashboard_type: dashboardType || 'restaurant',
         claim_restaurant_id: claimRestaurantId || '',
-        trybe_visitor_id: trybeVid,
         ...campaignMetadata,
       },
     };

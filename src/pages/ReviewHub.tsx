@@ -10,6 +10,7 @@ import { ExpiredHubGate } from "@/components/hub/ExpiredHubGate";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { Smartphone } from "lucide-react";
 import { getHubTheme, safeColor, contrastOn, DEFAULT_PRIMARY } from "@/lib/hubThemes";
+import { sanitizeUrl, getSafeExternalUrl } from "@/lib/sanitizeUrl";
 
 interface Restaurant {
   id: string;
@@ -71,12 +72,9 @@ const ReviewHub = () => {
   const [pollVotes, setPollVotes] = useState<Record<string, Record<string, number>>>({});
   const { isAdmin, loading: adminLoading } = useAdminAccess();
   
-  // Visitor theme preference (light/dark) - defaults to light, respects saved preference
-  const [visitorTheme, setVisitorTheme] = useState<'light' | 'dark'>(() => {
-    const saved = localStorage.getItem('tapaway_hub_theme');
-    if (saved === 'light' || saved === 'dark') return saved;
-    return 'light';
-  });
+  // Hubs always open in a readable light surface, independent of old preferences.
+  const [visitorTheme] = useState<'light' | 'dark'>('light');
+  useEffect(() => { document.documentElement.classList.remove('dark'); }, []);
 
   // Track when a restaurant is loaded (tap event). Waits for the admin
   // check to resolve so an admin/staff preview of the hub never logs a tap
@@ -218,13 +216,7 @@ const ReviewHub = () => {
   };
 
   const isSafeUrl = (url: string | null): boolean => {
-    if (!url) return false;
-    try {
-      const parsed = new URL(url);
-      return ['http:', 'https:', 'instagram:'].includes(parsed.protocol);
-    } catch {
-      return false;
-    }
+    return sanitizeUrl(url) !== "#" && /^(https?:\/\/|instagram:\/\/)/i.test(url?.trim() || "");
   };
 
   /** Always return a URL that works: web URL on desktop, app deep link on mobile. */
@@ -398,20 +390,8 @@ const ReviewHub = () => {
   // Helper to check if user has voted on a specific poll
   const hasVotedOnPoll = (engagementId: string) => localStorage.getItem(`poll_vote_${engagementId}`) === 'true';
 
-  // Toggle visitor theme preference
-  const toggleVisitorTheme = () => {
-    const newTheme = visitorTheme === 'light' ? 'dark' : 'light';
-    setVisitorTheme(newTheme);
-    localStorage.setItem('tapaway_hub_theme', newTheme);
-  };
-
-  // Use custom brand theme if the rep set one; otherwise fall back to visitor light/dark
-  const brandTheme = restaurant?.background_theme_style && restaurant.background_theme_style !== 'default'
-    ? getHubTheme(restaurant.background_theme_style)
-    : null;
-
   const getBackgroundStyle = (): React.CSSProperties => {
-    if (brandTheme) return brandTheme.containerStyle;
+
     if (visitorTheme === 'dark') return { background: '#1a1a1a' };
     return { background: '#f9fafb' };
   };
@@ -475,45 +455,6 @@ const ReviewHub = () => {
           transition: 'all 0.3s ease'
         }}>
           
-          {/* Theme Toggle */}
-          <button
-            onClick={toggleVisitorTheme}
-            style={{
-              position: 'absolute',
-              top: '16px',
-              right: '16px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '6px 12px',
-              background: visitorTheme === 'dark' ? '#404040' : '#f3f4f6',
-              border: `1px solid ${visitorTheme === 'dark' ? '#525252' : '#d1d5db'}`,
-              borderRadius: '20px',
-              cursor: 'pointer',
-              fontSize: '12px',
-              fontWeight: '600',
-              color: getTextColor(),
-              transition: 'all 0.2s ease'
-            }}
-            aria-label="Toggle theme"
-          >
-            {visitorTheme === 'light' ? (
-              <>
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-                </svg>
-                <span>Light</span>
-              </>
-            ) : (
-              <>
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-                </svg>
-                <span>Dark</span>
-              </>
-            )}
-          </button>
-          
           {/* Logo */}
           {restaurant.logo_url && (
             <img 
@@ -569,9 +510,9 @@ const ReviewHub = () => {
                   }}>
                     {eng.content}
                   </p>
-                  {eng.options?.link && (
+                  {getSafeExternalUrl(eng.options?.link) && (
                     <a
-                      href={eng.options.link}
+                      href={getSafeExternalUrl(eng.options.link)!}
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={() => trackEvent('promotion_click')}
@@ -748,7 +689,7 @@ const ReviewHub = () => {
           {/* GOOGLE REVIEW */}
           {isSafeUrl(restaurant.google_review_url) && (
             <a 
-              href={restaurant.google_review_url!}
+              href={sanitizeUrl(restaurant.google_review_url)}
               target="_blank" 
               rel="noopener noreferrer"
               onClick={() => trackEvent('google_click')}
@@ -787,7 +728,7 @@ const ReviewHub = () => {
           {/* YELP */}
           {isSafeUrl(restaurant.yelp_review_url) && (
             <a 
-              href={restaurant.yelp_review_url!}
+              href={sanitizeUrl(restaurant.yelp_review_url)}
               target="_blank" 
               rel="noopener noreferrer"
               onClick={() => trackEvent('yelp_click')}
@@ -818,7 +759,7 @@ const ReviewHub = () => {
           {/* INSTAGRAM */}
           {isSafeUrl(restaurant.instagram_url) && (
             <a 
-              href={getInstagramDeepLink(restaurant.instagram_url!)}
+              href={sanitizeUrl(getInstagramDeepLink(restaurant.instagram_url!))}
               target="_blank" 
               rel="noopener noreferrer"
               onClick={() => trackEvent('instagram_click')}
@@ -848,7 +789,7 @@ const ReviewHub = () => {
           {/* DIRECTIONS */}
           {isSafeUrl(restaurant.directions_url) && (
             <a 
-              href={restaurant.directions_url!}
+              href={sanitizeUrl(restaurant.directions_url)}
               target="_blank" 
               rel="noopener noreferrer"
               onClick={() => trackEvent('directions_click')}

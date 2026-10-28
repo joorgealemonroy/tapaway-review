@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import PasswordChecklistSection from "@/components/PasswordChecklistSection";
 import { Loader2, ShieldCheck } from "lucide-react";
+import { verifyTokenHash } from "@/lib/authGuard";
+import { clearAuthUrlCredentials } from "@/lib/clientSecurity";
 
 /**
  * /auth/set-password. Landing page for the "get dashboard access" email.
@@ -16,43 +18,47 @@ const SetPassword = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const recoveryCheck = useRef<Promise<boolean> | null>(null);
+
   useEffect(() => {
     let cancelled = false;
 
-    const establishSession = async () => {
+    // Share a single exchange across React remount effects. One-time links
+    // must not be consumed twice, or fall back to another signed-in account.
+    recoveryCheck.current ??= (async () => {
+      const url = new URL(window.location.href);
+      const code = url.searchParams.get("code");
+      const hash = new URLSearchParams(url.hash.replace(/^#/, ""));
+      const accessToken = hash.get("access_token");
+      const refreshToken = hash.get("refresh_token");
+      const tokenHash = url.searchParams.get("token_hash") || url.searchParams.get("token");
       try {
-        // Supabase may deliver the recovery token as a hash fragment or as a
-        // ?code= query param depending on the flow. Handle both.
-        const url = new URL(window.location.href);
-        const code = url.searchParams.get("code");
-        const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
-        const accessToken = hash.get("access_token");
-        const refreshToken = hash.get("refresh_token");
-        const tokenHash = url.searchParams.get("token_hash") || url.searchParams.get("token");
-
-        if (accessToken && refreshToken) {
-          await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
-        } else if (code) {
-          await supabase.auth.exchangeCodeForSession(code);
-        } else if (tokenHash) {
-          await supabase.auth.verifyOtp({ type: "recovery", token_hash: tokenHash });
+        if ((accessToken && !refreshToken) || (!accessToken && refreshToken) || hash.has("error") || url.searchParams.has("error")) return false;
+        // Let Supabase finish its built-in URL handling before a manual
+        // exchange. Otherwise PKCE/implicit recovery gets consumed twice.
+        const initialized = await supabase.auth.initialize();
+        if (initialized.error) throw initialized.error;
+        if (tokenHash) {
+          const result = await verifyTokenHash(tokenHash, "recovery");
+          if (result.error) throw result.error;
+        } else if (code && new URL(window.location.href).searchParams.has("code")) {
+          const result = await supabase.auth.exchangeCodeForSession(code);
+          if (result.error) throw result.error;
+        } else if (accessToken && refreshToken && new URLSearchParams(window.location.hash.replace(/^#/, "")).has("access_token")) {
+          const result = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+          if (result.error) throw result.error;
         }
-
-        const { data } = await supabase.auth.getSession();
-        if (!cancelled) {
-          setHasSession(!!data.session);
-          setChecking(false);
-        }
-      } catch (e) {
-        console.error("[SetPassword] session exchange failed:", e);
-        if (!cancelled) {
-          setHasSession(false);
-          setChecking(false);
-        }
+        const { data, error: userError } = await supabase.auth.getUser();
+        return !userError && !!data.user;
+      } catch {
+        return false;
+      } finally {
+        clearAuthUrlCredentials();
       }
-    };
-
-    establishSession();
+    })();
+    recoveryCheck.current.then(valid => {
+      if (!cancelled) { setHasSession(valid); setChecking(false); }
+    });
     return () => {
       cancelled = true;
     };

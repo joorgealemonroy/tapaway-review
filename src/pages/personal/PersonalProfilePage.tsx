@@ -1,3 +1,4 @@
+import { lightHubBackground } from "@/lib/hubAppearance";
 import { memo, useCallback, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 
@@ -36,7 +37,6 @@ import { resolveHubContrast, type HubContrast } from "@/lib/hubContrast";
 import { logoImageStyle } from "@/lib/logoHeader";
 import { sampleBottomEdgeColor } from "@/lib/sampleBannerColor";
 import { Helmet } from "react-helmet-async";
-import { trackMetaEvent } from "@/lib/metaPixel";
 
 
 
@@ -440,6 +440,7 @@ const ProfileBlock = memo(function ProfileBlock({
   const [nameInput, setNameInput] = useState("");
   const [messageInput, setMessageInput] = useState("");
   const [smsOptIn, setSmsOptIn] = useState(false);
+  const [captureWebsite, setCaptureWebsite] = useState("");
   const [smsDrawerOpen, setSmsDrawerOpen] = useState(false);
   
   const content = block.content as Record<string, string>;
@@ -478,19 +479,13 @@ const ProfileBlock = memo(function ProfileBlock({
     try {
       const phoneTrimmed = phoneInput.trim();
       const optedIn = smsOptIn && !!phoneTrimmed;
-      const { error } = await supabase
-        .from("personal_email_captures")
-        .insert({
-          profile_id: profileId,
-          email: emailInput.trim() || null,
-          phone: phoneTrimmed || null,
-          name: nameInput.trim() || null,
-          message: messageInput.trim() || null,
-          sms_opt_in: optedIn,
-          sms_opt_in_at: optedIn ? new Date().toISOString() : null,
-        } as any);
-      
-      if (error) throw error;
+      const { data, error } = await supabase.functions.invoke("public-intake", { body: {
+        action: "capture", profileId, website: captureWebsite, email: emailInput.trim(), phone: phoneTrimmed,
+        name: nameInput.trim(), message: messageInput.trim(), marketingConsent: optedIn,
+        transactionalConsent: false,
+        marketingText: "Send me exclusive updates and offers via text message. Msg & data rates may apply. Reply STOP to opt out.",
+      } });
+      if (error || !data?.success) throw new Error(data?.error || "Please try again.");
       setEmailSubmitted(true);
       toast.success("Thanks! Your info has been submitted.");
     } catch (err) {
@@ -645,6 +640,7 @@ const ProfileBlock = memo(function ProfileBlock({
       
       return (
         <form onSubmit={handleEmailSubmit} className={`w-full p-5 rounded-xl border space-y-3 ${isDarkBg ? 'bg-white/10 border-white/20' : 'bg-card border-border'}`}>
+          <input name="website" value={captureWebsite} onChange={e => setCaptureWebsite(e.target.value)} tabIndex={-1} aria-hidden="true" autoComplete="off" className="absolute h-0 w-0 overflow-hidden opacity-0" />
           <div className="text-center">
             <h3 className={`font-semibold ${textClass}`}>{headline}</h3>
             <p className={`text-sm ${mutedClass} mt-1`}>{description}</p>
@@ -856,11 +852,6 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
   useEffect(() => {
     if (data?.profile?.id) {
       trackProfileVisit(data.profile.id);
-      // Meta: hub view → ViewContent (only fires if pixel initialized)
-      trackMetaEvent("ViewContent", {
-        content_name: data.profile.username,
-        content_category: "hub",
-      });
     }
   }, [data?.profile?.id]);
 
@@ -878,7 +869,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
 
     const injected: HTMLLinkElement[] = [];
     urls.forEach(url => {
-      const existing = document.querySelector(`link[rel="preload"][href="${url}"]`);
+      const existing = Array.from(document.querySelectorAll<HTMLLinkElement>('link[rel="preload"]')).some(link => link.getAttribute("href") === url);
       if (existing) return;
       const link = document.createElement('link');
       link.rel = 'preload';
@@ -892,7 +883,8 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
 
   // Set mobile browser theme-color meta tag to black for all profiles
   useEffect(() => {
-    const themeColor = "#000000";
+    document.documentElement.classList.remove("dark");
+    const themeColor = "#fffaf3";
     let meta = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement | null;
     if (!meta) {
       meta = document.createElement('meta');
@@ -926,7 +918,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
   // Must be called before early returns to comply with React Rules of Hooks
   const docBgColor = (() => {
     if (!data?.profile) return null;
-    const bg = data.profile.background_color || "#000000";
+    const bg = lightHubBackground(data.profile.background_color);
     if (bg.startsWith('linear-gradient') || bg.startsWith('radial-gradient')) {
       return getBaseColorFromGradient(bg);
     }
@@ -1045,13 +1037,13 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
   // Loading skeleton - minimal, fast to render
   if (loading) {
     return (
-      <div className="min-h-screen bg-black">
-        <div className="h-32 bg-white/10 animate-pulse" />
+      <div className="min-h-screen bg-[#faf8f1]">
+        <div className="h-32 bg-[#e5ecdF] animate-pulse" />
         <div className="max-w-md mx-auto px-4 -mt-16 pb-12">
-          <div className="h-28 w-28 rounded-full bg-white/10 animate-pulse border-4 border-black" />
+          <div className="h-28 w-28 rounded-full bg-[#e5ecdf] animate-pulse border-4 border-[#faf8f1]" />
           <div className="mt-4 space-y-2">
-            <div className="h-6 w-40 bg-white/10 animate-pulse rounded" />
-            <div className="h-4 w-24 bg-white/10 animate-pulse rounded" />
+            <div className="h-6 w-40 bg-[#e5ecdf] animate-pulse rounded" />
+            <div className="h-4 w-24 bg-[#e5ecdf] animate-pulse rounded" />
           </div>
         </div>
       </div>
@@ -1165,8 +1157,8 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
   const effectiveLogoBand = logoBandColor || sampledLogoBand;
 
    // Default to black background (#000000) for users without a set background
-  const storedBgColor = profile.background_color || "#000000";
-  const profileBgStyle = (profile as any).bg_style as string | null;
+  const storedBgColor = lightHubBackground(profile.background_color);
+  const profileBgStyle: string | null = null;
   const storedBgIsFlat = !profileBgStyle &&
     !storedBgColor.startsWith('linear-gradient') && !storedBgColor.startsWith('radial-gradient');
   // Banner hubs whose stored background is a near-black default get the warm
@@ -1198,7 +1190,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
   // Dynamic text classes based on background
   // Use explicit colors (not theme-aware tokens) so text is always readable
   // against the inline background, regardless of system dark/light mode
-  const profileTextColor = (profile as any).text_color as string | null;
+  const profileTextColor: string | null = "#1a2923";
   const profileAccentColor = (profile as any).button_theme as string | null;
   // Guaranteed fallback so legacy profiles (null text_color) never have invisible text
   const safeTextColor = profileTextColor || (isDarkBg ? '#FFFFFF' : '#1A1A1A');

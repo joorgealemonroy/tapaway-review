@@ -130,7 +130,7 @@ export const IdentityStep = ({ formData, updateFormData, onNext, isLoading, setI
       return true;
     } catch (err) {
       if (err instanceof z.ZodError) {
-        setErrors(prev => ({ ...prev, [field]: err.errors[0].message }));
+        setErrors(prev => ({ ...prev, [field]: err.issues[0].message }));
       }
       return false;
     }
@@ -180,7 +180,7 @@ export const IdentityStep = ({ formData, updateFormData, onNext, isLoading, setI
 
     if (!result.success) {
       const newErrors: Record<string, string> = {};
-      result.error.errors.forEach(err => {
+      result.error.issues.forEach(err => {
         if (err.path[0]) {
           newErrors[err.path[0] as string] = err.message;
         }

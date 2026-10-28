@@ -1,3 +1,4 @@
+import { OrderHubPreview } from "./OrderHubPreview";
 // AdminFulfillment. The demo/card fulfillment pipeline board.
 //
 // Single source of truth: personal_profiles.pipeline_status.
@@ -139,6 +140,8 @@ const inTab = (row: Row, tab: QueueTab): boolean => {
 
 export default function AdminFulfillment() {
   const navigate = useNavigate();
+  const [previewId, setPreviewId] = useState<string | null>(null);
+  const [reviewed, setReviewed] = useState<Set<string>>(new Set());
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<QueueTab>("review");
@@ -147,6 +150,7 @@ export default function AdminFulfillment() {
 
   const load = useCallback(async () => {
     setLoading(true);
+    setReviewed(new Set());
     try {
       const { data, error } = await supabase
         .from("personal_profiles")
@@ -319,7 +323,7 @@ export default function AdminFulfillment() {
 
     if (!row.is_approved || status === "draft" || status === "ready_for_review" || status === "changes_requested" || !status) {
       return (
-        <Button className={btn} onClick={() => void handleApprove(row)} disabled={busy}>
+        <Button className={btn} onClick={() => void handleApprove(row)} disabled={busy || !reviewed.has(row.id)}>
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
           Approve demo
         </Button>
@@ -390,15 +394,15 @@ export default function AdminFulfillment() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-xl font-semibold text-white">Fulfillment pipeline</h1>
-            <p className="text-sm text-white/40">
+            <h1 className="text-xl font-semibold text-slate-900">Fulfillment pipeline</h1>
+            <p className="text-sm text-slate-600">
               Every rep-created demo, from creation to closed. Advance each card one stage at a time.
             </p>
           </div>
         </div>
 
         {/* Stage pipeline: counts per stage */}
-        <div className="rounded-xl border border-white/5 bg-white/[0.02] p-5">
+        <div className="rounded-xl border border-slate-200 bg-white p-5">
           <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
             {LANE_ORDER.map((lane, i) => (
               <div key={lane} className="relative">
@@ -409,17 +413,17 @@ export default function AdminFulfillment() {
                     else if (lane === "printed" || lane === "activated") setTab("deliver");
                     else setTab("all");
                   }}
-                  className="w-full rounded-lg border border-white/5 bg-white/[0.015] px-2 py-3 text-center hover:bg-white/[0.05] transition-colors min-h-[72px]"
+                  className="w-full rounded-lg border border-slate-200 bg-white px-2 py-3 text-center hover:bg-white transition-colors min-h-[72px]"
                 >
-                  <div className="text-[11px] text-white/40">
+                  <div className="text-[11px] text-slate-600">
                     {i + 1}. {laneTitle(lane)}
                   </div>
-                  <div className="text-2xl font-semibold text-white tabular-nums">
+                  <div className="text-2xl font-semibold text-slate-900 tabular-nums">
                     {laneCounts[lane]}
                   </div>
                 </button>
                 {i < LANE_ORDER.length - 1 && (
-                  <div className="hidden sm:block absolute top-1/2 -right-[7px] -translate-y-1/2 text-white/20 text-lg z-10">
+                  <div className="hidden sm:block absolute top-1/2 -right-[7px] -translate-y-1/2 text-slate-600 text-lg z-10">
                     ›
                   </div>
                 )}
@@ -436,8 +440,8 @@ export default function AdminFulfillment() {
               onClick={() => setTab(t.key)}
               className={`px-4 py-2.5 rounded-lg text-sm font-medium min-h-[44px] transition-colors ${
                 tab === t.key
-                  ? "bg-primary text-white"
-                  : "bg-white/[0.03] text-white/60 hover:bg-white/[0.06] border border-white/5"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-white text-slate-600 hover:bg-white border border-slate-200"
               }`}
             >
               {t.label}
@@ -453,11 +457,11 @@ export default function AdminFulfillment() {
 
         {/* Rows: single column, big tap targets */}
         {loading ? (
-          <div className="flex items-center gap-2 py-12 justify-center text-white/40 text-sm">
+          <div className="flex items-center gap-2 py-12 justify-center text-slate-600 text-sm">
             <Loader2 className="h-5 w-5 animate-spin" /> Loading pipeline…
           </div>
         ) : visible.length === 0 ? (
-          <div className="text-center py-12 text-white/40 text-sm">
+          <div className="text-center py-12 text-slate-600 text-sm">
             Nothing here. {tab !== "all" ? "This queue is clear. Nice." : "No rep-created demos yet."}
           </div>
         ) : (
@@ -467,14 +471,14 @@ export default function AdminFulfillment() {
               return (
                 <div
                   key={row.id}
-                  className="rounded-xl border border-white/5 bg-white/[0.02] p-4"
+                  className="rounded-xl border border-slate-200 bg-white p-4"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <div className="text-white font-medium truncate">
+                      <div className="text-slate-900 font-medium truncate">
                         {row.full_name || row.username || "Unnamed hub"}
                       </div>
-                      <div className="text-xs text-white/40 mt-0.5">
+                      <div className="text-xs text-slate-600 mt-0.5">
                         {row.rep_name ? `Made by ${row.rep_name}` : "No rep on file"}
                         {row.username ? ` · /${row.username}` : ""}
                       </div>
@@ -483,11 +487,13 @@ export default function AdminFulfillment() {
                       <span className="inline-block text-xs font-medium px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
                         {LANE_LABELS[row.pipeline_status ?? "draft"] ?? row.pipeline_status}
                       </span>
-                      <div className="text-[11px] text-white/40 mt-1 tabular-nums">
+                      <div className="text-[11px] text-slate-600 mt-1 tabular-nums">
                         {d === 0 ? "today" : `${d}d`} in stage
                       </div>
                     </div>
                   </div>
+                  <Button variant="outline" className="w-full min-h-11 mt-4" onClick={() => setPreviewId(row.id)}>Preview hub</Button>
+                  {!row.is_approved && !reviewed.has(row.id) && <p className="text-sm text-slate-600 mt-2">Preview this hub to unlock approval.</p>}
                   {renderAction(row)}
                 </div>
               );
@@ -495,6 +501,7 @@ export default function AdminFulfillment() {
           </div>
         )}
 
+        {previewId && <OrderHubPreview id={previewId} onClose={() => setPreviewId(null)} onReviewed={() => setReviewed(previous => new Set([...previous, previewId]))} />}
         {/* Rep $5 tally */}
         <RepTally />
       </div>

@@ -147,7 +147,7 @@ export const ClaimStep = ({
 
     if (!result.success) {
       const newErrors: Record<string, string> = {};
-      result.error.errors.forEach((e) => {
+      result.error.issues.forEach((e) => {
         if (e.path[0]) newErrors[e.path[0] as string] = e.message;
       });
       setErrors(newErrors);

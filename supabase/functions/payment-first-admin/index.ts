@@ -1,16 +1,19 @@
 // Admin-only: retry Card Club activation (idempotent; never creates two subscriptions).
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { admin, cors, getStripe, json, userFromRequest } from "../_shared/paymentFirst.ts";
+import { readLimitedText } from "../_shared/requestBody.ts";
 import { ensureCardClubSubscription, syncMembership } from "../_shared/paymentFirstActivation.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
+  if (req.method !== "POST") return json({ error: "Method not allowed." }, 405);
   const user = await userFromRequest(req);
   if (!user) return json({ error: "Please sign in." }, 401);
   const db = admin();
-  const { data: roles } = await db.from("user_roles").select("role").eq("user_id", user.id).eq("role", "admin");
-  if (!roles?.length && user.email !== "tap@tapaway.co") return json({ error: "Admins only." }, 403);
-  const body = await req.json().catch(() => ({}));
+  const { data: roles, error: roleError } = await db.from("user_roles").select("role").eq("user_id", user.id).eq("role", "admin");
+  if (roleError || !roles?.length) return json({ error: "Admins only." }, 403);
+  let body: Record<string, unknown>;
+  try { body = JSON.parse(await readLimitedText(req, 4096)); if (!body || Array.isArray(body) || typeof body !== "object") throw new Error("Invalid body"); } catch { return json({ error: "Invalid request." }, 400); }
   if (body.action !== "retry_card_club" || typeof body.membershipId !== "string") return json({ error: "Invalid request." }, 400);
   const stripe = getStripe();
   const m = await ensureCardClubSubscription(stripe, db, body.membershipId);

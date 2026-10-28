@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, memo } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { SMS_MARKETING_CONSENT_TEXT, SMS_TRANSACTIONAL_CONSENT_TEXT } from "@/lib/smsConsent";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -39,8 +40,9 @@ const LeadFormSheet = ({ profileId, accentColor }: Props) => {
   const [smsTransactionalConsent, setSmsTransactionalConsent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState("");
   // Honeypot: bots fill hidden fields; humans never see it. Checked by
-  // notify-new-lead, which silently deletes the spam row.
+  // submit-lead before it writes any customer data.
   const [website, setWebsite] = useState("");
 
   useEffect(() => {
@@ -65,11 +67,6 @@ const LeadFormSheet = ({ profileId, accentColor }: Props) => {
   const handleSubmit = useCallback(async () => {
     if (!form) return;
 
-    // A2P 10DLC: block submission when a phone field is present without SMS consent.
-    if (hasPhoneField && !smsConsent) {
-      return;
-    }
-
     // Validate required fields
     for (const field of form.fields) {
       if (field.required && !formData[field.label]?.trim()) {
@@ -79,24 +76,16 @@ const LeadFormSheet = ({ profileId, accentColor }: Props) => {
 
     setSubmitting(true);
     try {
-      const { data: inserted, error } = await supabase
-        .from("lead_submissions")
-        .insert([{
-          form_id: form.id,
-          profile_id: profileId,
-          submission_data: JSON.parse(JSON.stringify(formData)),
-        }])
-        .select("id")
-        .single();
-
-      if (error) throw error;
-
-      // Fire-and-forget notification. Server re-reads the row and derives all content.
-      // Honeypot travels along so the function can silently drop bot submissions.
-      if (inserted?.id) {
-        supabase.functions
-          .invoke("notify-new-lead", { body: { submissionId: inserted.id, website } })
-          .catch(() => {});
+      setSubmitError("");
+      const { data: result, error } = await supabase.functions.invoke("submit-lead", {
+        body: { formId: form.id, values: formData, website, smsConsent: {
+          marketing: smsConsent, transactional: smsTransactionalConsent,
+          marketingText: SMS_MARKETING_CONSENT_TEXT, transactionalText: SMS_TRANSACTIONAL_CONSENT_TEXT,
+        } },
+      });
+      if (error || !result?.success) throw new Error(result?.error || "We couldn’t send your message. Please try again.");
+      if (result.submissionId) {
+        supabase.functions.invoke("notify-new-lead", { body: { submissionId: result.submissionId } }).catch(() => {});
       }
 
       setSubmitted(true);
@@ -105,14 +94,15 @@ const LeadFormSheet = ({ profileId, accentColor }: Props) => {
         setSubmitted(false);
         setFormData({});
         setSmsConsent(false);
+        setSmsTransactionalConsent(false);
         setWebsite("");
       }, 2000);
     } catch (err) {
-      console.error("Submission error:", err);
+      setSubmitError(err instanceof Error ? err.message : "We couldn’t send your message. Please try again.");
     } finally {
       setSubmitting(false);
     }
-  }, [form, formData, profileId, hasPhoneField, smsConsent, website]);
+  }, [form, formData, smsConsent, smsTransactionalConsent, website]);
 
   if (!form) return null;
 
@@ -240,7 +230,7 @@ const LeadFormSheet = ({ profileId, accentColor }: Props) => {
                   onMarketingChange={setSmsConsent}
                   transactionalChecked={smsTransactionalConsent}
                   onTransactionalChange={setSmsTransactionalConsent}
-                  requireMarketing
+                  requireMarketing={false}
                 />
               )}
 
@@ -255,9 +245,10 @@ const LeadFormSheet = ({ profileId, accentColor }: Props) => {
                 aria-hidden="true"
                 className="absolute h-0 w-0 overflow-hidden opacity-0"
               />
+              {submitError && <p role="alert" className="text-sm text-destructive">{submitError}</p>}
               <Button
                 onClick={handleSubmit}
-                disabled={submitting || (hasPhoneField && !smsConsent)}
+                disabled={submitting}
                 className="w-full"
                 style={isHex ? { backgroundColor: accentColor, color: "#ffffff" } : undefined}
               >

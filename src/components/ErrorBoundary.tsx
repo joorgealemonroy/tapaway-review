@@ -3,6 +3,7 @@ import { AlertTriangle, RefreshCw, ChevronDown, ChevronUp, Copy } from "lucide-r
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { isChunkLoadError } from "@/lib/lazyWithRetry";
+import { diagnosticRoute, redactDiagnostic } from "@/lib/clientSecurity";
 
 interface Props {
   children: ReactNode;
@@ -29,17 +30,17 @@ const logErrorToBackend = async (
 ) => {
   try {
     const { error: insertError } = await supabase.from("client_errors").insert({
-      error_message: `[${errorId}] ${error.message || String(error)}`,
-      stack_trace: error.stack?.slice(0, 4000) ?? null,
-      component_stack: errorInfo.componentStack?.slice(0, 4000) ?? null,
-      route: `${window.location.pathname}${window.location.search}`,
+      error_message: `[${errorId}] ${redactDiagnostic(error.message || String(error)).slice(0, 1000)}`,
+      stack_trace: error.stack ? redactDiagnostic(error.stack).slice(0, 4000) : null,
+      component_stack: errorInfo.componentStack ? redactDiagnostic(errorInfo.componentStack).slice(0, 4000) : null,
+      route: diagnosticRoute(),
       user_agent: navigator.userAgent.slice(0, 500),
     });
     if (insertError) {
-      console.error("[ErrorBoundary] failed to persist error report", insertError);
+      console.error("[ErrorBoundary] failed to persist error report");
     }
   } catch (e) {
-    console.error("[ErrorBoundary] failed to persist error report", e);
+    console.error("[ErrorBoundary] failed to persist error report");
   }
 };
 
@@ -55,9 +56,8 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     const errorId = `err_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    // Always log the real Error object (stack preserved). Every environment.
-    console.error(`[ErrorBoundary ${errorId}]`, error);
-    console.error(`[ErrorBoundary ${errorId}] component stack:`, errorInfo.componentStack);
+    console.error(`[ErrorBoundary ${errorId}]`, redactDiagnostic(error.stack || error.message));
+    console.error(`[ErrorBoundary ${errorId}] component stack:`, redactDiagnostic(errorInfo.componentStack || ""));
     this.setState({ errorId, componentStack: errorInfo.componentStack ?? undefined });
     // Stale-bundle chunk failures are handled by lazyWithRetry (retry + one
     // reload). They are not app crashes, so they must not pollute the log.
@@ -73,14 +73,14 @@ export class ErrorBoundary extends Component<Props, State> {
     const { errorId, error, componentStack } = this.state;
     return [
       `Error ID: ${errorId ?? "unknown"}`,
-      `Route: ${window.location.pathname}${window.location.search}`,
-      `Message: ${error?.message ?? "Unknown error"}`,
+      `Route: ${diagnosticRoute()}`,
+      `Message: ${redactDiagnostic(error?.message ?? "Unknown error")}`,
       "",
       "Stack:",
-      error?.stack ?? "(no stack)",
+      redactDiagnostic(error?.stack ?? "(no stack)"),
       "",
       "Component stack:",
-      componentStack ?? "(no component stack)",
+      redactDiagnostic(componentStack ?? "(no component stack)"),
     ].join("\n");
   };
 

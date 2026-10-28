@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { checkRateLimit, getRateLimitKey, rateLimitResponse } from "../_shared/rateLimit.ts";
+import { readLimitedText } from "../_shared/requestBody.ts";
+import { takeQuota } from "../_shared/storefrontRateLimit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -49,9 +51,11 @@ serve(async (req) => {
     }
 
     const userId = claimsData.user.id;
-    const { public_code } = await req.json();
+    if (await takeQuota(req, "claim-card-account", 20, userId) < 0)
+      return new Response(JSON.stringify({ error: "Too many attempts. Please try again later." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const { public_code } = JSON.parse(await readLimitedText(req, 4096));
 
-    if (!public_code || typeof public_code !== "string") {
+    if (typeof public_code !== "string" || !/^[a-z0-9_-]{3,128}$/i.test(public_code)) {
       return new Response(
         JSON.stringify({ error: "public_code is required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -74,7 +78,7 @@ serve(async (req) => {
       );
     }
 
-    if (card.status !== "unclaimed") {
+    if (card.status !== "unclaimed" || (card.owner_user_id && card.owner_user_id !== userId)) {
       return new Response(
         JSON.stringify({ error: "This card has already been claimed" }),
         { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -96,7 +100,7 @@ serve(async (req) => {
     }
 
     // 3. Claim the card
-    const { error: updateError } = await serviceClient
+    const { data: claimedCard, error: updateError } = await serviceClient
       .from("nfc_cards")
       .update({
         owner_user_id: userId,
@@ -106,7 +110,9 @@ serve(async (req) => {
         claimed_at: new Date().toISOString(),
       })
       .eq("id", card.id)
-      .eq("status", "unclaimed"); // Double-check to prevent race conditions
+      .eq("status", "unclaimed")
+      .or(`owner_user_id.is.null,owner_user_id.eq.${userId}`)
+      .select("id").maybeSingle();
 
     if (updateError) {
       console.error("[claim-card] Error updating card:", updateError);
@@ -116,34 +122,12 @@ serve(async (req) => {
       );
     }
 
-    // 4. If VIP card, upgrade user's profile to VIP plan — but ONLY when the
-    // card carries a verified paid-order link (LOW: previously any holder of a
-    // VIP public code got a free VIP plan + active status). Cards without a
-    // link still claim as normal cards; the plan upgrade is skipped and logged.
-    if (card.card_type === "vip") {
-      const paidRef = typeof card.paid_order_ref === "string" ? card.paid_order_ref.trim() : "";
-      if (!paidRef) {
-        console.log("[claim-card] VIP card claimed without paid-order link; plan upgrade skipped", {
-          cardId: card.id,
-          userId,
-        });
-      } else {
-        const { error: vipError } = await serviceClient
-          .from("personal_profiles")
-          .update({
-            plan_type: "vip",
-            subscription_status: "active",
-          })
-          .eq("user_id", userId);
+    if (!claimedCard)
+      return new Response(JSON.stringify({ error: "This card has already been claimed" }), { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-        if (vipError) {
-          console.error("[claim-card] Error setting VIP:", vipError);
-          // Card is already claimed, don't fail the whole request
-        } else {
-          console.log("[claim-card] VIP plan granted to user", userId, "order ref:", paidRef);
-        }
-      }
-    }
+    // A physical card claim only links its destination. It is not proof of a
+    // paid subscription, even if a legacy card carries a paid_order_ref.
+    // Billing and plan access are granted only by verified payment activation.
 
     console.log("[claim-card] Card claimed successfully", {
       cardId: card.id,

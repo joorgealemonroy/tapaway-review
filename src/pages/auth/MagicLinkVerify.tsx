@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2, CheckCircle, XCircle, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import PasswordChecklistSection from "@/components/PasswordChecklistSection";
+import { clearAuthUrlCredentials } from "@/lib/clientSecurity";
 
 type Status = "verifying" | "setup" | "saving" | "success" | "error";
 
@@ -15,9 +16,10 @@ const MagicLinkVerify = () => {
   const [email, setEmail] = useState<string>("");
   const [validPassword, setValidPassword] = useState<string | null>(null);
 
-  const token = searchParams.get("token");
+  const [token] = useState(() => searchParams.get("token"));
 
   useEffect(() => {
+    clearAuthUrlCredentials();
     if (!token) {
       setStatus("error");
       setErrorMessage("No magic link token provided");
@@ -45,7 +47,7 @@ const MagicLinkVerify = () => {
         throw new Error("Invalid token response");
       }
     } catch (err) {
-      console.error("Magic link validation error:", err);
+      console.error("Magic link validation failed");
       setStatus("error");
       setErrorMessage(err instanceof Error ? err.message : "Failed to verify magic link");
     }
@@ -87,7 +89,7 @@ const MagicLinkVerify = () => {
         throw new Error("No session returned");
       }
     } catch (err) {
-      console.error("Password setup error:", err);
+      console.error("Password setup failed");
       setStatus("error");
       setErrorMessage(err instanceof Error ? err.message : "Failed to set password");
     }

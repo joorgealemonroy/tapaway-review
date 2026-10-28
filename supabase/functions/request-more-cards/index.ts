@@ -1,3 +1,4 @@
+import { isAdmin as hasAdminRole } from "../_shared/security.ts";
 // request-more-cards. Customer-initiated add-on card request.
 //
 // Allowance is derived server-side from the account's own plan record:
@@ -114,7 +115,7 @@ serve(async (req) => {
       return json({ success: false, error: 'Quantity must be a whole number of at least 1' }, 400);
     }
 
-    const isAdmin = user.email === 'tap@tapaway.co';
+    const isAdmin = await hasAdminRole(user.id);
 
     // ── Resolve the account ────────────────────────────────────────────
     type Account = {

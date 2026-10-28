@@ -5,15 +5,20 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "build:dev": "vite build --mode development",
+    "build": "npm run security:source && vite build && npm run security:artifacts",
+    "build:dev": "npm run security:source && vite build --mode development && npm run security:artifacts",
     "check:hubs": "node scripts/check-public-hubs.mjs",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "security:source": "node scripts/sync-public-knowledge.mjs --check && node scripts/check-release-security.mjs",
+    "sync:public-knowledge": "node scripts/sync-public-knowledge.mjs",
+    "security:artifacts": "node scripts/check-release-security.mjs --artifacts",
+    "security:test": "node scripts/check-build-security.mjs",
+    "test:release": "node scripts/check-release-regressions.cjs"
   },
   "dependencies": {
     "@googlemaps/markerclusterer": "^2.6.2",
-    "@hookform/resolvers": "^3.10.0",
+    "@hookform/resolvers": "5.2.2",
     "@lovable.dev/cloud-auth-js": "^1.0.0",
     "@radix-ui/react-accordion": "^1.2.11",
     "@radix-ui/react-alert-dialog": "^1.1.14",
@@ -58,6 +63,8 @@
     "jszip": "^3.10.1",
     "lucide-react": "^0.462.0",
     "next-themes": "^0.3.0",
+    "pdf-lib": "^1.17.1",
+    "qrcode": "^1.5.4",
     "react": "^18.3.1",
     "react-day-picker": "^8.10.1",
     "react-dom": "^18.3.1",
@@ -66,25 +73,25 @@
     "react-hook-form": "^7.61.1",
     "react-qr-code": "^2.0.18",
     "react-resizable-panels": "^2.1.9",
-    "react-router-dom": "^6.30.1",
+    "react-router-dom": "7.18.4",
     "recharts": "^2.15.4",
     "sonner": "^1.7.4",
     "tailwind-merge": "^2.6.0",
-    "tailwindcss-animate": "^1.0.7",
     "three": "0.160.0",
     "vaul": "^0.9.9",
-    "zod": "^3.25.76"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",
     "@tailwindcss/typography": "^0.5.16",
     "@types/node": "^22.16.5",
+    "@types/qrcode": "^1.5.5",
     "@types/react": "^18.3.23",
     "@types/react-dom": "^18.3.7",
     "@types/three": "0.160.0",
-    "@vitejs/plugin-react-swc": "^3.11.0",
+    "@vitejs/plugin-react-swc": "3.11.0",
     "autoprefixer": "^10.4.21",
-    "drizzle-kit": "^0.31.10",
+    "drizzle-kit": "0.31.11",
     "drizzle-orm": "^0.45.2",
     "eslint": "^9.32.0",
     "eslint-plugin-react-hooks": "^5.2.0",
@@ -94,8 +101,18 @@
     "postcss": "^8.5.6",
     "postgres": "^3.4.9",
     "tailwindcss": "^3.4.17",
+    "tailwindcss-animate": "^1.0.7",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.38.0",
-    "vite": "^5.4.19"
-  }
+    "vite": "6.4.5"
+  },
+  "overrides": {
+    "@esbuild-kit/core-utils": {
+      "esbuild": "^0.25.4"
+    },
+    "@tailwindcss/typography": {
+      "postcss-selector-parser": "^6.1.5"
+    }
+  },
+  "packageManager": "npm@11.9.0"
 }

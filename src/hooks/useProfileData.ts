@@ -9,7 +9,6 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { track as trackEvent } from '@/lib/analytics';
 import { 
-  getCachedProfile, 
   setCachedProfile,
   invalidateProfileCache,
   type CachedProfile,
@@ -36,7 +35,7 @@ function preloadCriticalImages(data: ProfileData): void {
 
   urls.forEach(url => {
     const optimized = getOptimizedImageUrl(url, 640, 85);
-    const existing = document.querySelector(`link[rel="preload"][href="${optimized}"]`);
+    const existing = Array.from(document.querySelectorAll<HTMLLinkElement>('link[rel="preload"]')).some(link => link.getAttribute("href") === optimized);
     if (existing) return;
     const link = document.createElement('link');
     link.rel = 'preload';
@@ -184,6 +183,7 @@ export function useProfileData(username: string | undefined, initialProfile?: Ca
       setError(null);
       preloadCriticalImages(result.data);
     } else if (result.kind === 'expired') {
+      invalidateProfileCache(usernameKey);
       // Deliberately NOT written to the live profile cache. An expired hub
       // must never be served from cache as if it were live, and a reactivated
       // hub must never keep showing the preview from cache.
@@ -191,6 +191,7 @@ export function useProfileData(username: string | undefined, initialProfile?: Ca
       setExpiredPreview(result.preview);
       setError(null);
     } else {
+      invalidateProfileCache(usernameKey);
       setData(null);
       setExpiredPreview(null);
       setError('not_found');
@@ -234,29 +235,8 @@ export function useProfileData(username: string | undefined, initialProfile?: Ca
       return;
     }
 
-    // Check cache first (instant)
-    const cached = getCachedProfile(username);
-    if (cached) {
-      setData({
-        profile: cached.profile,
-        links: cached.links,
-        blocks: cached.blocks,
-        hasActiveCard: cached.hasActiveCard ?? false,
-      });
-      setExpiredPreview(null);
-      setLoading(false);
-      setError(null);
-      
-      // Background revalidate if cache is older than 30s
-      const age = Date.now() - cached.fetchedAt;
-      if (age > 30000) {
-        fetchProfileData(username).then((freshResult) => {
-          applyResult(freshResult, username);
-        });
-      }
-      return;
-    }
-
+    // Never display cached links before checking current server entitlement.
+    // A hub can be paused between visits while its cached data is still fresh.
     try {
       setLoading(true);
       const result = await fetchProfileData(username);

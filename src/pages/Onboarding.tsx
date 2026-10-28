@@ -1,3 +1,5 @@
+import { clearCheckoutAttempt, getCheckoutAttemptId } from "@/lib/checkoutAttempt";
+import type { BusinessBrief } from "@/lib/businessBrief";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,9 +13,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Helmet } from "react-helmet-async";
 import { useAuth } from "@/hooks/useAuth";
 import { GooglePlacesAutocomplete } from "@/components/GooglePlacesAutocomplete";
-import { isSuperAdmin } from "@/lib/grandfatheredUsers";
 import { normalizeGooglePlaceId, buildGoogleReviewUrl } from "@/lib/google";
-import { getTrybeVisitorId } from "@/lib/trybePixel";
 import {
   getOnboardingData,
   saveOnboardingData,
@@ -24,8 +24,8 @@ import {
 } from "@/lib/onboardingData";
 import { track } from "@/lib/analytics";
 import { paymentFirstEnabled, callFunction } from "@/lib/paymentFirst";
+import { CheckoutOrder } from "@/components/onboarding/CheckoutOrder";
 import { CardClubStep } from "@/components/onboarding/CardClubStep";
-import { getAppSettings } from "@/lib/appSettings";
 import { Button } from "@/components/ui/button";
 import { formatCatalogPrice, useOnboardingCatalog } from "@/lib/onboardingCatalog";
 
@@ -117,7 +117,7 @@ const Onboarding = () => {
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
   // Billing period: yearly is preselected and visually pushed as the best
   // value (Solo $199/yr = save $41; Venue $390/yr = 2 months free).
-  const [billingInterval, setBillingInterval] = useState<BillingInterval>("year");
+  const [billingInterval, setBillingInterval] = useState<BillingInterval>("month");
   const { catalog, loading: catalogLoading, failed: catalogFailed, retry: retryCatalog } = useOnboardingCatalog();
   const [dashboardType, setDashboardType] = useState<"restaurant" | "personal" | null>(null);
 
@@ -181,9 +181,8 @@ const Onboarding = () => {
         if (cancelled) return;
         if (!promoError && data?.valid) {
           setPromoDiscountType(data.discount_type as string);
-          console.log("[onboarding] Valid promo token:", data.discount_type);
         } else {
-          console.warn("[onboarding] Invalid promo token:", data?.error);
+          console.warn("[onboarding] Invalid promo token:");
           toast.error("This promo link is invalid or expired.");
         }
       } catch {
@@ -201,6 +200,8 @@ const Onboarding = () => {
     const init = async () => {
       setPendingSetup(true);
       const savedData = getOnboardingData();
+      const audience = searchParams.get("audience");
+      if (audience === "personal" || audience === "business") saveOnboardingData({ audience });
 
       if (savedData.businessName) setBusinessName(savedData.businessName);
       const explicitPlan = searchParams.get("plan") || searchParams.get("plan_type");
@@ -209,15 +210,12 @@ const Onboarding = () => {
         setSelectedPlan(initialPlan);
         saveOnboardingData({ planType: initialPlan });
       }
-      const explicitBilling = searchParams.get("billing") || searchParams.get("billing_interval");
+      const explicitBilling = searchParams.get("billing") || searchParams.get("billing_interval") || searchParams.get("cycle");
       if (explicitBilling === "month" || explicitBilling === "year") {
         setBillingInterval(explicitBilling);
         saveOnboardingData({ billingInterval: explicitBilling, billingSelectionExplicit: true });
-      } else if (savedData.billingInterval === "month" || savedData.billingInterval === "year") {
-        setBillingInterval(savedData.billingInterval);
       } else {
-        const settings = await getAppSettings(supabase);
-        setBillingInterval(settings.onboardingDefaultBilling);
+        setBillingInterval("month");
       }
       saveOnboardingData({ hasProtection: false, campaign: { ...savedData.campaign, ...getCampaignParams() } });
       if (savedData.dashboardType) setDashboardType(savedData.dashboardType as 'personal' | 'restaurant');
@@ -235,7 +233,8 @@ const Onboarding = () => {
 
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
-        if (isSuperAdmin(session.user.email)) { navigate("/admin"); return; }
+        const { data: isAdmin, error: roleError } = await supabase.rpc("is_admin");
+        if (!roleError && isAdmin === true) { navigate("/admin"); return; }
         setUserId(session.user.id);
         const { data: restaurant } = await supabase
           .from("restaurants")
@@ -258,7 +257,6 @@ const Onboarding = () => {
               body: { sessionId },
             });
             if (error) throw error;
-            console.log("[onboarding] Stripe checkout verified:", data);
 
             // CARD-CHECK: the $1 card verification failed. The trial was
             // canceled in Stripe. Show the plain-language message with a
@@ -271,6 +269,10 @@ const Onboarding = () => {
               );
               setInitialCheckDone(true);
               return;
+            }
+
+            if (data?.success !== true) {
+              throw new Error("Your payment has not been confirmed yet. Please check again shortly.");
             }
 
             if (data?.subscriptionStatus === "trialing" && !data?.cardCheckFailed) {
@@ -289,9 +291,8 @@ const Onboarding = () => {
                 await supabase.functions.invoke("send-magic-link-email", {
                   body: { userId: session.user.id, email: session.user.email, fullName: session.user.user_metadata?.full_name || '' },
                 });
-                console.log("[onboarding] Magic link sent for password setup");
               } catch (err) {
-                console.error("[onboarding] Magic link send failed (non-blocking):", err);
+                console.error("[onboarding] Magic link send failed (non-blocking):");
               }
             }
 
@@ -301,7 +302,7 @@ const Onboarding = () => {
             navigate("/onboarding-success");
             return;
           } catch (err: any) {
-            console.error("[onboarding] Checkout verification failed:", err);
+            console.error("[onboarding] Checkout verification failed:");
             toast.error("Payment verification failed. Please contact support.");
           } finally {
             setVerifyingCheckout(false);
@@ -347,23 +348,26 @@ const Onboarding = () => {
   const paymentFirst = paymentFirstEnabled();
   const [pfBusy, setPfBusy] = useState(false);
   const [pfError, setPfError] = useState<string | null>(null);
-  const startPaymentFirstCheckout = async (cardClub: boolean) => {
-    if (!selectedPlan || pfBusy) return;
+  const startPaymentFirstCheckout = async (cardClub: boolean, business?: BusinessBrief) => {
+    if (!selectedPlan || pfBusy || catalogLoading || catalogItem(selectedPlan, billingInterval)?.available !== true) return;
     setPfBusy(true); setPfError(null);
-    saveOnboardingData({ planType: selectedPlan, billingInterval, billingSelectionExplicit: true, hasProtection: false });
+    saveOnboardingData({ planType: selectedPlan, billingInterval, billingSelectionExplicit: true, hasProtection: false, cardClubSelected: cardClub });
     track(cardClub ? "card_club_selected" : "card_club_declined", { hubKind: "site", props: { plan: selectedPlan, interval: billingInterval } });
     track("checkout_clicked", { hubKind: "site", props: { plan: selectedPlan, interval: billingInterval, card_club: cardClub } });
     const saved = getOnboardingData();
-    const { ok, data } = await callFunction<{ url?: string; error?: string }>("payment-first-checkout", {
-      plan: selectedPlan, interval: billingInterval, cardClub, source: "onboarding", returnOrigin: window.location.origin,
+    const { ok, data } = await (async () => {
+      const checkoutAttemptId = await getCheckoutAttemptId({ plan: selectedPlan, interval: billingInterval, cardClub, business });
+      return callFunction<{ url?: string; error?: string; code?: string }>("payment-first-checkout", {
+      checkoutVersion: 2, checkoutAttemptId, plan: selectedPlan, interval: billingInterval, cardClub, business, source: "onboarding", returnOrigin: window.location.origin,
       attribution: { ...(saved.campaign || {}), landing_path: window.location.pathname },
-      trybeVisitorId: getTrybeVisitorId(),
-    }).catch(() => ({ ok: false, data: {} as { url?: string; error?: string } }));
+      });
+    })().catch(() => ({ ok: false, data: {} as { url?: string; error?: string; code?: string } }));
     if (ok && data.url) {
       track("stripe_checkout_started", { hubKind: "site", props: { plan: selectedPlan, interval: billingInterval, card_club: cardClub } });
       window.location.href = data.url;
       return;
     }
+    if (data.code === "checkout_expired" || data.code === "checkout_changed") clearCheckoutAttempt();
     setPfError(data.error || "Checkout is temporarily unavailable. Please try again.");
     setPfBusy(false);
   };
@@ -379,10 +383,9 @@ const Onboarding = () => {
     if (!cardCode) return;
     try {
       await supabase.functions.invoke("claim-card", { body: { public_code: cardCode } });
-      console.log("[onboarding] Card claimed:", cardCode);
       sessionStorage.removeItem("tapaway_card_code");
     } catch (err) {
-      console.warn("[onboarding] Card claim failed (non-fatal):", err);
+      console.warn("[onboarding] Card claim failed (non-fatal):");
     }
   }, []);
 
@@ -497,6 +500,7 @@ const Onboarding = () => {
         clientEmail: clientEmail.trim(),
         businessName: businessName.trim(),
         planType: selectedPlan || "venue",
+        billingInterval,
         hasProtection: false,
         googlePlaceId: selectedGooglePlace?.placeId || "",
         googlePlaceName: selectedGooglePlace?.name || "",
@@ -548,7 +552,7 @@ const Onboarding = () => {
       throw new Error("No checkout URL returned");
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to start checkout";
-      console.error("[onboarding] Rep/promo checkout failed:", err);
+      console.error("[onboarding] Rep/promo checkout failed:");
       toast.error(message);
     } finally {
       setRepSubmitting(false);
@@ -643,7 +647,7 @@ const Onboarding = () => {
       toast.success("Account created. Check your email to verify it, then log in to continue.");
       navigate("/auth?redirect=/onboarding");
     } catch (err: any) {
-      console.error("[onboarding] Email signup failed:", err);
+      console.error("[onboarding] Email signup failed:");
       toast.error(err.message || "Failed to create account");
       setEmailSubmitting(false);
     }
@@ -691,11 +695,11 @@ const Onboarding = () => {
             const { data: { publicUrl } } = supabase.storage.from('restaurant-logos').getPublicUrl(fileName);
             savedLogoUrl = publicUrl;
           } else {
-            console.error("[onboarding] Logo upload failed:", uploadError);
+            console.error("[onboarding] Logo upload failed:");
             savedLogoUrl = null;
           }
         } catch (err) {
-          console.error("[onboarding] Logo upload error:", err);
+          console.error("[onboarding] Logo upload error:");
           savedLogoUrl = null;
         }
       }
@@ -741,7 +745,6 @@ const Onboarding = () => {
 
         if (insertErr && insertErr.code === '23505') {
           // Duplicate slug. Try owner lookup first, then broader recovery
-          console.log("[onboarding] Slug collision, attempting recovery");
 
           // Try 1: find by owner_id (any slug)
           const { data: ownedRow } = await supabase.from("restaurants")
@@ -764,7 +767,6 @@ const Onboarding = () => {
           } else {
             // Try 2: slug taken by another user. Append random suffix
             const uniqueSlug = `${slug}-${Date.now().toString(36)}`;
-            console.log("[onboarding] Slug taken by another user, using fallback:", uniqueSlug);
             const { data: created2, error: insertErr2 } = await supabase.from("restaurants").insert({
               owner_id: uid,
               restaurant_name: bName,
@@ -779,7 +781,7 @@ const Onboarding = () => {
               ...(savedLogoUrl ? { logo_url: savedLogoUrl } : {}),
             }).select("id").single();
             if (insertErr2) {
-              console.error("[onboarding] Fallback slug insert also failed:", insertErr2);
+              console.error("[onboarding] Fallback slug insert also failed:");
             } else {
               rId = created2?.id;
             }
@@ -830,31 +832,12 @@ const Onboarding = () => {
           return;
         } catch (err: unknown) {
           const message = err instanceof Error ? err.message : "Failed to activate free promo";
-          console.error("[onboarding] Free promo activation failed:", err);
+          console.error("[onboarding] Free promo activation failed:");
           toast.error(message);
           setIsLoading(false);
           setIsCompletingSetup(false);
           return;
         }
-      }
-
-      // ── ADMIN/TEST BYPASS: local dev only. Never runs in production builds.
-      // Jorge: to test without Stripe, run `npm run dev` (Vite sets
-      // import.meta.env.DEV to true only there) and sign in with tap@tapaway.co.
-      const userEmail = session.user.email || '';
-      const devBypassEnabled = import.meta.env.DEV === true;
-      if (devBypassEnabled && userEmail === 'tap@tapaway.co') {
-        console.log("[onboarding] Admin/test bypass. Skipping Stripe (local dev only)");
-        await supabase.from("restaurants").update({
-          subscription_status: "active",
-          onboarding_completed: true,
-          onboarding_step: 4,
-        }).eq("id", rId);
-        try { await supabase.functions.invoke("finalize-onboarding", { body: { restaurantId: rId } }); } catch {}
-        await claimPendingCard();
-        clearOnboardingData();
-        navigate("/onboarding-success");
-        return;
       }
 
       // Redirect to Stripe Checkout for card on file
@@ -874,7 +857,6 @@ const Onboarding = () => {
             hasProtection: false,
             promoToken: promoTokenParam || undefined,
             dashboardType: resolvedDashboardType,
-            trybeVisitorId: getTrybeVisitorId(),
             campaign: savedData.campaign || {},
           },
         });
@@ -886,7 +868,7 @@ const Onboarding = () => {
         throw new Error("No checkout URL returned");
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : "Stripe redirect failed";
-        console.error("[onboarding] Stripe redirect failed:", err);
+        console.error("[onboarding] Stripe redirect failed:");
         toast.error("Failed to start checkout. Please try again.");
         setIsLoading(false);
         setIsCompletingSetup(false);
@@ -963,6 +945,12 @@ const Onboarding = () => {
         </div>
       </div>
     );
+  }
+
+  if (paymentFirst && !isRepMode && !promoTokenParam && step === "plan") {
+    return <CheckoutOrder plan={selectedPlan} interval={billingInterval} catalog={catalog} loading={catalogLoading}
+      failed={catalogFailed} busy={pfBusy} error={pfError} canceled={searchParams.has("canceled")}
+      onRetry={retryCatalog} onPlan={selectPlan} onInterval={selectBillingInterval} onCheckout={startPaymentFirstCheckout} />;
   }
 
   return (
@@ -1110,6 +1098,7 @@ const Onboarding = () => {
           {step === "cardclub" && selectedPlan && (
             <motion.div key="cardclub" custom={direction} variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.3 }}>
               <CardClubStep
+                interval={billingInterval}
                 cards={PLAN_DETAILS[selectedPlan].cards}
                 priceLabel={formatCatalogPrice(catalogItem(selectedPlan, billingInterval))}
                 busy={pfBusy}
@@ -1290,7 +1279,7 @@ const Onboarding = () => {
                 <p className="mt-2">By continuing, you agree to our <a href="/terms" className="underline">Terms</a>. Read our <a href="/privacy" className="underline">Privacy Policy</a> and <a href="/refund" className="underline">Refund Policy</a>. Advertising consent is optional and separate.</p>
               </div>
               {/* Auth buttons OR Rep email input */}
-              {(isRepMode && authUser) || !!promoTokenParam ? (
+              {isRepMode && authUser ? (
                 <div className="space-y-4">
                   <div>
                     <Label htmlFor="client-email" className="text-foreground text-sm flex items-center gap-2">
@@ -1403,7 +1392,7 @@ const Onboarding = () => {
                   hosted page, so the notice lives on our last screen before
                   the redirect. */}
               <p className="text-center text-xs text-muted-foreground">
-                After checkout, we request a temporary $1 authorization to verify your card and cancel it without capture. Your bank determines when the pending hold disappears.
+                Secure payment processing by Stripe.
               </p>
 
               <button

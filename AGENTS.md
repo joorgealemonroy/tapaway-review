@@ -1,6 +1,7 @@
 # Project rules
 
 - Share the verified onboarding catalog client between public pricing and signup; unavailable or missing prices cannot enable checkout actions because Stripe is authoritative.
+- Keep versioned bucket constraints in supabase/storage-buckets.json and apply them through supported Storage administration, never migration SQL; isolated fixtures load this configuration separately to avoid claiming migrations configure storage.
 - Keep public quantity labels separate from internal plan identifiers and grandfathered economics to preserve existing subscriptions.
 - Optional advertising must check current explicit consent at every send; server reporting stays blocked until durable, revocable server-side evidence is available, so billing never implies consent.
 - Completion passes prepare source changes and nontransactional tests only unless deployment or customer mutations are explicitly authorized.- Payment-first onboarding stays behind three switches (frontend PAYMENT_FIRST_DEFAULT, backend PAYMENT_FIRST_ENABLED, PAYMENT_FIRST_STRIPE_MODE); before go-live only requests with the private test key may start checkout, so ordinary traffic cannot hit it.

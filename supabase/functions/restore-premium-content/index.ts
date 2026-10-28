@@ -1,3 +1,4 @@
+import { readLimitedText } from "../_shared/requestBody.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { checkRateLimit, getRateLimitKey, rateLimitResponse } from "../_shared/rateLimit.ts";
 import { requireUser, adminClient, isAdmin, jsonResponse } from "../_shared/security.ts";
@@ -14,7 +15,7 @@ serve(async (req) => {
   if (!checkRateLimit(rlKey, 10, 60 * 60 * 1000)) return rateLimitResponse(corsHeaders);
 
   try {
-    const { profileId } = await req.json();
+    const { profileId } = JSON.parse(await readLimitedText(req, 4096));
     if (!profileId) return jsonResponse({ error: "profileId required" }, 400, corsHeaders);
 
     // Allow either: (a) service-role internal caller, or (b) authenticated owner/admin.

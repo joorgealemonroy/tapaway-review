@@ -27,12 +27,12 @@ export function isVenuePlan(planType: string | null | undefined): boolean {
 
 /** Cards this plan may request per calendar month. */
 export function cardAllowanceForPlan(planType: string | null | undefined): number {
-  return isVenuePlan(planType) ? VENUE_MONTHLY_CARDS : SOLO_MONTHLY_CARDS;
+  return planType === "personal_hosted" ? 0 : isVenuePlan(planType) ? VENUE_MONTHLY_CARDS : SOLO_MONTHLY_CARDS;
 }
 
 /** Customer-facing plan name. */
 export function cardPlanLabel(planType: string | null | undefined): string {
-  return isVenuePlan(planType) ? "TapAway Pro" : "TapAway Solo";
+  return planType === "personal_hosted" ? "Personal hub" : isVenuePlan(planType) ? "TapAway Pro" : "TapAway Solo";
 }
 
 /** Statuses that may request cards. */

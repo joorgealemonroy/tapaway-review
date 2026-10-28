@@ -1,3 +1,4 @@
+import { readLimitedText } from "../_shared/requestBody.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
@@ -17,7 +18,6 @@ async function verifyAdmin(req: Request, supabaseUrl: string, serviceKey: string
   if (error || !user) return false;
   
   // Check if admin email or has admin role
-  if (user.email === "tap@tapaway.co") return true;
   
   const { data: roles } = await supabase
     .from("user_roles")
@@ -48,11 +48,11 @@ serve(async (req) => {
       );
     }
 
-    const { email, password, restaurantName, ownerName, stripeCustomerId, stripePriceId } = await req.json();
+    const { email, password, restaurantName, ownerName, stripeCustomerId, stripePriceId } = JSON.parse(await readLimitedText(req, 4096));
 
     // Check if user already exists
     const { data: existingUsers } = await supabase.auth.admin.listUsers();
-    const existingUser = existingUsers?.users?.find(u => u.email?.toLowerCase() === email.toLowerCase());
+    const existingUser = existingUsers?.users?.find((u: { id: string; email?: string }) => u.email?.toLowerCase() === email.toLowerCase());
 
     let userId: string;
 

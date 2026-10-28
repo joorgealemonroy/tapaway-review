@@ -1,3 +1,5 @@
+import { readLimitedText } from "../_shared/requestBody.ts";
+import { takeQuota } from "../_shared/storefrontRateLimit.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { checkRateLimit, getRateLimitKey } from "../_shared/rateLimit.ts";
@@ -38,7 +40,9 @@ serve(async (req) => {
   }
 
   try {
-    const body = await req.json();
+    if (await takeQuota(req, "track-event-network", 2000) < 0 || await takeQuota(req, "track-event-global", 20000, "all") < 0)
+      return new Response(JSON.stringify({ error: "Rate limited" }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const body = JSON.parse(await readLimitedText(req, 8000));
     
     // Validate required fields
     if (!body.restaurant_id || typeof body.restaurant_id !== 'string') {

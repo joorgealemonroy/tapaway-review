@@ -168,20 +168,17 @@ const Onboarding = () => {
       }
 
       try {
-        console.log('[Onboarding] Verifying session:', sessionId);
         
         const { data, error: fnError } = await supabase.functions.invoke('lookup-stripe-session', {
           body: { sessionId }
         });
 
         if (fnError || !data?.success) {
-          console.error('[Onboarding] Session verification failed:', fnError || data?.error);
+          console.error('[Onboarding] Session verification failed:');
           setError(data?.error || 'Failed to verify payment. Please try again or contact support.');
           setState('error');
           return;
         }
-
-        console.log('[Onboarding] Session verified:', data);
         
         setUserId(data.userId);
         setRestaurantId(data.restaurantId);
@@ -205,7 +202,7 @@ const Onboarding = () => {
         setState(step === 1 ? 'step1' : step === 2 ? 'step2' : 'step3');
         
       } catch (err) {
-        console.error('[Onboarding] Error:', err);
+        console.error('[Onboarding] Error:');
         setError('Something went wrong. Please try again.');
         setState('error');
       }
@@ -274,7 +271,7 @@ const Onboarding = () => {
       return true;
     } catch (err) {
       if (err instanceof z.ZodError) {
-        toast.error(err.errors[0].message);
+        toast.error(err.issues[0].message);
       } else {
         toast.error("Failed to save. Please try again.");
       }
@@ -377,7 +374,7 @@ const Onboarding = () => {
       return true;
     } catch (err) {
       if (err instanceof z.ZodError) {
-        toast.error(err.errors[0].message);
+        toast.error(err.issues[0].message);
       } else {
         toast.error("Failed to save. Please try again.");
       }
@@ -474,7 +471,7 @@ const Onboarding = () => {
           toast.error("No trial found for this email. Please start a new trial.");
         }
       } catch (err) {
-        console.error('[Onboarding] Recovery error:', err);
+        console.error('[Onboarding] Recovery error:');
         toast.error("Something went wrong. Please try again.");
       } finally {
         setIsRecovering(false);

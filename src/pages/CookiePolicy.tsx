@@ -1,5 +1,4 @@
 import { Helmet } from "react-helmet-async";
-import { openConsentSettings } from "@/lib/consent";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Smartphone } from "lucide-react";
@@ -9,7 +8,7 @@ const CookiePolicy = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Helmet><title>Cookie & Analytics Policy | TapAway</title><meta name="description" content="Cookie & Analytics Policy for TapAway, including optional Meta and Trybe tracking and your cookie settings." /></Helmet>
+      <Helmet><title>Cookie & Analytics Policy | TapAway</title><meta name="description" content="How TapAway uses browser storage for accounts, saved designs, checkout, support, and product analytics." /></Helmet>
       <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate("/")}>
@@ -27,7 +26,7 @@ const CookiePolicy = () => {
 
       <div className="container mx-auto px-4 py-12 max-w-4xl">
         <h1 className="text-4xl font-bold mb-8">Cookie & Analytics Policy</h1>
-        <p className="text-muted-foreground mb-8">Tracking description updated: October 14, 2026</p>
+        <p className="text-muted-foreground mb-8">Tracking description updated: October 20, 2026</p>
 
         <div className="prose prose-slate dark:prose-invert max-w-none space-y-8">
           <section>
@@ -43,7 +42,7 @@ const CookiePolicy = () => {
           <section>
             <h2 className="text-2xl font-bold mb-4">2. Types of Cookies We Use</h2>
             <p className="text-muted-foreground mb-4">
-              TapAway uses necessary authentication and security storage, saved signup selections, preferences, and optional tracking. Optional Meta, Trybe, and returning-visitor analytics identifiers are enabled only after explicit acceptance.
+              TapAway uses browser storage for authentication, security, saved designs and checkout selections, interface preferences, and support abuse prevention. Advertising pixels and persistent returning-visitor analytics identifiers are not enabled.
             </p>
 
             <h3 className="text-xl font-semibold mb-2">Authentication & Session Cookies</h3>
@@ -66,10 +65,8 @@ const CookiePolicy = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-bold mb-4">3. Optional Meta and Trybe Tracking</h2>
-            <p className="text-muted-foreground">After you accept, Meta (Facebook and Instagram) receives browser page and event information for advertising measurement, optimization, and retargeting. Trybe receives browser and referral information for creator attribution. These providers may use cookies or similar identifiers under their own policies. Trybe automatic tracking is disabled in our configuration.</p>
-            <p className="mt-4 text-muted-foreground">The browser stores your choice with a visitor-specific reference, timestamp, notice version, and notice text. A declined choice retains the preceding acceptance notice for context. Legacy or absent choices prompt a new decision. Blocked storage fails closed for optional tracking.</p>
-            <p className="mt-4 text-muted-foreground">Server advertising and order attribution reports are disabled in this source revision because current, revocable server consent evidence is not available. Checkout contact information and a saved visitor ID are not permission to send those reports.</p>
+            <h2 className="text-2xl font-bold mb-4">3. Advertising Tracking</h2>
+            <p className="text-muted-foreground">Our previous advertising pixels and server advertising reports have been removed. We do not send page, purchase, or renewal events to advertising attribution services. There is no advertising acceptance prompt. Removing an integration does not delete historical information already received by its provider.</p>
           </section>
 
           <section>
@@ -87,14 +84,13 @@ const CookiePolicy = () => {
               <li>Dashboard usage activity</li>
             </ul>
             <p className="text-muted-foreground mt-4">
-              First-party reporting supports customer dashboards and product usage insights. A returning-visitor identifier is stored only after acceptance and removed from this browser after decline. Usage and tap events can still be recorded without that identifier; this is not a claim that all technical data is anonymous.
+              First-party reporting supports customer dashboards and product usage insights. Visit identifiers are temporary and held in page memory rather than saved in cookies or browser storage. We do not keep a persistent returning-visitor identifier. Usage and tap events still contain technical information; this is not a claim that all data is anonymous.
             </p>
           </section>
 
           <section>
-            <h2 className="text-2xl font-bold mb-4">5. Your Consent Choice</h2>
-            <p className="text-muted-foreground">You can accept or decline optional tracking without affecting billing or your hub. Reopen Cookie settings at any time. After decline, new Meta calls and Trybe visitor identifiers stop. If Trybe has already loaded, the page reloads to stop the SDK reliably. Previously sent data cannot be recalled through this setting. Reaccepting enables optional tracking again.</p>
-            <Button variant="outline" className="mt-4" onClick={openConsentSettings}>Cookie settings</Button>
+            <h2 className="text-2xl font-bold mb-4">5. Your Choices</h2>
+            <p className="text-muted-foreground">You can manage browser storage in your browser settings and contact tap@tapaway.co about privacy requests. Removing saved data may sign you out or clear an unfinished card design. Our AI helper is optional; you can contact our team directly instead.</p>
           </section>
 
           <section>
@@ -120,7 +116,7 @@ const CookiePolicy = () => {
             <p className="text-muted-foreground">
               In addition to cookies, TapAway may use browser local storage and session storage to store preferences,
               authentication tokens, and temporary data needed for the application to function. These technologies
-              include the consent record and, only with acceptance, optional returning-visitor identifiers. They are governed by this policy.
+              include saved card designs, checkout selections, theme preferences, dismissal of the seasonal offer, and a support visitor reference used to enforce question limits. They are governed by this policy.
             </p>
           </section>
 
@@ -128,7 +124,7 @@ const CookiePolicy = () => {
             <h2 className="text-2xl font-bold mb-4">8. Changes to This Policy</h2>
             <p className="text-muted-foreground">
               We may update this Cookie & Analytics Policy at any time. The "Last Updated" date at the top reflects
-              the most recent revision. Material changes to optional tracking are reflected in the notice and consent settings.
+              the most recent revision. We will update this page when our use of browser storage changes.
             </p>
           </section>
 

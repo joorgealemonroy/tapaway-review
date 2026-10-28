@@ -1,4 +1,6 @@
-import { useState, useEffect } from "react";
+import BuildingDashboard from "@/components/dashboard/BuildingDashboard";
+import { Link } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -9,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Package, Crown, Minus, Plus, Loader2, MapPin, Pencil, Check } from "lucide-react";
 
 interface CardsTabProps {
+  paymentFirst?: boolean;
   profileId: string;
   userId: string;
   hasCardAddon: boolean;
@@ -41,10 +44,12 @@ const MONTHLY_LIMIT = 3;
 const isAddressComplete = (addr: ShippingAddress) =>
   !!(addr.name.trim() && addr.line1.trim() && addr.city.trim() && addr.state.trim() && addr.postal_code.trim());
 
-export const CardsTab = ({ profileId, userId, hasCardAddon, planType, stripeCustomerId, fullName }: CardsTabProps) => {
+export const CardsTab = ({ profileId, paymentFirst = false, userId, hasCardAddon, planType, stripeCustomerId, fullName }: CardsTabProps) => {
   const [requests, setRequests] = useState<CardRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const freeRequestAttempt = useRef<{ payload: string; key: string } | null>(null);
+  const freeRequestInFlight = useRef(false);
   const [quantity, setQuantity] = useState(1);
   const [editingAddress, setEditingAddress] = useState(false);
   // One-time 3-pack price by plan. Deliberately steep so the $5/mo Card Club
@@ -54,7 +59,7 @@ export const CardsTab = ({ profileId, userId, hasCardAddon, planType, stripeCust
     name: fullName || "", line1: "", line2: "", city: "", state: "", postal_code: "", country: "US",
   });
 
-  useEffect(() => { loadRequests(); }, [profileId]);
+  useEffect(() => { if (planType === "personal_hosted" || paymentFirst) { setLoading(false); return; } void loadRequests(); }, [profileId, planType, paymentFirst]);
 
   const loadRequests = async () => {
     const { data, error } = await supabase
@@ -131,23 +136,30 @@ export const CardsTab = ({ profileId, userId, hasCardAddon, planType, stripeCust
   };
 
   const handleFreeRequest = async () => {
-    if (!validateAddress()) return;
+    if (freeRequestInFlight.current || !validateAddress()) return;
     if (quantity > remaining) {
       toast.error(`You can only request ${remaining} more cards this month`);
       return;
     }
+    const payload = JSON.stringify({ profileId, quantity, shipping: address });
+    if (freeRequestAttempt.current?.payload !== payload) {
+      freeRequestAttempt.current = { payload, key: crypto.randomUUID() };
+    }
+    freeRequestInFlight.current = true;
     setSubmitting(true);
     try {
-      const { error } = await supabase.functions.invoke("create-card-order", {
-        body: { flow: "free_request", profile_id: profileId, quantity, shipping: address },
+      const { data, error } = await supabase.functions.invoke("create-card-order", {
+        body: { flow: "free_request", profile_id: profileId, quantity, shipping: address, requestKey: freeRequestAttempt.current.key },
       });
-      if (error) throw error;
+      if (error || data?.error) throw error || new Error(data.error);
+      freeRequestAttempt.current = null;
       toast.success("Card request submitted!");
       setQuantity(1);
       void loadRequests();
     } catch (err: any) {
       toast.error(err.message || "Failed to submit request");
     } finally {
+      freeRequestInFlight.current = false;
       setSubmitting(false);
     }
   };
@@ -206,6 +218,8 @@ export const CardsTab = ({ profileId, userId, hasCardAddon, planType, stripeCust
     </div>
   );
 
+  if (paymentFirst) return <BuildingDashboard embedded profileId={profileId} />;
+  if (planType === "personal_hosted") return <Card><CardHeader><CardTitle>Your personal cards</CardTitle><CardDescription>Your two-card order is a one-time purchase. Your $5/month subscription hosts your hub and analytics.</CardDescription></CardHeader><CardContent className="space-y-4"><p className="text-sm text-muted-foreground">Need another pair or help with your original order? Our team can help. Card Club is for business plans.</p><div className="flex flex-wrap gap-3"><Button asChild><Link to="/personal/design">Design two more cards · $39</Link></Button><Button asChild variant="outline"><Link to="/support#question">Get order help</Link></Button></div></CardContent></Card>;
   if (loading) {
     return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
   }

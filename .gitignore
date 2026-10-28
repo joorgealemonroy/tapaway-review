@@ -24,3 +24,11 @@ dist-ssr
 *.sw?
 .env
 .env.production
+
+# Credentials stay in the deployment secret store.
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx

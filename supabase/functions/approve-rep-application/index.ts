@@ -1,3 +1,4 @@
+import { readLimitedText } from "../_shared/requestBody.ts";
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { Resend } from "https://esm.sh/resend@2.0.0";
@@ -33,14 +34,13 @@ serve(async (req) => {
     }
 
     // Check if user is admin
-    const isAdmin = user.email === "tap@tapaway.co" || 
-      (await supabase.from("user_roles").select("role").eq("user_id", user.id).eq("role", "admin").maybeSingle()).data;
+    const isAdmin = (await supabase.from("user_roles").select("role").eq("user_id", user.id).eq("role", "admin").maybeSingle()).data;
 
     if (!isAdmin) {
-      throw new Error("Unauthorized - Admin access required");
+      return new Response(JSON.stringify({ error: "Admin access required" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const { applicationId } = await req.json();
+    const { applicationId } = JSON.parse(await readLimitedText(req, 4096));
 
     if (!applicationId) {
       throw new Error("Application ID is required");
@@ -106,7 +106,7 @@ serve(async (req) => {
     let userId: string;
     
     const existingUser = existingUsers?.users?.find(
-      (u) => u.email?.toLowerCase() === application.email.toLowerCase()
+      (u: { id: string; email?: string }) => u.email?.toLowerCase() === application.email.toLowerCase()
     );
 
     if (existingUser) {

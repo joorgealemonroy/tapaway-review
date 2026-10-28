@@ -1,21 +1,25 @@
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
+import { PUBLIC_ENV_NAMES, clientBuildGuard } from "./security/build-guard.mjs";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  envPrefix: [...PUBLIC_ENV_NAMES],
   server: {
     host: "::",
     port: 8080,
+    fs: { strict: true, deny: [".env", ".env.*", "*.{crt,pem,key,p12,pfx}", "**/.git/**", "**/supabase/**", "**/drizzle/**", "**/scripts/**", "**/security/**"] },
   },
-  plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
+  plugins: [react(), clientBuildGuard({ ...loadEnv(mode, process.cwd(), ""), ...process.env }), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
   },
   build: {
+    sourcemap: false,
     rollupOptions: {
       output: {
         manualChunks: (id) => {

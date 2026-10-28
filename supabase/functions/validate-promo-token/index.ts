@@ -1,3 +1,5 @@
+import { takeQuota } from "../_shared/storefrontRateLimit.ts";
+import { readLimitedText } from "../_shared/requestBody.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { checkRateLimit, getRateLimitKey, rateLimitResponse } from "../_shared/rateLimit.ts";
 
@@ -11,8 +13,10 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  if (req.method !== "POST") return new Response("Method not allowed", { status: 405, headers: corsHeaders });
   try {
-    const body = await req.json();
+    if (await takeQuota(req, "promo-validate-network", 30) < 0 || await takeQuota(req, "promo-validate-global", 2000, "all") < 0) return rateLimitResponse(corsHeaders);
+    const body = JSON.parse(await readLimitedText(req, 4096));
     const { token, markUsed } = body;
 
     if (!token || typeof token !== 'string') {

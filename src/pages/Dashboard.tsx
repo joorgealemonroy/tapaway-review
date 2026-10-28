@@ -1,3 +1,5 @@
+import "@/components/dashboard/customer/customer.css";
+import { CustomerGuide } from "@/components/dashboard/customer/CustomerGuide";
 import { useEffect, useState, lazy, Suspense } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { AdminViewBanner } from "@/components/admin/AdminViewBanner";
@@ -35,8 +37,6 @@ import { WelcomeBanner } from "@/components/dashboard/WelcomeBanner";
 import { WelcomeIntro } from "@/components/dashboard/WelcomeIntro";
 import { BusinessMobileNav } from "@/components/dashboard/BusinessMobileNav";
 
-import { isGrandfatheredUser, isSuperAdmin } from "@/lib/grandfatheredUsers";
-import { isTestAccount as checkIsTestAccount } from "@/lib/testAccounts";
 import { useSalesRep } from "@/hooks/useSalesRep";
 import { isSubscriptionAllowed, LEGACY_BUSINESS_PLANS, ACTIVE_SUB_STATUSES } from "@/lib/subscriptionStatus";
 
@@ -189,19 +189,13 @@ const DashboardBusiness = () => {
   const [locations, setLocations] = useState<DashboardLocation[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [isTestAccountFlag, setIsTestAccountFlag] = useState(false);
-  const [isGrandfathered, setIsGrandfathered] = useState(false);
+  const isTestAccountFlag = restaurant?.is_demo_account === true;
+  const isGrandfathered = restaurant?.payment_state === "complimentary";
   const [activeTab, setActiveTab] = useState("overview");
-  const [theme, setTheme] = useState(() => localStorage.getItem('tapaway_dashboard_theme') || 'dark');
+  useEffect(() => { document.documentElement.classList.remove("dark"); }, []);
   // Tab the user asked for while another tab still has unsaved edits.
   const [pendingTab, setPendingTab] = useState<string | null>(null);
 
-  const toggleTheme = () => {
-    const next = theme === 'dark' ? 'light' : 'dark';
-    setTheme(next);
-    localStorage.setItem('tapaway_dashboard_theme', next);
-    document.documentElement.classList.toggle('dark', next === 'dark');
-  };
 
   /**
    * Unsaved-changes protection: Menu and Settings register dirty-checkers
@@ -344,18 +338,9 @@ const DashboardBusiness = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, isDemoView, demoLoading, demoRestaurantId, adminViewId]);
   const checkAdminStatus = async () => {
-    const { data: isAdminData } = await supabase.rpc('is_admin');
-    const { data: isTestData } = await supabase.rpc('is_test_account');
-    const emailAdmin = user?.email === 'tap@tapaway.co';
-    // Check app_metadata safely
-    const userMetadata = user?.app_metadata as Record<string, unknown> | undefined;
-    const metaAdmin = userMetadata?.role === 'admin';
-    const effectiveAdmin = Boolean(isAdminData || emailAdmin || metaAdmin);
-    const grandfathered = isGrandfatheredUser(user?.email);
-    const isTestAcc = checkIsTestAccount(user?.email);
+    const { data: isAdminData, error: roleError } = await supabase.rpc('is_admin');
+    const effectiveAdmin = !roleError && isAdminData === true;
     setIsAdmin(effectiveAdmin);
-    setIsTestAccountFlag(isTestAcc);
-    setIsGrandfathered(grandfathered);
     if (effectiveAdmin) {
       fetchAllRestaurants();
     } else {
@@ -471,7 +456,7 @@ const DashboardBusiness = () => {
       fetchLocations(activeRestaurant.id);
 
       // Check subscription status and redirect to onboarding if blocked
-      if (!isAdmin && !isSubscriptionAllowed(activeRestaurant.subscription_status)) {
+      if (!isAdmin && activeRestaurant.payment_state !== "complimentary" && !isSubscriptionAllowed(activeRestaurant.subscription_status)) {
         navigate("/onboarding");
         return;
       }
@@ -479,52 +464,6 @@ const DashboardBusiness = () => {
       // Has restaurants but none completed - redirect to onboarding
       console.log('[Dashboard] Onboarding incomplete, redirecting to /onboarding');
       navigate("/onboarding");
-    } else if (user?.email === 'test@me.com') {
-      // Defensive fallback for test account only - auto-assign if no restaurant found
-      console.log('[Dashboard] Test account has no restaurant, attempting auto-assignment');
-      try {
-        const { error: assignError } = await supabase.functions.invoke('assign-test-owner');
-        if (assignError) {
-          console.error('[Dashboard] Failed to assign test restaurant:', assignError);
-          toast.error("Failed to link test account. Please contact support.");
-        } else {
-          // Retry fetch after assignment
-          const { data: retryData } = await supabase.from("restaurants").select("*").eq("owner_id", user?.id ?? '').limit(1);
-          if (retryData && retryData[0]) {
-            const r = retryData[0];
-            setRestaurant({
-              id: r.id,
-              restaurant_name: r.restaurant_name,
-              custom_slug: r.custom_slug,
-              stripe_portal_url: r.stripe_portal_url,
-              subscription_status: r.subscription_status,
-              plan_type: r.plan_type,
-              next_billing_date: r.next_billing_date,
-        trial_ends_at: r.trial_ends_at ?? null,
-        payment_state: r.payment_state ?? null,
-              type: r.type,
-              greeting_name: r.greeting_name,
-              is_demo_account: r.is_demo_account ?? false,
-              created_at: r.created_at,
-              menu_image_url: r.menu_image_url,
-              logo_url: r.logo_url ?? null,
-              google_review_url: r.google_review_url,
-              yelp_review_url: r.yelp_review_url,
-            });
-            fetchLocations(r.id);
-            toast.success("Test account linked successfully!");
-          }
-        }
-      } catch (err) {
-        console.error('[Dashboard] Error in defensive fallback:', err);
-      }
-    } else if (isGrandfatheredUser(user?.email)) {
-      // Grandfathered user without restaurant - redirect to onboarding
-      console.log('[Dashboard] Grandfathered user has no restaurant, redirecting to onboarding');
-      navigate("/onboarding");
-    } else if (isSuperAdmin(user?.email)) {
-      // Super admin without restaurant - that's fine, they can still access admin dashboard
-      console.log('[Dashboard] Super admin accessing dashboard without restaurant');
     } else {
       // No restaurant found. Redirect to onboarding
       console.log('[Dashboard] User has no restaurant, redirecting to onboarding');
@@ -556,9 +495,6 @@ const DashboardBusiness = () => {
   }
 
   // Check if user should bypass paywall - DEMO MODE ALWAYS BYPASSES
-  const planType = restaurant?.plan_type || 'standard';
-  const superAdmin = isSuperAdmin(user?.email);
-  const shouldBypassPaywall = isDemoView || isAdminView || superAdmin || isAdmin || isGrandfathered || planType === 'bundle' || planType === 'private_access' || user?.email === 'test@me.com';
   
   // If no restaurant and not a special user, redirect to paywall (handled in fetchRestaurant)
   // But NEVER redirect in demo mode
@@ -566,7 +502,7 @@ const DashboardBusiness = () => {
   if (!restaurant) {
     return <div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>;
   }
-  return <div className="min-h-screen bg-background pb-20 md:pb-0">
+  return <div className="customer-workspace min-h-screen bg-background pb-20 md:pb-0">
       {isAdminView && (
         <AdminViewBanner name={adminViewName} backTo="/admin" />
       )}
@@ -580,9 +516,6 @@ const DashboardBusiness = () => {
           </button>
           <div className="flex items-center gap-3">
             
-            <Button variant="ghost" size="icon" onClick={toggleTheme} className="rounded-full" aria-label="Toggle theme">
-              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-            </Button>
             {restaurant?.custom_slug && <Button variant="outline" size="sm" className="hidden md:inline-flex" onClick={() => window.open(`/${restaurant.custom_slug}`, "_blank")}>
                 <ExternalLink className="w-4 h-4 mr-2" />
                 View Hub
@@ -692,6 +625,7 @@ const DashboardBusiness = () => {
             </div>
 
             <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4 md:space-y-6">
+              {!isDemoView && <CustomerGuide legacy activeTab={activeTab} onNavigate={handleTabChange} />}
               <div className="overflow-x-auto -mx-3 md:mx-0 px-3 md:px-0 hidden md:block">
                 {restaurant.custom_slug === 'avmealpreps' || restaurant.type === 'meal_prep' ? (
                   <TabsList className={`inline-flex min-w-full md:grid md:w-full ${isDemoView ? 'md:grid-cols-1' : 'md:grid-cols-3'} h-auto gap-1`}>

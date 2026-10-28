@@ -38,10 +38,6 @@ serve(async (req) => {
       );
     }
 
-    // Check admin status via email or role
-    const isAdmin = user.email === 'tap@tapaway.co' || 
-      user.app_metadata?.role === 'admin';
-    
     // Also check user_roles table
     const { data: roleData } = await supabaseClient
       .from('user_roles')
@@ -50,7 +46,7 @@ serve(async (req) => {
       .eq('role', 'admin')
       .maybeSingle();
 
-    if (!isAdmin && !roleData) {
+    if (!roleData) {
       return new Response(
         JSON.stringify({ error: 'Admin access required' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

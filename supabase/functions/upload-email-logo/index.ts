@@ -1,3 +1,5 @@
+import { safeFetch } from "../_shared/safeFetch.ts";
+import { readLimitedText } from "../_shared/requestBody.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 import { requireUser, isAdmin, isSafeExternalUrl, jsonResponse } from "../_shared/security.ts";
@@ -14,12 +16,13 @@ const MAX_BYTES = 2 * 1024 * 1024;
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  if (req.method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405, corsHeaders);
   try {
     const auth = await requireUser(req);
     if (!auth) return jsonResponse({ error: "Unauthorized" }, 401, corsHeaders);
     if (!(await isAdmin(auth.user.id))) return jsonResponse({ error: "Admins only" }, 403, corsHeaders);
 
-    const { imageUrl } = await req.json();
+    const { imageUrl } = JSON.parse(await readLimitedText(req, 4096));
     if (!imageUrl || typeof imageUrl !== "string") {
       return jsonResponse({ error: "Missing imageUrl" }, 400, corsHeaders);
     }
@@ -32,12 +35,12 @@ serve(async (req) => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    const imgResponse = await fetch(imageUrl, { redirect: "follow" });
+    const imgResponse = await safeFetch(imageUrl, { allowHosts: ALLOWED_HOSTS, maxBytes: MAX_BYTES, timeoutMs: 8000 });
     if (!imgResponse.ok) {
       return jsonResponse({ error: `Failed to fetch image: ${imgResponse.status}` }, 400, corsHeaders);
     }
     const contentType = imgResponse.headers.get("content-type") || "";
-    if (!contentType.startsWith("image/")) {
+    if (!["image/png", "image/jpeg", "image/webp"].includes(contentType.split(";")[0])) {
       return jsonResponse({ error: "Fetched resource is not an image" }, 400, corsHeaders);
     }
     const buf = await imgResponse.arrayBuffer();
@@ -47,7 +50,7 @@ serve(async (req) => {
 
     const { data, error } = await supabaseAdmin.storage
       .from("restaurant-logos")
-      .upload("tapaway-email-logo.png", buf, { contentType: "image/png", upsert: true });
+      .upload("tapaway-email-logo.png", buf, { contentType: contentType.split(";")[0], upsert: true });
 
     if (error) return jsonResponse({ error: error.message }, 500, corsHeaders);
 
@@ -55,6 +58,6 @@ serve(async (req) => {
     return jsonResponse({ success: true, path: data.path, publicUrl }, 200, corsHeaders);
   } catch (error) {
     console.error("[upload-email-logo] Error:", error);
-    return jsonResponse({ error: String(error) }, 500, corsHeaders);
+    return jsonResponse({ error: "Could not import this image. Choose a public PNG, JPEG or WebP image." }, 400, corsHeaders);
   }
 });

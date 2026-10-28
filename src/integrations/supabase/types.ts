@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_announcements: {
+        Row: {
+          audience: string
+          body: string
+          created_at: string
+          created_by: string
+          cta_label: string | null
+          cta_path: string | null
+          id: string
+          kind: string
+          recipient_ids: string[]
+          sent_at: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          audience: string
+          body: string
+          created_at?: string
+          created_by: string
+          cta_label?: string | null
+          cta_path?: string | null
+          id?: string
+          kind: string
+          recipient_ids?: string[]
+          sent_at?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          audience?: string
+          body?: string
+          created_at?: string
+          created_by?: string
+          cta_label?: string | null
+          cta_path?: string | null
+          id?: string
+          kind?: string
+          recipient_ids?: string[]
+          sent_at?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       admin_audit_log: {
         Row: {
           action: string
@@ -711,9 +759,15 @@ export type Database = {
           buyer_email: string | null
           created_at: string | null
           creator_id: string
+          duration_minutes: number | null
+          ends_at: string | null
           id: string
+          price_cents: number | null
           product_id: string
+          reservation_key: string | null
+          reserved_until: string | null
           start_time: string
+          starts_at: string | null
           status: string
           stripe_session_id: string | null
           timezone: string
@@ -724,9 +778,15 @@ export type Database = {
           buyer_email?: string | null
           created_at?: string | null
           creator_id: string
+          duration_minutes?: number | null
+          ends_at?: string | null
           id?: string
+          price_cents?: number | null
           product_id: string
+          reservation_key?: string | null
+          reserved_until?: string | null
           start_time: string
+          starts_at?: string | null
           status?: string
           stripe_session_id?: string | null
           timezone?: string
@@ -737,9 +797,15 @@ export type Database = {
           buyer_email?: string | null
           created_at?: string | null
           creator_id?: string
+          duration_minutes?: number | null
+          ends_at?: string | null
           id?: string
+          price_cents?: number | null
           product_id?: string
+          reservation_key?: string | null
+          reserved_until?: string | null
           start_time?: string
+          starts_at?: string | null
           status?: string
           stripe_session_id?: string | null
           timezone?: string
@@ -1310,11 +1376,18 @@ export type Database = {
       }
       checkout_intents: {
         Row: {
+          activated_at: string | null
+          activation_started_at: string | null
           attribution: Json
           billing_interval: string
+          business_details: Json | null
           card_club_price_id: string | null
           card_club_selected: boolean
           card_quantity: number
+          checkout_attempt_hash: string | null
+          checkout_attempt_started_at: string | null
+          checkout_request_hash: string | null
+          checkout_return_origin: string | null
           checkout_source: string | null
           created_at: string
           email: string | null
@@ -1322,6 +1395,8 @@ export type Database = {
           main_price_id: string
           onboarding_version: string
           paid_at: string | null
+          payment_hold_at: string | null
+          payment_hold_reason: string | null
           plan: string
           review_reason: string | null
           status: string
@@ -1333,14 +1408,23 @@ export type Database = {
           user_created_by_purchase: boolean
           user_id: string | null
           verify_email_sent_at: string | null
+          welcome_email_sent_at: string | null
+          welcome_email_started_at: string | null
           welcome_session_issued_at: string | null
         }
         Insert: {
+          activated_at?: string | null
+          activation_started_at?: string | null
           attribution?: Json
           billing_interval: string
+          business_details?: Json | null
           card_club_price_id?: string | null
           card_club_selected?: boolean
           card_quantity: number
+          checkout_attempt_hash?: string | null
+          checkout_attempt_started_at?: string | null
+          checkout_request_hash?: string | null
+          checkout_return_origin?: string | null
           checkout_source?: string | null
           created_at?: string
           email?: string | null
@@ -1348,6 +1432,8 @@ export type Database = {
           main_price_id: string
           onboarding_version?: string
           paid_at?: string | null
+          payment_hold_at?: string | null
+          payment_hold_reason?: string | null
           plan: string
           review_reason?: string | null
           status?: string
@@ -1359,14 +1445,23 @@ export type Database = {
           user_created_by_purchase?: boolean
           user_id?: string | null
           verify_email_sent_at?: string | null
+          welcome_email_sent_at?: string | null
+          welcome_email_started_at?: string | null
           welcome_session_issued_at?: string | null
         }
         Update: {
+          activated_at?: string | null
+          activation_started_at?: string | null
           attribution?: Json
           billing_interval?: string
+          business_details?: Json | null
           card_club_price_id?: string | null
           card_club_selected?: boolean
           card_quantity?: number
+          checkout_attempt_hash?: string | null
+          checkout_attempt_started_at?: string | null
+          checkout_request_hash?: string | null
+          checkout_return_origin?: string | null
           checkout_source?: string | null
           created_at?: string
           email?: string | null
@@ -1374,6 +1469,8 @@ export type Database = {
           main_price_id?: string
           onboarding_version?: string
           paid_at?: string | null
+          payment_hold_at?: string | null
+          payment_hold_reason?: string | null
           plan?: string
           review_reason?: string | null
           status?: string
@@ -1385,6 +1482,8 @@ export type Database = {
           user_created_by_purchase?: boolean
           user_id?: string | null
           verify_email_sent_at?: string | null
+          welcome_email_sent_at?: string | null
+          welcome_email_started_at?: string | null
           welcome_session_issued_at?: string | null
         }
         Relationships: []
@@ -1782,27 +1881,45 @@ export type Database = {
           access_expires_at: string
           access_token: string
           buyer_email: string
+          buyer_email_sent_at: string | null
+          buyer_email_started_at: string | null
           created_at: string | null
+          creator_email_sent_at: string | null
+          creator_email_started_at: string | null
           id: string
+          payment_status: string | null
           product_id: string
+          stripe_payment_intent_id: string | null
           stripe_session_id: string
         }
         Insert: {
           access_expires_at: string
           access_token: string
           buyer_email: string
+          buyer_email_sent_at?: string | null
+          buyer_email_started_at?: string | null
           created_at?: string | null
+          creator_email_sent_at?: string | null
+          creator_email_started_at?: string | null
           id?: string
+          payment_status?: string | null
           product_id: string
+          stripe_payment_intent_id?: string | null
           stripe_session_id: string
         }
         Update: {
           access_expires_at?: string
           access_token?: string
           buyer_email?: string
+          buyer_email_sent_at?: string | null
+          buyer_email_started_at?: string | null
           created_at?: string | null
+          creator_email_sent_at?: string | null
+          creator_email_started_at?: string | null
           id?: string
+          payment_status?: string | null
           product_id?: string
+          stripe_payment_intent_id?: string | null
           stripe_session_id?: string
         }
         Relationships: [
@@ -1854,8 +1971,81 @@ export type Database = {
         }
         Relationships: []
       }
+      customer_notifications: {
+        Row: {
+          announcement_id: string
+          body: string
+          created_at: string
+          cta_label: string | null
+          cta_path: string | null
+          id: string
+          kind: string
+          read_at: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          announcement_id: string
+          body: string
+          created_at?: string
+          cta_label?: string | null
+          cta_path?: string | null
+          id?: string
+          kind: string
+          read_at?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          announcement_id?: string
+          body?: string
+          created_at?: string
+          cta_label?: string | null
+          cta_path?: string | null
+          id?: string
+          kind?: string
+          read_at?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_notifications_announcement_id_fkey"
+            columns: ["announcement_id"]
+            isOneToOne: false
+            referencedRelation: "admin_announcements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_delivery_events: {
+        Row: {
+          event_id: string
+          occurred_at: string
+          received_at: string
+          resend_id: string
+          status: string
+        }
+        Insert: {
+          event_id: string
+          occurred_at: string
+          received_at?: string
+          resend_id: string
+          status: string
+        }
+        Update: {
+          event_id?: string
+          occurred_at?: string
+          received_at?: string
+          resend_id?: string
+          status?: string
+        }
+        Relationships: []
+      }
       email_sends: {
         Row: {
+          delivery_status: string | null
+          delivery_updated_at: string | null
           error: string | null
           id: string
           opened_at: string | null
@@ -1868,6 +2058,8 @@ export type Database = {
           to_email: string
         }
         Insert: {
+          delivery_status?: string | null
+          delivery_updated_at?: string | null
           error?: string | null
           id?: string
           opened_at?: string | null
@@ -1880,6 +2072,8 @@ export type Database = {
           to_email: string
         }
         Update: {
+          delivery_status?: string | null
+          delivery_updated_at?: string | null
           error?: string | null
           id?: string
           opened_at?: string | null
@@ -2222,6 +2416,87 @@ export type Database = {
           url?: string
         }
         Relationships: []
+      }
+      hub_payment_requests: {
+        Row: {
+          amount: number
+          card_quantity: number
+          checkout_attempt_created_at: string | null
+          checkout_attempt_id: string
+          checkout_session_expires_at: string | null
+          checkout_started_at: string | null
+          currency: string
+          fulfilled_at: string | null
+          payment_hold_at: string | null
+          payment_hold_event_id: string | null
+          payment_hold_reason: string | null
+          profile_id: string
+          request_version: string
+          requested_at: string
+          requested_by: string
+          stripe_checkout_session_id: string | null
+          stripe_subscription_id: string | null
+          welcome_email_sent_at: string | null
+          welcome_email_started_at: string | null
+        }
+        Insert: {
+          amount?: number
+          card_quantity?: number
+          checkout_attempt_created_at?: string | null
+          checkout_attempt_id?: string
+          checkout_session_expires_at?: string | null
+          checkout_started_at?: string | null
+          currency?: string
+          fulfilled_at?: string | null
+          payment_hold_at?: string | null
+          payment_hold_event_id?: string | null
+          payment_hold_reason?: string | null
+          profile_id: string
+          request_version?: string
+          requested_at?: string
+          requested_by: string
+          stripe_checkout_session_id?: string | null
+          stripe_subscription_id?: string | null
+          welcome_email_sent_at?: string | null
+          welcome_email_started_at?: string | null
+        }
+        Update: {
+          amount?: number
+          card_quantity?: number
+          checkout_attempt_created_at?: string | null
+          checkout_attempt_id?: string
+          checkout_session_expires_at?: string | null
+          checkout_started_at?: string | null
+          currency?: string
+          fulfilled_at?: string | null
+          payment_hold_at?: string | null
+          payment_hold_event_id?: string | null
+          payment_hold_reason?: string | null
+          profile_id?: string
+          request_version?: string
+          requested_at?: string
+          requested_by?: string
+          stripe_checkout_session_id?: string | null
+          stripe_subscription_id?: string | null
+          welcome_email_sent_at?: string | null
+          welcome_email_started_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hub_payment_requests_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "personal_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hub_payment_requests_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "personal_profiles_public"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       lead_forms: {
         Row: {
@@ -2886,12 +3161,40 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_reversal_holds: {
+        Row: {
+          created_at: string
+          mode: string
+          reason: string
+          stripe_payment_intent_id: string
+          stripe_subscription_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          mode: string
+          reason: string
+          stripe_payment_intent_id: string
+          stripe_subscription_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          mode?: string
+          reason?: string
+          stripe_payment_intent_id?: string
+          stripe_subscription_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pending_otps: {
         Row: {
           code: string
           created_at: string
           email: string
           expires_at: string
+          failed_attempts: number
           id: string
           verified_at: string | null
         }
@@ -2900,6 +3203,7 @@ export type Database = {
           created_at?: string
           email: string
           expires_at: string
+          failed_attempts?: number
           id?: string
           verified_at?: string | null
         }
@@ -2908,6 +3212,7 @@ export type Database = {
           created_at?: string
           email?: string
           expires_at?: string
+          failed_attempts?: number
           id?: string
           verified_at?: string | null
         }
@@ -3066,13 +3371,116 @@ export type Database = {
           },
         ]
       }
+      personal_card_orders: {
+        Row: {
+          activated_at: string | null
+          activation_started_at: string | null
+          artwork_hash: string
+          artwork_path: string | null
+          artwork_revision: string
+          checkout_token_hash: string
+          created_at: string
+          customer_name: string | null
+          destinations: Json
+          email: string | null
+          hub_links: Json
+          hub_name: string | null
+          hub_requested: boolean
+          id: string
+          manifest_path: string | null
+          paid_at: string | null
+          personal_profile_id: string
+          production_status: string
+          shipping_address: Json | null
+          status: string
+          stripe_checkout_session_id: string | null
+          stripe_customer_id: string | null
+          stripe_livemode: boolean
+          stripe_payment_intent_id: string | null
+          stripe_subscription_id: string | null
+          tracking: string | null
+          updated_at: string
+          user_id: string | null
+          welcome_email_sent_at: string | null
+          welcome_email_started_at: string | null
+        }
+        Insert: {
+          activated_at?: string | null
+          activation_started_at?: string | null
+          artwork_hash: string
+          artwork_path?: string | null
+          artwork_revision?: string
+          checkout_token_hash: string
+          created_at?: string
+          customer_name?: string | null
+          destinations: Json
+          email?: string | null
+          hub_links?: Json
+          hub_name?: string | null
+          hub_requested?: boolean
+          id: string
+          manifest_path?: string | null
+          paid_at?: string | null
+          personal_profile_id?: string
+          production_status?: string
+          shipping_address?: Json | null
+          status?: string
+          stripe_checkout_session_id?: string | null
+          stripe_customer_id?: string | null
+          stripe_livemode?: boolean
+          stripe_payment_intent_id?: string | null
+          stripe_subscription_id?: string | null
+          tracking?: string | null
+          updated_at?: string
+          user_id?: string | null
+          welcome_email_sent_at?: string | null
+          welcome_email_started_at?: string | null
+        }
+        Update: {
+          activated_at?: string | null
+          activation_started_at?: string | null
+          artwork_hash?: string
+          artwork_path?: string | null
+          artwork_revision?: string
+          checkout_token_hash?: string
+          created_at?: string
+          customer_name?: string | null
+          destinations?: Json
+          email?: string | null
+          hub_links?: Json
+          hub_name?: string | null
+          hub_requested?: boolean
+          id?: string
+          manifest_path?: string | null
+          paid_at?: string | null
+          personal_profile_id?: string
+          production_status?: string
+          shipping_address?: Json | null
+          status?: string
+          stripe_checkout_session_id?: string | null
+          stripe_customer_id?: string | null
+          stripe_livemode?: boolean
+          stripe_payment_intent_id?: string | null
+          stripe_subscription_id?: string | null
+          tracking?: string | null
+          updated_at?: string
+          user_id?: string | null
+          welcome_email_sent_at?: string | null
+          welcome_email_started_at?: string | null
+        }
+        Relationships: []
+      }
       personal_card_requests: {
         Row: {
           created_at: string
           id: string
           is_addon: boolean
+          legacy_card_invoice_id: string | null
+          legacy_card_payment_intent_id: string | null
+          legacy_card_subscription_id: string | null
           profile_id: string
           quantity: number
+          request_key: string | null
           shipping_address_line1: string | null
           shipping_address_line2: string | null
           shipping_city: string | null
@@ -3088,8 +3496,12 @@ export type Database = {
           created_at?: string
           id?: string
           is_addon?: boolean
+          legacy_card_invoice_id?: string | null
+          legacy_card_payment_intent_id?: string | null
+          legacy_card_subscription_id?: string | null
           profile_id: string
           quantity?: number
+          request_key?: string | null
           shipping_address_line1?: string | null
           shipping_address_line2?: string | null
           shipping_city?: string | null
@@ -3105,8 +3517,12 @@ export type Database = {
           created_at?: string
           id?: string
           is_addon?: boolean
+          legacy_card_invoice_id?: string | null
+          legacy_card_payment_intent_id?: string | null
+          legacy_card_subscription_id?: string | null
           profile_id?: string
           quantity?: number
+          request_key?: string | null
           shipping_address_line1?: string | null
           shipping_address_line2?: string | null
           shipping_city?: string | null
@@ -4873,6 +5289,24 @@ export type Database = {
         }
         Relationships: []
       }
+      storefront_quotas: {
+        Row: {
+          day: string
+          quota_key: string
+          uses: number
+        }
+        Insert: {
+          day?: string
+          quota_key: string
+          uses?: number
+        }
+        Update: {
+          day?: string
+          quota_key?: string
+          uses?: number
+        }
+        Relationships: []
+      }
       support_requests: {
         Row: {
           business_name: string
@@ -5374,6 +5808,30 @@ export type Database = {
         Args: { _days: number; _profile_id: string; _reason: string }
         Returns: undefined
       }
+      admin_gift_unbilled_hub: {
+        Args: { _id: string; _kind: string }
+        Returns: undefined
+      }
+      admin_notification_recipients: {
+        Args: { _audience: string }
+        Returns: string[]
+      }
+      admin_save_announcement: {
+        Args: {
+          _audience: string
+          _body: string
+          _cta_label: string
+          _cta_path: string
+          _id: string
+          _kind: string
+          _title: string
+        }
+        Returns: Json
+      }
+      admin_send_announcement: {
+        Args: { _id: string; _updated_at: string }
+        Returns: number
+      }
       admin_set_print_status: {
         Args: { _notes: string; _profile_id: string; _status: string }
         Returns: undefined
@@ -5389,6 +5847,16 @@ export type Database = {
       admin_swap_hub_slug: {
         Args: { _personal_id: string; _restaurant_id: string }
         Returns: string
+      }
+      admin_workspace_hubs: { Args: never; Returns: Json }
+      admin_workspace_insights: { Args: { _days?: number }; Returns: Json }
+      affiliate_profile_attribution_is_valid: {
+        Args: { _code: string; _profile_id: string }
+        Returns: boolean
+      }
+      affiliate_referral_is_valid: {
+        Args: { _affiliate_id: string; _profile_id: string }
+        Returns: boolean
       }
       audit_location_coverage_admin: {
         Args: never
@@ -5431,8 +5899,36 @@ export type Database = {
         }[]
       }
       cleanup_expired_archives: { Args: never; Returns: undefined }
+      creator_booking_is_public: {
+        Args: { _profile_id: string }
+        Returns: boolean
+      }
       current_user_email: { Args: never; Returns: string }
+      customer_read_notification: { Args: { _id: string }; Returns: undefined }
       expire_analytics_ip_hashes: { Args: never; Returns: undefined }
+      fulfill_creator_booking: {
+        Args: {
+          _amount: number
+          _booking_id: string
+          _buyer_email: string
+          _currency: string
+          _product_id: string
+          _reservation_key: string
+          _session_id: string
+        }
+        Returns: Json
+      }
+      fulfill_hub_payment: {
+        Args: {
+          _billing_email: string
+          _customer_id: string
+          _profile_id: string
+          _request_version: string
+          _session_id: string
+          _subscription_id: string
+        }
+        Returns: Json
+      }
       get_auth_user_by_email: {
         Args: { lookup_email: string }
         Returns: {
@@ -5470,6 +5966,19 @@ export type Database = {
           owner_label: string
           slug: string
           subscription_status: string
+        }[]
+      }
+      get_hub_payment_offer: { Args: { _slug: string }; Returns: Json }
+      get_public_booking_slots: {
+        Args: { _from: string; _product_id: string; _to: string }
+        Returns: {
+          booking_date: string
+          created_at: string
+          ends_at: string
+          reserved_until: string
+          start_time: string
+          starts_at: string
+          status: string
         }[]
       }
       get_public_creator_products: {
@@ -5630,6 +6139,21 @@ export type Database = {
         }
         Returns: boolean
       }
+      hold_hub_payment_by_subscription: {
+        Args: { _event_id: string; _reason: string; _subscription_id: string }
+        Returns: boolean
+      }
+      hub_access_allowed: {
+        Args: {
+          _approved: boolean
+          _created: string
+          _payment: string
+          _status: string
+          _subscription: string
+          _trial_end: string
+        }
+        Returns: boolean
+      }
       hub_analytics_summary: {
         Args: { _hub_id: string; _since?: string; _until?: string }
         Returns: {
@@ -5649,12 +6173,32 @@ export type Database = {
         Args: { check_username: string }
         Returns: boolean
       }
+      issue_account_otp: {
+        Args: { _code_hash: string; _email: string }
+        Returns: string
+      }
       legacy_allowance_status: {
         Args: { _key: string; _since: string }
         Returns: {
           allowance: number
           used: number
         }[]
+      }
+      lock_payment_reversal_binding: {
+        Args: { _payment_intent_id: string; _subscription_id: string }
+        Returns: undefined
+      }
+      payment_reversal_reason: {
+        Args: {
+          _mode: string
+          _payment_intent_id: string
+          _subscription_id: string
+        }
+        Returns: string
+      }
+      personal_card_hub_destination: {
+        Args: { _order_id: string }
+        Returns: string
       }
       personal_profile_is_active: {
         Args: { _profile_id: string }
@@ -5664,6 +6208,39 @@ export type Database = {
       recompute_closer_pool: {
         Args: { _period_label: string; _rep_id: string }
         Returns: undefined
+      }
+      record_email_delivery: {
+        Args: {
+          _event_id: string
+          _occurred_at: string
+          _resend_id: string
+          _status: string
+        }
+        Returns: undefined
+      }
+      record_payment_reversal: {
+        Args: {
+          _mode: string
+          _payment_intent_id: string
+          _reason?: string
+          _subscription_id?: string
+        }
+        Returns: Json
+      }
+      record_personal_capture: {
+        Args: {
+          p_email: string
+          p_marketing_consent: boolean
+          p_marketing_text: string
+          p_message: string
+          p_name: string
+          p_phone: string
+          p_profile_id: string
+          p_transactional_consent: boolean
+          p_transactional_text: string
+          p_user_agent: string
+        }
+        Returns: string
       }
       record_sms_optin: {
         Args: {
@@ -5684,6 +6261,21 @@ export type Database = {
         Args: { p_restaurant_id: string; p_token_id: string; p_user_id: string }
         Returns: boolean
       }
+      require_hub_payment: {
+        Args: { _profile_id: string; _requested_by: string }
+        Returns: string
+      }
+      reserve_creator_booking: {
+        Args: {
+          _booking_date: string
+          _buyer_email: string
+          _product_id: string
+          _request_key: string
+          _start_time: string
+          _timezone: string
+        }
+        Returns: Json
+      }
       reserve_legacy_allowance: {
         Args: {
           _idempotency_key: string
@@ -5700,8 +6292,26 @@ export type Database = {
           used: number
         }[]
       }
+      reserve_legacy_card_addon: {
+        Args: {
+          _owner_id: string
+          _profile_id: string
+          _quantity: number
+          _request_key: string
+          _shipping: Json
+          _stripe_customer_id: string
+          _stripe_invoice_id: string
+          _stripe_payment_intent_id: string
+          _stripe_subscription_id: string
+        }
+        Returns: Json
+      }
       reserve_promo_token: {
         Args: { p_hold_minutes?: number; p_token_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      restaurant_is_active: {
+        Args: { _restaurant_id: string }
         Returns: boolean
       }
       rpt_admin_hub_table: {
@@ -5762,12 +6372,20 @@ export type Database = {
           source: string
         }[]
       }
+      storefront_take_quota: {
+        Args: { _key: string; _limit: number }
+        Returns: number
+      }
       sync_business_locations_admin: {
         Args: never
         Returns: {
           inserted: number
           updated: number
         }[]
+      }
+      verify_account_otp: {
+        Args: { _code_hash: string; _consume?: boolean; _email: string }
+        Returns: boolean
       }
     }
     Enums: {

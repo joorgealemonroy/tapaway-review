@@ -1,7 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import Stripe from "https://esm.sh/stripe@14.21.0";
-import { checkRateLimit, getRateLimitKey, rateLimitResponse } from "../_shared/rateLimit.ts";
+import { resolveOnboardingPrice } from "../_shared/onboardingCatalog.ts";
+import { readLimitedText } from "../_shared/requestBody.ts";
+import { takeQuota } from "../_shared/storefrontRateLimit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -15,12 +17,7 @@ function json(body: Record<string, unknown>, status = 200) {
   });
 }
 
-// ── Pricing (mirrors create-checkout-session) ──
-const PLAN_CONFIG: Record<string, { name: string; amount: number; trialDays: number; productName: string }> = {
-  solo: { name: "TapAway Solo", amount: 2000, trialDays: 7, productName: "TapAway Solo" },
-  venue: { name: "TapAway Pro", amount: 3900, trialDays: 7, productName: "TapAway Pro" },
-};
-const PROTECTION_AMOUNT = 500;
+class OnboardingConflict extends Error {}
 
 function validateEmail(email: string): boolean {
   if (!email || typeof email !== "string") return false;
@@ -31,62 +28,6 @@ function validateEmail(email: string): boolean {
 function validateUuid(v: string | undefined): boolean {
   if (!v) return true;
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
-}
-
-/** Find or create a Stripe product by metadata key */
-async function findOrCreateProduct(stripe: Stripe, metaKey: string, metaValue: string, productName: string): Promise<string> {
-  const existing = await stripe.products.search({ query: `metadata["${metaKey}"]:"${metaValue}" active:"true"`, limit: 1 });
-  if (existing.data.length > 0) return existing.data[0].id;
-  const product = await stripe.products.create({ name: productName, metadata: { [metaKey]: metaValue } });
-  return product.id;
-}
-
-/** Find or create a recurring monthly USD price on a product */
-async function findOrCreatePrice(stripe: Stripe, productId: string, unitAmount: number): Promise<string> {
-  const prices = await stripe.prices.list({ product: productId, type: "recurring", active: true, limit: 20 });
-  const match = prices.data.find((p) => p.unit_amount === unitAmount && p.currency === "usd" && p.recurring?.interval === "month");
-  if (match) return match.id;
-  const price = await stripe.prices.create({ product: productId, unit_amount: unitAmount, currency: "usd", recurring: { interval: "month" } });
-  return price.id;
-}
-
-/** Find or create a 50% off coupon */
-async function findOrCreate50OffCoupon(stripe: Stripe): Promise<string> {
-  const coupons = await stripe.coupons.list({ limit: 100 });
-  const existing = coupons.data.find(
-    (c) => c.percent_off === 50 && c.valid && c.metadata?.tapaway_promo === "50_off"
-  );
-  if (existing) return existing.id;
-
-  const coupon = await stripe.coupons.create({
-    percent_off: 50,
-    duration: "forever",
-    name: "TapAway 50% Off Promo",
-    metadata: { tapaway_promo: "50_off" },
-  });
-  return coupon.id;
-}
-
-/** Validate a promo token and return its discount_type, or null if invalid */
-async function validatePromoToken(
-  adminClient: ReturnType<typeof createClient>,
-  token: string
-): Promise<{ valid: boolean; discount_type?: string; tokenId?: string }> {
-  if (!token || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(token)) {
-    return { valid: false };
-  }
-
-  const { data: tokenRow, error } = await adminClient
-    .from("promo_tokens")
-    .select("id, discount_type, expires_at, is_used")
-    .eq("token", token)
-    .maybeSingle();
-
-  if (error || !tokenRow) return { valid: false };
-  if (tokenRow.is_used) return { valid: false };
-  if (new Date(tokenRow.expires_at) < new Date()) return { valid: false };
-
-  return { valid: true, discount_type: tokenRow.discount_type, tokenId: tokenRow.id };
 }
 
 /** Build a Google Review URL from a place ID */
@@ -137,8 +78,7 @@ async function createSoloProfile(
   };
 
   if (existing) {
-    await adminClient.from("personal_profiles").update(profileData).eq("id", existing.id);
-    profileId = existing.id;
+    throw new OnboardingConflict("An account already exists. Ask the owner to sign in to manage billing.");
   } else {
     const { data: created, error } = await adminClient
       .from("personal_profiles")
@@ -265,8 +205,7 @@ async function createVenueRestaurant(
   let restaurantId: string;
 
   if (existingRestaurant) {
-    await adminClient.from("restaurants").update(restaurantData).eq("id", existingRestaurant.id);
-    restaurantId = existingRestaurant.id;
+    throw new OnboardingConflict("An account already exists. Ask the owner to sign in to manage billing.");
   } else {
     const { data: created, error } = await adminClient
       .from("restaurants")
@@ -287,9 +226,7 @@ async function createVenueRestaurant(
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  // Rate limit
-  const rlKey = getRateLimitKey(req, "create-rep-onboarding");
-  if (!checkRateLimit(rlKey, 10, 60 * 60 * 1000)) return rateLimitResponse(corsHeaders);
+  if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -298,7 +235,11 @@ serve(async (req) => {
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
     // ── 1. Parse body ──
-    const body = await req.json();
+    let body: Record<string, any>;
+    try {
+      body = JSON.parse(await readLimitedText(req, 16384));
+      if (!body || typeof body !== "object" || Array.isArray(body)) throw new Error();
+    } catch { return json({ error: "Invalid request" }, 400); }
     const {
       clientEmail,
       businessName,
@@ -312,37 +253,28 @@ serve(async (req) => {
       cardHeadline,
       cardSubHeadline,
       promoToken,
+      billingInterval,
     } = body;
 
-    // ── 2. Auth: either rep auth OR promo token ──
-    let repUserId: string | null = null;
-    let promoResult: { valid: boolean; discount_type?: string; tokenId?: string } | null = null;
-
-    if (promoToken) {
-      promoResult = await validatePromoToken(adminClient, promoToken);
-      if (!promoResult.valid) {
-        return json({ error: "Invalid or expired promo token" }, 403);
-      }
-      console.log("[create-rep-onboarding] Promo token validated:", promoResult.discount_type);
-    } else {
-      const authHeader = req.headers.get("Authorization");
-      if (!authHeader) return json({ error: "Missing authorization" }, 401);
-
-      const anonClient = createClient(supabaseUrl, supabaseAnonKey, {
-        global: { headers: { Authorization: authHeader } },
-      });
-      const { data: { user: repUser }, error: authError } = await anonClient.auth.getUser();
-      if (authError || !repUser) return json({ error: "Invalid auth token" }, 401);
-
-      const { data: repRow } = await adminClient
-        .from("sales_reps")
-        .select("id, is_active")
-        .eq("id", repUser.id)
-        .maybeSingle();
-
-      if (!repRow?.is_active) return json({ error: "Not an active sales rep" }, 403);
-      repUserId = repUser.id;
-    }
+    // A promotion is not proof of account ownership or a sales-rep identity.
+    // Owners redeem promotions after email verification through the normal
+    // onboarding flow; this endpoint is reserved for verified staff.
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) return json({ error: "Authentication required" }, 401);
+    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data: { user: repUser }, error: authError } = await userClient.auth.getUser();
+    if (authError || !repUser?.email_confirmed_at) return json({ error: "Verified sign-in required" }, 401);
+    const [{ data: repRow }, { data: isAdmin }] = await Promise.all([
+      adminClient.from("sales_reps").select("id,is_active").eq("id", repUser.id).maybeSingle(),
+      userClient.rpc("is_admin"),
+    ]);
+    if (!repRow?.is_active && isAdmin !== true) return json({ error: "Staff access required" }, 403);
+    if (promoToken) return json({ error: "Ask the owner to open their promotion link and verify their email to redeem it." }, 400);
+    const repUserId = repUser.id;
+    if (await takeQuota(req, "rep-onboarding", 30, repUserId) < 0) return json({ error: "Please try again later." }, 429);
 
     // ── 3. Validate body ──
     if (!validateEmail(clientEmail)) return json({ error: "Invalid client email" }, 400);
@@ -351,14 +283,21 @@ serve(async (req) => {
     }
     if (repRestaurantId && !validateUuid(repRestaurantId)) return json({ error: "Invalid repRestaurantId" }, 400);
 
-    const validPlan = planType === "solo" || planType === "venue" ? planType : "venue";
-    const config = PLAN_CONFIG[validPlan];
-    const protection = !!hasProtection;
-    const isPromoFree = promoResult?.discount_type === "free";
-    const isPromo50 = promoResult?.discount_type === "50_off";
+    if (planType !== "solo" && planType !== "venue") return json({ error: "Invalid plan" }, 400);
+    const validPlan = planType;
+    const interval = billingInterval === "year" ? "year" : "month";
+    if (hasProtection) return json({ error: "This add-on is no longer available through this checkout." }, 400);
     const isSolo = validPlan === "solo";
-
-    console.log("[create-rep-onboarding] Client:", clientEmail.substring(0, 3) + "***", "Plan:", validPlan, "Promo:", promoResult?.discount_type || "none");
+    const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY");
+    if (!stripeSecretKey) return json({ error: "Checkout is temporarily unavailable." }, 503);
+    const stripe = new Stripe(stripeSecretKey, { apiVersion: "2023-10-16" });
+    let price;
+    try { price = await resolveOnboardingPrice(stripe, validPlan, interval, true); }
+    catch { return json({ error: "Checkout is temporarily unavailable. Please try again later." }, 503); }
+    if (repRestaurantId && repRow?.is_active) {
+      const { data: prospect } = await adminClient.from("rep_restaurants").select("id").eq("id", repRestaurantId).eq("sales_rep_id", repUserId).maybeSingle();
+      if (!prospect) return json({ error: "Prospect not found" }, 404);
+    }
 
     // ── 4. Find or invite the client user ──
     let clientUserId: string;
@@ -370,23 +309,22 @@ serve(async (req) => {
     } else {
       const inviteData: Record<string, unknown> = {};
       if (repUserId) inviteData.invited_by_rep = repUserId;
-      if (promoToken) inviteData.invited_via_promo = true;
 
       const { data: invited, error: inviteErr } = await adminClient.auth.admin.inviteUserByEmail(clientEmail, {
         data: inviteData,
       });
       if (inviteErr) {
         console.error("[create-rep-onboarding] Invite error:", inviteErr);
-        return json({ error: "Failed to create client account: " + inviteErr.message }, 500);
+        return json({ error: "We could not prepare the account. Please try again later." }, 503);
       }
       clientUserId = invited.user.id;
       console.log("[create-rep-onboarding] New user invited:", clientUserId);
     }
 
     // ── 5. Create record based on plan type ──
-    const subscriptionStatus = isPromoFree ? "active" : "trialing";
-    const totalTrialDays = isPromoFree ? 0 : config.trialDays;
-    const trialEndsAt = isPromoFree ? null : new Date(Date.now() + totalTrialDays * 86400000).toISOString();
+    // Payment and card verification must finish before any public entitlement.
+    const subscriptionStatus = "pending_payment";
+    const trialEndsAt = null;
 
     let restaurantId: string | null = null;
     let profileId: string | null = null;
@@ -418,8 +356,8 @@ serve(async (req) => {
         cardSubHeadline,
         subscriptionStatus,
         trialEndsAt,
-        isPromoFree,
-        hasProtection: protection,
+        isPromoFree: false,
+        hasProtection: false,
         validPlan,
       });
       restaurantId = result.restaurantId;
@@ -434,67 +372,22 @@ serve(async (req) => {
         .eq("sales_rep_id", repUserId);
     }
 
-    // ── 7. FREE PROMO: skip Stripe, activate immediately ──
-    if (isPromoFree && promoResult?.tokenId) {
-      // Mark promo token as used
-      await adminClient
-        .from("promo_tokens")
-        .update({ is_used: true, used_by_user_id: clientUserId })
-        .eq("id", promoResult.tokenId);
-
-      // Finalize onboarding (only for venue. Solo profiles are already active)
-      if (!isSolo && restaurantId) {
-        try {
-          const fnUrl = `${supabaseUrl}/functions/v1/finalize-onboarding`;
-          await fetch(fnUrl, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${serviceRoleKey}`,
-              "apikey": serviceRoleKey,
-            },
-            body: JSON.stringify({ restaurantId }),
-          });
-        } catch (e) {
-          console.error("[create-rep-onboarding] Finalize call failed (non-fatal):", e);
-        }
-      }
-
-      const entityId = isSolo ? profileId : restaurantId;
-      console.log("[create-rep-onboarding] FREE promo activated for", isSolo ? "profile" : "restaurant", ":", entityId);
-      return json({ success: true, restaurantId, profileId, clientUserId });
-    }
-
-    // ── 8. Stripe checkout ──
-    const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeSecretKey) return json({ error: "Stripe not configured" }, 500);
-    const stripe = new Stripe(stripeSecretKey, { apiVersion: "2023-10-16" });
-
-    const baseProdId = await findOrCreateProduct(stripe, "tapaway_plan", validPlan, config.productName);
-    const basePriceId = await findOrCreatePrice(stripe, baseProdId, config.amount);
-
-    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [{ price: basePriceId, quantity: 1 }];
-
-    if (protection) {
-      const protProdId = await findOrCreateProduct(stripe, "tapaway_addon", "loss_protection", "TapAway Loss Protection");
-      const protPriceId = await findOrCreatePrice(stripe, protProdId, PROTECTION_AMOUNT);
-      lineItems.push({ price: protPriceId, quantity: 1 });
-    }
-
-    const frontendUrl = Deno.env.get("FRONTEND_URL") || req.headers.get("origin") || "https://tapaway.co";
+    // Use the verified existing catalog, never create new prices/products.
+    const frontendUrl = "https://tapaway.co";
 
     const checkoutParams: Stripe.Checkout.SessionCreateParams = {
       mode: "subscription",
-      line_items: lineItems,
+      line_items: [{ price: price.priceId, quantity: 1 }],
       customer_email: clientEmail,
       success_url: `${frontendUrl}/rep-checkout-success?status=success`,
       cancel_url: `${frontendUrl}/onboarding?rep=true`,
       billing_address_collection: "required",
       shipping_address_collection: { allowed_countries: ["US", "CA", "MX"] },
-      subscription_data: { trial_period_days: config.trialDays },
+      subscription_data: { trial_period_days: price.trialDays },
       metadata: {
         plan_type: validPlan,
-        has_protection: String(protection),
+        has_protection: "false",
+        billing_interval: interval,
         user_id: clientUserId,
         restaurant_id: restaurantId || "",
         profile_id: profileId || "",
@@ -503,25 +396,17 @@ serve(async (req) => {
         logo_url: logoUrl || "",
         card_headline: cardHeadline || "",
         card_sub_headline: cardSubHeadline || "",
-        promo_token: promoToken || "",
+
       },
     };
-
-    // Apply 50% off coupon if promo token is 50_off
-    if (isPromo50) {
-      const couponId = await findOrCreate50OffCoupon(stripe);
-      checkoutParams.discounts = [{ coupon: couponId }];
-      delete checkoutParams.subscription_data;
-      console.log("[create-rep-onboarding] Applied 50% off coupon:", couponId);
-    }
 
     const session = await stripe.checkout.sessions.create(checkoutParams);
     console.log("[create-rep-onboarding] Checkout session created:", session.id);
 
     return json({ url: session.url, restaurantId, profileId, clientUserId });
   } catch (error) {
-    console.error("[create-rep-onboarding] Error:", error);
-    const msg = error instanceof Error ? error.message : "Unknown error";
-    return json({ error: msg }, 500);
+    if (error instanceof OnboardingConflict) return json({ error: error.message }, 409);
+    console.error("[create-rep-onboarding] Unable to prepare checkout");
+    return json({ error: "We could not prepare checkout. Please try again or contact TapAway." }, 503);
   }
 });

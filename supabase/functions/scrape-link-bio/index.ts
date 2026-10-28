@@ -1,3 +1,6 @@
+import { safeFetch } from "../_shared/safeFetch.ts";
+import { readLimitedText } from "../_shared/requestBody.ts";
+import { takeQuota } from "../_shared/storefrontRateLimit.ts";
 import { checkRateLimit, getRateLimitKey, rateLimitResponse } from "../_shared/rateLimit.ts";
 import { requireUser } from "../_shared/security.ts";
 
@@ -221,6 +224,8 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  if (req.method !== "POST") return new Response("Method not allowed", { status: 405, headers: corsHeaders });
+
   // M-7: Firecrawl/Microlink credits cost money. Authenticated callers get
   // 20/min per IP; unauthenticated callers are allowed at a strict 5/min per
   // IP because link-bio import runs pre-auth in personal signup
@@ -233,7 +238,8 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { url } = await req.json();
+    if (await takeQuota(req, "link-import-network", 10) < 0 || await takeQuota(req, "link-import-global", 300, "all") < 0) return rateLimitResponse(corsHeaders);
+    const { url } = JSON.parse(await readLimitedText(req, 4096));
 
     if (!url || typeof url !== 'string') {
       return new Response(
@@ -265,9 +271,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log('Scraping:', formattedUrl);
+    console.log('Starting public profile import');
 
-    const response = await fetch(formattedUrl, {
+    const response = await safeFetch(formattedUrl, {
+      allowHosts: ALLOWED_DOMAINS, maxBytes: 512000, truncate: true, timeoutMs: 10000,
       headers: {
         'User-Agent': 'Mozilla/5.0 (compatible; TapAway/1.0)',
         'Accept': 'text/html,application/xhtml+xml',
@@ -288,8 +295,8 @@ Deno.serve(async (req) => {
 
       // Try Microlink API for metadata
       try {
-        console.log('Trying Microlink for social URL:', formattedUrl);
-        const mlResp = await fetch(`https://api.microlink.io?url=${encodeURIComponent(formattedUrl)}`);
+        console.log('Trying social profile metadata');
+        const mlResp = await safeFetch(`https://api.microlink.io?url=${encodeURIComponent(formattedUrl)}`, { allowHosts: ["api.microlink.io"], maxBytes: 256000, timeoutMs: 10000 });
         if (mlResp.ok) {
           const mlData = await mlResp.json();
           if (mlData?.status === 'success' && mlData?.data) {
@@ -392,6 +399,7 @@ Deno.serve(async (req) => {
         console.log('Falling back to Firecrawl for JS-rendered page (have social icons but no content links)');
         try {
           const fcResp = await fetch('https://api.firecrawl.dev/v1/scrape', {
+            signal: AbortSignal.timeout(15000),
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${firecrawlKey}`,
@@ -447,7 +455,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Error scraping:', error);
     return new Response(
-      JSON.stringify({ success: false, error: error instanceof Error ? error.message : 'Failed to scrape' }),
+      JSON.stringify({ success: false, error: 'Could not import this public profile. Check the address and try again.' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

@@ -1,3 +1,4 @@
+import { readLimitedText } from "../_shared/requestBody.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -43,26 +44,13 @@ serve(async (req) => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    const isAdminEmail = user.email === 'tap@tapaway.co';
-    let isAdminRole = false;
-    if (!isAdminEmail) {
-      const { data: roleRow } = await adminClient
-        .from('user_roles')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('role', 'admin')
-        .maybeSingle();
-      isAdminRole = !!roleRow;
-    }
+    const { data: roleRow } = await adminClient.from('user_roles').select('role')
+      .eq('user_id', user.id).eq('role', 'admin').maybeSingle();
+    if (!roleRow) return new Response(JSON.stringify({ error: 'Admin access required' }), {
+      status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
 
-    if (!isAdminEmail && !isAdminRole) {
-      return new Response(JSON.stringify({ error: 'Admin access required' }), {
-        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // Parse request body
-    const body = await req.json();
+    const body = JSON.parse(await readLimitedText(req, 4096));
     const discountType = body.discount_type;
 
     if (discountType !== 'free' && discountType !== '50_off') {

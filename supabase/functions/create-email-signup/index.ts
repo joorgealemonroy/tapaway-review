@@ -1,3 +1,4 @@
+import { allowAccessEmail, readAccessBody } from "../_shared/accountAccess.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { checkRateLimit, getRateLimitKey, rateLimitResponse } from "../_shared/rateLimit.ts";
 
@@ -14,6 +15,7 @@ Deno.serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  if (req.method !== "POST") return new Response("Method not allowed", { status: 405, headers: corsHeaders });
   try {
     // Rate limit: 5 per IP per hour
     const rlKey = getRateLimitKey(req, "email-signup");
@@ -21,28 +23,30 @@ Deno.serve(async (req) => {
       return rateLimitResponse(corsHeaders);
     }
 
-    const { email, businessName, password } = await req.json();
+    const { email, businessName, password } = await readAccessBody(req);
 
-    if (!email || typeof email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    if (!email || typeof email !== "string" || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return new Response(
         JSON.stringify({ error: "Valid email is required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    if (!businessName || typeof businessName !== "string" || businessName.trim().length === 0) {
+    if (!businessName || typeof businessName !== "string" || businessName.trim().length === 0 || businessName.length > 120) {
       return new Response(
         JSON.stringify({ error: "Business name is required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    if (!password || typeof password !== "string" || password.length < 8) {
+    if (!password || typeof password !== "string" || password.length < 8 || password.length > 256) {
       return new Response(
         JSON.stringify({ error: "Password must be at least 8 characters" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    if (!await allowAccessEmail(req, email.trim().toLowerCase())) return rateLimitResponse(corsHeaders);
 
     // C-1: use the public signUp flow (anon key), NOT auth.admin.createUser.
     // admin.createUser does not reliably send the verification email, which

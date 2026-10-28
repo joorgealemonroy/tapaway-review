@@ -15,8 +15,8 @@ const NotFound = lazy(() => import("./NotFound"));
 
 // Minimal loading state
 const MinimalLoader = memo(() => (
-  <div className="min-h-screen bg-black flex items-center justify-center">
-    <Loader2 className="h-8 w-8 animate-spin text-white/60" />
+  <div className="min-h-screen bg-[#faf8f1] flex items-center justify-center">
+    <Loader2 className="h-8 w-8 animate-spin text-[#47783b]" />
   </div>
 ));
 
@@ -118,23 +118,8 @@ const UsernameResolverInner = memo(({ slug, isAdminPreview }: { slug?: string; i
         return;
       }
 
-      // Not publicly visible. If the viewer is a verified admin OR the
-      // rep who owns this demo, auto-enter preview mode against the plain
-      // slug. RLS on personal_profiles restricts this select to owner /
-      // admin / linked sales_rep_id, so a row only comes back for someone
-      // authorized to preview it.
-      const { data: adminProfile } = await supabase
-        .from("personal_profiles")
-        .select(PROFILE_COLUMNS)
-        .eq("username", lowerSlug)
-        .maybeSingle();
-      if (adminProfile) {
-        setResolvedProfile(adminProfile as unknown as CachedProfile);
-        setResolvedType("personal");
-        setAdminPreviewActive(true);
-        setLoading(false);
-        return;
-      }
+      // Private ownership does not grant public service. Only the explicit,
+      // verified admin preview above may bypass a paused hub's public gate.
 
       // Lapsed solo subscription (e.g. trial ended without payment): the
       // public RPC won't resolve it, but the status RPC tells us an approved

@@ -1,3 +1,6 @@
+import { safeFetch } from "../_shared/safeFetch.ts";
+import { readLimitedText } from "../_shared/requestBody.ts";
+import { takeQuota } from "../_shared/storefrontRateLimit.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rateLimit.ts";
 
@@ -9,10 +12,10 @@ const corsHeaders = {
 
 function resolveUrl(base: string, relative: string): string {
   if (!relative) return "";
-  if (relative.startsWith("http://") || relative.startsWith("https://")) return relative;
-  if (relative.startsWith("//")) return "https:" + relative;
   try {
-    return new URL(relative, base).href;
+    const url = new URL(relative, base);
+    if (!["http:", "https:"].includes(url.protocol) || url.username || url.password) return "";
+    return url.href;
   } catch {
     return "";
   }
@@ -23,6 +26,7 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  if (req.method !== "POST") return new Response("Method not allowed", { status: 405, headers: corsHeaders });
   try {
     // Require authenticated caller. This is only invoked from the logged-in dashboard.
     const authHeader = req.headers.get("Authorization");
@@ -54,7 +58,8 @@ serve(async (req) => {
       return rateLimitResponse(corsHeaders);
     }
 
-    const { url } = await req.json();
+    if (await takeQuota(req, "link-metadata-user", 60, user.id) < 0 || await takeQuota(req, "link-metadata-global", 2000, "all") < 0) return rateLimitResponse(corsHeaders);
+    const { url } = JSON.parse(await readLimitedText(req, 4096));
 
     if (!url || typeof url !== "string") {
       return new Response(
@@ -73,37 +78,10 @@ serve(async (req) => {
       );
     }
 
-    // Fetch the page with a timeout
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
-
-    let res: Response;
-    try {
-      res = await fetch(trimmedUrl, {
-        redirect: "follow",
-        signal: controller.signal,
-        headers: {
-          "User-Agent": "TapAway-LinkBot/1.0",
-          "Accept": "text/html,application/xhtml+xml",
-        },
-      });
-    } catch (fetchErr) {
-      clearTimeout(timeout);
-      console.error("[fetch-link-metadata] Fetch failed:", fetchErr);
-      return new Response(
-        JSON.stringify({ error: "Failed to fetch URL" }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-    clearTimeout(timeout);
-
-    // Re-validate the final URL after any redirects (SSRF hardening).
-    if (res.url && !isSafeExternalUrl(res.url)) {
-      return new Response(
-        JSON.stringify({ error: "URL not allowed" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    const res = await safeFetch(trimmedUrl, {
+      headers: { "User-Agent": "TapAway-LinkBot/1.0", Accept: "text/html,application/xhtml+xml" },
+      maxBytes: 50 * 1024, truncate: true, timeoutMs: 8000,
+    });
 
     // Only read first 50KB to avoid memory issues
     const reader = res.body?.getReader();
@@ -182,7 +160,7 @@ serve(async (req) => {
       }
     }
 
-    console.log(`[fetch-link-metadata] ${trimmedUrl} → title="${title}", favicon="${finalFavicon}", image=${!!image}`);
+    console.log("[fetch-link-metadata] Completed public page metadata lookup");
 
     return new Response(
       JSON.stringify({ title, image, favicon: finalFavicon, description }),
@@ -191,7 +169,7 @@ serve(async (req) => {
   } catch (error) {
     console.error("[fetch-link-metadata] Error:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      JSON.stringify({ error: "Could not read this public page. Check the address and try again." }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

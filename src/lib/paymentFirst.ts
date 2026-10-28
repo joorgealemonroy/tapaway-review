@@ -27,6 +27,7 @@ export const functionsUrl = (name: string) => `${import.meta.env.VITE_SUPABASE_U
 export async function callFunction<T = Record<string, unknown>>(name: string, body: unknown, accessToken?: string): Promise<{ ok: boolean; status: number; data: T }> {
   const res = await fetch(functionsUrl(name), {
     method: "POST",
+    signal: AbortSignal.timeout(20000),
     headers: {
       "Content-Type": "application/json",
       apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,

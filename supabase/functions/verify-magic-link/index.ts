@@ -1,190 +1,63 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { checkRateLimit, getRateLimitKey, rateLimitResponse } from "../_shared/rateLimit.ts";
+import { readLimitedText } from "../_shared/requestBody.ts";
+import { hashValue, takeQuota } from "../_shared/storefrontRateLimit.ts";
 
-const corsHeaders = {
+const cors = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
+const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
+  status, headers: { ...cors, "Content-Type": "application/json", "Cache-Control": "no-store" },
+});
+const invalid = () => json({ error: "Invalid or expired magic link. Request a new access link." }, 400);
 
-async function sha256Hex(input: string): Promise<string> {
-  const data = new TextEncoder().encode(input);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-  return Array.from(new Uint8Array(hashBuffer))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
-
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
-  if (req.method !== "POST") {
-    return new Response("Method not allowed", { status: 405, headers: corsHeaders });
-  }
-
-  // Rate limit: 10 requests per 15 minutes per IP
-  const rlKey = getRateLimitKey(req, "verify-magic-link");
-  if (!checkRateLimit(rlKey, 10, 15 * 60 * 1000)) {
-    return rateLimitResponse(corsHeaders);
-  }
-
+serve(async req => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+  if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
+  let claimed = false;
   try {
-    const { token, newPassword } = await req.json();
+    if (await takeQuota(req, "magic-link-verify", 30) < 0 || await takeQuota(req, "token-verify-global", 10000, "all") < 0)
+      return json({ error: "Too many attempts. Please try again later." }, 429);
+    let body;
+    try { body = JSON.parse(await readLimitedText(req, 4096)); } catch { return invalid(); }
+    const token = body?.token, password = body?.newPassword;
+    if (typeof token !== "string" || token.length < 16 || token.length > 512) return invalid();
+    const complete = password !== undefined && password !== null && password !== "";
+    if (complete && (typeof password !== "string" || password.length < 8 || password.length > 256))
+      return json({ error: "Use a password with 8 to 256 characters." }, 400);
+    const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const tokenHash = await hashValue(token);
+    const { data: record, error } = await db.from("magic_link_tokens").select("id,user_id,email,expires_at")
+      .eq("token_hash", tokenHash).is("used_at", null).maybeSingle();
+    if (error || !record || !(Date.parse(record.expires_at) > Date.now())) return invalid();
+    const { data: userData, error: userError } = await db.auth.admin.getUserById(record.user_id);
+    const email = userData?.user?.email;
+    if (userError || !email || email.toLowerCase() !== String(record.email).toLowerCase()) return invalid();
+    if (!complete) return json({ valid: true, email, userId: record.user_id });
 
-    if (!token || typeof token !== "string") {
-      return new Response(
-        JSON.stringify({ error: "Token is required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    console.log("[verify-magic-link] Verifying token, password provided:", !!newPassword);
-
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Hash the token to look it up
-    const tokenHash = await sha256Hex(token);
-
-    // Find the token - check if unused
-    const { data: tokenData, error: lookupError } = await supabase
-      .from("magic_link_tokens")
-      .select("*")
-      .eq("token_hash", tokenHash)
-      .is("used_at", null)
-      .single();
-
-    if (lookupError || !tokenData) {
-      console.log("[verify-magic-link] Token not found or already used");
-      return new Response(
-        JSON.stringify({ error: "Invalid or expired magic link" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Check if expired
-    if (new Date(tokenData.expires_at) < new Date()) {
-      console.log("[verify-magic-link] Token expired");
-      return new Response(
-        JSON.stringify({ error: "Magic link has expired" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // VALIDATION MODE: If no password provided, just validate the token
-    // Token is NOT consumed yet - user can close tab and come back
-    if (!newPassword) {
-      console.log("[verify-magic-link] Validation mode - token valid for:", tokenData.email);
-      return new Response(
-        JSON.stringify({
-          valid: true,
-          email: tokenData.email,
-          userId: tokenData.user_id,
-        }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // COMPLETE MODE: Password provided - set it and create session
-    console.log("[verify-magic-link] Complete mode - setting password for:", tokenData.email);
-
-    // Set the user's password
-    const { error: passwordError } = await supabase.auth.admin.updateUserById(
-      tokenData.user_id,
-      { password: newPassword }
-    );
-
-    if (passwordError) {
-      console.error("[verify-magic-link] Error setting password:", passwordError);
-      return new Response(
-        JSON.stringify({ error: "Failed to set password" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // NOW mark token as used (only after password is successfully set)
-    const { error: updateError } = await supabase
-      .from("magic_link_tokens")
-      .update({ used_at: new Date().toISOString() })
-      .eq("id", tokenData.id);
-
-    if (updateError) {
-      console.error("[verify-magic-link] Error marking token as used:", updateError);
-    }
-
-    // Generate a session for the user
-    const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
-      type: "magiclink",
-      email: tokenData.email,
-    });
-
-    if (linkError || !linkData) {
-      console.error("[verify-magic-link] Error generating session link:", linkError);
-      throw new Error("Failed to create session");
-    }
-
-    // Extract the token from the generated link and verify it to get a session
-    const url = new URL(linkData.properties.action_link);
-    const hashParams = new URLSearchParams(url.hash.slice(1));
-    const accessToken = hashParams.get("access_token");
-    const refreshToken = hashParams.get("refresh_token");
-
-    if (!accessToken || !refreshToken) {
-      // If hash params don't work, try query params (depends on Supabase config)
-      const queryToken = url.searchParams.get("token");
-      if (queryToken) {
-        // Verify the OTP token to get a session
-        const { data: sessionData, error: verifyError } = await supabase.auth.verifyOtp({
-          token_hash: queryToken,
-          type: "magiclink",
-        });
-
-        if (verifyError || !sessionData.session) {
-          console.error("[verify-magic-link] Error verifying OTP:", verifyError);
-          throw new Error("Failed to create session");
-        }
-
-        console.log("[verify-magic-link] Password set and session created for user:", tokenData.user_id);
-
-        return new Response(
-          JSON.stringify({
-            success: true,
-            session: {
-              access_token: sessionData.session.access_token,
-              refresh_token: sessionData.session.refresh_token,
-              expires_in: sessionData.session.expires_in,
-              token_type: "bearer",
-            },
-          }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      throw new Error("Failed to extract session tokens");
-    }
-
-    console.log("[verify-magic-link] Password set and session created for user:", tokenData.user_id);
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        session: {
-          access_token: accessToken,
-          refresh_token: refreshToken,
-          token_type: "bearer",
-        },
-      }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  } catch (error: unknown) {
-    console.error("[verify-magic-link] Error:", error);
-    const message = error instanceof Error ? error.message : "Something went wrong";
-    return new Response(
-      JSON.stringify({ error: message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    // Claim before touching Auth. Concurrent replay and ambiguous Auth failure
+    // can never mutate the password a second time with this token.
+    const now = new Date().toISOString();
+    const { data: claim, error: claimError } = await db.from("magic_link_tokens").update({ used_at: now })
+      .eq("id", record.id).eq("token_hash", tokenHash).is("used_at", null).gt("expires_at", now).select("id").maybeSingle();
+    if (claimError || !claim) return invalid();
+    claimed = true;
+    const { error: passwordError } = await db.auth.admin.updateUserById(record.user_id, { password });
+    if (passwordError) throw new Error("Password update unavailable");
+    const { data: link, error: linkError } = await db.auth.admin.generateLink({ type: "magiclink", email });
+    const tokenHashForSession = link?.properties?.hashed_token;
+    if (linkError || !tokenHashForSession) throw new Error("Sign-in unavailable");
+    const { data: signedIn, error: signInError } = await db.auth.verifyOtp({ token_hash: tokenHashForSession, type: "magiclink" });
+    if (signInError || !signedIn?.session) throw new Error("Sign-in unavailable");
+    return json({ success: true, session: {
+      access_token: signedIn.session.access_token, refresh_token: signedIn.session.refresh_token,
+      expires_in: signedIn.session.expires_in, token_type: "bearer",
+    } });
+  } catch {
+    return json({ error: claimed
+      ? "This link was used. Sign in with your password or request a new access link."
+      : "Account access is temporarily unavailable. Please try again later." }, 503);
   }
 });

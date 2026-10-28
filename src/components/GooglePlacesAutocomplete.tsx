@@ -7,6 +7,9 @@ interface PlaceResult {
   placeId: string;
   name: string;
   formattedAddress: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
   phone?: string | null;
   website?: string | null;
   googleMapsUri?: string | null;
@@ -20,6 +23,9 @@ interface GooglePlacesAutocompleteProps {
     placeId: string;
     name: string;
     address: string;
+    city?: string;
+    state?: string;
+    postalCode?: string;
     phone?: string | null;
     website?: string | null;
     googleMapsUri?: string | null;
@@ -33,6 +39,8 @@ interface GooglePlacesAutocompleteProps {
   className?: string;
   label?: string;
   onError?: (error: string) => void;
+  onQueryChange?: () => void;
+  variant?: "dark" | "light";
 }
 
 export const GooglePlacesAutocomplete = ({
@@ -43,6 +51,8 @@ export const GooglePlacesAutocomplete = ({
   className = "",
   label = "Search Your Business on Google",
   onError,
+  onQueryChange,
+  variant = "dark",
 }: GooglePlacesAutocompleteProps) => {
   const [query, setQuery] = useState(defaultValue);
   const [results, setResults] = useState<PlaceResult[]>([]);
@@ -50,12 +60,16 @@ export const GooglePlacesAutocomplete = ({
   const [showDropdown, setShowDropdown] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sequence = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(e.target as Node)
+      ) {
         setShowDropdown(false);
       }
     };
@@ -63,57 +77,81 @@ export const GooglePlacesAutocomplete = ({
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const search = useCallback(async (q: string) => {
-    if (q.trim().length < 3) {
-      setResults([]);
-      setShowDropdown(false);
-      return;
-    }
+  useEffect(
+    () => () => {
+      sequence.current++;
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    },
+    [],
+  );
 
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const { data, error: fnError } = await supabase.functions.invoke("lookup-place-id", {
-        body: { address: q },
-      });
-
-      if (fnError) throw fnError;
-
-      const items: PlaceResult[] = data?.results ?? [];
-      setResults(items);
-      setShowDropdown(items.length > 0);
-
-      if (data?.error) {
-        const msg = data.error;
-        setError(msg);
-        onError?.(msg);
+  const search = useCallback(
+    async (q: string, requestId: number) => {
+      if (q.trim().length < 3) {
+        setResults([]);
         setShowDropdown(false);
         return;
       }
 
-      if (items.length === 0) {
-        setShowDropdown(true); // show "no results" message
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const { data, error: fnError } = await supabase.functions.invoke(
+          "lookup-place-id",
+          {
+            body: { address: q },
+          },
+        );
+
+        if (requestId !== sequence.current) return;
+        if (fnError) throw fnError;
+
+        const items: PlaceResult[] = data?.results ?? [];
+        setResults(items);
+        setShowDropdown(items.length > 0);
+
+        if (data?.error) {
+          const msg = data.error;
+          setError(msg);
+          onError?.(msg);
+          setShowDropdown(false);
+          return;
+        }
+
+        if (items.length === 0) {
+          setShowDropdown(true); // show "no results" message
+        }
+      } catch (err: unknown) {
+        if (requestId !== sequence.current) return;
+        console.error("[GooglePlacesAutocomplete] search error:", err);
+        const msg = err instanceof Error ? err.message : "Search failed";
+        setError(msg);
+        onError?.(msg);
+      } finally {
+        if (requestId === sequence.current) setIsLoading(false);
       }
-    } catch (err: any) {
-      console.error("[GooglePlacesAutocomplete] search error:", err);
-      const msg = err?.message || "Search failed";
-      setError(msg);
-      onError?.(msg);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [onError]);
+    },
+    [onError],
+  );
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setQuery(val);
+    onQueryChange?.();
+    const requestId = ++sequence.current;
+    setResults([]);
+    setShowDropdown(false);
+    setIsLoading(false);
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => search(val), 350);
+    debounceRef.current = setTimeout(() => search(val, requestId), 500);
   };
 
   const handleSelect = (result: PlaceResult) => {
+    sequence.current++;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    setIsLoading(false);
     setQuery(result.name);
     setShowDropdown(false);
     setResults([]);
@@ -121,6 +159,9 @@ export const GooglePlacesAutocomplete = ({
       placeId: result.placeId,
       name: result.name,
       address: result.formattedAddress,
+      city: result.city,
+      state: result.state,
+      postalCode: result.postalCode,
       phone: result.phone ?? null,
       website: result.website ?? null,
       googleMapsUri: result.googleMapsUri ?? null,
@@ -132,11 +173,19 @@ export const GooglePlacesAutocomplete = ({
 
   const inputId = useId();
   return (
-    <div ref={containerRef} className="relative">
-      {label && <Label htmlFor={inputId} className="text-foreground text-sm">{label}</Label>}
+    <div
+      ref={containerRef}
+      className={`relative google-place-search ${variant}`}
+    >
+      {label && (
+        <Label htmlFor={inputId} className="text-foreground text-sm">
+          {label}
+        </Label>
+      )}
       <div className="relative mt-1">
         <input
-          id={inputId} aria-label={label || "Search businesses on Google"}
+          id={inputId}
+          aria-label={label || "Search businesses on Google"}
           type="text"
           value={query}
           onChange={handleInputChange}
@@ -157,7 +206,9 @@ export const GooglePlacesAutocomplete = ({
       {showDropdown && (
         <div className="absolute z-50 mt-1 w-full rounded-xl border border-white/10 bg-[#1a2236] shadow-xl overflow-hidden">
           {results.length === 0 && !isLoading ? (
-            <div className="px-4 py-3 text-sm text-gray-400">No businesses found</div>
+            <div className="px-4 py-3 text-sm text-gray-400">
+              No businesses found
+            </div>
           ) : (
             results.map((r, i) => (
               <button
@@ -168,8 +219,12 @@ export const GooglePlacesAutocomplete = ({
               >
                 <MapPin className="h-4 w-4 mt-0.5 shrink-0 text-blue-400" />
                 <div className="min-w-0">
-                  <div className="text-sm font-medium text-white truncate">{r.name}</div>
-                  <div className="text-xs text-gray-400 truncate">{r.formattedAddress}</div>
+                  <div className="text-sm font-medium text-white truncate">
+                    {r.name}
+                  </div>
+                  <div className="text-xs text-gray-400 truncate">
+                    {r.formattedAddress}
+                  </div>
                 </div>
               </button>
             ))

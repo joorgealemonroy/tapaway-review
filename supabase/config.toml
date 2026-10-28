@@ -146,3 +146,43 @@ verify_jwt = false
 
 [functions.verify-trial-card]
 verify_jwt = false
+
+[functions.storefront-support]
+verify_jwt = false
+
+[functions.personal-card-catalog]
+verify_jwt = false
+
+[functions.personal-card-order]
+verify_jwt = false
+
+[functions.personal-card-admin]
+verify_jwt = false
+
+# These handlers verify the caller with auth.getUser and a server admin role.
+[functions.admin-billing-summary]
+verify_jwt = false
+
+[functions.admin-navigator]
+verify_jwt = false
+
+[functions.email-delivery-webhook]
+verify_jwt = false
+
+[functions.email-delivery-check]
+verify_jwt = false
+
+[functions.hub-payment-request]
+verify_jwt = false
+
+[functions.restore-admin]
+verify_jwt = false
+
+[functions.seed-test-accounts]
+verify_jwt = false
+
+[functions.submit-lead]
+verify_jwt = false
+
+[functions.public-intake]
+verify_jwt = false

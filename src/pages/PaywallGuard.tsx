@@ -2,12 +2,9 @@ import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { isGrandfatheredUser, isSuperAdmin } from "@/lib/grandfatheredUsers";
-import { isTestAccount } from "@/lib/testAccounts";
 import {
   isSubscriptionAllowed,
   isPublicRoute,
-  hasPendingSetupFlags,
 } from "@/lib/subscriptionStatus";
 
 export const usePaywallGuard = () => {
@@ -25,34 +22,14 @@ export const usePaywallGuard = () => {
         return;
       }
 
-      // If user has pending setup flags (just paid via Stripe), allow through
-      if (hasPendingSetupFlags()) {
-        setChecking(false);
-        return;
-      }
-
       if (!user) {
         setChecking(false);
         return;
       }
 
-      // Super admin bypasses everything and goes to /admin
-      if (isSuperAdmin(user.email)) {
+      const { data: isAdmin, error: roleError } = await supabase.rpc("is_admin");
+      if (!roleError && isAdmin === true) {
         navigate("/admin");
-        setChecking(false);
-        return;
-      }
-
-      // Test accounts bypass paywall
-      if (isTestAccount(user.email)) {
-        navigate("/dashboard");
-        setChecking(false);
-        return;
-      }
-
-      // Grandfathered users bypass paywall
-      if (isGrandfatheredUser(user.email)) {
-        navigate("/dashboard");
         setChecking(false);
         return;
       }
@@ -61,7 +38,7 @@ export const usePaywallGuard = () => {
       const [restaurantResult, personalResult] = await Promise.all([
         supabase
           .from("restaurants")
-          .select("subscription_status, id")
+          .select("subscription_status, payment_state, id")
           .eq("owner_id", user.id)
           .maybeSingle(),
         supabase
@@ -75,7 +52,7 @@ export const usePaywallGuard = () => {
       const personal = personalResult.data;
 
       // If user has valid business subscription, go to business dashboard
-      if (restaurant && isSubscriptionAllowed(restaurant.subscription_status)) {
+      if (restaurant && (restaurant.payment_state === "complimentary" || isSubscriptionAllowed(restaurant.subscription_status))) {
         navigate("/dashboard");
         setChecking(false);
         return;

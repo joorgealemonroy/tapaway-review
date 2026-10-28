@@ -33,6 +33,7 @@ const SmsSignup = () => {
   const [marketingConsent, setMarketingConsent] = useState(false);
   const [transactionalConsent, setTransactionalConsent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [website, setWebsite] = useState("");
   const [success, setSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -49,25 +50,12 @@ const SmsSignup = () => {
 
     setSubmitting(true);
     try {
-      const consentAt = new Date().toISOString();
-      const { error } = await supabase.from("sms_signup_submissions" as any).insert({
-        name: parsed.data.name,
-        phone: parsed.data.phone,
-        // Legacy. Mirror whichever campaign was chosen (marketing wins).
-        consent_text: marketingConsent
-          ? SMS_MARKETING_CONSENT_TEXT
-          : SMS_TRANSACTIONAL_CONSENT_TEXT,
-        consent_at: consentAt,
-        marketing_consent_text: marketingConsent ? SMS_MARKETING_CONSENT_TEXT : null,
-        marketing_consent_at: marketingConsent ? consentAt : null,
-        transactional_consent_text: transactionalConsent
-          ? SMS_TRANSACTIONAL_CONSENT_TEXT
-          : null,
-        transactional_consent_at: transactionalConsent ? consentAt : null,
-        user_agent: navigator.userAgent,
-        source: "/sms-signup",
-      } as any);
-      if (error) throw error;
+      const { data, error } = await supabase.functions.invoke("public-intake", { body: {
+        action: "sms_signup", website, name: parsed.data.name, phone: parsed.data.phone,
+        marketingConsent, transactionalConsent, marketingText: SMS_MARKETING_CONSENT_TEXT,
+        transactionalText: SMS_TRANSACTIONAL_CONSENT_TEXT,
+      } });
+      if (error || !data?.success) throw new Error(data?.error || "Please try again.");
       setSuccess(true);
       toast.success("You're on the list! 🎉");
     } catch (err) {
@@ -156,6 +144,7 @@ const SmsSignup = () => {
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-5">
+        <input name="website" value={website} onChange={e => setWebsite(e.target.value)} tabIndex={-1} aria-hidden="true" autoComplete="off" className="absolute h-0 w-0 overflow-hidden opacity-0" />
               <div className="space-y-2">
                 <Label htmlFor="signup-name">Customer Name</Label>
                 <Input

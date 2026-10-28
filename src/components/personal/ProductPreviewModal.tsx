@@ -24,7 +24,7 @@ interface ProductPreviewModalProps {
   product: Product | null;
   isOpen: boolean;
   onClose: () => void;
-  onBuy: (productId: string, bookingId?: string) => void;
+  onBuy: (productId: string) => void;
 }
 
 function ImageCarousel({ images }: { images: string[] }) {
@@ -81,7 +81,7 @@ function ImageCarousel({ images }: { images: string[] }) {
   );
 }
 
-function ModalContent({ product, onBuy }: { product: Product; onBuy: (id: string, bookingId?: string) => void }) {
+function ModalContent({ product, onBuy }: { product: Product; onBuy: (id: string) => void }) {
   const allImages = [
     ...(product.cover_image_url ? [product.cover_image_url] : []),
     ...(product.image_urls || []),
@@ -90,10 +90,6 @@ function ModalContent({ product, onBuy }: { product: Product; onBuy: (id: string
   const displayDescription = product.long_description || product.description;
   const isBooking = product.product_type === "booking";
   const typeLabel = isBooking ? "Booking" : product.product_type === "pdf" ? "PDF" : product.product_type === "video" ? "Video" : product.product_type === "course" ? "Course" : product.product_type;
-
-  const handleBookingComplete = (bookingId: string) => {
-    onBuy(product.id, bookingId);
-  };
 
   return (
     <div className="space-y-4">
@@ -121,7 +117,6 @@ function ModalContent({ product, onBuy }: { product: Product; onBuy: (id: string
           productId={product.id}
           durationMinutes={product.duration_minutes || 30}
           priceCents={product.price_cents}
-          onBook={handleBookingComplete}
         />
       ) : (
         <div className="sticky bottom-0 pt-3 pb-1 bg-background">

@@ -1,10 +1,11 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { Resend } from "https://esm.sh/resend@2.0.0";
+import { sendEmailAndLog } from "../_shared/email.ts";
+import { takeQuota } from "../_shared/storefrontRateLimit.ts";
+import { readLimitedText } from "../_shared/requestBody.ts";
 import { escapeHtml } from "../_shared/sanitize.ts";
 import { checkRateLimit, getRateLimitKey, rateLimitResponse } from "../_shared/rateLimit.ts";
 
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 const EMAIL_FROM = Deno.env.get("EMAIL_FROM") || "TapAway <no-reply@tapaway.co>";
 const FRONTEND_URL = Deno.env.get("FRONTEND_URL") || "https://tapaway.co";
 
@@ -19,6 +20,8 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  if (req.method !== "POST") return new Response("Method not allowed", { status: 405, headers: corsHeaders });
+
   // Rate limit: 30 per hour per IP
   const rlKey = getRateLimitKey(req, "notify-new-lead");
   if (!checkRateLimit(rlKey, 30, 60 * 60 * 1000)) {
@@ -26,13 +29,14 @@ serve(async (req) => {
   }
 
   try {
-    const body = (await req.json().catch(() => ({}))) as {
+    if (await takeQuota(req, "lead-notify-network", 30) < 0) return rateLimitResponse(corsHeaders);
+    const body = JSON.parse(await readLimitedText(req, 4096)) as {
       submissionId?: string;
       website?: string;
     };
     const { submissionId } = body;
 
-    if (!submissionId) {
+    if (typeof submissionId !== "string" || !/^[0-9a-f-]{36}$/i.test(submissionId)) {
       return new Response(
         JSON.stringify({ error: "Missing submissionId" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -44,10 +48,8 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // M-10 honeypot: bots fill the hidden "website" field. Silently delete the
-    // spam submission and pretend success so the bot learns nothing.
+    // A public honeypot must never authorize deleting caller-selected records.
     if (typeof body.website === "string" && body.website.trim().length > 0) {
-      await supabaseAdmin.from("lead_submissions").delete().eq("id", submissionId);
       return new Response(
         JSON.stringify({ success: true }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -68,6 +70,15 @@ serve(async (req) => {
       );
     }
 
+    // Only a fresh submission can trigger a notification. Allow bounded retries
+    // after provider failure; a stable provider idempotency key prevents duplicate mail.
+    const age = Date.now() - Date.parse(submission.created_at);
+    if (!Number.isFinite(age) || age < -60000 || age > 10 * 60 * 1000)
+      return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (await takeQuota(req, "lead-notify-record", 3, submissionId) < 0)
+      return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (await takeQuota(req, "lead-notify-profile", 30, submission.profile_id) < 0 ||
+        await takeQuota(req, "lead-notify-global", 1000, "all") < 0) return rateLimitResponse(corsHeaders);
     const profileId = submission.profile_id;
     const submissionData = (submission.submission_data ?? {}) as Record<string, string>;
 
@@ -107,7 +118,7 @@ serve(async (req) => {
     }
 
     const safeTitle = escapeHtml(formTitle || "New Lead");
-    const timestamp = new Date().toLocaleString("en-US", {
+    const timestamp = new Date(submission.created_at).toLocaleString("en-US", {
       timeZone: "America/New_York",
       dateStyle: "full",
       timeStyle: "short",
@@ -151,12 +162,14 @@ serve(async (req) => {
 </body>
 </html>`;
 
-    await resend.emails.send({
+    const sent = await sendEmailAndLog({
+      templateKey: "lead_notification", profileId, idempotencyKey: `lead-notification/${submissionId}`,
       from: EMAIL_FROM,
       to: [ownerEmail],
       subject: `New TapAway Lead: ${formTitle || "New Inquiry"}`,
       html,
     });
+    if (!sent.ok) throw new Error("Notification was not accepted");
 
     return new Response(
       JSON.stringify({ success: true }),

@@ -1,3 +1,4 @@
+import { readLimitedText } from "../_shared/requestBody.ts";
 // Award commissions when an admin approves a rep-created demo hub.
 // - Inserts one $5 demo_bonus row per approved personal_profile (idempotent).
 // - The daily $50 shift_base row is awarded by the trg_award_daily_base DB trigger.
@@ -17,7 +18,7 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
-    const { personal_profile_id } = await req.json();
+    const { personal_profile_id } = JSON.parse(await readLimitedText(req, 4096));
     if (!personal_profile_id || typeof personal_profile_id !== 'string') {
       return json({ error: 'personal_profile_id required' }, 400);
     }

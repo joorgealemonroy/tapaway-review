@@ -1,3 +1,5 @@
+import { readLimitedText } from "../_shared/requestBody.ts";
+import { isAdmin as hasAdminRole } from "../_shared/security.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -37,27 +39,11 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Check if caller is admin
-    const isAdmin = caller.email === "tap@tapaway.co" || 
-      caller.app_metadata?.role === "admin";
-    
-    if (!isAdmin) {
-      const { data: roleData } = await supabaseAdmin
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", caller.id)
-        .eq("role", "admin")
-        .single();
-      
-      if (!roleData) {
-        return new Response(JSON.stringify({ error: "Admin access required" }), {
-          status: 403,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-    }
+    if (!(await hasAdminRole(caller.id))) return new Response(JSON.stringify({ error: "Admin access required" }), {
+      status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
 
-    const { restaurantId, userId, isPersonalAccount, deleteAuthUserOnly, deleteSalesRepAccount } = await req.json();
+    const { restaurantId, userId, isPersonalAccount, deleteAuthUserOnly, deleteSalesRepAccount } = JSON.parse(await readLimitedText(req, 4096));
 
     // ──── PERMANENT SAFEGUARD ────────────────────────────────────────────
     // Resolve the target user's email and block deletion of the super admin

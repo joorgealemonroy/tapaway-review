@@ -55,7 +55,7 @@ serve(async (req) => {
       },
     ];
 
-    const origin = req.headers.get('origin') || 'https://tapaway.co';
+    const origin = (Deno.env.get('FRONTEND_URL') || 'https://tapaway.co').replace(/\/$/, '');
 
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',

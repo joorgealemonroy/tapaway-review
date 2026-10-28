@@ -1,3 +1,4 @@
+import { customerAiAllowed, readAiBody } from "../_shared/customerAiGuard.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -25,7 +26,7 @@ serve(async (req) => {
       );
     }
 
-    const { restaurantId } = await req.json();
+    const { restaurantId } = await readAiBody(req);
     
     // Validate input
     if (!restaurantId || !validateUUID(restaurantId)) {
@@ -97,7 +98,11 @@ serve(async (req) => {
       }
     } else {
       // For real accounts, use AI to identify competitors
-      const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+      if (!(await customerAiAllowed(req, user.id, restaurantId))) {
+      return new Response(JSON.stringify({ error: "AI is unavailable for this account or today's limit has been reached. Contact tap@tapaway.co for help." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
       
       const prompt = `Given a restaurant named "${restaurant.restaurant_name}" at "${restaurant.address}", 
       identify 3-5 nearby competitor restaurants that would be direct competitors. 
@@ -109,13 +114,13 @@ serve(async (req) => {
       Format as JSON array: [{"name": "...", "reviews": 123, "rating": 4.5}]`;
 
       const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-        method: 'POST',
+        method: 'POST', signal: AbortSignal.timeout(20000),
         headers: {
           'Authorization': `Bearer ${LOVABLE_API_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'google/gemini-2.5-flash',
+          model: 'google/gemini-2.5-flash', max_tokens: 700,
           messages: [
             { role: 'system', content: 'You are a restaurant industry analyst. Respond only with valid JSON.' },
             { role: 'user', content: prompt }

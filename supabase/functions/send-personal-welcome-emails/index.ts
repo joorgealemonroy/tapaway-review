@@ -1,10 +1,9 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Resend } from "https://esm.sh/resend@2.0.0";
+import { sendEmailAndLog } from "../_shared/email.ts";
 import { escapeHtml } from "../_shared/sanitize.ts";
 import { checkRateLimit, getRateLimitKey, rateLimitResponse } from "../_shared/rateLimit.ts";
 import { hasServiceRoleBearer } from "../_shared/security.ts";
 
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -370,7 +369,8 @@ const handler = async (req: Request): Promise<Response> => {
     // 1. Send internal notification email
     try {
       const internalHtml = generateInternalNotificationEmail(data);
-      const internalResult = await resend.emails.send({
+      const internalResult = await sendEmailAndLog({
+        templateKey: "legacy_signup_notice", profileId: data.profileId,
         from: EMAIL_FROM,
         to: [INTERNAL_EMAIL_RECIPIENT],
         subject: `New TapAway Personal Signup: @${data.username}`,
@@ -378,7 +378,8 @@ const handler = async (req: Request): Promise<Response> => {
       });
       
       console.log("[send-personal-welcome-emails] Internal email sent:", internalResult);
-      results.internalEmail.success = true;
+      results.internalEmail.success = internalResult.ok;
+      results.internalEmail.error = internalResult.error || null;
     } catch (error) {
       console.error("[send-personal-welcome-emails] Internal email failed:", error);
       results.internalEmail.error = error instanceof Error ? error.message : "Unknown error";
@@ -387,7 +388,8 @@ const handler = async (req: Request): Promise<Response> => {
     // 2. Send welcome email to user
     try {
       const welcomeHtml = generateUserWelcomeEmail(data);
-      const welcomeResult = await resend.emails.send({
+      const welcomeResult = await sendEmailAndLog({
+        templateKey: "legacy_personal_welcome", profileId: data.profileId, replyTo: "tap@tapaway.co",
         from: EMAIL_FROM,
         to: [data.email],
         subject: "Welcome to TapAway! 👋 Your new hub is live.",
@@ -395,7 +397,8 @@ const handler = async (req: Request): Promise<Response> => {
       });
       
       console.log("[send-personal-welcome-emails] Welcome email sent:", welcomeResult);
-      results.welcomeEmail.success = true;
+      results.welcomeEmail.success = welcomeResult.ok;
+      results.welcomeEmail.error = welcomeResult.error || null;
     } catch (error) {
       console.error("[send-personal-welcome-emails] Welcome email failed:", error);
       results.welcomeEmail.error = error instanceof Error ? error.message : "Unknown error";
@@ -407,7 +410,7 @@ const handler = async (req: Request): Promise<Response> => {
         results,
       }),
       {
-        status: 200,
+        status: results.internalEmail.success && results.welcomeEmail.success ? 200 : 503,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       }
     );

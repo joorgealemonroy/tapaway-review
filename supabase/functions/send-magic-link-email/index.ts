@@ -1,5 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sendEmailAndLog, wrapEmail } from "../_shared/email.ts";
+import { escapeHtml } from "../_shared/sanitize.ts";
+import { frontendUrl } from "../_shared/paymentFirst.ts";
+import { readAccessBody, normalizedEmail } from "../_shared/accountAccess.ts";
 import { checkRateLimit, getRateLimitKey, rateLimitResponse } from "../_shared/rateLimit.ts";
 
 const corsHeaders = {
@@ -24,57 +28,14 @@ function generateSecureToken(): string {
 }
 
 function generateMagicLinkEmailHtml(fullName: string, magicLink: string): string {
-  const firstName = fullName?.split(" ")[0] || "there";
-  
-  return `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body style="margin:0;padding:0;background:#0a0a0a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:520px;margin:0 auto;padding:40px 20px;">
-    <!-- Header -->
-    <tr>
-      <td style="text-align:center;padding-bottom:32px;">
-        <img src="https://tapaway.co/tapaway-logo-email.png" alt="TapAway" width="120" style="display:inline-block;" />
-      </td>
-    </tr>
-    
-    <!-- Main Content Card -->
-    <tr>
-      <td style="background:#1a1a1a;border-radius:16px;padding:40px 32px;text-align:center;border:1px solid #2a2a2a;">
-        <h1 style="margin:0 0 16px 0;font-size:24px;font-weight:700;color:#ffffff;">Set Up Your Business Dashboard</h1>
-        <p style="margin:0 0 32px 0;font-size:16px;color:#a1a1a1;line-height:1.6;">
-          Hey ${firstName}, click the button below to set your password and access your TapAway business dashboard.
-        </p>
-        
-        <!-- CTA Button -->
-        <a href="${magicLink}" 
-           style="display:inline-block;background:#6BCB77;color:#000000;font-size:16px;font-weight:600;padding:14px 32px;border-radius:8px;text-decoration:none;margin-bottom:32px;">
-          Access My Dashboard
-        </a>
-        
-        <p style="margin:24px 0 0 0;font-size:13px;color:#666666;line-height:1.6;">
-          This link expires in 24 hours. You can close and reopen it anytime before setting your password. If you didn't request this, you can safely ignore this email.
-        </p>
-      </td>
-    </tr>
-    
-    <!-- Footer -->
-    <tr>
-      <td style="text-align:center;padding-top:32px;">
-        <p style="margin:0 0 8px 0;font-size:13px;color:#666666;">
-          Need help? Reply to this email. We'll take care of you.
-        </p>
-        <p style="margin:0;font-size:12px;color:#4a4a4a;">
-          © ${new Date().getFullYear()} TapAway. All rights reserved.
-        </p>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`;
+  return wrapEmail({
+    preheader: "Your secure link to your TapAway dashboard.",
+    headline: "Your dashboard is ready",
+    introHtml: `<p>Hi ${escapeHtml(fullName?.split(" ")[0] || "there")},</p>`,
+    bodyHtml: "<p>Set your password to access your TapAway dashboard, update your hub and see your activity.</p>",
+    ctaLabel: "Access my dashboard", ctaUrl: escapeHtml(magicLink),
+    footerNote: "This link expires in 24 hours and can be used once to set your password. Didn't request this? You can ignore this email.",
+  });
 }
 
 function generateMagicLinkEmailText(fullName: string, magicLink: string): string {
@@ -95,47 +56,6 @@ Need help? Reply to this email.
  TapAway`;
 }
 
-async function sendEmail(to: string, subject: string, html: string, text: string): Promise<boolean> {
-  const resendApiKey = Deno.env.get("RESEND_API_KEY");
-  if (!resendApiKey) {
-    console.error("[send-magic-link-email] RESEND_API_KEY not configured");
-    return false;
-  }
-
-  const fromEmail = Deno.env.get("EMAIL_FROM") || "TapAway <no-reply@tapaway.co>";
-
-  try {
-    const response = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${resendApiKey}`,
-      },
-      body: JSON.stringify({
-        from: fromEmail,
-        to: [to],
-        subject,
-        html,
-        text,
-        reply_to: "tap@tapaway.co",
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("[send-magic-link-email] Resend API error:", errorText);
-      return false;
-    }
-
-    const data = await response.json();
-    console.log("[send-magic-link-email] Email sent via Resend:", data.id);
-    return true;
-  } catch (error) {
-    console.error("[send-magic-link-email] Error sending email:", error);
-    return false;
-  }
-}
-
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -153,7 +73,7 @@ serve(async (req) => {
 
   try {
     // Parse body FIRST (can only be read once)
-    const { userId, email, fullName, baseUrl: requestBaseUrl } = await req.json();
+    const { userId, email, fullName } = await readAccessBody(req);
 
     if (!userId || !email) {
       return new Response(
@@ -207,7 +127,14 @@ serve(async (req) => {
     // Create service role client for admin operations
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    console.log("[send-magic-link-email] Sending magic link to:", email);
+    // Recipient comes from Auth, never a mismatched edit-form address.
+    const { data: target, error: targetError } = await supabase.auth.admin.getUserById(String(userId));
+    const canonicalEmail = normalizedEmail(target?.user?.email);
+    if (targetError || !canonicalEmail || canonicalEmail !== normalizedEmail(email)) {
+      return new Response(JSON.stringify({ error: "Save the account email change before sending a sign-in link." }), {
+        status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // Generate secure token
     const token = generateSecureToken();
@@ -226,7 +153,7 @@ serve(async (req) => {
       .from("magic_link_tokens")
       .insert({
         user_id: userId,
-        email: email.toLowerCase(),
+        email: canonicalEmail,
         token_hash: tokenHash,
         expires_at: expiresAt.toISOString(),
       });
@@ -236,18 +163,18 @@ serve(async (req) => {
       throw new Error("Failed to generate magic link");
     }
 
-    // Build magic link URL - use baseUrl from request or default to production
-    const baseUrl = requestBaseUrl || "https://tapaway.co";
+    // Use the configured trusted site; caller-supplied origins are ignored.
+    const baseUrl = frontendUrl();
     const magicLink = `${baseUrl}/auth/magic?token=${token}`;
 
     console.log("[send-magic-link-email] Magic link base URL:", baseUrl);
 
     // Send email
-    const html = generateMagicLinkEmailHtml(fullName || "there", magicLink);
-    const text = generateMagicLinkEmailText(fullName || "there", magicLink);
-    const sent = await sendEmail(email, "Set Up Your TapAway Business Account", html, text);
+    const html = generateMagicLinkEmailHtml(typeof fullName === "string" ? fullName : "there", magicLink);
+    const text = generateMagicLinkEmailText(typeof fullName === "string" ? fullName : "there", magicLink);
+    const sent = await sendEmailAndLog({ to: canonicalEmail, subject: "Access your TapAway dashboard", html, text, templateKey: "admin_dashboard_access", replyTo: "tap@tapaway.co" });
 
-    if (!sent) {
+    if (!sent.ok) {
       throw new Error("Failed to send magic link email");
     }
 

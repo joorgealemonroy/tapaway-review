@@ -1,3 +1,4 @@
+import { readLimitedText } from "../_shared/requestBody.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 
@@ -49,7 +50,7 @@ Deno.serve(async (req) => {
 
   let body: Body;
   try {
-    body = await req.json();
+    body = JSON.parse(await readLimitedText(req, 16384));
   } catch {
     return json({ error: "Invalid JSON" }, 400);
   }
@@ -89,11 +90,7 @@ Deno.serve(async (req) => {
       _user_id: callerUserId,
       _role: "admin",
     });
-    if (roleAdmin) return true;
-    const { data: u } = await admin.auth.admin.getUserById(callerUserId);
-    const email = u?.user?.email ?? "";
-    const metaRole = (u?.user?.app_metadata as Record<string, unknown> | undefined)?.role;
-    return email === "tap@tapaway.co" || metaRole === "admin";
+    return roleAdmin === true;
   };
 
   try {
