@@ -1366,6 +1366,10 @@ export type Database = {
           card_club_price_id: string | null
           card_club_selected: boolean
           card_quantity: number
+          checkout_attempt_hash: string | null
+          checkout_attempt_started_at: string | null
+          checkout_request_hash: string | null
+          checkout_return_origin: string | null
           checkout_source: string | null
           created_at: string
           email: string | null
@@ -1373,6 +1377,8 @@ export type Database = {
           main_price_id: string
           onboarding_version: string
           paid_at: string | null
+          payment_hold_at: string | null
+          payment_hold_reason: string | null
           plan: string
           review_reason: string | null
           status: string
@@ -1397,6 +1403,10 @@ export type Database = {
           card_club_price_id?: string | null
           card_club_selected?: boolean
           card_quantity: number
+          checkout_attempt_hash?: string | null
+          checkout_attempt_started_at?: string | null
+          checkout_request_hash?: string | null
+          checkout_return_origin?: string | null
           checkout_source?: string | null
           created_at?: string
           email?: string | null
@@ -1404,6 +1414,8 @@ export type Database = {
           main_price_id: string
           onboarding_version?: string
           paid_at?: string | null
+          payment_hold_at?: string | null
+          payment_hold_reason?: string | null
           plan: string
           review_reason?: string | null
           status?: string
@@ -1428,6 +1440,10 @@ export type Database = {
           card_club_price_id?: string | null
           card_club_selected?: boolean
           card_quantity?: number
+          checkout_attempt_hash?: string | null
+          checkout_attempt_started_at?: string | null
+          checkout_request_hash?: string | null
+          checkout_return_origin?: string | null
           checkout_source?: string | null
           created_at?: string
           email?: string | null
@@ -1435,6 +1451,8 @@ export type Database = {
           main_price_id?: string
           onboarding_version?: string
           paid_at?: string | null
+          payment_hold_at?: string | null
+          payment_hold_reason?: string | null
           plan?: string
           review_reason?: string | null
           status?: string

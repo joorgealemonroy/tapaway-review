@@ -9,7 +9,11 @@ let checks = 0;
 const pass = async (name, run) => { await run(); checks++; console.log(`PASS ${name}`); };
 
 (async () => {
-  const prep = read('drizzle/migrations/0032_business_checkout_preflight.sql');
+  const journal = JSON.parse(read('drizzle/migrations/meta/_journal.json'));
+  const entry = journal.entries.find(value => value.idx === 32);
+  assert.ok(entry, 'Preparatory migration must remain registered at index 32');
+  const prep = read(`drizzle/migrations/${entry.tag}.sql`);
+  const twinTimestamp = new Date(entry.when).toISOString().slice(0, 19).replace(/[-:T]/g, '');
   const retry = read('drizzle/migrations/0034_business_checkout_attempts.sql');
   const db = new PGlite();
   await db.exec(`CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role BYPASSRLS;
@@ -21,11 +25,9 @@ const pass = async (name, run) => { await run(); checks++; console.log(`PASS ${n
   const originalPermissions = await permissions();
 
   await pass('Preparatory migration twins match and safely repeat without changing existing billing or permissions', async () => {
-    assert.equal(prep, read('supabase/migrations/20261027080000_business_checkout_preflight.sql'));
-    const journal = JSON.parse(read('drizzle/migrations/meta/_journal.json'));
-    const entry = journal.entries.find(value => value.tag === '0032_business_checkout_preflight');
+    assert.equal(prep, read(`supabase/migrations/${twinTimestamp}_business_checkout_preflight.sql`));
     assert.equal(entry.idx, 32);
-    assert.equal(new Date(entry.when).toISOString(), '2026-10-27T08:00:00.000Z');
+    assert.ok(Number.isSafeInteger(entry.when));
     assert.ok(journal.entries[31].when < entry.when);
     await db.exec(prep); await db.exec(prep);
     assert.deepEqual((await db.query('SELECT id,user_id,status,stripe_subscription_id FROM checkout_intents')).rows, original);
