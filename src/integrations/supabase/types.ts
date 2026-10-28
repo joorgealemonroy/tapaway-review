@@ -759,9 +759,15 @@ export type Database = {
           buyer_email: string | null
           created_at: string | null
           creator_id: string
+          duration_minutes: number | null
+          ends_at: string | null
           id: string
+          price_cents: number | null
           product_id: string
+          reservation_key: string | null
+          reserved_until: string | null
           start_time: string
+          starts_at: string | null
           status: string
           stripe_session_id: string | null
           timezone: string
@@ -772,9 +778,15 @@ export type Database = {
           buyer_email?: string | null
           created_at?: string | null
           creator_id: string
+          duration_minutes?: number | null
+          ends_at?: string | null
           id?: string
+          price_cents?: number | null
           product_id: string
+          reservation_key?: string | null
+          reserved_until?: string | null
           start_time: string
+          starts_at?: string | null
           status?: string
           stripe_session_id?: string | null
           timezone?: string
@@ -785,9 +797,15 @@ export type Database = {
           buyer_email?: string | null
           created_at?: string | null
           creator_id?: string
+          duration_minutes?: number | null
+          ends_at?: string | null
           id?: string
+          price_cents?: number | null
           product_id?: string
+          reservation_key?: string | null
+          reserved_until?: string | null
           start_time?: string
+          starts_at?: string | null
           status?: string
           stripe_session_id?: string | null
           timezone?: string
@@ -1863,27 +1881,45 @@ export type Database = {
           access_expires_at: string
           access_token: string
           buyer_email: string
+          buyer_email_sent_at: string | null
+          buyer_email_started_at: string | null
           created_at: string | null
+          creator_email_sent_at: string | null
+          creator_email_started_at: string | null
           id: string
+          payment_status: string | null
           product_id: string
+          stripe_payment_intent_id: string | null
           stripe_session_id: string
         }
         Insert: {
           access_expires_at: string
           access_token: string
           buyer_email: string
+          buyer_email_sent_at?: string | null
+          buyer_email_started_at?: string | null
           created_at?: string | null
+          creator_email_sent_at?: string | null
+          creator_email_started_at?: string | null
           id?: string
+          payment_status?: string | null
           product_id: string
+          stripe_payment_intent_id?: string | null
           stripe_session_id: string
         }
         Update: {
           access_expires_at?: string
           access_token?: string
           buyer_email?: string
+          buyer_email_sent_at?: string | null
+          buyer_email_started_at?: string | null
           created_at?: string | null
+          creator_email_sent_at?: string | null
+          creator_email_started_at?: string | null
           id?: string
+          payment_status?: string | null
           product_id?: string
+          stripe_payment_intent_id?: string | null
           stripe_session_id?: string
         }
         Relationships: [
@@ -3412,8 +3448,12 @@ export type Database = {
           created_at: string
           id: string
           is_addon: boolean
+          legacy_card_invoice_id: string | null
+          legacy_card_payment_intent_id: string | null
+          legacy_card_subscription_id: string | null
           profile_id: string
           quantity: number
+          request_key: string | null
           shipping_address_line1: string | null
           shipping_address_line2: string | null
           shipping_city: string | null
@@ -3429,8 +3469,12 @@ export type Database = {
           created_at?: string
           id?: string
           is_addon?: boolean
+          legacy_card_invoice_id?: string | null
+          legacy_card_payment_intent_id?: string | null
+          legacy_card_subscription_id?: string | null
           profile_id: string
           quantity?: number
+          request_key?: string | null
           shipping_address_line1?: string | null
           shipping_address_line2?: string | null
           shipping_city?: string | null
@@ -3446,8 +3490,12 @@ export type Database = {
           created_at?: string
           id?: string
           is_addon?: boolean
+          legacy_card_invoice_id?: string | null
+          legacy_card_payment_intent_id?: string | null
+          legacy_card_subscription_id?: string | null
           profile_id?: string
           quantity?: number
+          request_key?: string | null
           shipping_address_line1?: string | null
           shipping_address_line2?: string | null
           shipping_city?: string | null
@@ -5775,6 +5823,14 @@ export type Database = {
       }
       admin_workspace_hubs: { Args: never; Returns: Json }
       admin_workspace_insights: { Args: { _days?: number }; Returns: Json }
+      affiliate_profile_attribution_is_valid: {
+        Args: { _code: string; _profile_id: string }
+        Returns: boolean
+      }
+      affiliate_referral_is_valid: {
+        Args: { _affiliate_id: string; _profile_id: string }
+        Returns: boolean
+      }
       audit_location_coverage_admin: {
         Args: never
         Returns: {
@@ -5823,6 +5879,18 @@ export type Database = {
       current_user_email: { Args: never; Returns: string }
       customer_read_notification: { Args: { _id: string }; Returns: undefined }
       expire_analytics_ip_hashes: { Args: never; Returns: undefined }
+      fulfill_creator_booking: {
+        Args: {
+          _amount: number
+          _booking_id: string
+          _buyer_email: string
+          _currency: string
+          _product_id: string
+          _reservation_key: string
+          _session_id: string
+        }
+        Returns: Json
+      }
       fulfill_hub_payment: {
         Args: {
           _billing_email: string
@@ -5874,6 +5942,18 @@ export type Database = {
         }[]
       }
       get_hub_payment_offer: { Args: { _slug: string }; Returns: Json }
+      get_public_booking_slots: {
+        Args: { _from: string; _product_id: string; _to: string }
+        Returns: {
+          booking_date: string
+          created_at: string
+          ends_at: string
+          reserved_until: string
+          start_time: string
+          starts_at: string
+          status: string
+        }[]
+      }
       get_public_creator_products: {
         Args: { _creator_id: string }
         Returns: {
@@ -6099,6 +6179,21 @@ export type Database = {
         }
         Returns: undefined
       }
+      record_personal_capture: {
+        Args: {
+          p_email: string
+          p_marketing_consent: boolean
+          p_marketing_text: string
+          p_message: string
+          p_name: string
+          p_phone: string
+          p_profile_id: string
+          p_transactional_consent: boolean
+          p_transactional_text: string
+          p_user_agent: string
+        }
+        Returns: string
+      }
       record_sms_optin: {
         Args: {
           p_consent_text: string
@@ -6122,6 +6217,17 @@ export type Database = {
         Args: { _profile_id: string; _requested_by: string }
         Returns: string
       }
+      reserve_creator_booking: {
+        Args: {
+          _booking_date: string
+          _buyer_email: string
+          _product_id: string
+          _request_key: string
+          _start_time: string
+          _timezone: string
+        }
+        Returns: Json
+      }
       reserve_legacy_allowance: {
         Args: {
           _idempotency_key: string
@@ -6138,8 +6244,26 @@ export type Database = {
           used: number
         }[]
       }
+      reserve_legacy_card_addon: {
+        Args: {
+          _owner_id: string
+          _profile_id: string
+          _quantity: number
+          _request_key: string
+          _shipping: Json
+          _stripe_customer_id: string
+          _stripe_invoice_id: string
+          _stripe_payment_intent_id: string
+          _stripe_subscription_id: string
+        }
+        Returns: Json
+      }
       reserve_promo_token: {
         Args: { p_hold_minutes?: number; p_token_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      restaurant_is_active: {
+        Args: { _restaurant_id: string }
         Returns: boolean
       }
       rpt_admin_hub_table: {

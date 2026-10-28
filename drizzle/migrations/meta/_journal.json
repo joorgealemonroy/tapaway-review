@@ -239,6 +239,13 @@
       "when": 1793155347939,
       "tag": "0033_retire_automatic_founding_grants",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1793157239533,
+      "tag": "0034_public_access_and_reservations",
+      "breakpoints": true
     }
   ]
 }
