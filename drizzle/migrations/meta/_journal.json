@@ -232,6 +232,13 @@
       "when": 1793154231269,
       "tag": "0032_business_checkout_preflight",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1793155347939,
+      "tag": "0033_retire_automatic_founding_grants",
+      "breakpoints": true
     }
   ]
 }
