@@ -128,7 +128,10 @@ const sourceFunction = (file, name) => {
     await db.query("UPDATE nfc_cards SET status='claimed',card_type='standard',paid_order_ref=NULL WHERE id=$1",[card]);
     await db.query('UPDATE sales_reps SET is_active=false,quality_gate_exempt=false WHERE id=$1',[disabledRep]);
   });
-  const migration=read('supabase/migrations/20261027090000_public_access_and_reservations.sql');
+  const entry=JSON.parse(read('drizzle/migrations/meta/_journal.json')).entries.find(e=>e.idx===34);
+  assert.ok(entry);
+  const timestamp=new Date(entry.when).toISOString().slice(0,19).replace(/[-:T]/g,'');
+  const migration=read(`supabase/migrations/${timestamp}_public_access_and_reservations.sql`);
   assert.equal(migration,read('drizzle/migrations/0034_public_access_and_reservations.sql'));
   await db.exec(migration);
   // Load the separately versioned Storage API configuration in this isolated fixture.

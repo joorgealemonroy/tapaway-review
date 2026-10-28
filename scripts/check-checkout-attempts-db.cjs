@@ -43,7 +43,10 @@ const pass = async (name, run) => { await run(); checks++; console.log(`PASS ${n
   });
 
   await pass('Later retry migration stays repeatable after the additive preparation', async () => {
-    assert.equal(retry, read('supabase/migrations/20261027120000_business_checkout_attempts.sql'));
+    const retryEntry=journal.entries.find(value=>value.idx===35);
+    assert.ok(retryEntry);
+    const retryTimestamp=new Date(retryEntry.when).toISOString().slice(0,19).replace(/[-:T]/g,'');
+    assert.equal(retry, read(`supabase/migrations/${retryTimestamp}_business_checkout_attempts.sql`));
     await db.exec(retry); await db.exec(retry);
     assert.deepEqual((await db.query('SELECT id,user_id,status,stripe_subscription_id FROM checkout_intents')).rows, original);
     assert.deepEqual(await permissions(), originalPermissions);

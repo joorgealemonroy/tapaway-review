@@ -33,7 +33,10 @@ const pass = async (name, run) => { await run(); checks++; console.log(`PASS ${n
     ALTER TABLE checkout_intents ADD CONSTRAINT intents_status CHECK(status IN ('created','checkout_started','paid','pending_association','associated','failed','abandoned','needs_review'));
     GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;`);
   const migration=read('drizzle/migrations/0036_payment_reversal_holds.sql');
-  assert.equal(migration,read('supabase/migrations/20261027150000_payment_reversal_holds.sql'));
+  const entry=JSON.parse(read('drizzle/migrations/meta/_journal.json')).entries.find(e=>e.idx===36);
+  assert.ok(entry);
+  const timestamp=new Date(entry.when).toISOString().slice(0,19).replace(/[-:T]/g,'');
+  assert.equal(migration.trimEnd(),read(`supabase/migrations/${timestamp}_payment_reversal_holds.sql`).trimEnd());
   await db.exec(migration);
   const one=async(sql,params=[]) => (await db.query(sql,params)).rows[0];
   const reverse=(pi,sub=null,reason='refunded',mode='live')=>db.query('SELECT record_payment_reversal($1,$2,$3,$4) result',[mode,pi,sub,reason]);
