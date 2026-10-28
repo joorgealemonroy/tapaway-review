@@ -32,7 +32,7 @@ const pass = async (name, run) => { await run(); checks++; console.log(`PASS ${n
     ALTER TABLE personal_card_orders ADD CONSTRAINT orders_production CHECK(production_status IN ('awaiting_payment','needs_review','approved','printed','shipped','on_hold'));
     ALTER TABLE checkout_intents ADD CONSTRAINT intents_status CHECK(status IN ('created','checkout_started','paid','pending_association','associated','failed','abandoned','needs_review'));
     GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;`);
-  const migration=read('drizzle/migrations/0034_payment_reversal_holds.sql');
+  const migration=read('drizzle/migrations/0035_payment_reversal_holds.sql');
   assert.equal(migration,read('supabase/migrations/20261027150000_payment_reversal_holds.sql'));
   await db.exec(migration);
   const one=async(sql,params=[]) => (await db.query(sql,params)).rows[0];
