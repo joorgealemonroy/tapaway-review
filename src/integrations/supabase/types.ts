@@ -3161,6 +3161,33 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_reversal_holds: {
+        Row: {
+          created_at: string
+          mode: string
+          reason: string
+          stripe_payment_intent_id: string
+          stripe_subscription_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          mode: string
+          reason: string
+          stripe_payment_intent_id: string
+          stripe_subscription_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          mode?: string
+          reason?: string
+          stripe_payment_intent_id?: string
+          stripe_subscription_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pending_otps: {
         Row: {
           code: string
@@ -6157,6 +6184,18 @@ export type Database = {
           used: number
         }[]
       }
+      lock_payment_reversal_binding: {
+        Args: { _payment_intent_id: string; _subscription_id: string }
+        Returns: undefined
+      }
+      payment_reversal_reason: {
+        Args: {
+          _mode: string
+          _payment_intent_id: string
+          _subscription_id: string
+        }
+        Returns: string
+      }
       personal_card_hub_destination: {
         Args: { _order_id: string }
         Returns: string
@@ -6178,6 +6217,15 @@ export type Database = {
           _status: string
         }
         Returns: undefined
+      }
+      record_payment_reversal: {
+        Args: {
+          _mode: string
+          _payment_intent_id: string
+          _reason?: string
+          _subscription_id?: string
+        }
+        Returns: Json
       }
       record_personal_capture: {
         Args: {
