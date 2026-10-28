@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "buckets": [
+    {
+      "id": "personal-photos",
+      "public": true,
+      "file_size_limit": 20971520,
+      "allowed_mime_types": ["image/jpeg", "image/png", "image/webp", "image/gif", "image/avif", "video/mp4", "video/webm", "video/quicktime"]
+    },
+    {
+      "id": "personal-link-images",
+      "public": true,
+      "file_size_limit": 20971520,
+      "allowed_mime_types": ["image/jpeg", "image/png", "image/webp", "image/gif", "image/avif"]
+    },
+    {
+      "id": "card-print-files",
+      "public": false,
+      "file_size_limit": 20971520,
+      "allowed_mime_types": ["application/pdf", "image/jpeg", "image/png", "image/webp"]
+    }
+  ]
+}
