@@ -372,4 +372,3 @@ END;
 $$;
 REVOKE ALL ON FUNCTION public.hold_hub_payment_by_subscription(text,text,text) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.hold_hub_payment_by_subscription(text,text,text) TO service_role;
-
