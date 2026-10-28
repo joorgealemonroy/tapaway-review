@@ -131,6 +131,15 @@ const sourceFunction = (file, name) => {
   const migration=read('supabase/migrations/20261027090000_public_access_and_reservations.sql');
   assert.equal(migration,read('drizzle/migrations/0034_public_access_and_reservations.sql'));
   await db.exec(migration);
+  // Load the separately versioned Storage API configuration in this isolated fixture.
+  const storageConfig=JSON.parse(read('supabase/storage-buckets.json'));
+  assert.equal(storageConfig.version,1);
+  assert.deepEqual(storageConfig.buckets.map(b=>b.id),['personal-photos','personal-link-images','card-print-files']);
+  for(const bucket of storageConfig.buckets){
+    const existing=(await db.query('SELECT public FROM storage.buckets WHERE id=$1',[bucket.id])).rows[0];
+    assert.equal(existing.public,bucket.public);
+    await db.query('UPDATE storage.buckets SET file_size_limit=$1,allowed_mime_types=$2 WHERE id=$3',[bucket.file_size_limit,bucket.allowed_mime_types,bucket.id]);
+  }
   await pass('Public projections honor approval/payment gates; owners keep product/menu previews and gifts stay unchanged',async()=>{
     await asRole('anon',null,async()=>{
       assert.deepEqual((await db.query('SELECT username FROM personal_profiles_public')).rows.map(r=>r.username),['live']);
@@ -184,6 +193,9 @@ const sourceFunction = (file, name) => {
     for(const row of rows.filter(r=>r.id!=='creator-files')){assert.equal(row.file_size_limit,20971520);assert.ok(!row.allowed_mime_types.includes('text/html'));assert.ok(!row.allowed_mime_types.includes('image/svg+xml'));}
     assert.equal(rows.find(r=>r.id==='card-print-files').public,false);
     assert.ok(rows.find(r=>r.id==='personal-photos').allowed_mime_types.includes('video/mp4'));
+    assert.deepEqual(rows.find(r=>r.id==='personal-photos').allowed_mime_types,['image/jpeg','image/png','image/webp','image/gif','image/avif','video/mp4','video/webm','video/quicktime']);
+    assert.deepEqual(rows.find(r=>r.id==='personal-link-images').allowed_mime_types,['image/jpeg','image/png','image/webp','image/gif','image/avif']);
+    assert.deepEqual(rows.find(r=>r.id==='card-print-files').allowed_mime_types,['application/pdf','image/jpeg','image/png','image/webp']);
     assert.equal(rows.find(r=>r.id==='creator-files').file_size_limit,null);
   });
   await pass('Browser paid-booking inserts are denied, including through the safe slot view',async()=>{
