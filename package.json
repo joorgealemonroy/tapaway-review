@@ -10,7 +10,8 @@
     "check:hubs": "node scripts/check-public-hubs.mjs",
     "lint": "eslint .",
     "preview": "vite preview",
-    "security:source": "node scripts/check-release-security.mjs",
+    "security:source": "node scripts/sync-public-knowledge.mjs --check && node scripts/check-release-security.mjs",
+    "sync:public-knowledge": "node scripts/sync-public-knowledge.mjs",
     "security:artifacts": "node scripts/check-release-security.mjs --artifacts",
     "security:test": "node scripts/check-build-security.mjs",
     "test:release": "node scripts/check-release-regressions.cjs"
