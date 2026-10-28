@@ -72,17 +72,8 @@ $$;
 DROP TRIGGER IF EXISTS guard_nfc_card_authority ON public.nfc_cards;
 CREATE TRIGGER guard_nfc_card_authority BEFORE UPDATE ON public.nfc_cards FOR EACH ROW EXECUTE FUNCTION public.guard_nfc_card_authority();
 
--- Match public media bucket limits to the current upload UI. Existing files are
--- unchanged. Personal photos also contain the supported short collage videos.
-UPDATE storage.buckets SET file_size_limit=20971520,
-  allowed_mime_types=ARRAY['image/jpeg','image/png','image/webp','image/gif','image/avif','video/mp4','video/webm','video/quicktime']
-  WHERE id='personal-photos';
-UPDATE storage.buckets SET file_size_limit=20971520,
-  allowed_mime_types=ARRAY['image/jpeg','image/png','image/webp','image/gif','image/avif']
-  WHERE id='personal-link-images';
-UPDATE storage.buckets SET file_size_limit=20971520,
-  allowed_mime_types=ARRAY['application/pdf','image/jpeg','image/png','image/webp']
-  WHERE id='card-print-files';
+-- Bucket size and MIME policy is configured through the Storage API using
+-- supabase/storage-buckets.json; storage settings are not schema migrations.
 
 -- Reservations are created by the checkout server, never by browser writes.
 ALTER TABLE public.bookings ADD COLUMN IF NOT EXISTS reservation_key uuid;
