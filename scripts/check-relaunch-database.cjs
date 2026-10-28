@@ -129,7 +129,7 @@ const sourceFunction = (file, name) => {
     await db.query('UPDATE sales_reps SET is_active=false,quality_gate_exempt=false WHERE id=$1',[disabledRep]);
   });
   const migration=read('supabase/migrations/20261027090000_public_access_and_reservations.sql');
-  assert.equal(migration,read('drizzle/migrations/0033_public_access_and_reservations.sql'));
+  assert.equal(migration,read('drizzle/migrations/0034_public_access_and_reservations.sql'));
   await db.exec(migration);
   await pass('Public projections honor approval/payment gates; owners keep product/menu previews and gifts stay unchanged',async()=>{
     await asRole('anon',null,async()=>{
