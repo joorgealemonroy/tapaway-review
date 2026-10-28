@@ -14,7 +14,7 @@ const pass = async (name, run) => { await run(); checks++; console.log(`PASS ${n
   assert.ok(entry, 'Preparatory migration must remain registered at index 32');
   const prep = read(`drizzle/migrations/${entry.tag}.sql`);
   const twinTimestamp = new Date(entry.when).toISOString().slice(0, 19).replace(/[-:T]/g, '');
-  const retry = read('drizzle/migrations/0034_business_checkout_attempts.sql');
+  const retry = read('drizzle/migrations/0035_business_checkout_attempts.sql');
   const db = new PGlite();
   await db.exec(`CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role BYPASSRLS;
     CREATE TABLE checkout_intents(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),user_id uuid,status text DEFAULT 'pending',stripe_subscription_id text);
