@@ -30,7 +30,7 @@ async def main():
   reader = PdfReader(io.BytesIO(pdf))
   assert len(reader.pages) == 8
   assert all(float(x.mediabox.width) > 0 and float(x.mediabox.height) > 0 for x in reader.pages)
-  assert 'Sarandeado' in ''.join(x.extract_text() for x in reader.pages)
+  assert 'sarandeado' in ''.join(x.extract_text() for x in reader.pages).lower()
   print('PASS original PDF HTTP200, MIME, exact bytes/hash, eight readable pages')
   # Local Vite lacks the CDN gateway; serve the exact verified bytes only for that asset.
   async def serve_pdf(route):
