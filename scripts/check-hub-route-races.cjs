@@ -39,7 +39,7 @@ async function fixture(file) {
     rpc(name, args) { const d = deferred(); requests.push({ name, args, ...d }); return d.promise; },
     from(table) { const d = deferred(); requests.push({ name: table, ...d }); const query = { then: (...a) => d.promise.then(...a) }; for (const method of ['select', 'eq', 'or', 'order', 'maybeSingle']) query[method] = () => query; return query; },
   };
-  const context = vm.createContext({ console, Promise, document: { querySelectorAll: () => [], createElement: () => ({}), head: { appendChild() {} } }, __react: life.react, __db: db, __route: route, __admin: admin, __cache: (key, data) => cached.push({ key, data }), __invalidate: key => invalidated.push(key) });
+  const context = vm.createContext({ console, Promise, URLSearchParams, document: { querySelectorAll: () => [], createElement: () => ({}), head: { appendChild() {} } }, __react: life.react, __db: db, __route: route, __admin: admin, __cache: (key, data) => cached.push({ key, data }), __invalidate: key => invalidated.push(key) });
   const mocks = {
     react: 'module.exports=globalThis.__react;',
     'react-router-dom': 'export const useParams=()=>globalThis.__route; export const useLocation=()=>globalThis.__route;',
@@ -110,7 +110,7 @@ const plain = value => JSON.parse(JSON.stringify(value));
     const f = await fixture('src/pages/UsernameResolver.tsx'); const inner = f.life.render(f.exports.default).type; let slug = 'a';
     const render = () => inner({ slug, isAdminPreview: false }); f.life.render(render); f.life.effects(); const old = f.requests[0];
     slug = 'b'; f.life.render(render); f.life.effects(); await reply(f.requests[1], []); await reply(f.requests[2], []);
-    const beforeRestaurant = f.life.read(); assert.equal(beforeRestaurant.type instanceof Function, true);
+    const beforeRestaurant = f.life.read(); assert.equal(typeof beforeRestaurant.type, 'function');
     await reply(f.requests[3], []); await reply(f.requests[4], [{ id: 'b', payment_state: 'paid' }]); assert.equal(f.life.read().props.children[0].type, 'lazy');
     await reply(old, [live('a')]); assert.equal(f.life.read().props.children[0].type, 'lazy');
   });
