@@ -1,5 +1,11 @@
 # Roadmap
 
+## Authorized Las Islas menu update (2026-10-31)
+- [ ] Transcribe and verify all eight PDF pages; preserve a private reversible menu snapshot and guard the two authorized identities.
+- [ ] Import identical menus transactionally into only the two legacy restaurant menus and attach the unchanged source PDF.
+- [ ] Add a scoped accessible mobile menu with search, categories and browser history; preserve other hubs and route race protection.
+- [ ] Verify responsive real-hub flows, release/security checks and data isolation; report review commit without publication.
+
 ## Focused hub navigation race fix (2026-10-31)
 - [x] Reset route ownership immediately and ignore superseded profile/resolver lookups without changing public gates or hub contents.
 - [x] Add seven async regression checks; delayed real location links, cold loads, back/forward and fast history passed with zero false missing frames. Missing route confirmed; access gates covered offline.
