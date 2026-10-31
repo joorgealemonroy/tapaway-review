@@ -1,6 +1,6 @@
 # Project rules
 
-- The enhanced Las Islas menu is allowlisted by restaurant ID and uses the gated public menu RPC; other hubs retain their existing menu so legacy destinations cannot inherit location-specific UI.
+- The Las Islas original-PDF menu link is allowlisted by exact restaurant ID; other hubs retain their existing menu RPC and viewer so legacy destinations cannot inherit location-specific UI.
 
 - Public hub resolution and profile fetch results belong to the current route/request only; remount route destinations and discard superseded async results so loading never exposes another hub or a premature missing gate.
 

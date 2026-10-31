@@ -1,5 +1,9 @@
 # Roadmap
 
+## Las Islas PDF correction (2026-10-31)
+- [x] Keep only the upper menu action for the two exact IDs; open the unchanged original PDF in a new tab with analytics, removing the text viewer and its styles.
+- [ ] Verify phone layouts, PDF bytes/readability/new tab/return, original Islas behavior, and existing release/security checks. No database changes or publication.
+
 ## Authorized Las Islas menu update (2026-10-31)
 - [x] Transcribe and independently verify all eight PDF pages, 20 sections/155 items; private exact snapshot and restoration SQL saved.
 - [x] Import identical menus transactionally into only the two legacy restaurant menus; 310 items total, unchanged restaurant and other-menu hashes; stable unchanged PDF hosted.
