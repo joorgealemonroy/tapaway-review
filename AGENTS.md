@@ -1,5 +1,7 @@
 # Project rules
 
+- The enhanced Las Islas menu is allowlisted by restaurant ID and uses the gated public menu RPC; other hubs retain their existing menu so legacy destinations cannot inherit location-specific UI.
+
 - Public hub resolution and profile fetch results belong to the current route/request only; remount route destinations and discard superseded async results so loading never exposes another hub or a premature missing gate.
 
 - Share the verified onboarding catalog client between public pricing and signup; unavailable or missing prices cannot enable checkout actions because Stripe is authoritative.

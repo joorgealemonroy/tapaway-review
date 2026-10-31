@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { YelpIcon } from "@/components/icons/YelpIcon";
 import { AvMealPrepHub } from "@/components/hubs/AvMealPrepHub";
 import { RestaurantSmsOptInDrawer } from "@/components/restaurant/RestaurantSmsOptInDrawer";
+import { LasIslasMenu } from "@/components/hubs/LasIslasMenu";
+import { hasLasIslasMenu } from "@/lib/lasIslasMenu";
 import { ExpiredHubGate } from "@/components/hub/ExpiredHubGate";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { Smartphone } from "lucide-react";
@@ -196,6 +198,8 @@ const ReviewHub = () => {
   };
 
   const fetchMenu = async (restId: string) => {
+    // The allowlisted viewer owns its request lifecycle, loading and retry state.
+    if (hasLasIslasMenu(restId)) return;
     // Public visitors cannot read menu tables directly (RLS depends on a
     // restaurants read they don't have), so go through the secure RPC.
     const { data: sections, error } = await supabase
@@ -268,6 +272,7 @@ const ReviewHub = () => {
   };
 
   useEffect(() => {
+    if (restaurant && hasLasIslasMenu(restaurant.id)) return;
     if (menuOpen) {
       document.documentElement.style.overflow = 'hidden';
       document.body.style.overflow = 'hidden';
@@ -279,7 +284,7 @@ const ReviewHub = () => {
       document.documentElement.style.overflow = 'unset';
       document.body.style.overflow = 'unset';
     };
-  }, [menuOpen]);
+  }, [menuOpen, restaurant?.id]);
 
   if (loading && !restaurant) {
     return (
@@ -843,6 +848,7 @@ const ReviewHub = () => {
           )}
 
           {/* MENU BUTTON */}
+          {hasLasIslasMenu(restaurant.id) ? <Button className="h-14 w-full text-lg font-bold" onClick={() => { trackEvent('menu_view'); setMenuOpen(true); }}>View Menu · Ver Menú</Button> :
           <a 
             href="#"
             onClick={(e) => {
@@ -870,7 +876,7 @@ const ReviewHub = () => {
               <path d="M21 20H3V8h18v12zm0-14H3V4h18v2zm-9 8v2h5v-2h-5z"/>
             </svg>
             {restaurant.menu_title}
-          </a>
+          </a>}
 
           <div style={{ marginTop: '16px', paddingTop: '10px', borderTop: `1px solid ${visitorTheme === 'dark' ? '#4a4a4a' : '#eee'}`, fontSize: '12px', color: getMutedTextColor() }}>
             Powered by <a href="https://tapaway.co" target="_blank" rel="noopener noreferrer" style={{ color: getTextColor(), textDecoration: 'none', fontWeight: '700' }}>TapAway</a>
@@ -893,7 +899,8 @@ const ReviewHub = () => {
       `}</style>
 
       {/* MENU MODAL */}
-      {menuOpen && (
+      {hasLasIslasMenu(restaurant.id) && <LasIslasMenu restaurantId={restaurant.id} name={restaurant.restaurant_name} logo={restaurant.logo_url} open={menuOpen} onOpenChange={setMenuOpen} />}
+      {menuOpen && !hasLasIslasMenu(restaurant.id) && (
         <div 
           style={{
             position: 'fixed',
