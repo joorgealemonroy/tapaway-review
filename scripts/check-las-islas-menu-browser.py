@@ -49,8 +49,8 @@ async def main():
   await page.get_by_role('button',name='Retry menu').click();await page.get_by_role('heading',name='Ostiones en su concha',exact=True).wait_for();await page.get_by_role('button',name='Close menu').click()
   await page.unroute('**/rest/v1/rpc/get_public_restaurant_menu',slow)
   print('PASS delayed failure and retry')
-  await page.goto('http://localhost:8080/lasislasfontana');await page.get_by_role('button',name='View Menu').first.click();await page.get_by_role('dialog').wait_for();await page.get_by_role('button',name='Close menu').click();await page.get_by_role('dialog').wait_for(state='hidden');await page.wait_for_timeout(200);assert await page.get_by_role('button',name='View Menu').first.evaluate('(e)=>e===document.activeElement')
-  await page.go_back();assert page.url.endswith('/lasislasfontana') or page.url.endswith('/lasislas');assert await page.get_by_text('Profile not found',exact=True).count()==0
+  await page.goto('http://localhost:8080/lasislas');await page.locator('a[href="/lasislasfontana"]').click();await page.get_by_role('button',name='View Menu').first.click();await page.get_by_role('dialog').wait_for();await page.get_by_role('button',name='Close menu').click();await page.get_by_role('dialog').wait_for(state='hidden');await page.wait_for_timeout(200);assert await page.get_by_role('button',name='View Menu').first.evaluate('(e)=>e===document.activeElement')
+  await page.go_back();assert page.url.endswith('/lasislas');assert await page.get_by_text('Profile not found',exact=True).count()==0
   print('PASS close returns focus and subsequent history has no missing gate')
   await page.goto('http://localhost:8080/islas');await page.wait_for_timeout(2000)
   links=await page.locator('a[href^="/islas"]').evaluate_all('(a)=>a.map(x=>x.getAttribute("href"))');print('Original child paths',links)
