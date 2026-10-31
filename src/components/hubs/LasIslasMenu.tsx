@@ -87,7 +87,13 @@ export function LasIslasMenu({ restaurantId, name, logo, open, onOpenChange }: P
             {visible.map(section => <section key={section.id} aria-label={section.name} className="mb-8">
               <h2 className="border-b-2 pb-3 text-xl font-bold">{section.name}</h2>
               {sourceMenu.sections.find(source => source.name === section.name)?.note && <p className="mt-3 text-base leading-relaxed text-muted-foreground">{sourceMenu.sections.find(source => source.name === section.name)?.note}</p>}
-              <div className="divide-y">{section.items.map(item => <article key={item.id} className="py-5"><h3 className="text-lg font-semibold leading-snug">{item.name}</h3>{item.price && <div className="mt-2 flex flex-wrap gap-x-5 gap-y-2">{item.price.split(" · ").map(price => <p key={price} className="text-xl font-bold tabular-nums">{price}</p>)}</div>}{item.description && <p className="mt-2 text-base leading-relaxed text-muted-foreground">{item.description}</p>}</article>)}</div>
+              <div className="divide-y">{section.items.map(item => {
+                const note = sourceMenu.sections.find(source => source.name === section.name)?.note;
+                // Notes live in editable item data for legacy clients, but appear
+                // once per category here rather than repeating under every dish.
+                const description = note ? item.description?.replace(note, "").trim() : item.description;
+                return <article key={item.id} className="py-5"><h3 className="text-lg font-semibold leading-snug">{item.name}</h3>{item.price && <div className="mt-2 flex flex-wrap gap-x-5 gap-y-2">{item.price.split(" · ").map(price => <p key={price} className="text-xl font-bold tabular-nums">{price}</p>)}</div>}{description && <p className="mt-2 text-base leading-relaxed text-muted-foreground">{description}</p>}</article>;
+              })}</div>
             </section>)}
             <footer className="space-y-4 border-t pt-5 text-base leading-relaxed"><p>Prices may change at any time. Please refer to in-person menu for the most accurate pricing.</p><p><strong>AVISO IMPORTANTE:</strong> El comer ostras crudas puede causar una enfermedad grave y hasta la muerte en personas con enfermedades del hígado (por ejemplo, cirrosis alcohólica), cáncer u otras enfermedades crónicas que debilitan el sistema inmunológico. Si come ostras crudas y se enferma, busque atención médica inmediatamente. Si cree estar en peligro, consulte a su médico.</p><p><strong>WARNING:</strong> Eating raw oysters/seafood may cause severe illness or death in individuals with liver disease (e.g. alcoholic cirrhosis), cancer or other chronic illness that weakens the immune system. Seek immediate medical attention if you become ill. If you are unsure if you are at risk, consult your physician.</p></footer>
           </>}

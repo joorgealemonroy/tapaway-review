@@ -461,7 +461,7 @@ const ReviewHub = () => {
               src={restaurant.logo_url} 
               alt="Restaurant Logo" 
               style={{ 
-                maxWidth: '280px', 
+                maxWidth: hasLasIslasMenu(restaurant.id) ? 'min(280px, 100%)' : '280px', 
                 maxHeight: '280px', 
                 width: 'auto',
                 height: 'auto',
