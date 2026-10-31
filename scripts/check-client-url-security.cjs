@@ -35,6 +35,7 @@ function load(relative, env = environment()) {
     if (name === '@/integrations/supabase/client') return { supabase: env.db };
     if (name === '@/lib/sanitizeUrl') return load('src/lib/sanitizeUrl.ts', env);
     if (name === '@/lib/hubThemes') return load('src/lib/hubThemes.ts', env);
+    if (name === '@/lib/lasIslasMenu') return load('src/lib/lasIslasMenu.ts', env);
     if (name === '@/hooks/useAdminAccess') return { useAdminAccess: () => ({ isAdmin: false, loading: false }) };
     if (name === '@/lib/platformLinks') return { getPlatformConfig: () => null };
     if (name === 'framer-motion') return { motion: generic, AnimatePresence: 'AnimatePresence' };

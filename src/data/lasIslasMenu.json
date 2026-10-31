@@ -652,7 +652,7 @@
     {
       "name": "Charolas de Ceviche · Party Trays",
       "page": 6,
-      "note": "Includes salsa, tostadas & chips.",
+      "note": "Included salsa, tostadas & chips.",
       "items": [
         {
           "name": "Fish / Pescado",
@@ -694,7 +694,7 @@
         {
           "name": "Margarita",
           "price": "$10.50",
-          "description": "Lime, Strawberry, Mango, Lemon. Mango Margarita and Strawberry Margarita pictured on page 7."
+          "description": "Lime, Strawberry, Mango, Lemon"
         },
         {
           "name": "Reyna Margarita",
@@ -704,7 +704,7 @@
         {
           "name": "Mangoneada",
           "price": "$14.99",
-          "description": "Mangonada pictured on page 7"
+          "description": "Mangonada"
         },
         {
           "name": "Piña Colada",
