@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { YelpIcon } from "@/components/icons/YelpIcon";
 import { AvMealPrepHub } from "@/components/hubs/AvMealPrepHub";
 import { RestaurantSmsOptInDrawer } from "@/components/restaurant/RestaurantSmsOptInDrawer";
-import { LasIslasMenu } from "@/components/hubs/LasIslasMenu";
+import originalMenu from "@/assets/las-islas-menu-mar26.pdf.asset.json";
 import { hasLasIslasMenu } from "@/lib/lasIslasMenu";
 import { ExpiredHubGate } from "@/components/hub/ExpiredHubGate";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
@@ -198,7 +198,7 @@ const ReviewHub = () => {
   };
 
   const fetchMenu = async (restId: string) => {
-    // The allowlisted viewer owns its request lifecycle, loading and retry state.
+    // The two allowlisted hubs open the original PDF, not the editable text menu.
     if (hasLasIslasMenu(restId)) return;
     // Public visitors cannot read menu tables directly (RLS depends on a
     // restaurants read they don't have), so go through the secure RPC.
@@ -481,7 +481,7 @@ const ReviewHub = () => {
             {restaurant.header_subtitle}
           </p>
 
-          {hasLasIslasMenu(restaurant.id) && <Button className="mb-6 h-14 w-full text-lg font-bold" onClick={() => { trackEvent('menu_view'); setMenuOpen(true); }}>View Menu · Ver Menú</Button>}
+          {hasLasIslasMenu(restaurant.id) && <Button asChild className="mb-6 h-14 w-full text-lg font-bold"><a href={originalMenu.url} target="_blank" rel="noopener noreferrer" onClick={() => { trackEvent('menu_view'); }}>View Menu · Ver Menú</a></Button>}
 
           {/* ENGAGEMENT: Promotions and Polls */}
           {engagements.map((eng) => (
@@ -850,7 +850,7 @@ const ReviewHub = () => {
           )}
 
           {/* MENU BUTTON */}
-          {hasLasIslasMenu(restaurant.id) ? <Button className="h-14 w-full text-lg font-bold" onClick={() => { trackEvent('menu_view'); setMenuOpen(true); }}>View Menu · Ver Menú</Button> :
+          {!hasLasIslasMenu(restaurant.id) &&
           <a 
             href="#"
             onClick={(e) => {
@@ -901,7 +901,6 @@ const ReviewHub = () => {
       `}</style>
 
       {/* MENU MODAL */}
-      {hasLasIslasMenu(restaurant.id) && <LasIslasMenu restaurantId={restaurant.id} name={restaurant.restaurant_name} logo={restaurant.logo_url} open={menuOpen} onOpenChange={setMenuOpen} />}
       {menuOpen && !hasLasIslasMenu(restaurant.id) && (
         <div 
           style={{
