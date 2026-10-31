@@ -22,6 +22,7 @@ export function LasIslasMenu({ restaurantId, name, logo, open, onOpenChange }: P
   const scrollArea = useRef<HTMLDivElement>(null);
   const searchInput = useRef<HTMLInputElement>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
+  const returnFocus = useRef<HTMLElement | null>(null);
   const changeOpen = useRef(onOpenChange);
   changeOpen.current = onOpenChange;
   const route = useRef(window.location.pathname);
@@ -72,7 +73,7 @@ export function LasIslasMenu({ restaurantId, name, logo, open, onOpenChange }: P
   return <Dialog.Root open={open} onOpenChange={dismiss}>
     <Dialog.Portal>
       <Dialog.Overlay className="las-islas-menu-overlay" />
-      <Dialog.Content className="las-islas-menu" aria-describedby={undefined} onOpenAutoFocus={event => { event.preventDefault(); closeButton.current?.focus(); }}>
+      <Dialog.Content className="las-islas-menu" aria-describedby={undefined} onOpenAutoFocus={event => { event.preventDefault(); returnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; closeButton.current?.focus(); }} onCloseAutoFocus={event => { event.preventDefault(); if (returnFocus.current?.isConnected) returnFocus.current.focus(); }}>
         <header className="las-islas-menu-header">
           <Button ref={closeButton} variant="ghost" size="icon" className="h-12 w-12 shrink-0" aria-label="Close menu" onClick={() => dismiss(false)}><ArrowLeft className="h-6 w-6" /></Button>
           {logo && <img src={logo} alt="" className="h-12 w-12 shrink-0 rounded-full object-contain" />}

@@ -1,10 +1,10 @@
 # Roadmap
 
 ## Authorized Las Islas menu update (2026-10-31)
-- [ ] Transcribe and verify all eight PDF pages; preserve a private reversible menu snapshot and guard the two authorized identities.
-- [ ] Import identical menus transactionally into only the two legacy restaurant menus and attach the unchanged source PDF.
-- [ ] Add a scoped accessible mobile menu with search, categories and browser history; preserve other hubs and route race protection.
-- [ ] Verify responsive real-hub flows, release/security checks and data isolation; report review commit without publication.
+- [x] Transcribe and independently verify all eight PDF pages, 20 sections/155 items; private exact snapshot and restoration SQL saved.
+- [x] Import identical menus transactionally into only the two legacy restaurant menus; 310 items total, unchanged restaurant and other-menu hashes; stable unchanged PDF hosted.
+- [x] Add a scoped accessible mobile menu with search, categories and browser history; preserve other hubs and route race protection.
+- [x] Verify both real location links at 320, 360, 390 and desktop; search/categories/loading/error/retry/Back/Forward/Escape/scroll release and original Islas routes pass. Corrected existing narrow logo overflow only for target hubs. 23 offline release suites, 8 menu rules, source/security checks and automatic preview build pass; no publication.
 
 ## Focused hub navigation race fix (2026-10-31)
 - [x] Reset route ownership immediately and ignore superseded profile/resolver lookups without changing public gates or hub contents.

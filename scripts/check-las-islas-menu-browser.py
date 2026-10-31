@@ -65,5 +65,5 @@ async def main():
   if response.headers.get('content-type','').startswith('application/pdf'): assert hashlib.sha256(body).hexdigest()==asset.get('sha256','a34caea491a80b59791c0e9c06b1a6522e0c5a049d39217f04f2e8111b40317d')
   else: print('Local Vite does not serve CDN assets; exact PDF hash checked separately on hosted preview')
   assert not errors,errors
-  print('PASS stable original PDF exact hash; no runtime errors');await b.close()
+  print('PASS menu runtime; hosted PDF verification is separate when CDN is unavailable locally');await b.close()
 asyncio.run(main())
