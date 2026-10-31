@@ -144,7 +144,6 @@ const ReviewHub = () => {
     if (hub.id) {
       fetchMenu(hub.id);
       fetchEngagement(hub.id);
-      setLoading(false);
     }
   };
 
@@ -161,6 +160,7 @@ const ReviewHub = () => {
       });
       fetchMenu(hub.id);
       fetchEngagement(hub.id);
+      setLoading(false);
     } else {
       // Same lapsed-subscription fallback as the slug path.
       await checkPausedHubStatus({ _id: id });
