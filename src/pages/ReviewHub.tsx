@@ -481,6 +481,8 @@ const ReviewHub = () => {
             {restaurant.header_subtitle}
           </p>
 
+          {hasLasIslasMenu(restaurant.id) && <Button className="mb-6 h-14 w-full text-lg font-bold" onClick={() => { trackEvent('menu_view'); setMenuOpen(true); }}>View Menu · Ver Menú</Button>}
+
           {/* ENGAGEMENT: Promotions and Polls */}
           {engagements.map((eng) => (
             <div key={eng.id} style={{

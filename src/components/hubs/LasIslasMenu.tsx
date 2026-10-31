@@ -34,7 +34,10 @@ export function LasIslasMenu({ restaurantId, name, logo, open, onOpenChange }: P
         const { data, error: failure } = await supabase.rpc("get_public_restaurant_menu", { _restaurant_id: restaurantId });
         if (request !== generation.current) return;
         if (failure || !Array.isArray(data) || data.length === 0) { setError(true); return; }
-        setSections(data.map(section => ({ ...section, items: Array.isArray(section.items) ? section.items : [] })) as LasIslasMenuSection[]);
+        setSections(data.map(section => ({ id: section.id, name: section.name, items: (Array.isArray(section.items) ? section.items : []).flatMap(item => {
+          if (!item || typeof item !== "object" || Array.isArray(item) || typeof item.id !== "string" || typeof item.name !== "string") return [];
+          return [{ id: item.id, name: item.name, description: typeof item.description === "string" ? item.description : null, price: typeof item.price === "string" ? item.price : null }];
+        }) })));
       } catch { if (request === generation.current) setError(true); }
       finally { if (request === generation.current) setLoading(false); }
     })();
