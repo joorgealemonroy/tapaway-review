@@ -1,9 +1,9 @@
 # Roadmap
 
 ## Focused hub navigation race fix (2026-10-31)
-- [ ] Reset route ownership immediately and ignore superseded profile/resolver lookups without changing public gates or hub contents.
-- [ ] Add async regression coverage and verify delayed location navigation, history, missing and gated routes.
-- [ ] Run release/security checks and report preview/source revision; do not publish.
+- [x] Reset route ownership immediately and ignore superseded profile/resolver lookups without changing public gates or hub contents.
+- [x] Add seven async regression checks; delayed real location links, cold loads, back/forward and fast history passed with zero false missing frames. Missing route confirmed; access gates covered offline.
+- [x] Run 22 offline release suites, source/security tests and dependency audit; automatic preview build OK. Focused lint retains eight pre-existing findings unchanged; standalone production build/artifact scan not manually run under harness restrictions. No publication.
 
 ## Final raw-profile privacy migration (2026-10-21, 31f37bf6)
 - [x] Run isolated PostgreSQL suite: 14/14 passed; apply private_profile_records once as drizzle/migrations/0027_private_profile_records.sql. Applied SQL differs from reviewed source only by one extra indentation space before the booking helper SELECT; semantics unchanged, not byte-identical. No repair rerun, function deployment, publication, provider work or customer mutations.
