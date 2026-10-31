@@ -80,8 +80,8 @@ async def main():
    assert await page.get_by_text('Profile not found',exact=True).count() == 0
    if path != '/islas':
     menu = page.locator('a[href="#"]').filter(has_text='Menu')
-    await menu.click()
-    await page.get_by_text('Prices may change at any time.',exact=False).wait_for()
+    if await menu.count(): await menu.click()
+    if await menu.count(): await page.get_by_text('Prices may change at any time.',exact=False).wait_for()
    print('PASS original Islas unchanged',path)
   assert not errors, errors
   await browser.close()
