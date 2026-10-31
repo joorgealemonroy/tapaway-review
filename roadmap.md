@@ -2,7 +2,7 @@
 
 ## Las Islas PDF correction (2026-10-31)
 - [x] Keep only the upper menu action for the two exact IDs; open the unchanged original PDF in a new tab with analytics, removing the text viewer and its styles.
-- [ ] Verify phone layouts, PDF bytes/readability/new tab/return, original Islas behavior, and existing release/security checks. No database changes or publication.
+- [x] Verified both hubs at 320px, 360×800, 390×844 and desktop: one anchor, correct PDF/new tab, intercepted analytics, return/history, no overflow or scroll lock; original /islas and both children pass. Hosted PDF HTTP200/application/pdf, exact SHA and eight readable pages verified; local CDN responses use those exact bytes. All 23 offline suites and source/security checks pass; automatic preview build OK. No database changes or publication; production build remains for CI.
 
 ## Authorized Las Islas menu update (2026-10-31)
 - [x] Transcribe and independently verify all eight PDF pages, 20 sections/155 items; private exact snapshot and restoration SQL saved.
