@@ -36,10 +36,12 @@ const UsernameResolver = () => {
 
   // If CardResolver already confirmed this is a personal profile, skip the DB query entirely
   if (routeState?.type === 'personal' && !isAdminPreview) {
-    return <PersonalProfilePage />;
+    return <PersonalProfilePage key={JSON.stringify([slug, location.key, location.search])} />;
   }
 
-  return <UsernameResolverInner slug={slug} isAdminPreview={isAdminPreview} />;
+  // Route ownership changes synchronously, before effects run: never render
+  // the previous hub with the destination's params (including history visits).
+  return <UsernameResolverInner key={JSON.stringify([slug, location.key, location.search])} slug={slug} isAdminPreview={isAdminPreview} />;
 };
 
 const UsernameResolverInner = memo(({ slug, isAdminPreview }: { slug?: string; isAdminPreview?: boolean }) => {
@@ -54,10 +56,22 @@ const UsernameResolverInner = memo(({ slug, isAdminPreview }: { slug?: string; i
     // preview mode when the slug isn't publicly visible.
     if (adminLoading) return;
 
+    let cancelled = false;
+    setLoading(true);
+    setResolvedType(null);
+    setResolvedProfile(null);
+    setAdminPreviewActive(false);
+    const complete = (type: "personal" | "restaurant" | "notfound", profile: CachedProfile | null = null, preview = false) => {
+      if (cancelled) return;
+      setResolvedProfile(profile);
+      setResolvedType(type);
+      setAdminPreviewActive(preview);
+      setLoading(false);
+    };
+
     const resolve = async () => {
       if (!slug) {
-        setResolvedType("notfound");
-        setLoading(false);
+        complete("notfound");
         return;
       }
 
@@ -85,18 +99,14 @@ const UsernameResolverInner = memo(({ slug, isAdminPreview }: { slug?: string; i
           .maybeSingle();
 
         if (adminProfile) {
-          setResolvedProfile(adminProfile as unknown as CachedProfile);
-          setResolvedType("personal");
-          setAdminPreviewActive(true);
-          setLoading(false);
+          complete("personal", adminProfile as unknown as CachedProfile, true);
           return;
         }
       }
 
       // Reserved usernames should not match personal profiles
       if (isUsernameReserved(slug)) {
-        setResolvedType(await resolveRestaurantType());
-        setLoading(false);
+        complete(await resolveRestaurantType());
         return;
       }
 
@@ -112,9 +122,7 @@ const UsernameResolverInner = memo(({ slug, isAdminPreview }: { slug?: string; i
         (profile?.subscription_status === "trialing" && (profile as { is_approved?: boolean }).is_approved === true);
 
       if (isPubliclyVisible) {
-        setResolvedProfile(profile as unknown as CachedProfile);
-        setResolvedType("personal");
-        setLoading(false);
+        complete("personal", profile as unknown as CachedProfile);
         return;
       }
 
@@ -129,20 +137,18 @@ const UsernameResolverInner = memo(({ slug, isAdminPreview }: { slug?: string; i
       const { data: statusRows } = await supabase
         .rpc("get_public_personal_profile_status", { _slug: lowerSlug });
       if (statusRows && statusRows.length > 0) {
-        setResolvedProfile(null);
-        setResolvedType("personal");
-        setLoading(false);
+        complete("personal");
         return;
       }
 
-      setResolvedType(await resolveRestaurantType());
-      setLoading(false);
+      complete(await resolveRestaurantType());
     };
 
     resolve();
+    return () => { cancelled = true; };
   }, [slug, isAdminPreview, isAdmin, adminLoading]);
 
-  if (loading) {
+  if (loading || adminLoading) {
     return <MinimalLoader />;
   }
 

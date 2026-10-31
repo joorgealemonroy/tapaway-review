@@ -1,5 +1,10 @@
 # Roadmap
 
+## Focused hub navigation race fix (2026-10-31)
+- [ ] Reset route ownership immediately and ignore superseded profile/resolver lookups without changing public gates or hub contents.
+- [ ] Add async regression coverage and verify delayed location navigation, history, missing and gated routes.
+- [ ] Run release/security checks and report preview/source revision; do not publish.
+
 ## Final raw-profile privacy migration (2026-10-21, 31f37bf6)
 - [x] Run isolated PostgreSQL suite: 14/14 passed; apply private_profile_records once as drizzle/migrations/0027_private_profile_records.sql. Applied SQL differs from reviewed source only by one extra indentation space before the booking helper SELECT; semantics unchanged, not byte-identical. No repair rerun, function deployment, publication, provider work or customer mutations.
 - [x] Anonymous Data API raw-profile SELECT returns zero rows; all six requested slugs resolve through the personal RPC (one row each), restaurant RPCs return zero. RLS remains enabled; owner/rep/admin policies remain; public RPC is SECURITY DEFINER with fixed search_path; approved legacy unbilled gift count remains 108 (explicit complimentary count is zero).

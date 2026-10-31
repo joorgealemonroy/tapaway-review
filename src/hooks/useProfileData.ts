@@ -2,7 +2,7 @@
  * Optimized hook for fetching personal profile data
  * - Single query fetch
  * - In-memory caching
- * - Stale-while-revalidate pattern
+ * - Route-owned results; no cached content before entitlement verification
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -168,90 +168,65 @@ async function fetchProfileData(username: string): Promise<FetchProfileResult> {
 }
 
 export function useProfileData(username: string | undefined, initialProfile?: CachedProfile): UseProfileDataResult {
-  const [data, setData] = useState<ProfileData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<'not_found' | 'error' | null>(null);
-  const [expiredPreview, setExpiredPreview] = useState<ExpiredProfilePreview | null>(null);
-  const initialProfileRef = useRef(initialProfile);
+  const usernameKey = username?.toLowerCase();
+  const [state, setState] = useState<Omit<UseProfileDataResult, 'refetch'> & { usernameKey?: string }>({
+    usernameKey, data: null, loading: true, error: null, expiredPreview: null,
+  });
+  const requestId = useRef(0);
+  const consumedInitialProfile = useRef<CachedProfile>();
 
   /** Apply a fetch result to hook state. `cacheLive` only caches full live hubs. */
   const applyResult = useCallback((result: FetchProfileResult, usernameKey: string) => {
     if (result.kind === 'live') {
       setCachedProfile(usernameKey, result.data);
-      setData(result.data);
-      setExpiredPreview(null);
-      setError(null);
+      setState({ usernameKey, data: result.data, expiredPreview: null, error: null, loading: false });
       preloadCriticalImages(result.data);
     } else if (result.kind === 'expired') {
       invalidateProfileCache(usernameKey);
       // Deliberately NOT written to the live profile cache. An expired hub
       // must never be served from cache as if it were live, and a reactivated
       // hub must never keep showing the preview from cache.
-      setData(null);
-      setExpiredPreview(result.preview);
-      setError(null);
+      setState({ usernameKey, data: null, expiredPreview: result.preview, error: null, loading: false });
     } else {
       invalidateProfileCache(usernameKey);
-      setData(null);
-      setExpiredPreview(null);
-      setError('not_found');
+      setState({ usernameKey, data: null, expiredPreview: null, error: 'not_found', loading: false });
     }
   }, []);
 
   const loadProfile = useCallback(async () => {
-    if (!username) {
-      setError('not_found');
-      setExpiredPreview(null);
-      setLoading(false);
-      return;
-    }
-
-    // Check reserved usernames
-    if (isUsernameReserved(username)) {
-      setError('not_found');
-      setExpiredPreview(null);
-      setLoading(false);
+    const id = ++requestId.current;
+    const isCurrent = () => requestId.current === id;
+    setState({ usernameKey, data: null, loading: true, error: null, expiredPreview: null });
+    if (!usernameKey || isUsernameReserved(usernameKey)) {
+      setState({ usernameKey, data: null, loading: false, error: 'not_found', expiredPreview: null });
       return;
     }
 
     // If we have a pre-resolved profile from the resolver, skip the profile query
-    const preResolved = initialProfileRef.current;
-    if (preResolved) {
-      initialProfileRef.current = undefined; // Only use once
-      try {
-        const parallel = await fetchParallelData(preResolved);
-        const result: ProfileData = { profile: preResolved, ...parallel };
-        setCachedProfile(username, result);
-        setData(result);
-        setExpiredPreview(null);
-        setError(null);
-        preloadCriticalImages(result);
-      } catch (err) {
-        console.error('Error fetching profile parallel data:', err);
-        setError('error');
-      } finally {
-        setLoading(false);
-      }
-      return;
-    }
-
-    // Never display cached links before checking current server entitlement.
-    // A hub can be paused between visits while its cached data is still fresh.
+    // Only the resolver's exact-route profile may bypass a redundant lookup.
+    // Refetch always rechecks public entitlement; a different slug never reuses it.
+    const preResolved = initialProfile?.username?.toLowerCase() === usernameKey &&
+      consumedInitialProfile.current !== initialProfile ? initialProfile : undefined;
     try {
-      setLoading(true);
-      const result = await fetchProfileData(username);
-      applyResult(result, username);
+      if (preResolved) {
+        consumedInitialProfile.current = preResolved;
+        const parallel = await fetchParallelData(preResolved);
+        if (isCurrent()) applyResult({ kind: 'live', data: { profile: preResolved, ...parallel } }, usernameKey);
+      } else {
+        // Never display cached links before checking current server entitlement.
+        const result = await fetchProfileData(usernameKey);
+        if (isCurrent()) applyResult(result, usernameKey);
+      }
     } catch (err) {
+      if (!isCurrent()) return;
       console.error('Error fetching profile:', err);
-      setExpiredPreview(null);
-      setError('error');
-    } finally {
-      setLoading(false);
+      setState({ usernameKey, data: null, loading: false, expiredPreview: null, error: 'error' });
     }
-  }, [username, applyResult]);
+  }, [usernameKey, initialProfile, applyResult]);
 
   useEffect(() => {
     loadProfile();
+    return () => { requestId.current += 1; };
   }, [loadProfile]);
 
   const refetch = useCallback(async () => {
@@ -259,7 +234,11 @@ export function useProfileData(username: string | undefined, initialProfile?: Ca
     await loadProfile();
   }, [loadProfile, username]);
 
-  return { data, loading, error, expiredPreview, refetch };
+  // Effects reset asynchronously; mask old state on the very first route render.
+  if (state.usernameKey !== usernameKey) {
+    return { data: null, loading: true, error: null, expiredPreview: null, refetch };
+  }
+  return { ...state, refetch };
 }
 
 /**

@@ -1,5 +1,7 @@
 # Project rules
 
+- Public hub resolution and profile fetch results belong to the current route/request only; remount route destinations and discard superseded async results so loading never exposes another hub or a premature missing gate.
+
 - Share the verified onboarding catalog client between public pricing and signup; unavailable or missing prices cannot enable checkout actions because Stripe is authoritative.
 - Keep versioned bucket constraints in supabase/storage-buckets.json and apply them through supported Storage administration, never migration SQL; isolated fixtures load this configuration separately to avoid claiming migrations configure storage.
 - Keep public quantity labels separate from internal plan identifiers and grandfathered economics to preserve existing subscriptions.

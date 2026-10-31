@@ -144,6 +144,7 @@ const ReviewHub = () => {
     if (hub.id) {
       fetchMenu(hub.id);
       fetchEngagement(hub.id);
+      setLoading(false);
     }
   };
 
@@ -279,12 +280,6 @@ const ReviewHub = () => {
       document.body.style.overflow = 'unset';
     };
   }, [menuOpen]);
-
-  useEffect(() => {
-    // Set loading to false after attempting to fetch
-    const timer = setTimeout(() => setLoading(false), 2000);
-    return () => clearTimeout(timer);
-  }, []);
 
   if (loading && !restaurant) {
     return (
