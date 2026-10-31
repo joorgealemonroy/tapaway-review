@@ -54,6 +54,7 @@ async function fixture(file) {
     './ReviewHub': 'export default "restaurant";', './NotFound': 'export default "notfound";',
     'lucide-react': 'export const Loader2="loader";',
   };
+  context.React = life.react;
   const output = await build({ entryPoints: [path.join(root, file)], bundle: true, write: false, format: 'cjs', jsx: 'transform', plugins: [{ name: 'offline', setup(b) { b.onResolve({ filter: /.*/ }, a => a.kind === 'entry-point' ? null : a.path in mocks ? { path: a.path, namespace: 'mock' } : (() => { throw Error(`Unexpected import ${a.path}`); })()); b.onLoad({ filter: /.*/, namespace: 'mock' }, a => ({ contents: mocks[a.path], loader: 'js' })); } }] });
   context.module = { exports: {} }; context.exports = context.module.exports;
   new vm.Script(output.outputFiles[0].text).runInContext(context);
