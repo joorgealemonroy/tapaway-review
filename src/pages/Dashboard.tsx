@@ -36,6 +36,7 @@ import { AvMealPrepDashboard } from "@/components/dashboard/AvMealPrepDashboard"
 import { WelcomeBanner } from "@/components/dashboard/WelcomeBanner";
 import { WelcomeIntro } from "@/components/dashboard/WelcomeIntro";
 import { BusinessMobileNav } from "@/components/dashboard/BusinessMobileNav";
+import SubscriptionInvitationCards from "@/components/dashboard/SubscriptionInvitationCards";
 
 import { useSalesRep } from "@/hooks/useSalesRep";
 import { isSubscriptionAllowed, LEGACY_BUSINESS_PLANS, ACTIVE_SUB_STATUSES } from "@/lib/subscriptionStatus";
@@ -656,6 +657,7 @@ const DashboardBusiness = () => {
               </div>
 
               <TabsContent value="overview" className="space-y-4 md:space-y-6">
+                {!isDemoView && <SubscriptionInvitationCards hubId={restaurant.id} />}
                 {/* Account status: plan, Hub Live/Paused, trial countdown, reactivation */}
                 <AccountStatusStrip
                   planType={restaurant.plan_type}

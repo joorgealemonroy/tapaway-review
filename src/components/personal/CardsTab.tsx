@@ -1,4 +1,5 @@
 import BuildingDashboard from "@/components/dashboard/BuildingDashboard";
+import SubscriptionInvitationCards from "@/components/dashboard/SubscriptionInvitationCards";
 import { Link } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";

@@ -61,6 +61,16 @@ export async function handleSubscriptionInvitation(req: Request) {
   let checkoutLease: { id: string; key: string } | null = null;
   try {
     const db = admin(), stripe = getStripe();
+    if (body.action === "owner_state") {
+      const user = await userFromRequest(req); if (!user) return reply({ error: "Please sign in" }, 401);
+      const r = await db.from("subscription_invitations").select("id,selection,shipping_address,hub_id,hub_kind").eq("access_user_id", user.id).eq("hub_id", body.hubId).is("payment_hold_at", null).not("associated_at", "is", null).maybeSingle();
+      if (r.error) throw r.error; if (!r.data) return reply({ invitation: null });
+      const membership = await db.from("card_club_memberships").select("id,status").eq("subscription_invitation_id", r.data.id).maybeSingle();
+      if (membership.error) throw membership.error;
+      const entitlement = membership.data ? await db.rpc("card_club_entitlement", { _membership_id: membership.data.id }) : { data: null, error: null };
+      if (entitlement.error) throw entitlement.error;
+      return reply({ invitation: r.data, club: membership.data, entitlement: Array.isArray(entitlement.data) ? entitlement.data[0] : entitlement.data });
+    }
     if (body.action === "admin_info" || body.action === "mint" || body.action === "revoke") {
       const user = await userFromRequest(req);
       if (!user) return reply({ error: "Please sign in" }, 401);
