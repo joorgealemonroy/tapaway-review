@@ -1,5 +1,15 @@
 # Optional subscription invitations — review handoff
 
+## Focused access correction — 2026-11-03
+- Baseline: `61ac0a348d3716f0c762aae7281f18beb743a98b`; its previously reported production CI is not claimed for this correction.
+- `redeemAccess` now verifies OTP on a separate publishable client with persistence, refresh and URL detection disabled. The privileged database client never signs in; RPC execution permissions are unchanged. No schema migration.
+- Store only validated returned `magiclink`/`signup` verification type with the existing auth hash. Redeem that exact type; reject other types. Previously issued unprefixed magiclink hashes retain their original behavior.
+- Real pinned SDK 2.39.7, intercepted fetch: both existing-user magiclink and newly generated-user signup responses pass generation → verification → association. OTP installs the session only on the auth client; association carries the service API key and service bearer, while the service client has no user session. A negative control reproduces the old bearer replacement with `persistSession:false`. No external SDK traffic.
+- `QA_MODULES=/tmp/invitation-qa/node_modules bun run test:release`: PASS, 25 suites; includes 22 invitation checks and 11 isolated invitation PostgreSQL checks. Old-link compatibility and unsupported generated token-type rejection pass.
+- `bun run security:source`: PASS, 1179 source files. `bun run security:test`: PASS, 11 checks. Latest automatic preview compilation: build OK; no manual app production build/typecheck.
+- Supported deployment succeeded for `subscription-invitation` and `payment-first-webhook`; the latter also generates invitation access links through the changed shared helper. Submitted source SHA-256: `c470c5a3ae23edb93d4e5d59d1923f7a5eacc49181cb2d8205e50ab3e466a001` / `254551969c1330e1b9be952369c74d5d2915777b9b40aefed376d70dfb989de0` respectively. No other backend redeployments.
+- Focused files: shared invitation helper, invitation regression, isolated harness SDK-injection hook, AGENTS.md, roadmap.md and this note. No frontend changes/publication, real emails, purchases, identities or customer mutations. Hosted real login remains UNVERIFIED under those restrictions; new-commit production CI remains the review step.
+
 ## Admin click path
 Admin → Hubs & accounts → eligible free active business → Payment link → confirm Dashboard email → Generate payment link → scan QR / Copy link / native Share (where supported).
 
