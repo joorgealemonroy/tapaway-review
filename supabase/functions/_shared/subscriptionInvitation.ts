@@ -77,6 +77,10 @@ export async function handleSubscriptionInvitation(req: Request) {
       const previous = await db.from("subscription_invitations").select("*").eq("hub_kind", body.kind).eq("hub_id", body.hubId).is("revoked_at", null).maybeSingle();
       if (previous.error) throw previous.error;
       if (previous.data) {
+        const key = crypto.randomUUID();
+        const lock = await db.from("subscription_invitations").update({ checkout_lock_id: key, checkout_lock_at: new Date().toISOString() }).eq("id", previous.data.id).is("paid_at", null).is("revoked_at", null).or(`checkout_lock_at.is.null,checkout_lock_at.lt.${new Date(Date.now() - 120000).toISOString()}`).select("id");
+        if (lock.error || !lock.data?.length) throw new Error("Checkout processing; cannot replace invitation");
+        checkoutLease = { id: previous.data.id, key };
         if (previous.data.paid_at || previous.data.attempt_id && !previous.data.stripe_checkout_session_id) throw new Error("An earlier payment is processing; do not create another invitation");
         if (previous.data.stripe_checkout_session_id) {
           const s = await stripe.checkout.sessions.retrieve(previous.data.stripe_checkout_session_id); boundSession(previous.data, s);
