@@ -227,6 +227,7 @@ export const CardsTab = ({ profileId, paymentFirst = false, userId, hasCardAddon
 
   return (
     <div className="space-y-6 pb-24">
+      <SubscriptionInvitationCards hubId={profileId} />
       {hasCardAddon ? (
         /* ─── Card Club Member ─── */
         <Card>
