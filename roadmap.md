@@ -1,5 +1,11 @@
 # Roadmap
 
+## Optional existing-hub subscription invitation (2026-11-03)
+- [ ] Add admin email-confirmed invitation with QR/copy/share, separate from Require payment.
+- [ ] Implement owner-bound checkout, paid activation and one-use emailed access for eligible existing hub types; preserve free public access.
+- [ ] Add additive schema and supported backend deployment; no customer mutations, purchases, emails or frontend publication.
+- [ ] Run isolated eight-combination, authorization, race/replay, activation/preservation and browser regressions plus required security/release checks.
+
 ## Las Islas PDF correction (2026-10-31)
 - [x] Keep only the upper menu action for the two exact IDs; open the unchanged original PDF in a new tab with analytics, removing the text viewer and its styles.
 - [x] Verified both hubs at 320px, 360×800, 390×844 and desktop: one anchor, correct PDF/new tab, intercepted analytics, return/history, no overflow or scroll lock; original /islas and both children pass. Hosted PDF HTTP200/application/pdf, exact SHA and eight readable pages verified; local CDN responses use those exact bytes. All 23 offline suites and source/security checks pass; automatic preview build OK. No database changes or publication; production build remains for CI.
