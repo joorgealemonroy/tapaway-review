@@ -9,6 +9,8 @@ import { admin, getStripe, ONBOARDING_VERSION, stripeMode, webhookSecret } from 
 import { activatePersonalOrder, syncPersonalSubscription, PERSONAL_VERSION } from "../_shared/personalCards.ts";
 import { activateCheckout, syncMembership, syncBusinessSubscription } from "../_shared/paymentFirstActivation.ts";
 import { activateHubPayment, syncHubPaymentSubscription, holdHubPaymentForCharge, HUB_PAYMENT_VERSION } from "../_shared/hubPaymentActivation.ts";
+import { activateSubscriptionInvitation, syncSubscriptionInvitation } from "../_shared/subscriptionInvitation.ts";
+import { INVITATION_VERSION } from "../_shared/subscriptionInvitationRules.ts";
 
 /** Subscription id on an invoice across Stripe API versions. */
 export function invoiceSubscriptionId(inv: Record<string, any>): string | null {
@@ -79,10 +81,11 @@ serve(async (req) => {
       if (s.metadata?.onboarding_version === ONBOARDING_VERSION) await activateCheckout(stripe, await stripe.checkout.sessions.retrieve(s.id));
       if (s.metadata?.commerce_version === PERSONAL_VERSION) await activatePersonalOrder(stripe, s);
       if (s.metadata?.commerce_version === HUB_PAYMENT_VERSION) await activateHubPayment(stripe, s);
+      if (s.metadata?.commerce_version === INVITATION_VERSION) await activateSubscriptionInvitation(stripe, s);
     } else if (event.type === "invoice.paid") {
       const inv = event.data.object as Stripe.Invoice;
       const sub = invoiceSubscriptionId(inv as unknown as Record<string, any>);
-      if (sub && !(await syncHubPaymentSubscription(stripe, sub))) { await syncPersonalSubscription(stripe, sub); await syncBusinessSubscription(stripe, sub); await syncLegacySubscription(stripe, sub); }
+      if (sub && !(await syncSubscriptionInvitation(stripe, sub)) && !(await syncHubPaymentSubscription(stripe, sub))) { await syncPersonalSubscription(stripe, sub); await syncBusinessSubscription(stripe, sub); await syncLegacySubscription(stripe, sub); }
       if (sub && inv.amount_paid > 0) {
         const { data: m } = await db.from("card_club_memberships").select("*").eq("card_club_stripe_subscription_id", sub).maybeSingle();
         const paidClubLine = m && (m.card_club_stripe_subscription_id !== m.main_stripe_subscription_id || inv.lines.data.some(line => invoiceLineMatchesClub(line, m)));
@@ -97,7 +100,7 @@ serve(async (req) => {
       const obj = event.data.object as unknown as Record<string, any>;
       const sub = obj.object === "invoice" ? invoiceSubscriptionId(obj) : (obj.id as string);
       if (sub && /^sub_[A-Za-z0-9]+$/.test(sub)) {
-        if (!(await syncHubPaymentSubscription(stripe, sub))) {
+        if (!(await syncSubscriptionInvitation(stripe, sub)) && !(await syncHubPaymentSubscription(stripe, sub))) {
           await syncPersonalSubscription(stripe, sub);
           await syncBusinessSubscription(stripe, sub);
           await syncLegacySubscription(stripe, sub);

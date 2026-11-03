@@ -1,4 +1,5 @@
 import BuildingDashboard from "@/components/dashboard/BuildingDashboard";
+import SubscriptionInvitationCards from "@/components/dashboard/SubscriptionInvitationCards";
 import { Link } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -226,6 +227,7 @@ export const CardsTab = ({ profileId, paymentFirst = false, userId, hasCardAddon
 
   return (
     <div className="space-y-6 pb-24">
+      <SubscriptionInvitationCards hubId={profileId} />
       {hasCardAddon ? (
         /* ─── Card Club Member ─── */
         <Card>

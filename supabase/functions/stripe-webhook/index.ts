@@ -173,6 +173,22 @@ serve(async (req) => {
     const hubSubscription = commerceObject.object === 'subscription' ? commerceObject.id
       : typeof commerceObject.subscription === 'string' ? commerceObject.subscription
       : commerceObject.subscription?.id || commerceObject.parent?.subscription_details?.subscription;
+    let optionalInvitation = commerceObject.metadata?.commerce_version === 'existing_hub_subscription_v1'
+      || commerceObject.subscription_details?.metadata?.commerce_version === 'existing_hub_subscription_v1'
+      || commerceObject.parent?.subscription_details?.metadata?.commerce_version === 'existing_hub_subscription_v1';
+    if (!optionalInvitation && typeof hubSubscription === 'string' && /^sub_[A-Za-z0-9]+$/.test(hubSubscription)) {
+      const bound = await idempotencyAdmin.from('subscription_invitations').select('id').eq('stripe_subscription_id', hubSubscription).maybeSingle();
+      if (bound.error) throw bound.error;
+      optionalInvitation = !!bound.data;
+      if (!optionalInvitation && commerceObject.object === 'invoice') {
+        const current = await stripe.subscriptions.retrieve(hubSubscription);
+        optionalInvitation = current.metadata?.commerce_version === 'existing_hub_subscription_v1';
+      }
+    }
+    if (optionalInvitation) {
+      if (ownsClaim) await markStripeEventProcessed();
+      return new Response(JSON.stringify({ received: true, skipped: 'optional_subscription' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
     if (!hubPayment && typeof hubSubscription === 'string' && /^sub_[A-Za-z0-9]+$/.test(hubSubscription)) {
       const { data: ownedRequest, error: requestError } = await idempotencyAdmin.from('hub_payment_requests')
         .select('profile_id').eq('stripe_subscription_id', hubSubscription).maybeSingle();

@@ -1182,6 +1182,7 @@ export type Database = {
           stripe_customer_id: string | null
           stripe_livemode: boolean
           stripe_price_id: string | null
+          subscription_invitation_id: string | null
           total_redemptions: number
           updated_at: string
           user_id: string | null
@@ -1207,6 +1208,7 @@ export type Database = {
           stripe_customer_id?: string | null
           stripe_livemode?: boolean
           stripe_price_id?: string | null
+          subscription_invitation_id?: string | null
           total_redemptions?: number
           updated_at?: string
           user_id?: string | null
@@ -1232,6 +1234,7 @@ export type Database = {
           stripe_customer_id?: string | null
           stripe_livemode?: boolean
           stripe_price_id?: string | null
+          subscription_invitation_id?: string | null
           total_redemptions?: number
           updated_at?: string
           user_id?: string | null
@@ -1242,6 +1245,13 @@ export type Database = {
             columns: ["checkout_intent_id"]
             isOneToOne: true
             referencedRelation: "checkout_intents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "card_club_memberships_subscription_invitation_id_fkey"
+            columns: ["subscription_invitation_id"]
+            isOneToOne: true
+            referencedRelation: "subscription_invitations"
             referencedColumns: ["id"]
           },
         ]
@@ -2112,6 +2122,7 @@ export type Database = {
           stripe_livemode: boolean | null
           stripe_payment_intent_id: string | null
           stripe_subscription_id: string | null
+          subscription_invitation_id: string | null
           tracking_number: string | null
           updated_at: string
           user_id: string
@@ -2140,6 +2151,7 @@ export type Database = {
           stripe_livemode?: boolean | null
           stripe_payment_intent_id?: string | null
           stripe_subscription_id?: string | null
+          subscription_invitation_id?: string | null
           tracking_number?: string | null
           updated_at?: string
           user_id: string
@@ -2168,6 +2180,7 @@ export type Database = {
           stripe_livemode?: boolean | null
           stripe_payment_intent_id?: string | null
           stripe_subscription_id?: string | null
+          subscription_invitation_id?: string | null
           tracking_number?: string | null
           updated_at?: string
           user_id?: string
@@ -2185,6 +2198,13 @@ export type Database = {
             columns: ["restaurant_id"]
             isOneToOne: false
             referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fulfillment_orders_subscription_invitation_id_fkey"
+            columns: ["subscription_invitation_id"]
+            isOneToOne: true
+            referencedRelation: "subscription_invitations"
             referencedColumns: ["id"]
           },
         ]
@@ -3490,6 +3510,7 @@ export type Database = {
           shipping_state: string | null
           status: string
           stripe_session_id: string | null
+          subscription_invitation_id: string | null
           user_id: string
         }
         Insert: {
@@ -3511,6 +3532,7 @@ export type Database = {
           shipping_state?: string | null
           status?: string
           stripe_session_id?: string | null
+          subscription_invitation_id?: string | null
           user_id: string
         }
         Update: {
@@ -3532,6 +3554,7 @@ export type Database = {
           shipping_state?: string | null
           status?: string
           stripe_session_id?: string | null
+          subscription_invitation_id?: string | null
           user_id?: string
         }
         Relationships: [
@@ -3547,6 +3570,13 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "personal_profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "personal_card_requests_subscription_invitation_id_fkey"
+            columns: ["subscription_invitation_id"]
+            isOneToOne: true
+            referencedRelation: "subscription_invitations"
             referencedColumns: ["id"]
           },
         ]
@@ -5307,6 +5337,114 @@ export type Database = {
         }
         Relationships: []
       }
+      subscription_invitations: {
+        Row: {
+          access_auth_hash: string | null
+          access_consumed_at: string | null
+          access_delivery_token: string | null
+          access_expires_at: string | null
+          access_token_hash: string | null
+          access_user_id: string | null
+          associated_at: string | null
+          attempt_id: string | null
+          attempt_started_at: string | null
+          bound_owner_id: string | null
+          checkout_lock_at: string | null
+          checkout_lock_id: string | null
+          created_at: string
+          created_by: string
+          expires_at: string
+          hub_id: string
+          hub_kind: string
+          id: string
+          intended_email: string
+          owner_placeholder: boolean
+          paid_at: string | null
+          payment_hold_at: string | null
+          revoked_at: string | null
+          selection: Json | null
+          shipping_address: Json | null
+          stripe_checkout_session_id: string | null
+          stripe_customer_id: string | null
+          stripe_livemode: boolean
+          stripe_payment_intent_id: string | null
+          stripe_subscription_id: string | null
+          token_hash: string
+          welcome_email_sent_at: string | null
+          welcome_email_started_at: string | null
+        }
+        Insert: {
+          access_auth_hash?: string | null
+          access_consumed_at?: string | null
+          access_delivery_token?: string | null
+          access_expires_at?: string | null
+          access_token_hash?: string | null
+          access_user_id?: string | null
+          associated_at?: string | null
+          attempt_id?: string | null
+          attempt_started_at?: string | null
+          bound_owner_id?: string | null
+          checkout_lock_at?: string | null
+          checkout_lock_id?: string | null
+          created_at?: string
+          created_by: string
+          expires_at: string
+          hub_id: string
+          hub_kind: string
+          id?: string
+          intended_email: string
+          owner_placeholder?: boolean
+          paid_at?: string | null
+          payment_hold_at?: string | null
+          revoked_at?: string | null
+          selection?: Json | null
+          shipping_address?: Json | null
+          stripe_checkout_session_id?: string | null
+          stripe_customer_id?: string | null
+          stripe_livemode: boolean
+          stripe_payment_intent_id?: string | null
+          stripe_subscription_id?: string | null
+          token_hash: string
+          welcome_email_sent_at?: string | null
+          welcome_email_started_at?: string | null
+        }
+        Update: {
+          access_auth_hash?: string | null
+          access_consumed_at?: string | null
+          access_delivery_token?: string | null
+          access_expires_at?: string | null
+          access_token_hash?: string | null
+          access_user_id?: string | null
+          associated_at?: string | null
+          attempt_id?: string | null
+          attempt_started_at?: string | null
+          bound_owner_id?: string | null
+          checkout_lock_at?: string | null
+          checkout_lock_id?: string | null
+          created_at?: string
+          created_by?: string
+          expires_at?: string
+          hub_id?: string
+          hub_kind?: string
+          id?: string
+          intended_email?: string
+          owner_placeholder?: boolean
+          paid_at?: string | null
+          payment_hold_at?: string | null
+          revoked_at?: string | null
+          selection?: Json | null
+          shipping_address?: Json | null
+          stripe_checkout_session_id?: string | null
+          stripe_customer_id?: string | null
+          stripe_livemode?: boolean
+          stripe_payment_intent_id?: string | null
+          stripe_subscription_id?: string | null
+          token_hash?: string
+          welcome_email_sent_at?: string | null
+          welcome_email_started_at?: string | null
+        }
+        Relationships: []
+      }
       support_requests: {
         Row: {
           business_name: string
@@ -5858,6 +5996,10 @@ export type Database = {
         Args: { _affiliate_id: string; _profile_id: string }
         Returns: boolean
       }
+      associate_subscription_invitation: {
+        Args: { _email: string; _id: string; _user: string }
+        Returns: Json
+      }
       audit_location_coverage_admin: {
         Args: never
         Returns: {
@@ -5926,6 +6068,20 @@ export type Database = {
           _request_version: string
           _session_id: string
           _subscription_id: string
+        }
+        Returns: Json
+      }
+      fulfill_subscription_invitation: {
+        Args: {
+          _club_item: string
+          _club_price: string
+          _customer: string
+          _id: string
+          _paid_at: string
+          _payment: string
+          _session: string
+          _shipping: Json
+          _subscription: string
         }
         Returns: Json
       }

@@ -112,6 +112,8 @@ const Examples = lazy(() => import("./pages/Examples"));
 const Compliance = lazy(() => import("./pages/Compliance"));
 const SmsSignup = lazy(() => import("./pages/SmsSignup"));
 const ClaimHubPage = lazy(() => import("./pages/ClaimHubPage"));
+const SubscriptionInvitationPage = lazy(() => import("./pages/SubscriptionInvitationPage"));
+const SubscriptionInvitationAccessPage = lazy(() => import("./pages/SubscriptionInvitationPage").then(m => ({ default: m.SubscriptionInvitationAccessPage })));
 const Paywall = lazy(() => import("./pages/Paywall"));
 const Welcome = lazy(() => import("./pages/Welcome"));
 
@@ -193,6 +195,8 @@ const App = () => {
                 <Route path="/welcome" element={<Welcome />} />
                 <Route path="/trial-confirmed" element={<Navigate to="/onboarding?source=stripe" replace />} />
                 <Route path="/claim" element={<ClaimHubPage />} />
+                <Route path="/subscribe" element={<SubscriptionInvitationPage />} />
+                <Route path="/subscribe/access" element={<SubscriptionInvitationAccessPage />} />
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/admin" element={<Admin />} />
                 <Route path="/terms" element={<Terms />} />

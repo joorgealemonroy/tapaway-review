@@ -17,6 +17,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import HubAnalyticsDialog, { HubAnalyticsTarget } from "@/components/admin/HubAnalyticsDialog";
 import CloseSaleDialog, { CloseSaleTarget } from "@/components/admin/CloseSaleDialog";
+import SubscriptionInvitationDialog, { type SubscriptionInvitationTarget } from "@/components/admin/SubscriptionInvitationDialog";
+import { canInviteSubscription } from "../../../shared/subscriptionInvitation";
 import RequireHubPaymentDialog, { type HubPaymentTarget } from "@/components/admin/RequireHubPaymentDialog";
 import { toast } from "sonner";
 import {
@@ -194,6 +196,7 @@ const AdminUnifiedAccountsTable = () => {
   const [analyticsTarget, setAnalyticsTarget] = useState<HubAnalyticsTarget | null>(null);
   const [closeSaleTarget, setCloseSaleTarget] = useState<CloseSaleTarget>(null);
   const [paymentTarget, setPaymentTarget] = useState<HubPaymentTarget>(null);
+  const [invitationTarget, setInvitationTarget] = useState<SubscriptionInvitationTarget>(null);
 
 
   useEffect(() => {
@@ -1107,6 +1110,7 @@ const AdminUnifiedAccountsTable = () => {
                           Require payment
                         </Button>
                       )}
+                      {canInviteSubscription(r) && <Button onClick={() => setInvitationTarget({ id: r.id, kind: r.kind === "lite" ? "personal" : "restaurant", name: r.name })} size="sm" variant="outline" className="min-h-10 text-xs">Payment link</Button>}
                       {r.kind === "lite" && r.subscription_status !== "active" && r.payment_state !== "payment_required" && (
                         <Button
                           onClick={() => setCloseSaleTarget({ id: r.id, name: r.name })}
@@ -1245,6 +1249,7 @@ const AdminUnifiedAccountsTable = () => {
                           Require payment
                         </Button>
                       )}
+                      {canInviteSubscription(r) && <Button onClick={() => setInvitationTarget({ id: r.id, kind: r.kind === "lite" ? "personal" : "restaurant", name: r.name })} size="sm" variant="outline" className="min-h-10 text-xs">Payment link</Button>}
                       {r.kind === "lite" && r.subscription_status !== "active" && r.payment_state !== "payment_required" && (
                   <Button
                     onClick={() => setCloseSaleTarget({ id: r.id, name: r.name })}
@@ -1266,6 +1271,7 @@ const AdminUnifiedAccountsTable = () => {
 
       <HubAnalyticsDialog target={analyticsTarget} onClose={() => setAnalyticsTarget(null)} />
       <CloseSaleDialog target={closeSaleTarget} onClose={() => setCloseSaleTarget(null)} />
+      <SubscriptionInvitationDialog target={invitationTarget} onClose={() => setInvitationTarget(null)} />
       <RequireHubPaymentDialog target={paymentTarget} onClose={() => setPaymentTarget(null)} onSaved={profileId => {
         setRows(current => current.map(row => row.id === profileId && row.kind === "lite" ? { ...row, payment_state: "payment_required" } : row));
       }} />
