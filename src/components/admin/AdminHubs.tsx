@@ -10,9 +10,13 @@ import {
 } from "@/lib/admin/workspace";
 import { toast } from "sonner";
 import RequireHubPaymentDialog, { type HubPaymentTarget } from "./RequireHubPaymentDialog";
+import SubscriptionInvitationDialog, { type SubscriptionInvitationTarget } from "./SubscriptionInvitationDialog";
+import { canInviteSubscription } from "../../../shared/subscriptionInvitation";
+import { Button } from "@/components/ui/button";
 export default function AdminHubs() {
   const hubs = useAdminHubs();
   const [paymentTarget, setPaymentTarget] = useState<HubPaymentTarget>(null);
+  const [invitationTarget, setInvitationTarget] = useState<SubscriptionInvitationTarget>(null);
   const [search, setSearch] = useState(""),
     [filter, setFilter] = useState("all"),
     [busy, setBusy] = useState("");
@@ -141,6 +145,7 @@ export default function AdminHubs() {
               </span>
             </div>
             <div className="aw-hub-actions flex-wrap">
+              {canInviteSubscription(h) && <Button variant="outline" size="sm" onClick={() => setInvitationTarget({ id: h.id, kind: h.kind, name: h.name })}>Payment link</Button>}
               <Link className="aw-small-button" to={hubEditPath(h)}>
                 Edit hub <ArrowUpRight size={15} />
               </Link>
@@ -186,6 +191,7 @@ export default function AdminHubs() {
         icon only for accounts you’ve given free access.
       </p>
       <RequireHubPaymentDialog target={paymentTarget} onClose={() => setPaymentTarget(null)} onSaved={async () => { await hubs.refetch(); }} />
+      <SubscriptionInvitationDialog target={invitationTarget} onClose={() => setInvitationTarget(null)} />
     </>
   );
 }
