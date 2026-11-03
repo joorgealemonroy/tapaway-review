@@ -260,6 +260,13 @@
       "when": 1793157312018,
       "tag": "0036_payment_reversal_holds",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1793749125922,
+      "tag": "0037_optional_subscription_invitations",
+      "breakpoints": true
     }
   ]
 }
