@@ -16,7 +16,7 @@ async function hubFor(db: any, kind: string, id: string) {
   if (r.error || !r.data) throw new Error("Hub unavailable");
   return r.data;
 }
-async function checkBilling(stripe: Stripe, db: any, hub: any, email: string, kind: string) {
+async function checkBilling(stripe: Stripe, db: any, hub: any, email: string, kind: string, attemptId?: string) {
   if (!canInviteSubscription(hub)) throw new Error("This hub is not an eligible free active business");
   // Any known customer must be checked. Provider failures never mean 'unbilled'.
   const customers = hub.stripe_customer_id ? [await stripe.customers.retrieve(hub.stripe_customer_id)] : [];
@@ -27,12 +27,13 @@ async function checkBilling(stripe: Stripe, db: any, hub: any, email: string, ki
     if ("deleted" in customer && customer.deleted) throw new Error("Billing requires review");
     if (customer.livemode !== (stripeMode() === "live")) throw new Error("Billing mode mismatch");
     const subs = await stripe.subscriptions.list({ customer: customer.id, status: "all", limit: 100 });
-    if (subs.has_more || subs.data.some(s => !["canceled", "incomplete_expired"].includes(s.status))) throw new Error("An existing subscription needs review before another payment");
+    if (subs.has_more || subs.data.some(s => !["canceled", "incomplete_expired"].includes(s.status) && !(s.status === "incomplete" && attemptId && s.metadata?.attempt_id === attemptId && s.metadata.commerce_version === INVITATION_VERSION))) throw new Error("An existing subscription needs review before another payment");
   }
   const owner = kind === "personal" ? hub.user_id : hub.owner_id;
   if (owner) {
     const result = await db.auth.admin.getUserById(owner);
-    if (result.error || normalizedEmail(result.data?.user?.email) !== email) throw new Error("Use the existing owner's verified account email; ownership cannot be reassigned");
+    const ownerEmail = normalizedEmail(result.data?.user?.email);
+    if (result.error || !ownerEmail || !/@demo\.tapaway\.local$/i.test(ownerEmail) && ownerEmail !== email) throw new Error("Use the existing owner's verified account email; ownership cannot be reassigned");
   }
   const users = await db.rpc("get_auth_user_by_email", { lookup_email: email });
   if (users.error) throw users.error;
@@ -49,7 +50,7 @@ async function invitation(db: any, token: unknown, allowExpired = false) {
   return r.data;
 }
 function boundSession(i: any, s: Stripe.Checkout.Session) {
-  if (s.id !== i.stripe_checkout_session_id || s.livemode !== i.stripe_livemode || s.metadata?.commerce_version !== INVITATION_VERSION || s.metadata.invitation_id !== i.id || s.metadata.attempt_id !== i.attempt_id) throw new Error("Checkout binding mismatch");
+  if (s.id !== i.stripe_checkout_session_id || s.livemode !== i.stripe_livemode || s.metadata?.commerce_version !== INVITATION_VERSION || s.metadata.invitation_id !== i.id || s.metadata.attempt_id !== i.attempt_id || s.metadata.hub_id !== i.hub_id || s.metadata.hub_kind !== i.hub_kind) throw new Error("Checkout binding mismatch");
 }
 
 export async function handleSubscriptionInvitation(req: Request) {
@@ -57,6 +58,7 @@ export async function handleSubscriptionInvitation(req: Request) {
   if (req.method !== "POST") return reply({ error: "Method not allowed" }, 405);
   let body: Record<string, unknown>;
   try { body = await readAccessBody(req); } catch { return reply({ error: "Invalid request" }, 400); }
+  let checkoutLease: { id: string; key: string } | null = null;
   try {
     const db = admin(), stripe = getStripe();
     if (body.action === "admin_info" || body.action === "mint" || body.action === "revoke") {
@@ -70,7 +72,7 @@ export async function handleSubscriptionInvitation(req: Request) {
       if (body.action === "admin_info") {
         let email = normalizedEmail(hub.email);
         if (owner) { const u = await db.auth.admin.getUserById(owner); if (u.error) throw u.error; email = normalizedEmail(u.data?.user?.email); }
-        return reply({ email: /@demo\.tapaway\.local$/i.test(email) ? "" : email, bound: !!owner, eligible: canInviteSubscription(hub) });
+        return reply({ email: /@demo\.tapaway\.local$/i.test(email) ? "" : email, bound: !!owner && !/@demo\.tapaway\.local$/i.test(email), eligible: canInviteSubscription(hub) });
       }
       const previous = await db.from("subscription_invitations").select("*").eq("hub_kind", body.kind).eq("hub_id", body.hubId).is("revoked_at", null).maybeSingle();
       if (previous.error) throw previous.error;
@@ -88,16 +90,18 @@ export async function handleSubscriptionInvitation(req: Request) {
       const email = normalizedEmail(body.email);
       if (!email || /@demo\.tapaway\.local$/i.test(email)) return reply({ error: "Confirm a real dashboard email" }, 400);
       await checkBilling(stripe, db, hub, email, String(body.kind));
+      let placeholder = false;
+      if (owner) { const u = await db.auth.admin.getUserById(owner); if (u.error) throw u.error; placeholder = /@demo\.tapaway\.local$/i.test(u.data?.user?.email || ""); }
       const token = secret(), expiresAt = new Date(Date.now() + INVITATION_TTL_MS).toISOString();
-      const saved = await db.from("subscription_invitations").insert({ hub_kind: body.kind, hub_id: body.hubId, intended_email: email, bound_owner_id: owner || null, created_by: user.id, token_hash: await hashValue(token), expires_at: expiresAt, stripe_livemode: stripeMode() === "live" });
+      const saved = await db.from("subscription_invitations").insert({ hub_kind: body.kind, hub_id: body.hubId, intended_email: email, bound_owner_id: owner || null, owner_placeholder: placeholder, created_by: user.id, token_hash: await hashValue(token), expires_at: expiresAt, stripe_livemode: stripeMode() === "live" });
       if (saved.error) throw saved.error;
       return reply({ token, expiresAt });
     }
     if (await takeQuota(req, "subscription-invitation", 60) < 0) return reply({ error: "Please try later" }, 429);
     if (body.action === "access") return await redeemAccess(db, body);
-    const i = await invitation(db, body.token, body.action === "status" || body.action === "resend");
+    let i = await invitation(db, body.token, body.action === "status" || body.action === "resend" || body.action === "summary");
     const hub = await hubFor(db, i.hub_kind, i.hub_id);
-    if (body.action === "summary") return reply({ name: hub.full_name || hub.restaurant_name, slug: hub.username || hub.custom_slug, logo: hub.profile_photo_url || hub.logo_url, paid: !!i.paid_at });
+    if (body.action === "summary") { if (!i.paid_at && Date.parse(i.expires_at) <= Date.now()) throw new Error("Invitation expired"); return reply({ name: hub.full_name || hub.restaurant_name, slug: hub.username || hub.custom_slug, logo: hub.profile_photo_url || hub.logo_url, paid: !!i.paid_at && !i.payment_hold_at }); }
     if (body.action === "resend") {
       if (!i.paid_at || i.payment_hold_at) return reply({ error: "Payment not ready" }, 409);
       if (await takeQuota(req, "subscription-access-email", 3, i.id) < 0) return reply({ error: "Please try later" }, 429);
@@ -111,6 +115,10 @@ export async function handleSubscriptionInvitation(req: Request) {
     }
     if (body.action !== "checkout" || !["solo", "venue"].includes(String(body.plan)) || !["month", "year"].includes(String(body.interval)) || typeof body.cardClub !== "boolean") return reply({ error: "Invalid checkout selection" }, 400);
     if (i.paid_at) return reply({ error: "This invitation has already been paid" }, 409);
+    const key = crypto.randomUUID();
+    const lock = await db.from("subscription_invitations").update({ checkout_lock_id: key, checkout_lock_at: new Date().toISOString() }).eq("id", i.id).is("revoked_at", null).is("paid_at", null).or(`checkout_lock_at.is.null,checkout_lock_at.lt.${new Date(Date.now() - 120000).toISOString()}`).select("*").single();
+    if (lock.error || !lock.data) return reply({ error: "Checkout is processing; retry shortly" }, 409);
+    checkoutLease = { id: i.id, key }; i = lock.data;
     const selection = { plan: body.plan, interval: body.interval, cardClub: body.cardClub };
     if (i.stripe_checkout_session_id) {
       const s = await stripe.checkout.sessions.retrieve(i.stripe_checkout_session_id); boundSession(i, s);
@@ -121,7 +129,7 @@ export async function handleSubscriptionInvitation(req: Request) {
       if (reset.error || !reset.data?.length) throw new Error("Checkout changed; retry");
       i.attempt_id = null;
     }
-    await checkBilling(stripe, db, hub, i.intended_email, i.hub_kind);
+    await checkBilling(stripe, db, hub, i.intended_email, i.hub_kind, i.attempt_id);
     const main = await verifiedPrice(stripe, `${body.plan as "solo" | "venue"}_${body.interval as "month" | "year"}`);
     const club = body.cardClub ? await verifiedPrice(stripe, "card_club") : null;
     if (!i.attempt_id) {
@@ -145,6 +153,7 @@ export async function handleSubscriptionInvitation(req: Request) {
     if (saved.error || !saved.data?.length) throw new Error("Checkout persistence pending; retry");
     return reply({ url: s.url });
   } catch { return reply({ error: "This invitation cannot continue. Ask your admin to confirm the email, billing or link status." }, 409); }
+  finally { if (checkoutLease) await admin().from("subscription_invitations").update({ checkout_lock_id: null, checkout_lock_at: null }).eq("id", checkoutLease.id).eq("checkout_lock_id", checkoutLease.key); }
 }
 
 export async function paidInvitationProof(stripe: Stripe, i: any, s: Stripe.Checkout.Session) {
@@ -157,7 +166,7 @@ export async function paidInvitationProof(stripe: Stripe, i: any, s: Stripe.Chec
   if (sub.status !== "active" || sub.trial_end || sub.items.has_more) return null;
   const choice = i.selection, main = await verifiedPrice(stripe, `${choice.plan}_${choice.interval}`);
   const items = sub.items.data, base = items.find(item => item.price.id === main.id);
-  if (!base || base.quantity !== 1 || items.length !== (choice.cardClub ? 2 : 1)) throw new Error("Purchased selection mismatch");
+  if (!base || base.quantity !== 1 || base.price.unit_amount !== main.amount || base.price.currency !== "usd" || base.price.recurring?.interval !== choice.interval || base.price.recurring.interval_count !== 1 || items.length !== (choice.cardClub ? 2 : 1)) throw new Error("Purchased selection mismatch");
   let clubItem = null;
   if (choice.cardClub) {
     const club = await verifiedPrice(stripe, "card_club");
@@ -182,7 +191,7 @@ export async function activateSubscriptionInvitation(stripe: Stripe, supplied: S
   const i = r.data, s = await stripe.checkout.sessions.retrieve(supplied.id);
   if (i.payment_hold_at) return;
   const proof = await paidInvitationProof(stripe, i, s); if (!proof) return;
-  const shipping = s.shipping_details;
+  const shipping = s.shipping_details || (s as any).collected_information?.shipping_details;
   if (!shipping?.address?.line1 || !shipping.address.postal_code) throw new Error("Shipping missing");
   const saved = await db.rpc("fulfill_subscription_invitation", { _id: i.id, _session: s.id, _subscription: proof.subscription, _customer: proof.customer, _payment: proof.payment, _paid_at: proof.paidAt, _shipping: { ...shipping.address, name: shipping.name }, _club_item: proof.clubItem, _club_price: proof.clubPrice });
   if (saved.error || !saved.data?.paid) throw saved.error || new Error("Activation pending");
@@ -215,13 +224,16 @@ async function deliverInvitationAccess(db: any, i: any, resend = false) {
   try {
     const found = await db.rpc("get_auth_user_by_email", { lookup_email: i.intended_email }); if (found.error) throw found.error;
     const existing = found.data?.[0]?.id;
-    if (i.bound_owner_id && existing !== i.bound_owner_id) throw new Error("Bound owner email changed");
-    const generated = await db.auth.admin.generateLink({ type: "magiclink", email: i.intended_email });
-    const authHash = generated.data?.properties?.hashed_token, uid = generated.data?.user?.id;
-    if (generated.error || !authHash || !uid || i.bound_owner_id && uid !== i.bound_owner_id) throw new Error("Secure access unavailable");
-    const token = secret(), expires = new Date(Date.now() + 60 * 60 * 1000).toISOString();
-    const persisted = await db.from("subscription_invitations").update({ access_token_hash: await hashValue(token), access_auth_hash: authHash, access_user_id: uid, access_expires_at: expires, access_consumed_at: null }).eq("id", i.id).eq("welcome_email_started_at", started);
-    if (persisted.error) throw persisted.error;
+    if (i.bound_owner_id && !i.owner_placeholder && existing !== i.bound_owner_id) throw new Error("Bound owner email changed");
+    let token = i.access_delivery_token;
+    if (!token || resend) {
+      const generated = await db.auth.admin.generateLink({ type: "magiclink", email: i.intended_email });
+      const authHash = generated.data?.properties?.hashed_token, uid = generated.data?.user?.id;
+      if (generated.error || !authHash || !uid || i.bound_owner_id && !i.owner_placeholder && uid !== i.bound_owner_id) throw new Error("Secure access unavailable");
+      token = secret(); const expires = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+      const persisted = await db.from("subscription_invitations").update({ access_delivery_token: token, access_token_hash: await hashValue(token), access_auth_hash: authHash, access_user_id: uid, access_expires_at: expires, access_consumed_at: null }).eq("id", i.id).eq("welcome_email_started_at", started);
+      if (persisted.error) throw persisted.error;
+    }
     const url = `${frontendUrl()}/subscribe/access#token=${token}`;
     const result = await sendEmailAndLog({ to: i.intended_email, subject: "Your TapAway dashboard access", templateKey: "optional_subscription_access", profileId: i.hub_kind === "personal" ? i.hub_id : undefined, idempotencyKey: `optional-access/${i.id}/${resend ? started : "first"}`,
       html: wrapEmail({ preheader: "Your payment is confirmed. Verify your email to access your existing hub.", headline: "Your TapAway subscription is ready", introHtml: "<p>Your existing hub, links and cards remain unchanged. Confirm your email to open your dashboard and arrange your included cards.</p>", bodyHtml: "<p>This private link works once and expires in one hour. Never share it.</p>", ctaLabel: "Verify email & open dashboard", ctaUrl: escapeHtml(url) }), text: `Your payment is confirmed. Your existing hub stays online. Verify your email and open your dashboard: ${url}\nThis link works once and expires in one hour.` });
