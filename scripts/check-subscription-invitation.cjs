@@ -63,7 +63,7 @@ async function fixture(kind='personal') {
     const service=createClient('https://database.invalid','fixture_service',{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false},global:{fetch:intercepted}});
     f.s.db.auth=service.auth;
     const oldRpc=f.s.db.rpc.bind(f.s.db);f.s.db.rpc=(name,args)=>name==='associate_subscription_invitation'?service.rpc(name,args):oldRpc(name,args);
-    f.s.context.__createClient=(url,key,options)=>{assert.equal(key,'fixture_anon');authClient=createClient(url,key,{...options,global:{fetch:intercepted}});return authClient;};
+    f.s.context.__createClient=(url,key,options)=>{if(key===f.s.env.SUPABASE_SERVICE_ROLE_KEY)return f.s.db;assert.equal(key,'fixture_anon');authClient=createClient(url,key,{...options,global:{fetch:intercepted}});return authClient;};
     await f.checkout();await f.api.activateSubscriptionInvitation(f.s.stripe,f.paid().session);
     assert.equal(f.i.access_auth_hash,`${type}:fixture_auth_hash`);
     assert.equal((await f.call({action:'access',accessToken:f.i.access_delivery_token})).status,200);
@@ -72,6 +72,17 @@ async function fixture(kind='personal') {
     assert.equal(requests.filter(r=>r.path==='/rest/v1/rpc/associate_subscription_invitation').length,1);
     assert.equal((await f.call({action:'access',accessToken:f.i.access_delivery_token})).status,410);
   });
+  await pass('Pinned SDK control: OTP on a service client replaces its outgoing bearer even with persistence disabled',async()=>{
+    const user={id:OWNER,email:'owner@example.invalid'},bearer='fixture_user_session';let authorization;
+    const client=createClient('https://database.invalid','fixture_service',{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false},global:{fetch:async(url,init)=>{
+      assert.equal(new URL(url).origin,'https://database.invalid');
+      if(new URL(url).pathname==='/auth/v1/verify')return new Response(JSON.stringify({user,access_token:bearer,refresh_token:'fixture_refresh',token_type:'bearer',expires_in:3600}),{headers:{'Content-Type':'application/json'}});
+      assert.equal(new URL(url).pathname,'/rest/v1/rpc/associate_subscription_invitation');authorization=new Headers(init.headers).get('authorization');return new Response('{}',{headers:{'Content-Type':'application/json'}});
+    }}});
+    assert.equal((await client.auth.verifyOtp({token_hash:'fixture_hash',type:'magiclink'})).error,null);
+    await client.rpc('associate_subscription_invitation',{});assert.equal(authorization,`Bearer ${bearer}`);
+  });
+  await pass('Already-issued unprefixed magiclink hash still redeems',async()=>{const f=await fixture();await f.checkout();await f.api.activateSubscriptionInvitation(f.s.stripe,f.paid().session);f.i.access_auth_hash='fixture_auth_hash';f.s.db.auth.verifyOtp=async input=>{assert.equal(input.type,'magiclink');assert.equal(input.token_hash,'fixture_auth_hash');return {data:{user:{id:OWNER,email:'owner@example.invalid'},session:{access_token:'fixture_access',refresh_token:'fixture_refresh'}},error:null};};assert.equal((await f.call({action:'access',accessToken:f.i.access_delivery_token})).status,200);});
   await pass('Unsupported generated verification type fails before access email',async()=>{const f=await fixture();f.s.db.auth.admin.generateLink=async()=>({data:{properties:{hashed_token:'fixture_auth_hash',verification_type:'recovery'},user:{id:OWNER}},error:null});await f.checkout();await assert.rejects(()=>f.api.activateSubscriptionInvitation(f.s.stripe,f.paid().session));assert.equal(f.s.calls.emails.length,0);});
   for(const plan of ['solo','venue']) for(const interval of ['month','year']) for(const club of [false,true]) await pass(`${plan}/${interval}/club=${club}: exact immediate-charge contract and activation`,async()=>{
     const f=await fixture();assert.equal((await f.checkout(plan,interval,club)).status,200);const p=f.s.calls.checkout[0];assert.equal(p.subscription_data.trial_period_days,undefined);assert.equal(p.line_items.length,club?2:1);assert.equal(p.line_items[0].price,`price_${plan}_${interval}`);assert.equal(p.customer_email,'owner@example.invalid');if(club&&interval==='year'){assert.equal(p.line_items[1].price_data.unit_amount,6000);assert.equal(p.line_items[1].price_data.recurring.interval,'year');}if(club&&interval==='month')assert.equal(p.line_items[1].price,'price_card_club');const proof=f.paid(plan,interval,club);await f.api.activateSubscriptionInvitation(f.s.stripe,proof.session);await f.api.activateSubscriptionInvitation(f.s.stripe,proof.session);assert.equal(f.profile.id,HUB);assert.equal(f.profile.username,'existing-hub');assert.equal(f.profile.bio,'untouched');assert.equal(f.profile.user_id,OWNER);assert.equal(f.profile.legacy_allowance,false);assert.equal(f.s.calls.emails.length,1);assert.equal(f.s.calls.separate.length,0);

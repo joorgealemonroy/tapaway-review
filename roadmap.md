@@ -1,5 +1,9 @@
 # Roadmap
 
+## Focused invitation email access correction (2026-11-03)
+- [ ] Isolate OTP auth client, retain validated generated signup/magiclink type without changing RPC permissions or schema.
+- [ ] Run pinned-SDK intercepted-fetch regression and invitation/security checks; deploy corrected backend dependents, update review note; no frontend publication or real customer actions.
+
 ## Optional existing-hub subscription invitation (2026-11-03)
 - [x] Add admin email-confirmed invitation with QR/copy/share, separate from Require payment, in both Accounts & Hubs views.
 - [x] Implement owner-bound checkout, paid activation and one-use emailed access for both eligible hub types; preserve free public access and existing claim links.
