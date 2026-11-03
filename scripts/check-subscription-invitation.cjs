@@ -54,6 +54,7 @@ async function fixture(kind='personal') {
       assert.equal(new URL(url).origin,'https://database.invalid'); const headers=new Headers(init.headers),body=JSON.parse(init.body||'{}');requests.push({path:new URL(url).pathname,headers,body});
       let data;
       if(new URL(url).pathname==='/auth/v1/admin/generate_link'){assert.equal(headers.get('authorization'),'Bearer fixture_service');assert.equal(body.type,'magiclink');data={...user,action_link:'https://database.invalid/verify',email_otp:'123456',hashed_token:'fixture_auth_hash',verification_type:type};}
+      else if(new URL(url).pathname===`/auth/v1/admin/users/${OWNER}`){assert.equal(headers.get('authorization'),'Bearer fixture_service');data=user;}
       else if(new URL(url).pathname==='/auth/v1/verify'){assert.equal(headers.get('apikey'),'fixture_anon');assert.equal(body.type,type);assert.equal(body.token_hash,'fixture_auth_hash');data={user,access_token:jwt,refresh_token:'fixture_refresh',token_type:'bearer',expires_in:3600};}
       else if(new URL(url).pathname==='/rest/v1/rpc/associate_subscription_invitation'){assert.equal(headers.get('apikey'),'fixture_service');assert.equal(headers.get('authorization'),'Bearer fixture_service');data={associated:true};}
       else throw Error('Unexpected SDK request');
