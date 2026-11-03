@@ -1,5 +1,10 @@
 # Roadmap
 
+## Current-account invitation compatibility (2026-11-03)
+- [ ] Permit pre-existing real bound owners across kinds without weakening unowned/demo association protections; additive SQL only.
+- [ ] Return verified exact-hub route and owner-check dashboard selection; guard delayed dialog results and remove unsupported shipping status.
+- [ ] Run nontransactional ownership/RLS, target, delayed-response and auth/payment/security regressions; deploy changed backend dependents, update handoff; keep frontend unpublished.
+
 ## Focused invitation email access correction (2026-11-03)
 - [x] Isolate OTP auth client, retain validated generated signup/magiclink type without changing RPC permissions or schema; old unprefixed links preserved.
 - [x] Pinned-SDK intercepted-fetch checks reproduce old bearer replacement and prove isolated service association; 22 invitation checks, 11 invitation PostgreSQL checks, 25 release suites and both security gates pass. Deployed subscription-invitation and dependent payment-first-webhook; review note updated. No frontend publication or real customer actions; hosted real login unverified by restriction.
