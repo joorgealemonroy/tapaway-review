@@ -267,6 +267,13 @@
       "when": 1793749125922,
       "tag": "0037_optional_subscription_invitations",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1793749447532,
+      "tag": "0038_optional_subscription_lifecycle_guards",
+      "breakpoints": true
     }
   ]
 }
