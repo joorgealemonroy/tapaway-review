@@ -11,14 +11,17 @@ serve(async (req) => {
     const key = typeof body.idempotencyKey === "string" && /^[A-Za-z0-9-]{8,80}$/.test(body.idempotencyKey) ? body.idempotencyKey : null;
     if (!key) return json({ error: "Invalid request." }, 400);
     const db = admin();
-    let membershipQuery = db.from("card_club_memberships").select("id, user_id, checkout_intent_id")
+    let membershipQuery = db.from("card_club_memberships").select("id, user_id, checkout_intent_id, subscription_invitation_id")
       .eq("user_id", user.id).in("status", ["active", "past_due", "pending_activation"]);
     if (typeof body.membershipId === "string") membershipQuery = membershipQuery.eq("id", body.membershipId);
     const { data: m } = await membershipQuery.order("created_at", { ascending: false }).limit(1).maybeSingle();
     if (!m) return json({ error: "Card Club isn't active on this account." }, 403);
-    const { data: s } = await db.from("onboarding_sessions").select("shipping_address").eq("checkout_intent_id", m.checkout_intent_id).maybeSingle();
+    const address = m.subscription_invitation_id
+      ? await db.from("subscription_invitations").select("shipping_address,payment_hold_at,access_user_id").eq("id", m.subscription_invitation_id).eq("access_user_id", user.id).single()
+      : await db.from("onboarding_sessions").select("shipping_address").eq("checkout_intent_id", m.checkout_intent_id).maybeSingle();
+    if (address.error || (address.data && "payment_hold_at" in address.data && address.data.payment_hold_at)) return json({ error: "Your card options need review." }, 409);
     const note = typeof body.designNote === "string" ? body.designNote : "";
-    const { data, error } = await db.rpc("card_club_redeem", { _membership_id: m.id, _address: s?.shipping_address ?? null, _design_note: note, _idempotency_key: `${user.id}-${key}` });
+    const { data, error } = await db.rpc("card_club_redeem", { _membership_id: m.id, _address: address.data?.shipping_address ?? null, _design_note: note, _idempotency_key: `${user.id}-${key}` });
     if (error?.code === "23505") return json({ error: "You already have a replacement request pending.", reason: "request_pending" }, 409);
     if (error) throw error;
     if (!data?.ok) {
