@@ -7,13 +7,13 @@ const TOKEN = 'a'.repeat(64), hash = v => crypto.createHash('sha256').update(v).
 let n = 0;
 const pass = async (name, fn) => { await fn(); n++; console.log('PASS ' + name); };
 async function fixture(kind='personal') {
-  const s = environment(); s.context.__mode='live'; Object.assign(s.env,{RESEND_API_KEY:'fixture',SUPABASE_URL:'https://database.invalid'});
+  const s = environment(); s.context.__mode='live'; Object.assign(s.env,{RESEND_API_KEY:'fixture',SUPABASE_URL:'https://database.invalid',SUPABASE_ANON_KEY:'fixture_anon'});
   s.context.Deno.serve=h=>s.context.__handler=h;
   const profile={id:HUB,user_id:OWNER,owner_id:OWNER,email:'owner@example.invalid',username:'existing-hub',custom_slug:'existing-hub',full_name:'Existing hub',restaurant_name:'Existing hub',is_approved:true,subscription_status:'active',payment_state:'complimentary',plan_type:'solo_pro',bio:'untouched',legacy_allowance:false};
   s.db.rows(kind==='personal'?'personal_profiles':'restaurants').push(profile);
   s.db.users.set('owner@example.invalid',{id:OWNER,email:'owner@example.invalid'});
   s.db.auth.admin.getUserById=async id=>({data:{user:{id,email:'owner@example.invalid'}},error:null});
-  s.db.auth.admin.generateLink=async ({email})=>({data:{properties:{hashed_token:'fixture_auth_hash'},user:{id:OWNER,email}},error:null});
+  s.db.auth.admin.generateLink=async ({email})=>({data:{properties:{hashed_token:'fixture_auth_hash',verification_type:'magiclink'},user:{id:OWNER,email}},error:null});
   s.db.auth.verifyOtp=async()=>({data:{user:{id:OWNER,email:'owner@example.invalid'},session:{access_token:'fixture_access',refresh_token:'fixture_refresh'}},error:null});
   s.stripe.customers={list:async()=>({data:[],has_more:false})}; s.stripe.subscriptions.list=async()=>({data:[],has_more:false});
   const i={id:'33333333-3333-4333-8333-333333333333',hub_kind:kind,hub_id:HUB,bound_owner_id:OWNER,intended_email:'owner@example.invalid',token_hash:hash(TOKEN),expires_at:new Date(Date.now()+86400000).toISOString(),stripe_livemode:true};
@@ -43,6 +43,47 @@ async function fixture(kind='personal') {
   return {s,i,profile,api,call,checkout,paid};
 }
 (async()=>{
+  const path = require('node:path');
+  const { createClient } = require(path.join(process.env.QA_MODULES,'@supabase/supabase-js'));
+  assert.equal(require(path.join(process.env.QA_MODULES,'@supabase/supabase-js/package.json')).version,'2.39.7');
+  for (const type of ['magiclink','signup']) await pass(`Pinned SDK ${type}: generated OTP type and isolated service authorization`,async()=>{
+    const f=await fixture(); const requests=[]; let authClient;
+    const user={id:OWNER,email:'owner@example.invalid',aud:'authenticated',role:'authenticated',email_confirmed_at:new Date().toISOString()};
+    const jwt=Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT'})).toString('base64url')+'.'+Buffer.from(JSON.stringify({sub:OWNER,exp:Math.floor(Date.now()/1000)+3600,role:'authenticated'})).toString('base64url')+'.fixture';
+    const intercepted=async(url,init)=>{
+      assert.equal(new URL(url).origin,'https://database.invalid'); const headers=new Headers(init.headers),body=JSON.parse(init.body||'{}');requests.push({path:new URL(url).pathname,headers,body});
+      let data;
+      if(new URL(url).pathname==='/auth/v1/admin/generate_link'){assert.equal(headers.get('authorization'),'Bearer fixture_service');assert.equal(body.type,'magiclink');data={...user,action_link:'https://database.invalid/verify',email_otp:'123456',hashed_token:'fixture_auth_hash',verification_type:type};}
+      else if(new URL(url).pathname===`/auth/v1/admin/users/${OWNER}`){assert.equal(headers.get('authorization'),'Bearer fixture_service');data=user;}
+      else if(new URL(url).pathname==='/auth/v1/verify'){assert.equal(headers.get('apikey'),'fixture_anon');assert.equal(body.type,type);assert.equal(body.token_hash,'fixture_auth_hash');data={user,access_token:jwt,refresh_token:'fixture_refresh',token_type:'bearer',expires_in:3600};}
+      else if(new URL(url).pathname==='/rest/v1/rpc/associate_subscription_invitation'){assert.equal(headers.get('apikey'),'fixture_service');assert.equal(headers.get('authorization'),'Bearer fixture_service');data={associated:true};}
+      else throw Error('Unexpected SDK request');
+      return new Response(JSON.stringify(data),{status:200,headers:{'Content-Type':'application/json'}});
+    };
+    const service=createClient('https://database.invalid','fixture_service',{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false},global:{fetch:intercepted}});
+    f.s.db.auth=service.auth;
+    const oldRpc=f.s.db.rpc.bind(f.s.db);f.s.db.rpc=(name,args)=>name==='associate_subscription_invitation'?service.rpc(name,args):oldRpc(name,args);
+    f.s.context.__createClient=(url,key,options)=>{if(key===f.s.env.SUPABASE_SERVICE_ROLE_KEY)return f.s.db;assert.equal(key,'fixture_anon');authClient=createClient(url,key,{...options,global:{fetch:intercepted}});return authClient;};
+    await f.checkout();await f.api.activateSubscriptionInvitation(f.s.stripe,f.paid().session);
+    assert.equal(f.i.access_auth_hash,`${type}:fixture_auth_hash`);
+    assert.equal((await f.call({action:'access',accessToken:f.i.access_delivery_token})).status,200);
+    assert.equal((await authClient.auth.getSession()).data.session.access_token,jwt);
+    assert.equal((await service.auth.getSession()).data.session,null);
+    assert.equal(requests.filter(r=>r.path==='/rest/v1/rpc/associate_subscription_invitation').length,1);
+    assert.equal((await f.call({action:'access',accessToken:f.i.access_delivery_token})).status,410);
+  });
+  await pass('Pinned SDK control: OTP on a service client replaces its outgoing bearer even with persistence disabled',async()=>{
+    const user={id:OWNER,email:'owner@example.invalid'},bearer='fixture_user_session';let authorization;
+    const client=createClient('https://database.invalid','fixture_service',{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false},global:{fetch:async(url,init)=>{
+      assert.equal(new URL(url).origin,'https://database.invalid');
+      if(new URL(url).pathname==='/auth/v1/verify')return new Response(JSON.stringify({user,access_token:bearer,refresh_token:'fixture_refresh',token_type:'bearer',expires_in:3600}),{headers:{'Content-Type':'application/json'}});
+      assert.equal(new URL(url).pathname,'/rest/v1/rpc/associate_subscription_invitation');authorization=new Headers(init.headers).get('authorization');return new Response('{}',{headers:{'Content-Type':'application/json'}});
+    }}});
+    assert.equal((await client.auth.verifyOtp({token_hash:'fixture_hash',type:'magiclink'})).error,null);
+    await client.rpc('associate_subscription_invitation',{});assert.equal(authorization,`Bearer ${bearer}`);
+  });
+  await pass('Already-issued unprefixed magiclink hash still redeems',async()=>{const f=await fixture();await f.checkout();await f.api.activateSubscriptionInvitation(f.s.stripe,f.paid().session);f.i.access_auth_hash='fixture_auth_hash';f.s.db.auth.verifyOtp=async input=>{assert.equal(input.type,'magiclink');assert.equal(input.token_hash,'fixture_auth_hash');return {data:{user:{id:OWNER,email:'owner@example.invalid'},session:{access_token:'fixture_access',refresh_token:'fixture_refresh'}},error:null};};assert.equal((await f.call({action:'access',accessToken:f.i.access_delivery_token})).status,200);});
+  await pass('Unsupported generated verification type fails before access email',async()=>{const f=await fixture();f.s.db.auth.admin.generateLink=async()=>({data:{properties:{hashed_token:'fixture_auth_hash',verification_type:'recovery'},user:{id:OWNER}},error:null});await f.checkout();await assert.rejects(()=>f.api.activateSubscriptionInvitation(f.s.stripe,f.paid().session));assert.equal(f.s.calls.emails.length,0);});
   for(const plan of ['solo','venue']) for(const interval of ['month','year']) for(const club of [false,true]) await pass(`${plan}/${interval}/club=${club}: exact immediate-charge contract and activation`,async()=>{
     const f=await fixture();assert.equal((await f.checkout(plan,interval,club)).status,200);const p=f.s.calls.checkout[0];assert.equal(p.subscription_data.trial_period_days,undefined);assert.equal(p.line_items.length,club?2:1);assert.equal(p.line_items[0].price,`price_${plan}_${interval}`);assert.equal(p.customer_email,'owner@example.invalid');if(club&&interval==='year'){assert.equal(p.line_items[1].price_data.unit_amount,6000);assert.equal(p.line_items[1].price_data.recurring.interval,'year');}if(club&&interval==='month')assert.equal(p.line_items[1].price,'price_card_club');const proof=f.paid(plan,interval,club);await f.api.activateSubscriptionInvitation(f.s.stripe,proof.session);await f.api.activateSubscriptionInvitation(f.s.stripe,proof.session);assert.equal(f.profile.id,HUB);assert.equal(f.profile.username,'existing-hub');assert.equal(f.profile.bio,'untouched');assert.equal(f.profile.user_id,OWNER);assert.equal(f.profile.legacy_allowance,false);assert.equal(f.s.calls.emails.length,1);assert.equal(f.s.calls.separate.length,0);
   });

@@ -1,5 +1,9 @@
 # Roadmap
 
+## Focused invitation email access correction (2026-11-03)
+- [x] Isolate OTP auth client, retain validated generated signup/magiclink type without changing RPC permissions or schema; old unprefixed links preserved.
+- [x] Pinned-SDK intercepted-fetch checks reproduce old bearer replacement and prove isolated service association; 22 invitation checks, 11 invitation PostgreSQL checks, 25 release suites and both security gates pass. Deployed subscription-invitation and dependent payment-first-webhook; review note updated. No frontend publication or real customer actions; hosted real login unverified by restriction.
+
 ## Optional existing-hub subscription invitation (2026-11-03)
 - [x] Add admin email-confirmed invitation with QR/copy/share, separate from Require payment, in both Accounts & Hubs views.
 - [x] Implement owner-bound checkout, paid activation and one-use emailed access for both eligible hub types; preserve free public access and existing claim links.
