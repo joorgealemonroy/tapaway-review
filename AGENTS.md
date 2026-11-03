@@ -1,5 +1,7 @@
 # Project rules
 
+- Optional existing-hub invitations use a distinct versioned checkout and atomic owner-bound fulfillment; mandatory gates and legacy claim tokens remain unchanged to preserve public access and issued contracts.
+
 - The Las Islas original-PDF menu link is allowlisted by exact restaurant ID; other hubs retain their existing menu RPC and viewer so legacy destinations cannot inherit location-specific UI.
 
 - Public hub resolution and profile fetch results belong to the current route/request only; remount route destinations and discard superseded async results so loading never exposes another hub or a premature missing gate.
