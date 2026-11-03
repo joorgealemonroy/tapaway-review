@@ -1,10 +1,10 @@
 # Roadmap
 
 ## Optional existing-hub subscription invitation (2026-11-03)
-- [ ] Add admin email-confirmed invitation with QR/copy/share, separate from Require payment.
-- [ ] Implement owner-bound checkout, paid activation and one-use emailed access for eligible existing hub types; preserve free public access.
-- [ ] Add additive schema and supported backend deployment; no customer mutations, purchases, emails or frontend publication.
-- [ ] Run isolated eight-combination, authorization, race/replay, activation/preservation and browser regressions plus required security/release checks.
+- [x] Add admin email-confirmed invitation with QR/copy/share, separate from Require payment, in both Accounts & Hubs views.
+- [x] Implement owner-bound checkout, paid activation and one-use emailed access for both eligible hub types; preserve free public access and existing claim links.
+- [x] Apply additive migrations 0037/0038 and deploy subscription-invitation, payment-first-webhook, stripe-webhook, card-club-request. Customer hashes unchanged: 144 personal/14 restaurant rows; zero invitations. No purchases/emails/publication.
+- [x] Pass 17 provider-double invitation checks, 11 isolated PostgreSQL checks, 25 release suites, security source/test checks and new-screen lint; browser fixtures pass 320/360/390/1280 widths. Preview build OK. Hosted paid/email/login flow remains deliberately untested under the no-purchase/no-email restriction; GitHub production CI is the review step.
 
 ## Las Islas PDF correction (2026-10-31)
 - [x] Keep only the upper menu action for the two exact IDs; open the unchanged original PDF in a new tab with analytics, removing the text viewer and its styles.
