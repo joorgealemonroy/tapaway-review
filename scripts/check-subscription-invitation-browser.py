@@ -43,7 +43,7 @@ async def main():
    await page.get_by_role('heading',name='Fixture cafe',exact=True).wait_for()
    assert not await page.get_by_role('checkbox').is_checked()
    assert await page.get_by_text('$20 due today',exact=True).is_visible()
-   await page.get_by_text('15 cards',exact=True).click()
+   await page.locator('#plan-venue').click()
    await page.get_by_text('Yearly',exact=True).click()
    await page.get_by_role('checkbox').check()
    assert await page.get_by_text('$450 due today',exact=True).is_visible()
