@@ -1,4 +1,5 @@
 import Stripe from "https://esm.sh/stripe@14.21.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 import { admin, frontendUrl, getStripe, stripeMode, userFromRequest, verifiedPrice } from "./paymentFirst.ts";
 import { hashValue, takeQuota } from "./storefrontRateLimit.ts";
 import { readAccessBody, normalizedEmail } from "./accountAccess.ts";
@@ -243,9 +244,11 @@ async function deliverInvitationAccess(db: any, i: any, resend = false) {
     if (!token || resend) {
       const generated = await db.auth.admin.generateLink({ type: "magiclink", email: i.intended_email });
       const authHash = generated.data?.properties?.hashed_token, uid = generated.data?.user?.id;
-      if (generated.error || !authHash || !uid || i.bound_owner_id && !i.owner_placeholder && uid !== i.bound_owner_id) throw new Error("Secure access unavailable");
+      const verificationType = generated.data?.properties?.verification_type;
+      if (generated.error || !authHash || !uid || !["magiclink", "signup"].includes(verificationType) || i.bound_owner_id && !i.owner_placeholder && uid !== i.bound_owner_id) throw new Error("Secure access unavailable");
       token = secret(); const expires = new Date(Date.now() + 60 * 60 * 1000).toISOString();
-      const persisted = await db.from("subscription_invitations").update({ access_delivery_token: token, access_token_hash: await hashValue(token), access_auth_hash: authHash, access_user_id: uid, access_expires_at: expires, access_consumed_at: null }).eq("id", i.id).eq("welcome_email_started_at", started);
+      // Keep the returned OTP type alongside its hash; old unprefixed magic links remain valid.
+      const persisted = await db.from("subscription_invitations").update({ access_delivery_token: token, access_token_hash: await hashValue(token), access_auth_hash: `${verificationType}:${authHash}`, access_user_id: uid, access_expires_at: expires, access_consumed_at: null }).eq("id", i.id).eq("welcome_email_started_at", started);
       if (persisted.error) throw persisted.error;
     }
     const url = `${frontendUrl()}/subscribe/access#token=${token}`;
@@ -266,7 +269,16 @@ async function redeemAccess(db: any, body: Record<string, unknown>) {
   if (!proof) return reply({ error: "Payment needs review" }, 409);
   const claimed = await db.from("subscription_invitations").update({ access_consumed_at: new Date().toISOString() }).eq("id", i.id).is("access_consumed_at", null).select("id");
   if (claimed.error || !claimed.data?.length) return reply({ error: "Access link already used" }, 410);
-  const verified = await db.auth.verifyOtp({ token_hash: i.access_auth_hash, type: "magiclink" });
+  const stored = typeof i.access_auth_hash === "string" ? i.access_auth_hash : "";
+  const separator = stored.indexOf(":");
+  const type = separator < 0 ? "magiclink" : stored.slice(0, separator);
+  const tokenHash = separator < 0 ? stored : stored.slice(separator + 1);
+  if ((type !== "magiclink" && type !== "signup") || !tokenHash) return reply({ error: "Verification failed. Request a new link" }, 410);
+  const url = Deno.env.get("SUPABASE_URL"), key = Deno.env.get("SUPABASE_ANON_KEY");
+  if (!url || !key) throw new Error("Auth verification unavailable");
+  // verifyOtp installs a session even without persistence. Never sign in the privileged db client.
+  const authClient = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
+  const verified = await authClient.auth.verifyOtp({ token_hash: tokenHash, type });
   if (verified.error || verified.data?.user?.id !== i.access_user_id || normalizedEmail(verified.data.user.email) !== i.intended_email || !verified.data.session) return reply({ error: "Verification failed. Request a new link" }, 410);
   const associated = await db.rpc("associate_subscription_invitation", { _id: i.id, _user: verified.data.user.id, _email: i.intended_email });
   if (associated.error || !associated.data?.associated) return reply({ error: "Owner association needs review" }, 409);

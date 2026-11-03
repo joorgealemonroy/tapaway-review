@@ -1,5 +1,7 @@
 # Project rules
 
+- OTP redemption uses a separate nonpersistent publishable auth client; retain validated signup/magiclink type with the stored hash and never install a user session on a privileged database client.
+
 - Optional existing-hub invitations use a distinct versioned checkout and atomic owner-bound fulfillment; mandatory gates and legacy claim tokens remain unchanged to preserve public access and issued contracts.
 
 - The Las Islas original-PDF menu link is allowlisted by exact restaurant ID; other hubs retain their existing menu RPC and viewer so legacy destinations cannot inherit location-specific UI.
