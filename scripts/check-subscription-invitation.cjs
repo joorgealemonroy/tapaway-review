@@ -7,7 +7,7 @@ const TOKEN = 'a'.repeat(64), hash = v => crypto.createHash('sha256').update(v).
 let n = 0;
 const pass = async (name, fn) => { await fn(); n++; console.log('PASS ' + name); };
 async function fixture(kind='personal') {
-  const s = environment(); s.context.__mode='live'; s.env.RESEND_API_KEY='fixture';
+  const s = environment(); s.context.__mode='live'; Object.assign(s.env,{RESEND_API_KEY:'fixture',SUPABASE_URL:'https://database.invalid'});
   s.context.Deno.serve=h=>s.context.__handler=h;
   const profile={id:HUB,user_id:OWNER,owner_id:OWNER,email:'owner@example.invalid',username:'existing-hub',custom_slug:'existing-hub',full_name:'Existing hub',restaurant_name:'Existing hub',is_approved:true,subscription_status:'active',payment_state:'complimentary',plan_type:'solo_pro',bio:'untouched',legacy_allowance:false};
   s.db.rows(kind==='personal'?'personal_profiles':'restaurants').push(profile);

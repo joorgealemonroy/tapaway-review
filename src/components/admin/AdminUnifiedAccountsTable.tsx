@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 import HubAnalyticsDialog, { HubAnalyticsTarget } from "@/components/admin/HubAnalyticsDialog";
 import CloseSaleDialog, { CloseSaleTarget } from "@/components/admin/CloseSaleDialog";
 import SubscriptionInvitationDialog, { type SubscriptionInvitationTarget } from "@/components/admin/SubscriptionInvitationDialog";
-import { canInviteSubscription } from "../../../supabase/functions/_shared/subscriptionInvitationRules";
+import { canInviteSubscription } from "../../../shared/subscriptionInvitation";
 import RequireHubPaymentDialog, { type HubPaymentTarget } from "@/components/admin/RequireHubPaymentDialog";
 import { toast } from "sonner";
 import {
