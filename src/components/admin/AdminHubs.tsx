@@ -145,7 +145,7 @@ export default function AdminHubs() {
               </span>
             </div>
             <div className="aw-hub-actions flex-wrap">
-              {canInviteSubscription(h) && <Button variant="outline" size="sm" onClick={() => setInvitationTarget({ id: h.id, kind: h.kind, name: h.name })}>Payment link</Button>}
+              {canInviteSubscription(h) && <Button variant="outline" size="sm" onClick={() => setInvitationTarget({ id: h.id, kind: h.kind === "personal" ? "personal" : "restaurant", name: h.name })}>Payment link</Button>}
               <Link className="aw-small-button" to={hubEditPath(h)}>
                 Edit hub <ArrowUpRight size={15} />
               </Link>
