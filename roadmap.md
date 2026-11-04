@@ -1,8 +1,8 @@
 # Roadmap
 
 ## JSONB invitation selection correction (2026-11-04)
-- [ ] Replace both order-sensitive comparisons with strict validated field equality; preserve different choices and prior access/compatibility fixes.
-- [ ] Round-trip all eight selections through isolated PostgreSQL, verify first checkout/retry reuse and shape rejection; run invitation/security regressions, deploy changed backend, update review note; frontend unpublished.
+- [x] Both comparisons use strict validated field equality; different plan/interval/Club values remain distinct; prior access/compatibility fixes preserved.
+- [x] All eight real isolated JSONB round-trips pass first checkout/two retries with one session and zero expirations; changed choices and malformed shapes covered. 37 invitation checks, 14 SQL ownership checks, 25 release suites and both security gates pass; preview build OK. Deployed subscription-invitation/payment-first-webhook, handoff updated; frontend unpublished, no real customer actions.
 
 ## Current-account invitation compatibility (2026-11-03)
 - [x] Preserve real bound owners across kinds; incompatible unowned/demo claims remain blocked. Applied service-only association correction 0039, twin matches, zero invitations.

@@ -1,5 +1,13 @@
 # Optional subscription invitations — review handoff
 
+## JSONB selection correction — 2026-11-04 UTC
+- Both checkout comparisons now use strict field equality after validating the exact stored plan/interval/cardClub shape. JSONB key ordering cannot prevent first checkout or unnecessarily expire an identical open session. Different values remain distinct; malformed shapes fail the consistency guard.
+- Regression executes `SELECT $1::jsonb` in isolated PGlite for persisted selections, asserts PostgreSQL actually changes key ordering, and tests all eight choices: first checkout plus two identical retries return the same URL, create exactly one session and expire zero sessions. Separate plan/interval/Club changes each expire the old session and create a new one; malformed stored shapes cannot contact Stripe.
+- `QA_MODULES=/tmp/invitation-qa/node_modules bun run test:release`: PASS 25 suites, including 37 invitation checks and 14 PostgreSQL ownership checks. Earlier real pinned SDK auth isolation, existing-owner compatibility, and exact access-path checks remain passing.
+- `bun run security:source`: PASS 1183 sources. `bun run security:test`: PASS 11. Automatic preview build OK; no manual production app build/typecheck.
+- Supported redeployment succeeded for `subscription-invitation` and shared-helper dependent `payment-first-webhook`, submitted source SHA-256 `5e28f3ff0dcfa2780f0e6638065723c148f2eb325273d2623f40431645461887` and `193db8965f9c7c7350588b742a3658e4d9bee0bc58bc0bfc0a3dc7fe846ded6e`.
+- Only shared invitation helper, existing invitation regression, roadmap and this note changed. No schema/permissions/frontend changes, publication, real payments/emails/identities/customer mutations. Hosted real purchase/access flow remains unverified by restriction; exact-commit production CI remains the review step.
+
 ## Current-account compatibility correction — 2026-11-04 UTC
 - Preserve earlier isolated OTP-client fix and validated signup/magiclink types. Permit opposite-kind ownership only when checkout resolves the exact existing real bound owner; unowned/demo incompatible claims still fail closed.
 - Applied `0039_invitation_existing_owner_compatibility.sql` with the supported migration tool; matching `20261104000100_invitation_existing_owner_compatibility.sql` twin. Replaces only the association function's cross-kind condition; unchanged service-only execution. Read-only verification confirms the new condition, authenticated execution false, service execution true, zero invitations. No owner/profile data changes.
