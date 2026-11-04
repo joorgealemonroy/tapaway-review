@@ -502,6 +502,7 @@ const DashboardBusiness = () => {
   // Check if user should bypass paywall - DEMO MODE ALWAYS BYPASSES
   
   // If no restaurant and not a special user, redirect to paywall (handled in fetchRestaurant)
+  if (targetError) return <main className="min-h-screen bg-background p-6 text-foreground"><p role="alert">This hub is unavailable for your account.</p><Button onClick={() => navigate("/dashboard", { replace: true })}>Your dashboard</Button></main>;
   // But NEVER redirect in demo mode
   // If no restaurant is loaded yet, show loading
   if (!restaurant) {

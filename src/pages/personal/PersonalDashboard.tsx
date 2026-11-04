@@ -366,8 +366,9 @@ const PersonalDashboard = () => {
 
       // Select active profile: from URL param, or default to first
       const selectedProfile = requestedProfileIdLocal
-        ? allProfilesData.find(p => p.id === requestedProfileIdLocal) || allProfilesData[0]
+        ? allProfilesData.find(p => p.id === requestedProfileIdLocal && p.user_id === user.id)
         : allProfilesData[0];
+      if (!selectedProfile) { setLoadError("This hub is unavailable for your account."); setLoading(false); return; }
 
       const normalizedProfile = {
         ...selectedProfile,
