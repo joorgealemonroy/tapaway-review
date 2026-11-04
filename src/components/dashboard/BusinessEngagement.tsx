@@ -188,26 +188,6 @@ export const BusinessEngagement = ({
         </div>
       </Card>
 
-      {loaded && !isDemoView && (
-        <>
-          <MilestoneBadges
-            accountId={restaurantId}
-            totalActivity={totalTaps}
-            reviewClicks={reviewClicks}
-            noun="taps"
-          />
-
-          {showNudge && daysIdle !== null && (
-            <UsageNudge
-              daysIdle={daysIdle}
-              noun="taps"
-              kind="business"
-              onNavigateTab={onNavigateTab}
-            />
-          )}
-        </>
-      )}
-
       {!isDemoView && loaded && (
         <>
           <PlaybookSection kind="business" onNavigateTab={onNavigateTab} />

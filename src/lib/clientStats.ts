@@ -13,6 +13,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAnalyticsReport } from "@/lib/canonicalAnalytics";
 
 /** Minimum taps in the last 30 days for a hub to be considered established. */
 export const MEANINGFUL_TRAFFIC_TAPS_30D = 10;
@@ -107,82 +108,17 @@ type TapRow = { created_at: string };
  * `analytics_events` (event_type = 'tap').
  */
 export async function getClientTapStats(restaurantId: string): Promise<ClientTapStats> {
-  const [totalRes, recentRes] = await Promise.all([
-    supabase
-      .from("analytics_events")
-      .select("id", { count: "exact", head: true })
-      .eq("restaurant_id", restaurantId)
-      .eq("event_type", "tap"),
-    supabase
-      .from("analytics_events")
-      .select("created_at")
-      .eq("restaurant_id", restaurantId)
-      .eq("event_type", "tap")
-      .gte("created_at", daysAgo(30))
-      .order("created_at", { ascending: true }),
-  ]);
-
-  if (totalRes.error) throw totalRes.error;
-  if (recentRes.error) throw recentRes.error;
-
-  const rows = (recentRes.data ?? []) as TapRow[];
-  const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-
-  let tapsThisWeek = 0;
-  for (const r of rows) {
-    if (new Date(r.created_at).getTime() >= weekAgo) tapsThisWeek += 1;
-  }
-  const tapsLast30d = rows.length;
-  const tapsLastWeek = tapsLast30d - tapsThisWeek;
-
-  const trendPct = tapsLastWeek === 0 ? null : ((tapsThisWeek - tapsLastWeek) / tapsLastWeek) * 100;
-
-  return {
-    tapsThisWeek,
-    tapsLastWeek,
-    trendPct,
-    tapsLast30d,
-    totalTaps: totalRes.count ?? 0,
-    hasMeaningfulTraffic: tapsLast30d >= MEANINGFUL_TRAFFIC_TAPS_30D,
-  };
+ const report=await fetchAnalyticsReport({hubId:restaurantId,kind:'business',days:30});
+ const until=report.meta.until;
+ const since7=new Date(new Date(until).getTime()-7*86400000).toISOString();
+ const since14=new Date(new Date(until).getTime()-14*86400000).toISOString();
+ const [week,previous]=await Promise.all([fetchAnalyticsReport({hubId:restaurantId,kind:'business',until,since:since7}),fetchAnalyticsReport({hubId:restaurantId,kind:'business',until,since:since14})]);
+ const tapsThisWeek=week.totals.hub_views, tapsLastWeek=previous.totals.hub_views-tapsThisWeek;
+ return {tapsThisWeek,tapsLastWeek,trendPct:tapsLastWeek?((tapsThisWeek-tapsLastWeek)/tapsLastWeek)*100:null,tapsLast30d:report.totals.hub_views,totalTaps:report.totals.hub_views,hasMeaningfulTraffic:report.totals.hub_views>=MEANINGFUL_TRAFFIC_TAPS_30D};
 }
-
-/**
- * Fetch daily tap counts for the last `days` days (default 30), chronological,
- * zero-filled so charts render a complete series. Days are bucketed in
- * America/Los_Angeles (see {@link americaLosAngelesDayKey}).
- */
-export async function getClientTrafficSeries(
-  restaurantId: string,
-  days = 30,
-): Promise<ClientTrafficPoint[]> {
-  const { data, error } = await supabase
-    .from("analytics_events")
-    .select("created_at")
-    .eq("restaurant_id", restaurantId)
-    .eq("event_type", "tap")
-    .gte("created_at", daysAgo(days))
-    .order("created_at", { ascending: true });
-
-  if (error) throw error;
-
-  const buckets = new Map<string, number>();
-  const series: ClientTrafficPoint[] = [];
-  for (let i = days - 1; i >= 0; i--) {
-    const key = losAngelesDayKeyDaysAgo(i);
-    buckets.set(key, 0);
-    series.push({ date: key, taps: 0 });
-  }
-
-  for (const r of (data ?? []) as TapRow[]) {
-    const key = americaLosAngelesDayKey(r.created_at);
-    buckets.set(key, (buckets.get(key) ?? 0) + 1);
-  }
-  for (const point of series) {
-    point.taps = buckets.get(point.date) ?? 0;
-  }
-
-  return series;
+export async function getClientTrafficSeries(restaurantId:string,days=30):Promise<ClientTrafficPoint[]> {
+ const report=await fetchAnalyticsReport({hubId:restaurantId,kind:'business',since:new Date(Date.now()-days*86400000).toISOString()});
+ return report.daily.map(d=>({date:d.day,taps:d.events.hub_view??0}));
 }
 
 /**
@@ -236,87 +172,18 @@ const zeroClicks = (): Record<LinkClickEventType, number> => ({
  * chronological and zero-filled, bucketed in America/Los_Angeles. Answers
  * "WHEN did the clicks happen". And which link got them.
  */
-export async function getClientLinkClicksByDay(
-  restaurantId: string,
-  days = 14,
-): Promise<ClientLinkDayClicks[]> {
-  const { data, error } = await supabase
-    .from("analytics_events")
-    .select("created_at, event_type")
-    .eq("restaurant_id", restaurantId)
-    .in("event_type", [...LINK_CLICK_EVENT_TYPES])
-    .gte("created_at", daysAgo(days))
-    .order("created_at", { ascending: true });
-
-  if (error) throw error;
-
-  const buckets = new Map<string, Record<LinkClickEventType, number>>();
-  const series: ClientLinkDayClicks[] = [];
-  for (let i = days - 1; i >= 0; i--) {
-    const key = losAngelesDayKeyDaysAgo(i);
-    const clicks = zeroClicks();
-    buckets.set(key, clicks);
-    series.push({ date: key, clicks, total: 0 });
-  }
-
-  for (const r of (data ?? []) as ClickRow[]) {
-    const key = americaLosAngelesDayKey(r.created_at);
-    const bucket = buckets.get(key);
-    const type = r.event_type as LinkClickEventType;
-    if (bucket && type in bucket) {
-      bucket[type] += 1;
-    }
-  }
-  for (const point of series) {
-    point.total = (Object.values(point.clicks) as number[]).reduce((a, b) => a + b, 0);
-  }
-
-  return series;
+const canonicalBusinessClicks=(events:Record<string,number>):Record<LinkClickEventType,number>=>({google_click:events.review_click??0,yelp_click:0,instagram_click:events.social_click??0,directions_click:events.directions_click??0,phone_click:events.call_click??0,menu_view:events.menu_view??0});
+export async function getClientLinkClicksByDay(restaurantId:string,days=14):Promise<ClientLinkDayClicks[]> {
+ const report=await fetchAnalyticsReport({hubId:restaurantId,kind:'business',since:new Date(Date.now()-days*86400000).toISOString()});
+ return report.daily.map(d=>{const clicks=canonicalBusinessClicks(d.events);return {date:d.day,clicks,total:Object.values(clicks).reduce((n,v)=>n+v,0)};});
 }
-
-/**
- * Fetch total clicks per link type over the last `days` days (default 30).
- */
-export async function getClientLinkClickTotals(
-  restaurantId: string,
-  days = 30,
-): Promise<Record<LinkClickEventType, number>> {
-  const { data, error } = await supabase
-    .from("analytics_events")
-    .select("event_type")
-    .eq("restaurant_id", restaurantId)
-    .in("event_type", [...LINK_CLICK_EVENT_TYPES])
-    .gte("created_at", daysAgo(days));
-
-  if (error) throw error;
-
-  const totals = zeroClicks();
-  for (const r of (data ?? []) as Array<{ event_type: string }>) {
-    const type = r.event_type as LinkClickEventType;
-    if (type in totals) totals[type] += 1;
-  }
-  return totals;
+export async function getClientLinkClickTotals(restaurantId:string,days=30):Promise<Record<LinkClickEventType,number>> {
+ const report=await fetchAnalyticsReport({hubId:restaurantId,kind:'business',since:new Date(Date.now()-days*86400000).toISOString()});
+ return canonicalBusinessClicks(Object.fromEntries(report.events.map(e=>[e.event_name,e.events])));
 }
-
-/**
- * Timestamp (ISO) of the most recent tap for one client hub, or null when the
- * hub has never been tapped. Powers engagement nudges
- * ("Your cards haven't been tapped in X days"). Lightweight: one row.
- */
-export async function getClientLastTapAt(
-  restaurantId: string,
-): Promise<string | null> {
-  const { data, error } = await supabase
-    .from("analytics_events")
-    .select("created_at")
-    .eq("restaurant_id", restaurantId)
-    .eq("event_type", "tap")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (error) throw error;
-  return (data as TapRow | null)?.created_at ?? null;
+export async function getClientLastTapAt(restaurantId:string):Promise<string|null> {
+ const report=await fetchAnalyticsReport({hubId:restaurantId,kind:'business',days:90});
+ return report.activity.find(e=>e.event==='hub_view')?.at ?? null;
 }
 
 /**
@@ -433,17 +300,9 @@ export async function getGoogleReviewDelta(
  * Feeds the "first review click" milestone. Always real counts. Never
  * estimated, never fabricated.
  */
-export async function getClientReviewClickTotal(
-  restaurantId: string,
-): Promise<number> {
-  const { count, error } = await supabase
-    .from("analytics_events")
-    .select("id", { count: "exact", head: true })
-    .eq("restaurant_id", restaurantId)
-    .in("event_type", ["google_click", "yelp_click"]);
-
-  if (error) throw error;
-  return count ?? 0;
+export async function getClientReviewClickTotal(restaurantId:string):Promise<number> {
+ const report=await fetchAnalyticsReport({hubId:restaurantId,kind:'business',days:90});
+ return report.events.find(e=>e.event_name==='review_click')?.events ?? 0;
 }
 
 export interface UseClientStatsResult {
@@ -525,73 +384,11 @@ export interface HubDailyPoint {
   total: number;
 }
 
-async function invokeAnalyticsReport(
-  body: Record<string, string | null>,
-): Promise<any> {
-  const { data, error } = await supabase.functions.invoke("analytics-report", {
-    body,
-  });
-  if (error) throw error;
-  return data;
+export async function getPersonalHubSummary(hubId:string,since?:string,until?:string):Promise<HubEventSummary[]> {
+ const report=await fetchAnalyticsReport({hubId,kind:'solo',since,until});
+ return report.events.map(e=>({...e,visitors:0})); // Compatibility field is unused; people are never inferred.
 }
-
-/**
- * Per-event aggregates for one hub over an optional window. Only
- * human-validated traffic is counted (bots, previews and staff views are
- * classified server-side and excluded).
- */
-export async function getPersonalHubSummary(
-  hubId: string,
-  since?: string,
-  until?: string,
-): Promise<HubEventSummary[]> {
-  const data = await invokeAnalyticsReport({
-    action: "hub_summary",
-    hubId,
-    since: since ?? null,
-    until: until ?? null,
-  });
-  return ((data?.events ?? []) as HubEventSummary[]).map((e) => ({
-    event_name: String(e.event_name),
-    events: Number(e.events ?? 0),
-    sessions: Number(e.sessions ?? 0),
-    visitors: Number(e.visitors ?? 0),
-  }));
-}
-
-/**
- * Per-day per-event counts for one hub over the last `days` days
- * (default 14), chronological and zero-filled, bucketed in
- * America/Los_Angeles. Requires the `hub_daily` action on the
- * analytics-report edge function.
- */
-export async function getPersonalHubDaily(
-  hubId: string,
-  days = 14,
-): Promise<HubDailyPoint[]> {
-  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
-  const data = await invokeAnalyticsReport({ action: "hub_daily", hubId, since });
-
-  const byDay = new Map<string, Record<string, number>>();
-  for (const row of (data?.daily ?? []) as Array<{
-    day: string;
-    events: Record<string, number>;
-  }>) {
-    if (typeof row?.day === "string") byDay.set(row.day, row.events ?? {});
-  }
-
-  const series: HubDailyPoint[] = [];
-  for (let i = days - 1; i >= 0; i--) {
-    const key = losAngelesDayKeyDaysAgo(i);
-    const events = byDay.get(key) ?? {};
-    series.push({
-      date: key,
-      events,
-      total: (Object.values(events) as number[]).reduce(
-        (a, b) => a + (Number(b) || 0),
-        0,
-      ),
-    });
-  }
-  return series;
+export async function getPersonalHubDaily(hubId:string,days=14):Promise<HubDailyPoint[]> {
+ const report=await fetchAnalyticsReport({hubId,kind:'solo',since:new Date(Date.now()-days*86400000).toISOString()});
+ return report.daily.map(d=>({date:d.day,events:d.events,total:Object.values(d.events).reduce((n,v)=>n+v,0)}));
 }
