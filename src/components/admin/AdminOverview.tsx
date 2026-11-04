@@ -142,7 +142,7 @@ export default function AdminOverview() {
       <div className="aw-stats">
         <div>
           <span className="aw-stat-dot aw-green" />
-          <span>Live hubs</span>
+          <span>Approved hubs</span>
           <strong>{live ?? "—"}</strong>
           <small>Approved hubs across your accounts</small>
         </div>
@@ -253,3 +253,4 @@ export default function AdminOverview() {
     </div>
   );
 }
+

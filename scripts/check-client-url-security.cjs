@@ -37,6 +37,8 @@ function load(relative, env = environment()) {
     if (name === '@/lib/hubThemes') return load('src/lib/hubThemes.ts', env);
     if (name === '@/lib/lasIslasMenu') return load('src/lib/lasIslasMenu.ts', env);
     if (name === '@/hooks/useAdminAccess') return { useAdminAccess: () => ({ isAdmin: false, loading: false }) };
+    if (name === '@/hooks/useAnalyticsActor') return { useAnalyticsActor: () => ({ ready: true, internal: false }) };
+    if (name === '@/lib/analytics') return { track: (...args) => env.tracks.push(args) };
     if (name === '@/lib/platformLinks') return { getPlatformConfig: () => null };
     if (name === 'framer-motion') return { motion: generic, AnimatePresence: 'AnimatePresence' };
     if (name === 'sonner') return { toast: generic };
@@ -121,3 +123,4 @@ function load(relative, env = environment()) {
   });
   console.log(`${checks} client URL security checks passed. All navigation and network behavior used isolated fixtures.`);
 })().catch(error => { console.error(error); process.exitCode = 1; });
+

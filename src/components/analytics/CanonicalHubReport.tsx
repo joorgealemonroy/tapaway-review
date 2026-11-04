@@ -1,12 +1,20 @@
 import { useState } from 'react';
+import { useAuth } from '@/hooks/useAuth';
 import { useQuery } from '@tanstack/react-query';
 import { RefreshCw, Download, Printer, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from 'recharts';
-import { fetchAnalyticsReport, reportCsv, allReportActivity, reportTime, eventLabel, type HubKind, type Activity, type Cursor } from '@/lib/canonicalAnalytics';
+import { fetchAnalyticsReport, reportCsv, allReportActivity, reportTime, eventLabel, type HubKind, type Activity, type Cursor, type ReportSource } from '@/lib/canonicalAnalytics';
 
-export function CanonicalHubReport({ hubId, kind, initialDays = 30, initialUntil }: { hubId: string; kind: HubKind; initialDays?: number; initialUntil?: string }) {
+type ReportProps = { hubId: string; kind: HubKind; initialDays?: number; initialUntil?: string; initialSource?: ReportSource };
+export function CanonicalHubReport(props: ReportProps) {
+  const { user } = useAuth();
+  return <HubReportBody key={[user?.id, props.kind, props.hubId, props.initialDays, props.initialUntil, props.initialSource].join(':')} {...props}/>;
+}
+function HubReportBody({ hubId, kind, initialDays = 30, initialUntil, initialSource = 'filtered' }: ReportProps) {
+  const { user } = useAuth();
+  const [source, setSource] = useState<ReportSource>(initialSource);
   const [days, setDays] = useState(initialDays);
   const [refresh, setRefresh] = useState(0);
   const [event, setEvent] = useState('');
@@ -14,11 +22,11 @@ export function CanonicalHubReport({ hubId, kind, initialDays = 30, initialUntil
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState('');
   const [search, setSearch] = useState('');
-  const report = useQuery({ queryKey: ['canonical-hub', kind, hubId, days, refresh],
-    queryFn: () => fetchAnalyticsReport({ hubId, kind, days, until: refresh === 0 && days === initialDays ? initialUntil : undefined }), staleTime: 60_000, retry: 1 });
+  const report = useQuery({ queryKey: ['canonical-hub', user?.id, kind, hubId, days, initialUntil ?? null, source, refresh],
+    queryFn: () => fetchAnalyticsReport({ hubId, kind, days, source, until: refresh === 0 && days === initialDays ? initialUntil : undefined }), enabled: !!user, staleTime: Infinity, refetchOnWindowFocus: false, refetchOnReconnect: false, retry: 1 });
   const d = report.data;
-  const feed = useQuery({ queryKey: ['canonical-feed',kind,hubId,d?.meta.until,event,cursors], enabled: !!d,
-    queryFn: () => fetchAnalyticsReport({ hubId,kind,days,since:d?.meta.since,until:d?.meta.until,event:event || undefined,cursor:cursors[cursors.length-1] }), retry: 1 });
+  const feed = useQuery({ queryKey: ['canonical-feed',user?.id,kind,hubId,source,d?.meta.until,event,cursors], enabled: !!user && !!d,
+    queryFn: () => fetchAnalyticsReport({ hubId,kind,days,source,since:d?.meta.since,until:d?.meta.until,event:event || undefined,cursor:cursors[cursors.length-1] }), staleTime: Infinity, refetchOnWindowFocus: false, refetchOnReconnect: false, retry: 1 });
   const page = event || cursors.length>1 ? feed.data : d;
   const visibleActivity = (page?.activity ?? []).filter(a => !search || `${eventLabel(a.event)} ${a.label ?? ''} ${a.source}`.toLowerCase().includes(search.toLowerCase()));
   const reset = () => { setCursors([undefined]); setExportError(''); };
@@ -28,7 +36,7 @@ export function CanonicalHubReport({ hubId, kind, initialDays = 30, initialUntil
     // Open synchronously to avoid popup blocking; render only this private hub's safe fields.
     const printWindow = mode==='print' ? window.open('','_blank') : null;
     try {
-      const activity = await allReportActivity(d,{hubId,kind,days});
+      const activity = await allReportActivity(d,{hubId,kind,days,source});
       if (mode==='csv') {
         const url = URL.createObjectURL(new Blob([reportCsv(d,activity)],{type:'text/csv;charset=utf-8'}));
         const anchor = document.createElement('a'); anchor.href=url; anchor.download=`tapaway-${kind}-report.csv`; anchor.click(); URL.revokeObjectURL(url);
@@ -37,11 +45,12 @@ export function CanonicalHubReport({ hubId, kind, initialDays = 30, initialUntil
         printWindow.opener = null;
         const doc = printWindow.document;
         doc.title = 'TapAway private hub report';
+        const style=doc.createElement('style');style.textContent='body{font:14px/1.5 system-ui,sans-serif;max-width:900px;margin:40px auto;padding:24px;color:#172029}h1{font-size:30px}h2{margin-top:28px;border-top:1px solid #ddd;padding-top:16px}p{break-inside:avoid}@media print{body{margin:0;padding:0}@page{margin:16mm}}';doc.head.append(style);
         const add = (tag:string,text:string) => { const el=doc.createElement(tag); el.textContent=text; doc.body.append(el); };
         add('h1',d.hub?.name ?? 'Hub report'); add('p',`${reportTime(d.meta.since)} — ${reportTime(d.meta.until)} (exclusive end)`);
         add('p',`As of ${reportTime(d.meta.asOf)} · ${d.meta.timezone}`);
-        add('p',`${d.totals.hub_views} views · ${d.totals.clicks} link actions · ${d.totals.saves} contact save actions · ${d.totals.sessions} visit sessions`);
-        add('p',d.meta.coverage); add('h2','Daily activity');
+        add('p',`${d.totals.hub_views} views · ${d.totals.clicks} link actions · ${d.totals.saves} contact save actions · ${d.totals.sessions ?? 'Not recorded'} visit sessions`);
+        add('p',`Source: ${source === 'historical' ? 'Historical · unfiltered' : 'Filtered activity'}`); add('p',d.meta.coverage); add('h2','Daily activity');
         d.daily.forEach(day=>add('p',`${day.day}: ${day.events.hub_view ?? 0} views · ${Object.entries(day.events).map(([e,n])=>`${eventLabel(e)}: ${n}`).join(' · ')}`));
         add('h2','Recent activity'); activity.forEach(a=>add('p',`${reportTime(a.at)} · ${eventLabel(a.event)}${a.label ? ` · ${a.label}` : ''} · ${a.source}`));
         printWindow.focus(); printWindow.print();
@@ -53,6 +62,7 @@ export function CanonicalHubReport({ hubId, kind, initialDays = 30, initialUntil
     <header className="flex flex-wrap items-start justify-between gap-3">
       <div className="min-w-0"><p className="text-xs uppercase text-muted-foreground">Private client report</p><h2 className="break-words text-2xl font-bold">{d?.hub?.name ?? 'Hub activity'}</h2></div>
       <div className="flex flex-wrap items-center gap-2">
+        <select aria-label="Report data source" className="h-11 max-w-full rounded-md border border-input bg-background px-2 text-sm" value={source} onChange={e=>{setSource(e.target.value as ReportSource);reset();}}><option value="filtered">Filtered activity</option><option value="historical">Historical · unfiltered</option></select>
         <select aria-label="Report date range" className="h-11 rounded-md border border-input bg-background px-2 text-sm" value={days} onChange={e=>{setDays(Number(e.target.value));reset();}}>{[7,30,90].map(n=><option key={n} value={n}>{n} days</option>)}</select>
         <Button variant="outline" size="icon" className="h-11 w-11" aria-label="Refresh report" onClick={()=>{setRefresh(n=>n+1);reset();}}><RefreshCw size={17}/></Button>
         <Button variant="outline" size="icon" className="h-11 w-11" aria-label="Export CSV" disabled={!d||exporting} onClick={()=>void exportReport('csv')}><Download size={17}/></Button>
@@ -63,8 +73,9 @@ export function CanonicalHubReport({ hubId, kind, initialDays = 30, initialUntil
     {report.isError && <div role="alert"><p>Report unavailable.{d ? ' Showing the last successful snapshot.' : ' No counts substituted.'}</p><Button variant="outline" onClick={()=>void report.refetch()}>Retry report</Button></div>}
     {exportError && <p role="alert" className="text-destructive">{exportError}</p>}
     {d && <>
+      {source === 'historical' && <p className="rounded border border-amber-500/40 p-3 text-sm">Historical records are unfiltered. They may overlap filtered activity; never add the two reports. Visit sessions were not recorded.</p>}
       <p className="text-xs text-muted-foreground">{reportTime(d.meta.since)} — {reportTime(d.meta.until)} · end exclusive<br/>Updated {reportTime(d.meta.asOf)} · Los Angeles time{report.isFetching ? ' · refreshing' : ''}</p>
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">{[['Hub views',d.totals.hub_views],['Link actions',d.totals.clicks],['Contact saves',d.totals.saves],['Visit sessions',d.totals.sessions]].map(([label,n])=><div key={label} className="min-w-0 border-l-2 border-primary pl-3"><strong className="block text-3xl tabular-nums">{Number(n).toLocaleString()}</strong><span className="text-sm text-muted-foreground">{label}</span></div>)}</div>
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">{[['Hub views',d.totals.hub_views],['Link actions',d.totals.clicks],['Contact saves',d.totals.saves],['Visit sessions',d.totals.sessions]].map(([label,n])=><div key={label} className="min-w-0 border-l-2 border-primary pl-3"><strong className="block text-3xl tabular-nums">{n === null ? 'Not recorded' : Number(n).toLocaleString()}</strong><span className="text-sm text-muted-foreground">{label}</span></div>)}</div>
       {!d.activityCount && <p className="border-y border-border py-6">No recorded activity in this period. Missing history is not evidence of no visits.</p>}
       <div><h3 className="mb-3 font-semibold">Daily views · Los Angeles dates</h3><div className="h-56 w-full min-w-0"><ResponsiveContainer width="100%" height="100%"><LineChart data={d.daily.map(row=>({day:row.day,views:row.events.hub_view ?? 0}))}><CartesianGrid className="stroke-border" strokeDasharray="3 3"/><XAxis dataKey="day" minTickGap={35} tick={{fontSize:11}}/><YAxis allowDecimals={false} width={35}/><Tooltip/><Line dataKey="views" stroke="hsl(var(--primary))" dot={false} strokeWidth={2}/></LineChart></ResponsiveContainer></div></div>
       <div className="grid gap-6 sm:grid-cols-2"><div><h3 className="mb-2 font-semibold">Link actions</h3>{d.links.map((l,i)=><p key={i} className="flex justify-between gap-3 border-b border-border py-2 text-sm"><span className="min-w-0 break-words">{l.label} · {eventLabel(l.event_name)}</span><strong>{l.clicks}</strong></p>)}</div><div><h3 className="mb-2 font-semibold">View sources & devices</h3>{[...d.sources.map(s=>({label:s.source,n:s.views})),...d.devices.map(s=>({label:s.name,n:s.views}))].map((s,i)=><p key={i} className="flex justify-between gap-3 border-b border-border py-2 text-sm"><span className="break-words">{s.label}</span><strong>{s.n}</strong></p>)}<p className="mt-2 text-xs text-muted-foreground">Counts use views only; unknown sources and devices stay included.</p></div></div>
@@ -72,9 +83,9 @@ export function CanonicalHubReport({ hubId, kind, initialDays = 30, initialUntil
         <Input className="my-3" aria-label="Search this activity page" placeholder="Search this activity page" value={search} onChange={e=>setSearch(e.target.value)}/>
         {feed.isFetching && <p role="status">Loading activity…</p>}{feed.isError && <p role="alert">Activity unavailable. <Button variant="outline" onClick={()=>void feed.refetch()}>Retry activity</Button></p>}
         <ActivityRows rows={visibleActivity}/>
-        <div className="mt-3 flex items-center justify-between gap-2"><Button variant="outline" disabled={cursors.length===1} onClick={()=>setCursors(c=>c.slice(0,-1))}><ChevronLeft size={16}/>Previous</Button><span className="text-xs">Page {cursors.length} · {page?.activityCount ?? d.activityCount} events</span><Button variant="outline" disabled={!page?.nextCursor||feed.isFetching} onClick={()=>{if(page?.nextCursor)setCursors(c=>[...c,page.nextCursor ?? undefined]);}}>Next<ChevronRight size={16}/></Button></div>
+        <div className="mt-3 flex items-center justify-between gap-2"><Button variant="outline" disabled={cursors.length===1} onClick={()=>setCursors(c=>c.slice(0,-1))}><ChevronLeft size={16}/>Previous</Button><span className="text-xs">Page {cursors.length} · {page?.activityCount ?? '—'} events</span><Button variant="outline" disabled={!page?.nextCursor||feed.isFetching} onClick={()=>{if(page?.nextCursor)setCursors(c=>[...c,page.nextCursor ?? undefined]);}}>Next<ChevronRight size={16}/></Button></div>
       </div>
-      <footer className="border-t border-border pt-4 text-xs leading-relaxed text-muted-foreground"><strong>Period & methodology</strong><p>{d.meta.coverage}</p><p>First recorded filtered event for this hub: {d.meta.firstRecordedAt ? reportTime(d.meta.firstRecordedAt) : 'Not available'}.</p></footer>
+      <footer className="border-t border-border pt-4 text-xs leading-relaxed text-muted-foreground"><strong>Period & methodology</strong><p>{d.meta.coverage}</p><p>First recorded event in this report: {d.meta.firstRecordedAt ? reportTime(d.meta.firstRecordedAt) : 'Not available'}.</p></footer>
     </>}
   </section>;
 }

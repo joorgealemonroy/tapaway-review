@@ -5,6 +5,7 @@ const path = require('node:path');
 if (!process.env.QA_MODULES) throw new Error('Set QA_MODULES to the isolated test dependencies directory.');
 const scripts = [
   'check-canonical-analytics.cjs',
+  'check-analytics-exports.cjs',
   'check-subscription-invitation.cjs', 'check-subscription-invitation-db.cjs',
   'check-las-islas-menu.cjs',
   'check-hub-route-races.cjs', 'check-client-security.cjs', 'check-client-url-security.cjs', 'check-booking-calendar.cjs',
@@ -21,3 +22,4 @@ for (const script of scripts) {
   if (result.status !== 0) process.exit(result.status || 1);
 }
 console.log(`PASS ${scripts.length} offline release suites. No live-provider tests requested.`);
+

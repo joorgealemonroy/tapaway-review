@@ -1,13 +1,14 @@
 import { supabase } from '@/integrations/supabase/client';
 
 export type HubKind = 'solo' | 'business';
+export type ReportSource = 'filtered' | 'historical';
 export type ReportHub = { id: string; kind: HubKind; name: string; slug: string | null };
 export type Activity = { key: string; at: string; hub: ReportHub; event: string; label: string | null; source: string };
 export type Cursor = { at: string; id: string };
 export interface AnalyticsReport {
-  meta: { since: string; until: string; asOf: string; timezone: string; days: number; coverage: string; firstRecordedAt: string | null };
+  meta: { since: string; until: string; asOf: string; timezone: string; days: number; coverage: string; firstRecordedAt: string | null; source?: ReportSource };
   hub: ReportHub | null;
-  totals: { site_views: number; hub_views: number; sessions: number; clicks: number; saves: number; events: number; excluded: number };
+  totals: { site_views: number; hub_views: number; sessions: number | null; clicks: number; saves: number; events: number; excluded: number };
   daily: { day: string; events: Record<string, number> }[];
   events: { event_name: string; events: number; sessions: number }[];
   links: { event_name: string; label: string; clicks: number }[];
@@ -19,9 +20,10 @@ export interface AnalyticsReport {
   activity: Activity[];
   nextCursor: Cursor | null;
 }
-export type ReportRequest = { days?: number; kind?: HubKind; hubId?: string; search?: string; until?: string; since?: string; cursor?: Cursor; page?: number; event?: string };
+export type ReportRequest = { days?: number; kind?: HubKind; hubId?: string; search?: string; until?: string; since?: string; cursor?: Cursor; page?: number; event?: string; source?: ReportSource };
 export async function fetchAnalyticsReport(request: ReportRequest = {}): Promise<AnalyticsReport> {
-  const { data, error } = await supabase.rpc('canonical_analytics_report', {
+  const rpc = supabase.rpc.bind(supabase) as unknown as (name: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: Error | null }>;
+  const { data, error } = await rpc(request.source === 'historical' ? 'historical_analytics_report' : 'canonical_analytics_report', {
     _days: request.days ?? 30, _kind: request.kind ?? null, _hub: request.hubId ?? null,
     _search: request.search ?? '', _until: request.until ?? null, _since: request.since ?? null,
     _cursor_at: request.cursor?.at ?? null, _cursor_id: request.cursor?.id ?? null,
@@ -44,14 +46,15 @@ export const reportTime = (iso: string): string => new Intl.DateTimeFormat('en-U
 /** Quote every cell and neutralize spreadsheet formulas, including whitespace-prefixed formulas. */
 export function csvCell(value: unknown): string {
   let text = String(value ?? '');
-  if (/^[\s]*[=+@-]/.test(text.trimStart())) text = `'${text}`;
+  const prefix = Array.from(text).find(c => c.charCodeAt(0) > 32 && !/\s/.test(c));
+  if (prefix && '=+@-'.includes(prefix)) text = `'${text}`;
   return `"${text.replace(/"/g, '""')}"`;
 }
 export function reportCsv(report: AnalyticsReport, activity: Activity[]): string {
   if (!report.hub || activity.some(row => row.hub.id !== report.hub?.id || row.hub.kind !== report.hub?.kind)) throw new Error('Single hub export required');
   const rows: unknown[][] = [
     ['TapAway private hub report', report.hub.name], ['Since (inclusive)', report.meta.since], ['Until (exclusive) / as of', report.meta.until],
-    ['Display timezone', report.meta.timezone], ['Methodology', report.meta.coverage],
+    ['Display timezone', report.meta.timezone], ['Source', report.meta.source ?? 'filtered'], ['Methodology', report.meta.coverage],
     ['Views', report.totals.hub_views], ['Link actions', report.totals.clicks], ['Contact save actions', report.totals.saves], ['Visit sessions (not people)', report.totals.sessions],
     [], ['Local day', 'Views', 'Link actions', 'Contact save actions'],
     ...report.daily.map(d => [d.day, d.events.hub_view ?? 0, Object.entries(d.events).filter(([k]) => ['link_click','review_click','social_click','menu_view','directions_click','call_click','text_click','website_click'].includes(k)).reduce((n,[,v]) => n+v,0), d.events.contact_save ?? 0]),

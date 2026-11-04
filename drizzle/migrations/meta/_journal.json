@@ -295,6 +295,13 @@
       "when": 1793773495080,
       "tag": "0041_analytics_atomic_action_guard",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1793774281367,
+      "tag": "0042_historical_analytics_reports",
+      "breakpoints": true
     }
   ]
 }
