@@ -12,6 +12,16 @@ const reply = (body: unknown, status = 200) => new Response(JSON.stringify(body)
 const idOf = (v: any): string | null => typeof v === "string" ? v : v?.id ?? null;
 const secret = () => Array.from(crypto.getRandomValues(new Uint8Array(32)), b => b.toString(16).padStart(2, "0")).join("");
 const table = (kind: string) => kind === "personal" ? "personal_profiles" : "restaurants";
+type InvitationSelection = { plan: "solo" | "venue"; interval: "month" | "year"; cardClub: boolean };
+function isSelection(value: unknown): value is InvitationSelection {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const choice = value as Record<string, unknown>;
+  return Object.keys(choice).length === 3 && (choice.plan === "solo" || choice.plan === "venue")
+    && (choice.interval === "month" || choice.interval === "year") && typeof choice.cardClub === "boolean";
+}
+function sameSelection(a: unknown, b: unknown): boolean {
+  return isSelection(a) && isSelection(b) && a.plan === b.plan && a.interval === b.interval && a.cardClub === b.cardClub;
+}
 async function hubFor(db: any, kind: string, id: string) {
   const r = await db.from(table(kind)).select("*").eq("id", id).single();
   if (r.error || !r.data) throw new Error("Hub unavailable");
@@ -138,7 +148,7 @@ export async function handleSubscriptionInvitation(req: Request) {
     if (i.stripe_checkout_session_id) {
       const s = await stripe.checkout.sessions.retrieve(i.stripe_checkout_session_id); boundSession(i, s);
       if (s.status === "complete") return reply({ error: "Payment processing. Do not pay again", processing: true }, 409);
-      if (s.status === "open" && JSON.stringify(selection) === JSON.stringify(i.selection)) return reply({ url: s.url });
+      if (s.status === "open" && sameSelection(selection, i.selection)) return reply({ url: s.url });
       if (s.status === "open") await stripe.checkout.sessions.expire(s.id);
       const reset = await db.from("subscription_invitations").update({ attempt_id: null, selection: null, stripe_checkout_session_id: null }).eq("id", i.id).eq("attempt_id", i.attempt_id).is("paid_at", null).select("id");
       if (reset.error || !reset.data?.length) throw new Error("Checkout changed; retry");
@@ -152,7 +162,7 @@ export async function handleSubscriptionInvitation(req: Request) {
       if (claimed.error || !claimed.data) return reply({ error: "Checkout is starting; retry shortly" }, 409);
       Object.assign(i, claimed.data);
     }
-    if (JSON.stringify(i.selection) !== JSON.stringify(selection) || Date.now() - Date.parse(i.attempt_started_at) > 23 * 60 * 60 * 1000) return reply({ error: "Earlier payment requires review" }, 409);
+    if (!sameSelection(i.selection, selection) || Date.now() - Date.parse(i.attempt_started_at) > 23 * 60 * 60 * 1000) return reply({ error: "Earlier payment requires review" }, 409);
     const meta = { commerce_version: INVITATION_VERSION, invitation_id: i.id, attempt_id: i.attempt_id, hub_kind: i.hub_kind, hub_id: i.hub_id, main_price_id: main.id };
     const total = subscriptionTotal(main.amount, body.interval as "month" | "year", body.cardClub);
     const s = await stripe.checkout.sessions.create({ mode: "subscription", customer_email: i.intended_email, payment_method_types: ["card"], allow_promotion_codes: false,

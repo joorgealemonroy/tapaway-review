@@ -1,5 +1,9 @@
 # Roadmap
 
+## JSONB invitation selection correction (2026-11-04)
+- [ ] Replace both order-sensitive comparisons with strict validated field equality; preserve different choices and prior access/compatibility fixes.
+- [ ] Round-trip all eight selections through isolated PostgreSQL, verify first checkout/retry reuse and shape rejection; run invitation/security regressions, deploy changed backend, update review note; frontend unpublished.
+
 ## Current-account invitation compatibility (2026-11-03)
 - [x] Preserve real bound owners across kinds; incompatible unowned/demo claims remain blocked. Applied service-only association correction 0039, twin matches, zero invitations.
 - [x] Verified server-derived exact-hub path, owner-scoped personal/restaurant selection, no fallback on malicious IDs; delayed mint/revoke ownership guards and unsupported shipping-status removal.

@@ -6,7 +6,7 @@ const HUB = '11111111-1111-4111-8111-111111111111', OWNER = '22222222-2222-4222-
 const TOKEN = 'a'.repeat(64), hash = v => crypto.createHash('sha256').update(v).digest('hex');
 let n = 0;
 const pass = async (name, fn) => { await fn(); n++; console.log('PASS ' + name); };
-async function fixture(kind='personal') {
+async function fixture(kind='personal', selectionRoundTrip) {
   const s = environment(); s.context.__mode='live'; Object.assign(s.env,{RESEND_API_KEY:'fixture',SUPABASE_URL:'https://database.invalid',SUPABASE_ANON_KEY:'fixture_anon'});
   s.context.Deno.serve=h=>s.context.__handler=h;
   const profile={id:HUB,user_id:OWNER,owner_id:OWNER,email:'owner@example.invalid',username:'existing-hub',custom_slug:'existing-hub',full_name:'Existing hub',restaurant_name:'Existing hub',is_approved:true,subscription_status:'active',payment_state:'complimentary',plan_type:'solo_pro',bio:'untouched',legacy_allowance:false};
@@ -18,6 +18,17 @@ async function fixture(kind='personal') {
   s.stripe.customers={list:async()=>({data:[],has_more:false})}; s.stripe.subscriptions.list=async()=>({data:[],has_more:false});
   const i={id:'33333333-3333-4333-8333-333333333333',hub_kind:kind,hub_id:HUB,bound_owner_id:OWNER,intended_email:'owner@example.invalid',token_hash:hash(TOKEN),expires_at:new Date(Date.now()+86400000).toISOString(),stripe_livemode:true};
   s.db.rows('subscription_invitations').push(i);
+  if (selectionRoundTrip) {
+    const from = s.db.from.bind(s.db);
+    s.db.from = name => {
+      const query = from(name), then = query.then.bind(query);
+      query.then = (resolve, reject) => then(async result => {
+        if (name === 'subscription_invitations' && query.action === 'update' && i.selection) i.selection = await selectionRoundTrip(i.selection);
+        return result;
+      }).then(resolve, reject);
+      return query;
+    };
+  }
   const rpc=s.db.rpc.bind(s.db);
   s.db.rpc=async(name,args)=>{
     if(name==='fulfill_subscription_invitation') { assert.equal(args._id,i.id); if(!i.paid_at) {Object.assign(i,{paid_at:args._paid_at,stripe_subscription_id:args._subscription});Object.assign(profile,{subscription_status:'active',payment_state:'paying',stripe_subscription_id:args._subscription});}return {data:{paid:true},error:null}; }
@@ -44,6 +55,30 @@ async function fixture(kind='personal') {
 }
 (async()=>{
   const path = require('node:path');
+  const { PGlite } = require(path.join(process.env.QA_MODULES,'@electric-sql/pglite'));
+  const pg = new PGlite();
+  try {
+    const roundTrip = async selection => (await pg.query('SELECT $1::jsonb AS selection',[JSON.stringify(selection)])).rows[0].selection;
+    for(const plan of ['solo','venue']) for(const interval of ['month','year']) for(const cardClub of [false,true]) await pass(`JSONB ${plan}/${interval}/club=${cardClub}: first checkout and identical retries reuse one session`,async()=>{
+      const f=await fixture('personal',roundTrip);let expired=0;
+      const expire=f.s.stripe.checkout.sessions.expire;f.s.stripe.checkout.sessions.expire=async id=>{expired++;return expire(id);};
+      const request={plan,interval,cardClub};
+      assert.notEqual(JSON.stringify(await roundTrip(request)),JSON.stringify(request),'fixture must actually reorder JSONB keys');
+      let url;
+      for(let attempt=0;attempt<3;attempt++){const response=await f.checkout(plan,interval,cardClub);assert.equal(response.status,200);const body=await response.json();if(attempt===0)url=body.url;assert.equal(body.url,url);}
+      assert.equal(f.s.calls.checkout.length,1);assert.equal(f.s.sessions.size,1);assert.equal(expired,0);assert.equal(f.s.calls.emails.length,0);
+    });
+    for(const field of ['plan','interval','cardClub'])await pass(`JSONB changed ${field} remains a distinct selection`,async()=>{
+      const f=await fixture('personal',roundTrip);await f.checkout();const old=[...f.s.sessions.values()][0];
+      assert.equal((await f.checkout(field==='plan'?'venue':'solo',field==='interval'?'year':'month',field==='cardClub')).status,200);
+      assert.equal(old.status,'expired');assert.equal(f.s.calls.checkout.length,2);
+    });
+    await pass('Malformed stored JSONB selections fail the post-claim guard before Stripe',async()=>{
+      for(const malformed of [null,[],{}, {plan:'solo',interval:'month',cardClub:'false'}, {plan:'solo',interval:'week',cardClub:false}, {plan:'bogus',interval:'month',cardClub:false}, {plan:'solo',interval:'month',cardClub:false,extra:true}]){
+        const f=await fixture('personal',async()=>malformed);assert.equal((await f.checkout()).status,409);assert.equal(f.s.calls.checkout.length,0);assert.equal(f.profile.payment_state,'complimentary');
+      }
+    });
+  } finally { await pg.close(); }
   const { createClient } = require(path.join(process.env.QA_MODULES,'@supabase/supabase-js'));
   assert.equal(require(path.join(process.env.QA_MODULES,'@supabase/supabase-js/package.json')).version,'2.39.7');
   for (const type of ['magiclink','signup']) await pass(`Pinned SDK ${type}: generated OTP type and isolated service authorization`,async()=>{
