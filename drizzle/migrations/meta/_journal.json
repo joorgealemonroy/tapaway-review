@@ -281,6 +281,13 @@
       "when": 1793750421247,
       "tag": "0039_invitation_existing_owner_compatibility",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1793773276582,
+      "tag": "0040_canonical_analytics_reports",
+      "breakpoints": true
     }
   ]
 }

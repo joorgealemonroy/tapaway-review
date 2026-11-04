@@ -6013,6 +6013,21 @@ export type Database = {
         Returns: Json
       }
       build_google_review_url: { Args: { place_id: string }; Returns: string }
+      canonical_analytics_report: {
+        Args: {
+          _cursor_at?: string
+          _cursor_id?: string
+          _days?: number
+          _event?: string
+          _hub?: string
+          _kind?: string
+          _page?: number
+          _search?: string
+          _since?: string
+          _until?: string
+        }
+        Returns: Json
+      }
       card_club_entitlement: {
         Args: { _membership_id: string }
         Returns: {
