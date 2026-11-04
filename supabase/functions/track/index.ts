@@ -67,7 +67,6 @@ const ALLOWED_EVENTS = new Set([
 
 const MAX_BODY_BYTES = 8 * 1024;
 const MAX_STR = 500;
-const DEDUPE_WINDOW_MS = 30_000;
 
 // Origins allowed to send events. Anything else is still accepted but
 // classified, never silently trusted as production human traffic.
@@ -247,34 +246,26 @@ Deno.serve(async (req) => {
       { auth: { autoRefreshToken: false, persistSession: false } },
     );
 
-    // ---- short-window dedupe (remounts, retries, refresh double-fires) ---
-    // For link_click the guard is scoped to the clicked link: two DIFFERENT
-    // links tapped within the window are two real clicks, not duplicates.
-    // (Without this, the second link a visitor taps within 30s is silently
-    // dropped because session + event_name + path all match.)
+    // Atomic insertion trigger owns remount/double-click guards, scoped by
+    // session + kind + hub + action + actual link. No race-prone capped read.
     const path = cleanPath(str(body.path));
-    const rawProps =
-      body.props && typeof body.props === "object" && !Array.isArray(body.props)
-        ? (body.props as Record<string, unknown>)
-        : null;
-    const dedupeLinkId =
-      eventName === "link_click" ? str(rawProps?.link_id, 100) : null;
-    let dedupeQuery = admin
-      .from("analytics_hits")
-      .select("id")
-      .eq("session_id", sessionId)
-      .eq("event_name", eventName)
-      .eq("path", path ?? "/")
-      .gte("occurred_at", new Date(Date.now() - DEDUPE_WINDOW_MS).toISOString())
-      .limit(1);
-    if (dedupeLinkId) {
-      dedupeQuery = dedupeQuery.eq("props->>link_id", dedupeLinkId);
-    }
-    const { data: recent } = await dedupeQuery;
-    if (recent && recent.length > 0) {
-      return new Response(JSON.stringify({ ok: true, deduped: "window" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    const rawProps = body.props && typeof body.props === 'object' && !Array.isArray(body.props) ? body.props as Record<string,unknown> : null;
+    const hubId=isUuid(body.hub_id);
+    const hubKind=['solo','business','site'].includes(String(body.hub_kind)) ? String(body.hub_kind) : null;
+    if (hubId && (hubKind==='solo'||hubKind==='business')) {
+      const {data:hub,error:hubError}=await admin.from(hubKind==='solo'?'personal_profiles':'restaurants').select('id').eq('id',hubId).maybeSingle();
+      if(hubError)return new Response(JSON.stringify({error:'Hub validation unavailable'}),{status:503,headers:{...corsHeaders,'Content-Type':'application/json'}});
+      if(!hub)return new Response(JSON.stringify({error:'Invalid hub'}),{status:400,headers:{...corsHeaders,'Content-Type':'application/json'}});
+    } else if (hubId || hubKind!=='site') return new Response(JSON.stringify({error:'Invalid hub scope'}),{status:400,headers:{...corsHeaders,'Content-Type':'application/json'}});
+    const authHeader=req.headers.get('Authorization')??'';
+    if(authHeader.startsWith('Bearer ')) {
+      const authClient=createClient(Deno.env.get('SUPABASE_URL')??'',Deno.env.get('SUPABASE_ANON_KEY')??'',{global:{headers:{Authorization:authHeader}},auth:{persistSession:false,autoRefreshToken:false}});
+      const {data:verified}=await authClient.auth.getUser();
+      if(verified.user) {
+        const {data:roles,error:roleError}=await admin.from('user_roles').select('role').eq('user_id',verified.user.id);
+        if(roleError)return new Response(JSON.stringify({error:'Classification unavailable'}),{status:503,headers:{...corsHeaders,'Content-Type':'application/json'}});
+        if(roles?.some(r=>['admin','sales_rep'].includes(r.role))){trafficClass='internal';reason='verified staff role';}
+      }
     }
 
     // ---- IP-derived hash: rotating salt, 7-day expiry, never surfaced ----
@@ -305,8 +296,8 @@ Deno.serve(async (req) => {
       event_name: eventName,
       session_id: sessionId,
       visitor_id: uuidish(body.visitor_id),
-      hub_id: isUuid(body.hub_id),
-      hub_kind: ["solo", "business", "site"].includes(String(body.hub_kind)) ? String(body.hub_kind) : null,
+      hub_id: hubId,
+      hub_kind: hubKind,
       path: path ?? "/",
       entry_path: cleanPath(str(body.entry_path)),
       referrer,
