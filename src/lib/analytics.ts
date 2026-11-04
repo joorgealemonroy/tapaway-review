@@ -120,6 +120,17 @@ function referrerOrigin(): string | null {
 
 /** Set by the auth layer so staff traffic is labelled, not counted as customers. */
 let internalActor = false;
+let actorReady = false;
+let pendingEvents: { event: AnalyticsEventName; options: TrackOptions }[] = [];
+export function setAnalyticsActor(ready: boolean, internal: boolean): void {
+  internalActor = internal;
+  actorReady = ready;
+  if (!ready) return;
+  const pending = pendingEvents;
+  pendingEvents = [];
+  // Keep the original route and scope when auth completes after navigation.
+  for (const row of pending) track(row.event, row.options);
+}
 export function setInternalActor(value: boolean): void {
   internalActor = value;
 }
@@ -138,14 +149,17 @@ export function track(
   if (["trial_start_confirmed", "paid_conversion", "subscription_renewal", "purchase", "purchase_completed"].includes(event)) return;
 
   const path = stripQuery(options.path ?? window.location.pathname);
-  const guardKey = `${event}|${path}|${options.hubId ?? ""}`;
+  if (!actorReady) {
+    if (pendingEvents.length < 100) pendingEvents.push({event,options:{...options,path}});
+    return;
+  }
+  const action = String(options.props?.link_id ?? options.props?.action_key ?? options.props?.link_url ?? event);
+  const guardKey = `${event}|${path}|${options.hubKind ?? ''}|${options.hubId ?? ""}|${action}`;
   const now = Date.now();
   const last = recentlySent.get(guardKey);
   if (
     last &&
-    now - last < IN_TAB_WINDOW_MS &&
-    event !== "cta_click" &&
-    event !== "link_click"
+    now - last < (event === 'hub_view' || event === 'page_view' ? IN_TAB_WINDOW_MS : 750)
   ) {
     return;
   }
@@ -172,6 +186,8 @@ export function track(
   };
 
   const send = () => {
+    // A staff role resolving during idle scheduling must still exclude this event.
+    payload.internal = internalActor;
     fetch(FN_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },

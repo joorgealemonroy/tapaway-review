@@ -13,6 +13,8 @@ import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { Smartphone } from "lucide-react";
 import { getHubTheme, safeColor, contrastOn, DEFAULT_PRIMARY } from "@/lib/hubThemes";
 import { sanitizeUrl, getSafeExternalUrl } from "@/lib/sanitizeUrl";
+import { track, type AnalyticsEventName } from '@/lib/analytics';
+import { useAnalyticsActor } from '@/hooks/useAnalyticsActor';
 
 interface Restaurant {
   id: string;
@@ -73,6 +75,7 @@ const ReviewHub = () => {
   const [engagements, setEngagements] = useState<any[]>([]);
   const [pollVotes, setPollVotes] = useState<Record<string, Record<string, number>>>({});
   const { isAdmin, loading: adminLoading } = useAdminAccess();
+  const actor = useAnalyticsActor();
   
   // Hubs always open in a readable light surface, independent of old preferences.
   const [visitorTheme] = useState<'light' | 'dark'>('light');
@@ -82,10 +85,10 @@ const ReviewHub = () => {
   // check to resolve so an admin/staff preview of the hub never logs a tap
   // against the client's stats.
   useEffect(() => {
-    if (restaurant && !adminLoading) {
+    if (restaurant && !adminLoading && actor.ready) {
       trackEvent('tap');
     }
-  }, [restaurant, adminLoading]);
+  }, [restaurant, adminLoading, actor.ready]);
 
   useEffect(() => {
     // Check if we're on a custom slug route (not /hub/:id)
@@ -252,23 +255,11 @@ const ReviewHub = () => {
   const trackEvent = async (eventName: string, eventData?: any) => {
     // Admin/staff views must never inflate a client's numbers. Jorge
     // previewing a hub, a rep demoing one, etc. are not customer traffic.
-    if (!restaurant || isAdmin) return;
-
-    try {
-      const { error } = await supabase.functions.invoke('track-event', {
-        body: {
-          restaurant_id: restaurant.id,
-          event_type: eventName,
-          event_data: eventData ?? {},
-        }
-      });
-
-      if (error) {
-        console.error("Error tracking event:", error);
-      }
-    } catch (err) {
-      console.error("Error tracking event:", err);
-    }
+    if (!restaurant || isAdmin || !actor.ready || actor.internal) return;
+    const names: Record<string, AnalyticsEventName> = {tap:'hub_view',google_click:'review_click',yelp_click:'review_click',instagram_click:'social_click',directions_click:'directions_click',phone_click:'call_click',menu_view:'menu_view',promotion_click:'link_click'};
+    const event = names[eventName];
+    if (!event) return; // Poll votes are not link actions or visits.
+    track(event,{hubId:restaurant.id,hubKind:'business',props:{action_key:String(eventData?.id ?? eventName),link_label:({google_click:'Google review',yelp_click:'Yelp',instagram_click:'Instagram',directions_click:'Directions',phone_click:'Call',menu_view:'Menu',promotion_click:'Promotion'} as Record<string,string>)[eventName] ?? ''}});
   };
 
   useEffect(() => {

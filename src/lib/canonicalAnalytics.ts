@@ -36,7 +36,7 @@ export const eventLabel = (event: string): string => ({
   social_click: 'Social link clicked', menu_view: 'Menu opened', directions_click: 'Directions clicked',
   call_click: 'Call link clicked', text_click: 'Text link clicked', website_click: 'Website clicked',
   contact_save: 'Contact save action', lead_submit: 'Lead form submitted',
-}[event] ?? event.replaceAll('_', ' '));
+}[event] ?? event.replace(/_/g, ' '));
 export const reportTime = (iso: string): string => new Intl.DateTimeFormat('en-US', {
   timeZone: 'America/Los_Angeles', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short',
 }).format(new Date(iso));
@@ -45,7 +45,7 @@ export const reportTime = (iso: string): string => new Intl.DateTimeFormat('en-U
 export function csvCell(value: unknown): string {
   let text = String(value ?? '');
   if (/^[\s\u0000-\u001f]*[=+@-]/.test(text)) text = `'${text}`;
-  return `"${text.replaceAll('"', '""')}"`;
+  return `"${text.replace(/"/g, '""')}"`;
 }
 export function reportCsv(report: AnalyticsReport, activity: Activity[]): string {
   if (!report.hub || activity.some(row => row.hub.id !== report.hub?.id || row.hub.kind !== report.hub?.kind)) throw new Error('Single hub export required');
