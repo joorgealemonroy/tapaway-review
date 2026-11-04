@@ -8,7 +8,7 @@ export interface AnalyticsOverviewProps {
     greeting_name?: string | null;
     restaurant_name: string;
   };
-  user: any;
+  user: unknown;
   isDemoView?: boolean;
   /** Deep-links the empty-state CTA buttons to the right dashboard tab. */
   onNavigateTab?: (tab: "settings" | "menu") => void;

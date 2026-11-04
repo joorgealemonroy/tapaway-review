@@ -4,6 +4,7 @@ const { spawnSync } = require('node:child_process');
 const path = require('node:path');
 if (!process.env.QA_MODULES) throw new Error('Set QA_MODULES to the isolated test dependencies directory.');
 const scripts = [
+  'check-canonical-analytics.cjs',
   'check-subscription-invitation.cjs', 'check-subscription-invitation-db.cjs',
   'check-las-islas-menu.cjs',
   'check-hub-route-races.cjs', 'check-client-security.cjs', 'check-client-url-security.cjs', 'check-booking-calendar.cjs',

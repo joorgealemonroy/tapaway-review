@@ -44,7 +44,7 @@ export const reportTime = (iso: string): string => new Intl.DateTimeFormat('en-U
 /** Quote every cell and neutralize spreadsheet formulas, including whitespace-prefixed formulas. */
 export function csvCell(value: unknown): string {
   let text = String(value ?? '');
-  if (/^[\s\u0000-\u001f]*[=+@-]/.test(text)) text = `'${text}`;
+  if (/^[\s]*[=+@-]/.test(text.trimStart())) text = `'${text}`;
   return `"${text.replace(/"/g, '""')}"`;
 }
 export function reportCsv(report: AnalyticsReport, activity: Activity[]): string {
