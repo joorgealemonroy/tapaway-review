@@ -1,9 +1,9 @@
 # Roadmap
 
 ## Current-account invitation compatibility (2026-11-03)
-- [ ] Permit pre-existing real bound owners across kinds without weakening unowned/demo association protections; additive SQL only.
-- [ ] Return verified exact-hub route and owner-check dashboard selection; guard delayed dialog results and remove unsupported shipping status.
-- [ ] Run nontransactional ownership/RLS, target, delayed-response and auth/payment/security regressions; deploy changed backend dependents, update handoff; keep frontend unpublished.
+- [x] Preserve real bound owners across kinds; incompatible unowned/demo claims remain blocked. Applied service-only association correction 0039, twin matches, zero invitations.
+- [x] Verified server-derived exact-hub path, owner-scoped personal/restaurant selection, no fallback on malicious IDs; delayed mint/revoke ownership guards and unsupported shipping-status removal.
+- [x] 25 release suites (25 invitation + 14 SQL checks), pinned SDK auth regression, exact-target browser checks, four-width delayed dialog checks and both security gates pass; preview build OK. Deployed subscription-invitation/payment-first-webhook; handoff updated. Frontend unpublished, no customer mutations/purchases/emails/identities; hosted real login remains unverified by restriction.
 
 ## Focused invitation email access correction (2026-11-03)
 - [x] Isolate OTP auth client, retain validated generated signup/magiclink type without changing RPC permissions or schema; old unprefixed links preserved.
