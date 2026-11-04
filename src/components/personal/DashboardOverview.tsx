@@ -3,29 +3,19 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
-  ArrowUp,
-  CalendarDays,
-  Loader2,
   ExternalLink,
   Share2,
 } from "lucide-react";
 import { isSubscriptionAllowed } from "@/lib/subscriptionStatus";
 import {
-  MilestoneBadges,
-  UsageNudge,
   PlaybookSection,
   FeatureDiscovery,
   type DiscoveryFeature,
 } from "@/components/dashboard/ClientEngagement";
 import { WelcomeIntro } from "@/components/dashboard/WelcomeIntro";
 import { toast } from "sonner";
-import {
-  getPersonalHubSummary,
-  getPersonalHubDaily,
-  losAngelesWeekday,
-  type HubDailyPoint,
-  type HubEventSummary,
-} from "@/lib/clientStats";
+import { CanonicalHubReport } from "@/components/analytics/CanonicalHubReport";
+
 
 /**
  * DashboardOverview. The overview-first landing tab for the Solo (personal)
@@ -75,95 +65,12 @@ export interface DashboardOverviewProps {
   isReadOnlyView?: boolean;
 }
 
-interface ProgressStats {
-  week: number;
-  prevWeek: number;
-  total: number;
-  linkClicksWeek: number;
-  /** All-time link clicks. Feeds the first-link-click milestone. */
-  linkClicksAllTime: number;
-}
-
 export const DashboardOverview = ({ profile, links, onGoToTab, isReadOnlyView = false }: DashboardOverviewProps) => {
-  const [stats, setStats] = useState<ProgressStats | null>(null);
-  /** Per-day clicks/visits from the edge function; null when unavailable (legacy fallback in use). */
-  const [dailyClicks, setDailyClicks] = useState<HubDailyPoint[] | null>(null);
-  const [statsLoading, setStatsLoading] = useState(true);
   /** Feature usage for "Try this" discovery cards. Null until loaded. */
   const [featureUsage, setFeatureUsage] = useState<{ customerInfo: boolean; sms: boolean } | null>(null);
 
-  // Own-stats only: this profile's visits and link clicks. No comparisons.
-  //
-  // Reads go through the analytics-report edge function, which serves
-  // human-validated traffic from analytics_hits (bots, previews and staff
-  // views are classified server-side and excluded). The legacy
-  // personal_analytics table is no longer written to, so it is only a
-  // fallback for the window before the edge function is deployed.
-  useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      setStatsLoading(true);
-      try {
-        const now = Date.now();
-        const d7 = new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString();
-        const d14 = new Date(now - 14 * 24 * 60 * 60 * 1000).toISOString();
-        const [weekEv, prevEv, totalEv, daily] = await Promise.all([
-          getPersonalHubSummary(profile.id, d7),
-          getPersonalHubSummary(profile.id, d14, d7),
-          getPersonalHubSummary(profile.id),
-          getPersonalHubDaily(profile.id, 14),
-        ]);
-        if (cancelled) return;
-        const pick = (evs: HubEventSummary[], name: string) =>
-          evs.find((e) => e.event_name === name)?.events ?? 0;
-        setStats({
-          week: pick(weekEv, "hub_view"),
-          prevWeek: pick(prevEv, "hub_view"),
-          total: pick(totalEv, "hub_view"),
-          linkClicksWeek: pick(weekEv, "link_click"),
-          linkClicksAllTime: pick(totalEv, "link_click"),
-        });
-        setDailyClicks(daily);
-      } catch (err) {
-        console.warn("analytics-report unavailable, using legacy stats fallback", err);
-        const now = new Date();
-        const d7 = new Date(now);
-        d7.setDate(d7.getDate() - 7);
-        const d14 = new Date(now);
-        d14.setDate(d14.getDate() - 14);
-        const d7Iso = d7.toISOString();
-        const d14Iso = d14.toISOString();
-
-        const [weekRes, prevRes, totalRes, clicksRes, clicksAllRes] = await Promise.all([
-          supabase.from("personal_analytics").select("*", { count: "exact", head: true }).eq("profile_id", profile.id).eq("event_type", "profile_visit").gte("created_at", d7Iso),
-          supabase.from("personal_analytics").select("*", { count: "exact", head: true }).eq("profile_id", profile.id).eq("event_type", "profile_visit").gte("created_at", d14Iso).lt("created_at", d7Iso),
-          supabase.from("personal_analytics").select("*", { count: "exact", head: true }).eq("profile_id", profile.id).eq("event_type", "profile_visit"),
-          supabase.from("personal_analytics").select("*", { count: "exact", head: true }).eq("profile_id", profile.id).eq("event_type", "link_click").gte("created_at", d7Iso),
-          supabase.from("personal_analytics").select("*", { count: "exact", head: true }).eq("profile_id", profile.id).eq("event_type", "link_click"),
-        ]);
-
-        if (!cancelled) {
-          setStats({
-            week: weekRes.count ?? 0,
-            prevWeek: prevRes.count ?? 0,
-            total: totalRes.count ?? 0,
-            linkClicksWeek: clicksRes.count ?? 0,
-            linkClicksAllTime: clicksAllRes.count ?? 0,
-          });
-          // No per-day data on the legacy path. The card below stays hidden
-          // rather than showing stale guesses.
-          setDailyClicks(null);
-        }
-      } finally {
-        if (!cancelled) setStatsLoading(false);
-      }
-    };
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [profile.id]);
-
+  // Visible analytics use the shared private report. Legacy milestones/nudges stay
+  // disabled here rather than substituting historical counts on an error.
   const activeLinks = links.filter((l) => l.is_active !== false);
   // Feature usage for "Try this" discovery. Checked against real data, never
   // assumed. Read-only views skip it (discovery cards are suppressed there).
@@ -205,29 +112,6 @@ export const DashboardOverview = ({ profile, links, onGoToTab, isReadOnlyView = 
     : 0;
   const hubIsSetUp = activeLinks.length > 0;
 
-  // Days since the last visit, from the 14-day per-day series. When the hub
-  // has visits but none in the window, the last visit was 15+ days ago.
-  const daysIdle: number | null =
-    statsLoading || dailyClicks === null
-      ? null
-      : (() => {
-          for (let i = dailyClicks.length - 1; i >= 0; i--) {
-            if (dailyClicks[i].total > 0) return dailyClicks.length - 1 - i;
-          }
-          return (stats?.total ?? 0) > 0 ? 15 : null;
-        })();
-
-  const showNudge =
-    !isReadOnlyView &&
-    !statsLoading &&
-    !isComplimentary &&
-    !isPaused &&
-    accountAgeDays >= 7 &&
-    hubIsSetUp &&
-    (stats?.total ?? 0) > 0 &&
-    daysIdle !== null &&
-    daysIdle >= 7;
-
   const discoveryFeatures: DiscoveryFeature[] = featureUsage
     ? [
         {
@@ -255,20 +139,6 @@ export const DashboardOverview = ({ profile, links, onGoToTab, isReadOnlyView = 
     .map((part) => part.trim())
     .filter(Boolean)
     .join(", ");
-  const weeklyChange = stats && stats.prevWeek > 0
-    ? Math.round(((stats.week - stats.prevWeek) / stats.prevWeek) * 100)
-    : null;
-  const peakDay = dailyClicks
-    ?.filter((day) => (day.events.hub_view ?? 0) > 0)
-    .reduce<HubDailyPoint | null>((best, day) => {
-      if (!best || (day.events.hub_view ?? 0) > (best.events.hub_view ?? 0)) return day;
-      return best;
-    }, null);
-  const milestoneTargets = [50, 100, 250, 500, 1000];
-  const milestoneTarget = milestoneTargets.find((target) => target > (stats?.total ?? 0))
-    ?? Math.ceil((stats?.total ?? 0) / 1000 + 1) * 1000;
-  const milestoneProgress = Math.min(100, ((stats?.total ?? 0) / milestoneTarget) * 100);
-
   const shareHub = async () => {
     if (!hubUrl) return;
     try {
@@ -337,97 +207,7 @@ export const DashboardOverview = ({ profile, links, onGoToTab, isReadOnlyView = 
         />
       )}
 
-      {/* Engagement: milestone celebrations + gentle usage nudge */}
-      {!isReadOnlyView && !statsLoading && stats && (
-        <>
-          <MilestoneBadges
-            accountId={profile.id}
-            totalActivity={stats.total}
-            reviewClicks={stats.linkClicksAllTime}
-            noun="visits"
-          />
-          {showNudge && daysIdle !== null && (
-            <UsageNudge daysIdle={daysIdle} noun="visits" kind="personal" onNavigateTab={goTo} />
-          )}
-        </>
-      )}
-
-      <section aria-label="Hub performance" className="space-y-5">
-        <div>
-          <p className="mb-3 text-xs font-black uppercase text-muted-foreground">Momentum</p>
-          {statsLoading ? (
-            <Card className="flex min-h-24 items-center justify-center card-elevated">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-            </Card>
-          ) : (
-            <div className="grid gap-3 md:grid-cols-2">
-              <Card className="p-4 card-elevated">
-                <div className="flex items-center gap-2 text-xl font-black">
-                  {weeklyChange !== null && weeklyChange > 0 && <ArrowUp className="h-5 w-5" />}
-                  {weeklyChange === null
-                    ? stats?.week ? "A fresh start" : "Ready for the first tap"
-                    : `${weeklyChange > 0 ? "+" : ""}${weeklyChange}%`}
-                </div>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  {weeklyChange === null
-                    ? stats?.week
-                      ? `${stats.week} visits this week. Your first weekly baseline.`
-                      : "Share your hub to start building momentum."
-                    : weeklyChange >= 0
-                      ? "More visits than last week. Your cards are getting out there."
-                      : "A quieter week so far. Every tap still counts."}
-                </p>
-              </Card>
-              <Card className="p-4 card-elevated">
-                <div className="flex items-center gap-2 text-xl font-black">
-                  <CalendarDays className="h-5 w-5 text-primary" />
-                  {peakDay ? `${losAngelesWeekday(peakDay.date)} rush` : "Your busiest day"}
-                </div>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  {peakDay
-                    ? `${peakDay.events.hub_view ?? 0} visits landed on ${new Date(peakDay.date).toLocaleDateString("en-US", { timeZone: "America/Los_Angeles", month: "short", day: "numeric" })}.`
-                    : "Once visits come in, your strongest day will appear here."}
-                </p>
-              </Card>
-            </div>
-          )}
-        </div>
-
-        <div>
-          <p className="mb-3 text-xs font-black uppercase text-muted-foreground">The numbers</p>
-          <Card className="p-4 card-elevated">
-            <div className="grid grid-cols-3 divide-x divide-border text-center">
-              {[
-                { value: stats?.week ?? 0, top: "visits", bottom: "this week" },
-                { value: stats?.linkClicksWeek ?? 0, top: "link taps", bottom: "this week" },
-                { value: stats?.total ?? 0, top: "total", bottom: "visits" },
-              ].map((item) => (
-                <div key={`${item.top}-${item.bottom}`} className="min-w-0 px-2 sm:px-5">
-                  <p className="text-3xl font-black sm:text-4xl">{item.value}</p>
-                  <p className="mt-1 text-xs leading-tight text-muted-foreground">
-                    {item.top}<br />{item.bottom}
-                  </p>
-                </div>
-              ))}
-            </div>
-            <div className="mt-5">
-              <div className="mb-2 flex items-center justify-between gap-3 text-sm font-bold">
-                <span>First {milestoneTarget} visits</span>
-                <span className="text-primary">
-                  {stats?.total ?? 0} of {milestoneTarget} · {Math.max(0, milestoneTarget - (stats?.total ?? 0))} to go
-                </span>
-              </div>
-              <div className="h-2 overflow-hidden rounded-full bg-muted">
-                <div
-                  className="h-full rounded-full bg-primary transition-[width] duration-500"
-                  style={{ width: `${milestoneProgress}%` }}
-                />
-              </div>
-            </div>
-          </Card>
-        </div>
-
-      </section>
+      <CanonicalHubReport key={profile.id} hubId={profile.id} kind="solo" initialDays={7}/>
 
       {/* Engagement: playbook + feature discovery */}
       {!isReadOnlyView && (

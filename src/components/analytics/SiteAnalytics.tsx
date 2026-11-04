@@ -2,7 +2,8 @@ import { useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
-import { track, setInternalActor } from "@/lib/analytics";
+import { track } from "@/lib/analytics";
+import { useAnalyticsActor } from '@/hooks/useAnalyticsActor';
 
 /**
  * Site-wide page-view, time-on-page and scroll-depth tracking.
@@ -29,18 +30,15 @@ const SiteAnalytics = () => {
   const location = useLocation();
   const { user, loading: authLoading } = useAuth();
   const { isAdmin, loading: roleLoading } = useAdminAccess();
+  const actor = useAnalyticsActor();
   const startedAt = useRef<number>(Date.now());
   const maxScroll = useRef(0);
   const lastPath = useRef<string | null>(null);
 
 
   useEffect(() => {
-    setInternalActor(isAdmin || ["admin", "sales_rep"].includes(user?.app_metadata?.role || ""));
-  }, [user, isAdmin]);
-
-  useEffect(() => {
     const path = location.pathname;
-    if (authLoading || roleLoading) return;
+    if (authLoading || roleLoading || !actor.ready) return;
     // Dynamic hub routes emit their own hub_view; never count the same opening twice.
     const sitePaths = ["/", "/personal", "/personal/design", "/support", "/about", "/faq", "/restaurants", "/barbershops", "/salons", "/cafes", "/auto-shops", "/terms", "/privacy", "/refund"];
     if (isPrivate(path) || !sitePaths.includes(path)) return;
@@ -81,7 +79,7 @@ const SiteAnalytics = () => {
       window.removeEventListener("pagehide", flush);
       flush();
     };
-  }, [location.pathname, authLoading, roleLoading, isAdmin]);
+  }, [location.pathname, authLoading, roleLoading, isAdmin, actor.ready]);
 
   return null;
 };

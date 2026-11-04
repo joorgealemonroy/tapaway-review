@@ -1,188 +1,33 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
-import {
-  ArrowUpRight,
-  RefreshCw,
-  Eye,
-  MousePointerClick,
-  Users,
-  ShieldCheck,
-} from "lucide-react";
-import { workspaceRpc } from "@/lib/admin/workspace";
-import { useAdminHubs } from "@/hooks/useAdminWorkspace";
-type Insights = {
-  site_views: number;
-  hub_views: number;
-  visit_sessions: number;
-  link_clicks: number;
-  excluded: number;
-  raw_events: number;
-  since: string;
-  updated_at: string;
-};
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { RefreshCw, Eye, MousePointerClick, Users, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { CanonicalHubReport, ActivityRows } from '@/components/analytics/CanonicalHubReport';
+import { fetchAnalyticsReport, reportTime, eventLabel, type ReportHub, type Cursor, type HubKind } from '@/lib/canonicalAnalytics';
+
 export default function AdminAnalytics() {
-  const [days, setDays] = useState(30);
-  const hubs = useAdminHubs();
-  const report = useQuery({
-    queryKey: ["admin-insights", days],
-    queryFn: () =>
-      workspaceRpc<Insights>("admin_workspace_insights", { _days: days }),
-    staleTime: 60_000,
-    retry: 2,
-  });
-  const d = report.data;
-  return (
-    <>
-      <div className="aw-page-heading aw-heading-row">
-        <div>
-          <p className="aw-eyebrow">CLEAR NUMBERS. BETTER DECISIONS.</p>
-          <h1>See what’s connecting.</h1>
-          <p>
-            Website traffic and hub engagement, with the noise filtered out.
-          </p>
-        </div>
-        <div className="aw-form-actions">
-          <select
-            aria-label="Analytics date range"
-            value={days}
-            onChange={(e) => setDays(Number(e.target.value))}
-          >
-            {[7, 30, 90].map((n) => (
-              <option key={n} value={n}>
-                Last {n} days
-              </option>
-            ))}
-          </select>
-          <button
-            className="aw-icon-button"
-            aria-label="Refresh insights"
-            onClick={() => report.refetch()}
-          >
-            <RefreshCw size={18} />
-          </button>
-        </div>
-      </div>
-      {report.isError && (
-        <div className="aw-inline-error" role="status">
-          Insights couldn’t refresh.{" "}
-          {d ? "Showing the last successful result." : ""}
-          <button onClick={() => report.refetch()}>Try again</button>
-        </div>
-      )}
-      <div className="aw-insight-stats">
-        {[
-          {
-            label: "Website views",
-            value: d?.site_views,
-            icon: Eye,
-            copy: "Public storefront and information pages",
-          },
-          {
-            label: "Hub views",
-            value: d?.hub_views,
-            icon: Eye,
-            copy: "Views of customer hubs",
-          },
-          {
-            label: "Visit sessions",
-            value: d?.visit_sessions,
-            icon: Users,
-            copy: "Visit IDs, not unique people",
-          },
-          {
-            label: "Hub link clicks",
-            value: d?.link_clicks,
-            icon: MousePointerClick,
-            copy: "Actions on customer hubs",
-          },
-        ].map((x) => (
-          <section className="aw-panel" key={x.label}>
-            <x.icon size={22} />
-            <h2>{x.label}</h2>
-            <strong>{x.value?.toLocaleString() ?? "—"}</strong>
-            <p>{x.copy}</p>
-          </section>
-        ))}
-      </div>
-      <section className="aw-panel aw-quality">
-        <ShieldCheck size={24} />
-        <div>
-          <h2>Only validated human traffic</h2>
-          <p>
-            {d
-              ? `${d.excluded.toLocaleString()} bot, staff, preview, development or unvalidated events excluded in this period.`
-              : "Loading traffic quality…"}{" "}
-            Raw events are not visitors.
-          </p>
-        </div>
-      </section>
-      <div className="aw-lower-grid">
-        <section className="aw-panel">
-          <div className="aw-section-heading">
-            <h2>Most viewed hubs</h2>
-            <span>Last 30 days</span>
-          </div>
-          {hubs.isError ? (
-            <p>
-              Hub rankings couldn’t load.{" "}
-              <button onClick={() => hubs.refetch()}>Retry</button>
-            </p>
-          ) : (
-            hubs.data
-              ?.slice()
-              .sort((a, b) => b.views - a.views)
-              .filter((h) => h.views > 0)
-              .slice(0, 7)
-              .map((h) => (
-                <Link
-                  key={h.id}
-                  className="aw-hub-row"
-                  to="/admin?section=accounts"
-                >
-                  <span>
-                    <strong>{h.name}</strong>
-                    <small>{h.clicks} link clicks</small>
-                  </span>
-                  <strong>{h.views} views</strong>
-                </Link>
-              ))
-          )}
-          {hubs.data && !hubs.data.some((h) => h.views > 0) && (
-            <p className="aw-muted">
-              No validated hub views in the last 30 days.
-            </p>
-          )}
-        </section>
-        <section className="aw-panel">
-          <h2>Know what the numbers mean</h2>
-          <div className="aw-methodology">
-            <h3>Sessions ≠ people</h3>
-            <p>
-              Visit IDs live in memory and reset on reload or after inactivity.
-              Returning people cannot be measured reliably, so we don’t show a
-              returning-visitor total.
-            </p>
-            <h3>Views ≠ NFC taps</h3>
-            <p>
-              Hubs can open from a tap, QR code or shared link. Views are
-              labelled views unless the source is known.
-            </p>
-            <h3>Revenue comes from billing</h3>
-            <p>
-              Browser events never prove a payment. Revenue uses Stripe
-              subscriptions and excludes free trials.
-            </p>
-            <Link to="/admin">
-              Open revenue overview <ArrowUpRight size={15} />
-            </Link>
-          </div>
-          <p className="aw-caption">
-            Rolling periods ending now. Legacy analytics tables are excluded;
-            historical gaps are not backfilled with guesses.
-          </p>
-        </section>
-      </div>
-    </>
-  );
+ const [days,setDays]=useState(30),[search,setSearch]=useState(''),[kind,setKind]=useState(''),[event,setEvent]=useState('');
+ const [hubPage,setHubPage]=useState(0),[refresh,setRefresh]=useState(0);
+ const [cursors,setCursors]=useState<(Cursor|undefined)[]>([undefined]);
+ const [target,setTarget]=useState<ReportHub|null>(null);
+ const reset=()=>{setHubPage(0);setCursors([undefined]);};
+ const scope={days,search,kind:(kind||undefined) as HubKind|undefined};
+ const report=useQuery({queryKey:['canonical-admin',days,search,kind,refresh],queryFn:()=>fetchAnalyticsReport(scope),staleTime:60000,retry:1});
+ const d=report.data;
+ const ranking=useQuery({queryKey:['canonical-ranking',d?.meta.until,days,search,kind,hubPage],enabled:!!d,queryFn:()=>fetchAnalyticsReport({...scope,until:d?.meta.until,since:d?.meta.since,page:hubPage}),retry:1});
+ const feed=useQuery({queryKey:['canonical-admin-activity',d?.meta.until,days,search,kind,event,cursors],enabled:!!d,queryFn:()=>fetchAnalyticsReport({...scope,until:d?.meta.until,since:d?.meta.since,event:event||undefined,cursor:cursors[cursors.length-1]}),retry:1});
+ const hubs=hubPage===0?d:ranking.data;
+ const activity=event||cursors.length>1?feed.data:d;
+ return <div className="min-w-0 space-y-6 text-foreground">
+  <header className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs uppercase text-muted-foreground">Insights</p><h1 className="text-3xl font-bold">Recorded activity</h1></div><div className="flex gap-2"><select aria-label="Analytics date range" value={days} onChange={e=>{setDays(Number(e.target.value));reset();}} className="h-11 rounded-md border border-input bg-background px-2">{[7,30,90].map(n=><option key={n} value={n}>Last {n} days</option>)}</select><Button aria-label="Refresh insights" variant="outline" size="icon" className="h-11 w-11" onClick={()=>{setRefresh(n=>n+1);reset();}}><RefreshCw size={18}/></Button></div></header>
+  <div className="flex flex-wrap gap-3"><Input aria-label="Search hubs" className="min-w-0 flex-1" placeholder="Search hub name or slug" value={search} maxLength={120} onChange={e=>{setSearch(e.target.value);reset();}}/><select aria-label="Hub kind" className="h-11 rounded-md border border-input bg-background px-2" value={kind} onChange={e=>{setKind(e.target.value);reset();}}><option value="">All hub kinds</option><option value="solo">Personal hubs</option><option value="business">Business hubs</option></select></div>
+  {report.isPending && <p role="status">Loading insights…</p>}{report.isError && <div role="alert">Insights unavailable.{d?' Showing the last successful snapshot.':' No counts substituted.'}<Button variant="outline" onClick={()=>void report.refetch()}>Retry insights</Button></div>}
+  {d && <><p className="text-xs text-muted-foreground">{reportTime(d.meta.since)} — {reportTime(d.meta.until)} · exclusive end<br/>Updated {reportTime(d.meta.asOf)}{report.isFetching?' · refreshing':''}</p><div className="grid grid-cols-2 gap-4 lg:grid-cols-4">{[{label:'Website views',value:d.totals.site_views,icon:Eye},{label:'Hub views',value:d.totals.hub_views,icon:Eye},{label:'Visit sessions',value:d.totals.sessions,icon:Users},{label:'Hub link actions',value:d.totals.clicks,icon:MousePointerClick}].map(x=><div key={x.label} className="min-w-0 border-l-2 border-primary pl-3"><x.icon size={20}/><strong className="mt-2 block text-3xl tabular-nums">{x.value.toLocaleString()}</strong><span className="text-sm text-muted-foreground">{x.label}</span></div>)}</div>
+  <section className="border-t border-border pt-6"><div className="flex flex-wrap justify-between gap-2"><h2 className="text-xl font-semibold">Hubs with activity</h2><span className="text-sm text-muted-foreground">{d.hubCount} hubs · free and paid · views and actions</span></div>{ranking.isError && <p role="alert">Rankings unavailable. <Button variant="outline" onClick={()=>void ranking.refetch()}>Retry rankings</Button></p>}{ranking.isFetching && hubPage>0 && <p role="status">Loading hubs…</p>}{hubs?.hubs.map(h=><div key={`${h.kind}:${h.id}`} className="flex flex-wrap items-center justify-between gap-3 border-b border-border py-4"><div className="min-w-0"><strong className="break-words">{h.name}</strong><p className="text-xs text-muted-foreground">{h.kind} · {h.slug} · last {reportTime(h.last_active_at)}</p><p className="text-sm">{h.views} views · {h.clicks} link actions · {h.saves} contact saves</p></div><Button variant="outline" onClick={()=>setTarget(h)}>Client report</Button></div>)}{!d.hubCount&&<p className="py-6">No recorded matching hub activity. Historical gaps remain unknown.</p>}<div className="mt-3 flex justify-between"><Button variant="outline" disabled={!hubPage} onClick={()=>setHubPage(n=>n-1)}><ChevronLeft size={16}/>Previous hubs</Button><Button variant="outline" disabled={(hubPage+1)*20>=d.hubCount||ranking.isFetching} onClick={()=>setHubPage(n=>n+1)}>Next hubs<ChevronRight size={16}/></Button></div></section>
+  <section className="border-t border-border pt-6"><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-xl font-semibold">Recent activity</h2><select aria-label="Activity type" className="h-11 max-w-full rounded-md border border-input bg-background px-2 text-sm" value={event} onChange={e=>{setEvent(e.target.value);setCursors([undefined]);}}><option value="">All actions</option>{['hub_view','link_click','review_click','social_click','menu_view','directions_click','call_click','text_click','website_click','contact_save','lead_submit'].map(e=><option key={e} value={e}>{eventLabel(e)}</option>)}</select></div>{feed.isFetching&&<p role="status">Loading recent activity…</p>}{feed.isError&&<p role="alert">Recent activity unavailable. <Button variant="outline" onClick={()=>void feed.refetch()}>Retry activity</Button></p>}<ActivityRows rows={activity?.activity??[]} onReport={setTarget}/><div className="mt-3 flex items-center justify-between gap-2"><Button variant="outline" disabled={cursors.length===1} onClick={()=>setCursors(c=>c.slice(0,-1))}><ChevronLeft size={16}/>Previous</Button><span className="text-xs">Page {cursors.length} · {activity?.activityCount ?? 0} events</span><Button variant="outline" disabled={!activity?.nextCursor||feed.isFetching} onClick={()=>{if(activity?.nextCursor)setCursors(c=>[...c,activity.nextCursor??undefined]);}}>Next<ChevronRight size={16}/></Button></div></section>
+  <footer className="border-t border-border pt-4 text-xs leading-relaxed text-muted-foreground"><h2 className="font-semibold">Period & methodology</h2><p>{d.meta.coverage}</p><p>{d.totals.excluded} staff, bot, preview, development or unvalidated events excluded from this scope. Financial results remain separate billing evidence.</p></footer></>}
+  <Dialog open={!!target} onOpenChange={o=>{if(!o)setTarget(null);}}><DialogContent className="max-w-4xl max-h-[90dvh] overflow-y-auto bg-background text-foreground"><DialogHeader><DialogTitle>Private client report</DialogTitle></DialogHeader>{target && <CanonicalHubReport key={`${target.kind}:${target.id}`} hubId={target.id} kind={target.kind} initialDays={days} initialUntil={d?.meta.until}/>}</DialogContent></Dialog>
+ </div>;
 }
