@@ -13,6 +13,7 @@ let count=0;const pass=async(name,fn)=>{await fn();count++;console.log('PASS '+n
  const sql=file?fs.readFileSync(path.join(root,'drizzle/migrations',file),'utf8'):fs.readFileSync('/tmp/invitation-schema.sql','utf8');
  await db.exec(sql);
  await db.exec(fs.readFileSync(path.join(root,'drizzle/migrations/0038_optional_subscription_lifecycle_guards.sql'),'utf8'));
+ await db.exec(fs.readFileSync(path.join(root,'drizzle/migrations/0039_invitation_existing_owner_compatibility.sql'),'utf8'));
  await db.exec(`CREATE TRIGGER trg_legacy_auto_grant BEFORE UPDATE OF stripe_subscription_id,stripe_customer_id,subscription_status ON public.personal_profiles FOR EACH ROW EXECUTE FUNCTION public.legacy_auto_grant();`);
  await db.query("INSERT INTO auth.users VALUES($1,'owner@example.invalid',now()),($2,'other@example.invalid',now()),($3,'demo@demo.tapaway.local',null)",[uid(2),uid(3),uid(4)]);
  await db.query("INSERT INTO auth.users VALUES($1,'restaurant@example.invalid',now())",[uid(5)]);
@@ -38,5 +39,27 @@ let count=0;const pass=async(name,fn)=>{await fn();count++;console.log('PASS '+n
  await pass('Paid replay cannot overwrite subscription and an unpaid hub remains approved',async()=>{const f=await create();await f.fulfill();await assert.rejects(()=>db.query("SELECT fulfill_subscription_invitation($1,$2,'sub_other',$3,$4,now(),'{}',null,null)",[f.inv,f.refs.session,f.refs.customer,f.refs.payment]),/Subscription mismatch/);});
  await pass('Payment reversal before fulfillment prevents activation',async()=>{const f=await create();await db.query("INSERT INTO payment_reversal_holds VALUES('live',$1,$2)",[f.refs.payment,f.refs.subscription]);await assert.rejects(()=>f.fulfill(),/requires review/);assert.equal((await db.query('SELECT stripe_subscription_id FROM personal_profiles WHERE id=$1',[f.id])).rows[0].stripe_subscription_id,null);});
  await pass('Later renewal never grants legacy allowance and refunds hold pending invitation cards',async()=>{const f=await create();await f.fulfill();await db.query("SELECT associate_subscription_invitation($1,$2,'owner@example.invalid')",[f.inv,uid(2)]);await db.query("UPDATE personal_profiles SET subscription_status='active' WHERE id=$1",[f.id]);assert.equal((await db.query('SELECT legacy_allowance FROM personal_profiles WHERE id=$1',[f.id])).rows[0].legacy_allowance,false);await db.query("INSERT INTO payment_reversal_holds VALUES('live',$1,$2)",[f.refs.payment,f.refs.subscription]);assert.ok((await db.query('SELECT payment_hold_at FROM subscription_invitations WHERE id=$1',[f.inv])).rows[0].payment_hold_at);assert.equal((await db.query('SELECT status FROM personal_card_requests WHERE subscription_invitation_id=$1',[f.inv])).rows[0].status,'on_hold');await db.query("UPDATE personal_card_requests SET status='pending' WHERE subscription_invitation_id=$1",[f.inv]);assert.equal((await db.query('SELECT status FROM personal_card_requests WHERE subscription_invitation_id=$1',[f.inv])).rows[0].status,'on_hold');});
+ await pass('Pre-existing dual-kind bound owner retains every hub and gets only invited initial orders',async()=>{
+  const personal=await create(),restaurant=await create('restaurant',uid(2)),sibling=await create();
+  const before=(await db.query('SELECT id,user_id,username,bio FROM personal_profiles ORDER BY id')).rows;
+  for(const f of [personal,restaurant]){await f.fulfill();await db.query("SELECT associate_subscription_invitation($1,$2,'owner@example.invalid')",[f.inv,uid(2)]);await db.query("SELECT associate_subscription_invitation($1,$2,'owner@example.invalid')",[f.inv,uid(2)]);}
+  assert.deepEqual((await db.query('SELECT id,user_id,username,bio FROM personal_profiles ORDER BY id')).rows,before);
+  assert.equal((await db.query('SELECT owner_id FROM restaurants WHERE id=$1',[restaurant.id])).rows[0].owner_id,uid(2));
+  assert.equal((await db.query('SELECT count(*)::int n FROM personal_card_requests WHERE subscription_invitation_id=$1',[personal.inv])).rows[0].n,1);
+  assert.equal((await db.query('SELECT count(*)::int n FROM fulfillment_orders WHERE subscription_invitation_id=$1',[restaurant.inv])).rows[0].n,1);
+  assert.equal((await db.query('SELECT stripe_subscription_id FROM personal_profiles WHERE id=$1',[sibling.id])).rows[0].stripe_subscription_id,null);
+ });
+ await pass('Unowned and demo claims cannot attach to pre-existing dual-kind account',async()=>{for(const owner of [null,uid(4)]){const f=await create('personal',owner,!!owner);await f.fulfill();await assert.rejects(()=>db.query("SELECT associate_subscription_invitation($1,$2,'owner@example.invalid')",[f.inv,uid(2)]),/cannot be combined/);assert.equal((await db.query('SELECT user_id FROM personal_profiles WHERE id=$1',[f.id])).rows[0].user_id,owner);}});
+ await pass('Normal owner RLS: both kinds and multiple hubs visible; foreign IDs invisible and association RPC still revoked',async()=>{
+  // Same owner SELECT predicates read from production policies; no policy is changed in production.
+  await db.exec(`CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$SELECT nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;GRANT USAGE ON SCHEMA auth TO authenticated;GRANT SELECT ON public.personal_profiles,public.restaurants TO authenticated;ALTER TABLE public.personal_profiles ENABLE ROW LEVEL SECURITY;ALTER TABLE public.restaurants ENABLE ROW LEVEL SECURITY;CREATE POLICY fixture_personal_owner ON public.personal_profiles FOR SELECT TO authenticated USING(auth.uid()=user_id);CREATE POLICY fixture_restaurant_owner ON public.restaurants FOR SELECT TO authenticated USING(auth.uid()=owner_id);`);
+  const foreign=await create('restaurant',uid(5));
+  await db.exec(`SET ROLE authenticated;SELECT set_config('request.jwt.claim.sub','${uid(2)}',false);`);
+  assert.ok((await db.query('SELECT id FROM personal_profiles WHERE user_id=$1',[uid(2)])).rows.length>1);
+  assert.ok((await db.query('SELECT id FROM restaurants WHERE owner_id=$1',[uid(2)])).rows.length>0);
+  assert.equal((await db.query('SELECT id FROM restaurants WHERE id=$1',[foreign.id])).rows.length,0);
+  assert.equal((await db.query('SELECT id FROM personal_profiles WHERE id=$1',[uid(99999)])).rows.length,0);
+  await assert.rejects(()=>db.query("SELECT associate_subscription_invitation($1,$2,'owner@example.invalid')",[foreign.inv,uid(2)]),/permission denied/);await db.exec('RESET ROLE');
+ });
  await db.close();console.log(`${count} optional invitation PostgreSQL checks passed.`);
 })().catch(e=>{console.error(e);process.exitCode=1;});

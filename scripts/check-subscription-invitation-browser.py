@@ -12,7 +12,7 @@ async def main():
   browser=await p.chromium.launch(headless=True)
   for width,height in [(320,800),(360,800),(390,844),(1280,1800)]:
    context=await browser.new_context(viewport={'width':width,'height':height})
-   page=await context.new_page(); errors=[];calls=[];state={'status':'not_paid','catalog_fail':False}
+   page=await context.new_page(); errors=[];calls=[];state={'status':'not_paid','catalog_fail':False,'delay_mint':False,'delay_revoke':False};pending_mint=asyncio.Event();pending_revoke=asyncio.Event();release_mint=asyncio.Event();release_revoke=asyncio.Event()
    page.on('pageerror',lambda e:errors.append(str(e)))
    async def handle(route):
     req=route.request;url=req.url
@@ -25,7 +25,10 @@ async def main():
      b=req.post_data_json;calls.append(b)
      if b['action']=='summary':return await reply({'name':'Fixture cafe','slug':'fixture-cafe','logo':None,'paid':False})
      if b['action']=='admin_info':return await reply({'email':'fixture@example.invalid','bound':False,'eligible':True})
-     if b['action']=='mint':return await reply({'token':TOKEN,'expiresAt':'2026-11-05'})
+     if b['action']=='mint':
+      if state['delay_mint']:pending_mint.set();await release_mint.wait()
+      return await reply({'token':TOKEN if b['hubId']==HUB['id'] else 'b'*64,'expiresAt':'2026-11-05'})
+     if b['action']=='revoke' and state['delay_revoke']:pending_revoke.set();await release_revoke.wait()
      if b['action']=='status':return await reply({'status':state['status'],'emailSent':state['status']=='paid'})
      if b['action']=='checkout':return await reply({'error':'Injected unavailable checkout'},409)
      if b['action']=='access':return await reply({'error':'Access link expired or already used'},410)
@@ -80,6 +83,33 @@ async def main():
     assert await page.get_by_role('dialog').locator('svg').count()>0
     await page.get_by_role('dialog').screenshot(path=f'/tmp/browser/invitation/admin-{width}.png')
     assert any(b.get('action')=='mint' and b.get('email')=='fixed@example.invalid' for b in calls)
+    # Delayed mint from A cannot appear under B after close/target change.
+    await page.get_by_role('button',name='Close',exact=True).click()
+    state['delay_mint']=True
+    await page.get_by_role('button',name='Payment link',exact=True).first.click()
+    await page.get_by_label('Dashboard email',exact=True).fill('fixed@example.invalid')
+    await page.get_by_role('button',name='Generate payment link').click();await pending_mint.wait()
+    await page.get_by_role('button',name='Close',exact=True).click()
+    await page.get_by_role('button',name='Payment link',exact=True).nth(1).click()
+    await page.get_by_role('heading',name='Payment link · Fixture restaurant',exact=True).wait_for()
+    release_mint.set();state['delay_mint']=False
+    await page.get_by_label('Dashboard email',exact=True).fill('fixed@example.invalid')
+    await page.get_by_role('button',name='Generate payment link').wait_for()
+    assert await page.get_by_role('link',name='Open payment link').count()==0
+    await page.get_by_role('button',name='Generate payment link').click()
+    await page.get_by_role('link',name='Open payment link').wait_for()
+    assert (await page.get_by_role('link',name='Open payment link').get_attribute('href')).endswith('b'*64)
+    # Delayed revoke from B cannot clear the QR generated subsequently for A.
+    state['delay_revoke']=True
+    await page.get_by_role('button',name='Revoke invitation').click();await pending_revoke.wait()
+    await page.get_by_role('button',name='Close',exact=True).click()
+    await page.get_by_role('button',name='Payment link',exact=True).first.click()
+    await page.get_by_label('Dashboard email',exact=True).fill('fixed@example.invalid')
+    await page.get_by_role('button',name='Generate payment link').click()
+    await page.get_by_role('link',name='Open payment link').wait_for()
+    release_revoke.set();state['delay_revoke']=False
+    await page.get_by_role('dialog').screenshot(path=f'/tmp/browser/invitation/delayed-{width}.png')
+    assert (await page.get_by_role('link',name='Open payment link').get_attribute('href')).endswith(TOKEN)
    else:raise AssertionError('Admin fixture session key unavailable')
    assert not errors,errors
    print(f'PASS {width}x{height}: selection, checkout failure, status truth, one-use error, admin QR/email, no overflow')

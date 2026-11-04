@@ -1,5 +1,7 @@
 # Project rules
 
+- Invitation dashboard targets are server-derived after association and selected from authenticated owner-scoped rows; existing real same-owner dual-kind hubs are preserved, while new incompatible claims remain blocked.
+
 - OTP redemption uses a separate nonpersistent publishable auth client; retain validated signup/magiclink type with the stored hash and never install a user session on a privileged database client.
 
 - Optional existing-hub invitations use a distinct versioned checkout and atomic owner-bound fulfillment; mandatory gates and legacy claim tokens remain unchanged to preserve public access and issued contracts.

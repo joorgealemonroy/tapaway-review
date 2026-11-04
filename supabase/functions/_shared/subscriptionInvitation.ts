@@ -39,7 +39,7 @@ async function checkBilling(stripe: Stripe, db: any, hub: any, email: string, ki
   const users = await db.rpc("get_auth_user_by_email", { lookup_email: email });
   if (users.error) throw users.error;
   const existing = users.data?.[0]?.id;
-  if (existing) {
+  if (existing && !(owner === existing && email && !/@demo\.tapaway\.local$/i.test(email))) {
     const opposite = await db.from(kind === "personal" ? "restaurants" : "personal_profiles").select("id").eq(kind === "personal" ? "owner_id" : "user_id", existing).limit(1);
     if (opposite.error || opposite.data?.length) throw new Error("This email already belongs to the other account kind");
   }
@@ -282,5 +282,8 @@ async function redeemAccess(db: any, body: Record<string, unknown>) {
   if (verified.error || verified.data?.user?.id !== i.access_user_id || normalizedEmail(verified.data.user.email) !== i.intended_email || !verified.data.session) return reply({ error: "Verification failed. Request a new link" }, 410);
   const associated = await db.rpc("associate_subscription_invitation", { _id: i.id, _user: verified.data.user.id, _email: i.intended_email });
   if (associated.error || !associated.data?.associated) return reply({ error: "Owner association needs review" }, 409);
-  return reply({ session: { access_token: verified.data.session.access_token, refresh_token: verified.data.session.refresh_token } });
+  const owned = await hubFor(db, i.hub_kind, i.hub_id);
+  if ((i.hub_kind === "personal" ? owned.user_id : owned.owner_id) !== verified.data.user.id) return reply({ error: "Owner association needs review" }, 409);
+  const dashboardPath = i.hub_kind === "personal" ? `/dashboard?type=lite&profile_id=${encodeURIComponent(i.hub_id)}` : `/dashboard?type=restaurant&restaurant_id=${encodeURIComponent(i.hub_id)}`;
+  return reply({ dashboardPath, session: { access_token: verified.data.session.access_token, refresh_token: verified.data.session.refresh_token } });
 }

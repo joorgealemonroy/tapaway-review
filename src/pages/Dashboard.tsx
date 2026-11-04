@@ -55,6 +55,7 @@ const Dashboard = () => {
   // Explicit business params
   const adminViewId = searchParams.get('admin_view');
   const demoRestaurantId = searchParams.get('demo_restaurant_id');
+  const customerRestaurantId = searchParams.get('type') === 'restaurant' ? searchParams.get('restaurant_id') : null;
 
   useEffect(() => {
     // If explicit params, decide immediately
@@ -62,7 +63,7 @@ const Dashboard = () => {
       setRouteDecision("lite");
       return;
     }
-    if (adminViewId || demoRestaurantId) {
+    if (adminViewId || demoRestaurantId || customerRestaurantId) {
       setRouteDecision("business");
       return;
     }
@@ -112,7 +113,7 @@ const Dashboard = () => {
 
     
     decide();
-  }, [authLoading, user, isLiteParam, adminViewPersonalId, adminViewId, demoRestaurantId]);
+  }, [authLoading, user, isLiteParam, adminViewPersonalId, adminViewId, demoRestaurantId, customerRestaurantId]);
 
   if (routeDecision === "checking") {
     return (
@@ -138,7 +139,7 @@ const Dashboard = () => {
     );
   }
 
-  return <DashboardBusiness />;
+  return <DashboardBusiness key={customerRestaurantId || "default"} />;
 };
 
 interface Restaurant {
@@ -180,6 +181,8 @@ const DashboardBusiness = () => {
   // Demo mode detection - check URL param synchronously
   const demoRestaurantId = searchParams.get('demo_restaurant_id');
   const adminViewId = searchParams.get('admin_view');
+  const customerRestaurantId = searchParams.get('type') === 'restaurant' ? searchParams.get('restaurant_id') : null;
+  const [targetError, setTargetError] = useState(false);
   const [isDemoView, setIsDemoView] = useState(!!demoRestaurantId);
   const [demoLoading, setDemoLoading] = useState(!!demoRestaurantId);
   const [isAdminView, setIsAdminView] = useState(false);
@@ -342,7 +345,7 @@ const DashboardBusiness = () => {
     const { data: isAdminData, error: roleError } = await supabase.rpc('is_admin');
     const effectiveAdmin = !roleError && isAdminData === true;
     setIsAdmin(effectiveAdmin);
-    if (effectiveAdmin) {
+    if (effectiveAdmin && !customerRestaurantId) {
       fetchAllRestaurants();
     } else {
       fetchRestaurant();
@@ -408,7 +411,8 @@ const DashboardBusiness = () => {
     
     // Find a completed restaurant with allowed subscription, or just any completed one
     const completedRestaurants = restaurants?.filter((r) => r.onboarding_completed === true) || [];
-    const activeRestaurant = completedRestaurants.find((r) => isSubscriptionAllowed(r.subscription_status)) || completedRestaurants[0];
+    const activeRestaurant = customerRestaurantId ? completedRestaurants.find(r => r.id === customerRestaurantId) : completedRestaurants.find((r) => isSubscriptionAllowed(r.subscription_status)) || completedRestaurants[0];
+    if (customerRestaurantId && !activeRestaurant) { setTargetError(true); return; }
     
     if (activeRestaurant) {
       const mapped: Restaurant = {
@@ -498,6 +502,7 @@ const DashboardBusiness = () => {
   // Check if user should bypass paywall - DEMO MODE ALWAYS BYPASSES
   
   // If no restaurant and not a special user, redirect to paywall (handled in fetchRestaurant)
+  if (targetError) return <main className="min-h-screen bg-background p-6 text-foreground"><p role="alert">This hub is unavailable for your account.</p><Button onClick={() => navigate("/dashboard", { replace: true })}>Your dashboard</Button></main>;
   // But NEVER redirect in demo mode
   // If no restaurant is loaded yet, show loading
   if (!restaurant) {
