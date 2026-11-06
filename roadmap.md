@@ -1,12 +1,18 @@
 # Roadmap
 
+## Rep hub editing and final analytics publication (2026-11-06)
+- [x] Preserve null-plan and existing hub usernames; allow generated hyphens and bind availability checks to the exact edited name so link/content saves remain usable. Scope NFC updates to the current hub destination.
+- [x] Add authenticated assigned-rep draft Preview actions with public cache isolation and analytics exclusion; retain existing public approval/payment gates.
+- [x] Verify real assigned-rep RLS access and unrelated-user denial without customer writes. Exact application commit `07c1633904256c2ef534419cc6da982dcac27b75` passed all 28 release suites, production build/security/typecheck/audit and 320/360/390/1280px browser fixtures.
+- [x] Publish rep fixes and completed analytics to tapaway.co; verify new live bundles and anonymous draft protection. Both live report sources reconcile independently at 7/30/90 days. See `docs/analytics-report-release.md` for deployment evidence and limits.
+
 ## Canonical stats and recent activity release (2026-11-04)
 - [x] Verify explicitly separate historical-only hubs/source counts, mounted stats surfaces and incomplete business coverage; leave obsolete billing hooks alone.
 - [x] Implement exact owner/admin-scoped SQL snapshots, full active-hub rankings and paginated activity; reconcile read-only production counts for both sources at 7/30/90 days.
 - [x] Align admin, hub detail and customer reports; private single-client print/CSV reports and honest historical coverage.
 - [x] Correct business tracking, action identity/deduplication and staff timing without analytics backfill; deploy track and analytics-report.
 - [x] Run 28 isolated release suites, 12 report SQL checks, both security gates and four-width browser checks including delay/error/retry/empty/pagination/export; document backend deployment and reconciliation.
-- [ ] Exact-final-commit GitHub CI/typecheck/production build and frontend publication/live statistics verification remain with reviewer; no manual build/typecheck permitted here.
+- [x] Exact-final-commit GitHub CI/typecheck/production build and frontend publication/live statistics verification completed on 2026-11-06; see the final publication entry above.
 
 ## JSONB invitation selection correction (2026-11-04)
 - [x] Both comparisons use strict validated field equality; different plan/interval/Club values remain distinct; prior access/compatibility fixes preserved.

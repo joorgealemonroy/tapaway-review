@@ -1,6 +1,6 @@
 # Recorded activity release
 
-The payment invitation frontend is published. The analytics revision is not yet published.
+The payment invitation frontend was already published. The analytics revision and rep hub editing/preview fixes were published on 2026-11-06 from `07c1633904256c2ef534419cc6da982dcac27b75`.
 
 ## Reporting contract
 
@@ -16,7 +16,7 @@ The payment invitation frontend is published. The analytics revision is not yet 
 
 `/admin` mounts `AdminOverview` using `admin-billing-summary`; the obsolete `useAdminOverview` hook is unchanged. `/admin/analytics` mounts `AdminAnalytics`, with explicit source selection for rankings, recent activity and private client reports. Restaurant stats mount `AnalyticsOverview`/`CanonicalHubReport`; personal overview and advanced stats mount `CanonicalHubReport`. Both client report kinds offer the historical source. Decorative business engagement is not a traffic report.
 
-Global canonical configuration: cutover `2026-08-30T07:19:04.315478Z`, raw retention 400 days. This is **not** evidence that business tracking began then. Read-only production at this pass contained zero canonical business rows and 1,419 original business records (latest `2026-11-06T01:24:53.447712Z`), compared with the earlier audit's 1,413. Forward business wiring is in source; frontend publication is still required. Historical counts are original records, not deduplicated humans; no backfill or merged totals.
+Global canonical configuration: cutover `2026-08-30T07:19:04.315478Z`, raw retention 400 days. This is **not** evidence that business tracking began then. Read-only production before publication contained zero canonical business rows and 1,419 original business records (latest `2026-11-06T01:24:53.447712Z`), compared with the earlier audit's 1,413. Forward business wiring is now published; those pre-release counts do not demonstrate post-release traffic. Historical counts are original records, not deduplicated humans; no backfill or merged totals.
 
 ## Backend and validation (2026-11-06)
 
@@ -40,6 +40,11 @@ All reports use exclusive end/as-of `2026-11-06T03:51:00Z`; each start is exactl
 
 Validated website views are 23/589/2401 respectively; excluded rows are 146/920/2503. Sessions include website and hub view sessions, not people. Customer rows were never written; current counts are 145 personal profiles and 14 restaurants, zero invitations.
 
-## Remaining release boundaries
+## Final publication and independent verification (2026-11-06)
 
-Frontend publication remains with the reviewer as requested. No manual app build/typecheck was run under the harness restriction; automatic preview compilation succeeded, but exact final-commit GitHub CI/typecheck/production build and final live statistics verification remain required. The invitation frontend was already confirmed published by the requesting reviewer. Do not claim this statistics release publicly complete until those final checks and publication are verified.
+- Exact application commit `07c1633904256c2ef534419cc6da982dcac27b75` passed GitHub Actions run `42159805784`: 28 release suites, source/security checks, TypeScript, production build/artifact scan, four-width browser checks and production dependency audit (zero vulnerabilities).
+- Published through Lovable deployment `ed640e17-29c6-496e-aebc-5438a790b5c5`. `https://tapaway.co` served the new `index-BFCd6woc.js` bundle and updated personal dashboard/admin analytics/client report chunks. The published source includes the rep preview gate and both report source labels.
+- Independent read-only reconciliation at exclusive end `2026-11-06T03:53:44Z` matched direct aggregates to both report RPCs over 7/30/90 days, including activity counts and daily event sums. Authenticated own-hub access, cross-kind/cross-owner denial, non-admin global denial and anonymous denial were verified in rolled-back role-context transactions.
+- The affected Deadbeet Coffee draft retains its saved five links and four blocks. Its active assigned rep can read them under RLS; an unrelated identity cannot. A live anonymous browser visit to the explicit rep-preview URL still displays the paused public page. Authorized draft preview and link autosave passed the production-build browser fixtures; no real rep sign-in or customer content mutation was required.
+- Rep preview bypasses only the public display gate for an authenticated, active assigned rep (or admin), remains uncached publicly, and does not generate analytics. It does not approve or activate a draft. Existing plan/username addresses are preserved, and NFC destination edits are limited to the current hub.
+- One Lovable backend request reported 7.648 credits. No additional AI build prompt was used for publication. Real customer purchases, invitation sends and downstream human/NFC attribution are outside this release verification.
