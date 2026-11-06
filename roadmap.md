@@ -1,10 +1,12 @@
 # Roadmap
 
 ## Canonical stats and recent activity release (2026-11-04)
-- [ ] Implement exact owner/admin-scoped SQL snapshots, full active-hub rankings and paginated activity; reconcile read-only production counts.
-- [ ] Align admin, hub detail and customer stats; private single-client print/CSV reports and honest historical coverage.
-- [ ] Correct business tracking, action identity/deduplication and staff timing without analytics backfill.
-- [ ] Run isolated database/browser/release/security checks, deploy affected backend, document results; frontend publication and exact-commit CI remain with reviewer.
+- [x] Verify explicitly separate historical-only hubs/source counts, mounted stats surfaces and incomplete business coverage; leave obsolete billing hooks alone.
+- [x] Implement exact owner/admin-scoped SQL snapshots, full active-hub rankings and paginated activity; reconcile read-only production counts for both sources at 7/30/90 days.
+- [x] Align admin, hub detail and customer reports; private single-client print/CSV reports and honest historical coverage.
+- [x] Correct business tracking, action identity/deduplication and staff timing without analytics backfill; deploy track and analytics-report.
+- [x] Run 28 isolated release suites, 12 report SQL checks, both security gates and four-width browser checks including delay/error/retry/empty/pagination/export; document backend deployment and reconciliation.
+- [ ] Exact-final-commit GitHub CI/typecheck/production build and frontend publication/live statistics verification remain with reviewer; no manual build/typecheck permitted here.
 
 ## JSONB invitation selection correction (2026-11-04)
 - [x] Both comparisons use strict validated field equality; different plan/interval/Club values remain distinct; prior access/compatibility fixes preserved.

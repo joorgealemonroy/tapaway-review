@@ -6310,6 +6310,21 @@ export type Database = {
         }
         Returns: boolean
       }
+      historical_analytics_report: {
+        Args: {
+          _cursor_at?: string
+          _cursor_id?: string
+          _days?: number
+          _event?: string
+          _hub?: string
+          _kind?: string
+          _page?: number
+          _search?: string
+          _since?: string
+          _until?: string
+        }
+        Returns: Json
+      }
       hold_hub_payment_by_subscription: {
         Args: { _event_id: string; _reason: string; _subscription_id: string }
         Returns: boolean

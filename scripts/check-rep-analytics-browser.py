@@ -27,9 +27,9 @@ async def main():
         options = {'headless': True}
         if os.environ.get('QA_CHROMIUM'): options['executable_path'] = os.environ['QA_CHROMIUM']
         browser = await p.chromium.launch(**options)
-        for width in [360, 390, 1280]:
-            context = await browser.new_context(viewport={'width': width, 'height': 900}, accept_downloads=True)
-            state = {'admin': False, 'signed_in': True, 'assigned': True}
+        for width in [320, 360, 390, 1280]:
+            context = await browser.new_context(viewport={'width': width, 'height': 1800}, accept_downloads=True)
+            state = {'admin': False, 'signed_in': True, 'assigned': True, 'rpc_mode': 'normal'}
             calls, writes, tracks, errors = [], [], [], []
             async def handle(route):
                 req = route.request
@@ -42,7 +42,13 @@ async def main():
                 if '/rpc/is_admin' in url: return await reply(state['admin'])
                 if '/rpc/canonical_analytics_report' in url or '/rpc/historical_analytics_report' in url:
                     body = req.post_data_json; calls.append(body)
-                    return await reply(report(body, 'historical' in url))
+                    if state['rpc_mode'] == 'error': return await reply({'message': 'Fixture unavailable'}, 503)
+                    if state['rpc_mode'] == 'slow': await asyncio.sleep(0.8)
+                    data = report(body, 'historical' in url)
+                    if state['rpc_mode'] == 'empty':
+                        data.update({'hubs': [], 'hubCount': 0, 'activity': [], 'activityCount': 0, 'nextCursor': None})
+                        data['totals'] = {k: (None if k == 'sessions' and 'historical' in url else 0) for k in data['totals']}
+                    return await reply(data)
                 if '/rpc/get_public_personal_profile_status' in url: return await reply([PROFILE])
                 if '/rpc/get_public_personal_profile' in url: return await reply([])
                 if '/rpc/is_username_available' in url: return await reply(True)
@@ -107,7 +113,29 @@ async def main():
             await popup.get_by_text('Menu 3', exact=False).wait_for()
             await popup.close()
             assert await page.evaluate('document.documentElement.scrollWidth <= innerWidth')
+            await page.keyboard.press('Escape')
+            await page.get_by_role('button', name='Next', exact=True).click()
+            await page.get_by_text('Menu 3', exact=False).wait_for()
+            await page.get_by_role('button', name='Previous', exact=True).click()
+            await page.get_by_text('Menu 1', exact=False).wait_for()
+            state['rpc_mode'] = 'error'
+            await page.get_by_label('Refresh insights', exact=True).click()
+            await page.get_by_text('Insights unavailable.', exact=False).wait_for()
+            state['rpc_mode'] = 'empty'
+            await page.get_by_role('button', name='Retry insights', exact=True).click()
+            await page.get_by_text('No recorded matching hub activity.', exact=False).wait_for()
+            state['rpc_mode'] = 'slow'
+            await page.get_by_label('Analytics date range', exact=True).select_option('7')
+            await page.get_by_text('Loading insights…', exact=True).wait_for()
+            await page.get_by_label('Analytics date range', exact=True).select_option('90')
+            await page.get_by_role('button', name='Client report', exact=True).first.wait_for()
+            assert await page.get_by_label('Analytics date range', exact=True).input_value() == '90'
+            state['rpc_mode'] = 'normal'
+            await page.get_by_role('button', name='Client report', exact=True).first.click()
+            await dialog.get_by_role('heading', name='Fixture Coffee', exact=True).wait_for()
             assert not errors, errors
+            shots = Path('/tmp/browser/stats-release/screenshots'); shots.mkdir(parents=True, exist_ok=True)
+            await page.screenshot(path=str(shots / f'report-{width}.png'))
             print(f'PASS {width}px: assigned rep preview, public gate, draft autosave, activity/date/source filters, full CSV/print and no overflow')
             await context.close()
         await browser.close()
