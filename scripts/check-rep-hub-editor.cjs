@@ -56,12 +56,37 @@ function fixture(overrides = {}) {
   const nodes = node => node && typeof node === 'object' ? [node, ...[node.props?.children].flat(Infinity).flatMap(nodes)] : [];
   settle();
   return { props, ref, calls, requests, settle, render,
-    edit(value, label = 'Your TapAway address') { nodes(tree).find(n => n.type === 'Input' && (label === 'name' ? n.props.placeholder === 'Your name' : n.props['aria-label'] === label)).props.onChange({ target: { value } }); },
+    edit(value, label = 'Your TapAway address') { nodes(tree).find(n => n.type === 'Input' && (label === 'name' ? n.props.placeholder === 'Your name' : label === 'headline' ? n.props.placeholder === 'e.g. Creator • LA • Tap to connect' : n.props['aria-label'] === label)).props.onChange({ target: { value } }); },
     timers() { const queue = [...timers.values()]; timers.clear(); queue.forEach(fn => fn()); },
     async answer(data, error = null) { requests.at(-1).resolve({ data, error }); await flush(); settle(); },
   };
 }
 (async () => {
+  await pass('Display names can be cleared and stay blank after saving and reloading', async () => {
+    for (const value of ['', '   ']) {
+      const f = fixture({ showUsername: false });
+      f.edit(value, 'name'); f.settle(); await f.ref.current.saveAllChanges();
+      assert.equal(f.calls.length, 1);
+      assert.equal(f.calls[0].update.full_name, '');
+      assert.equal(f.calls[0].update.show_username, false);
+      assert.equal('username' in f.calls[0].update, false);
+      Object.assign(f.props, { fullName: f.calls[0].update.full_name }); f.settle();
+      assert.equal(f.ref.current.getSnapshot().name, '');
+      assert.equal(f.ref.current.hasPendingChanges, false);
+    }
+  });
+  await pass('An intentionally blank display name never blocks unrelated hero edits or changes the address', async () => {
+    for (const planType of [null, 'free', 'solo_pro', 'personal_hosted']) {
+      const f = fixture({ fullName: '', showUsername: false, planType });
+      f.edit('Coffee, made fresh', 'headline'); f.settle(); await f.ref.current.saveAllChanges();
+      assert.equal(f.calls[0].update.full_name, '');
+      assert.equal(f.calls[0].update.headline, 'Coffee, made fresh');
+      assert.equal('username' in f.calls[0].update, false);
+      assert.equal(f.requests.length, 0);
+      f.ref.current.discardChanges(); f.settle();
+      assert.equal(f.ref.current.getSnapshot().name, '');
+    }
+  });
   await pass('Null-plan rep draft and legacy unprefixed free hub keep their existing URL on content saves', async () => {
     for (const planType of [null, 'free', 'solo_pro']) {
       const f = fixture({ planType }); assert.equal(f.ref.current.hasPendingChanges, false);

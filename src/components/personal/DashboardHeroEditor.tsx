@@ -190,10 +190,6 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
   const handleSave = useCallback(async () => {
     if (!hasChanges) return;
 
-    if (!name.trim()) {
-      throw new Error("Please add your display name before saving");
-    }
-
     const newPublicUsername = getPublicUsername(isFree ? "free" : "monthly", usernameInput);
     const usernameChanged = !usernameLocked && newPublicUsername !== username;
 
@@ -301,13 +297,16 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
       <CollapsibleContent className="space-y-4 pt-2">
         {/* Name */}
         <div className="space-y-2">
-          <Label className="text-xs text-muted-foreground">Display Name</Label>
+          <Label htmlFor="hub-display-name" className="text-xs text-muted-foreground">Display Name (optional)</Label>
           <Input
+            id="hub-display-name"
+            aria-describedby="hub-display-name-help"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Your name"
             className="h-11"
           />
+          <p id="hub-display-name-help" className="text-xs text-muted-foreground">Leave blank to hide the name on your hub.</p>
         </div>
 
         {/* Username */}

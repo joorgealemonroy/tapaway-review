@@ -111,10 +111,6 @@ const EditHubDrawer = ({ target, onClose, onSaved }: Props) => {
   };
 
   const save = async () => {
-    if (!fullName.trim()) {
-      toast.error("Business name is required");
-      return;
-    }
     setSaving(true);
     try {
       const profilePatch: Record<string, unknown> = {
@@ -166,15 +162,18 @@ const EditHubDrawer = ({ target, onClose, onSaved }: Props) => {
 
         <div className="space-y-5 mt-5">
           <div className="space-y-1.5">
-            <Label className="text-[11px] uppercase tracking-widest text-white/40">
-              Business name
+            <Label htmlFor="edit-hub-display-name" className="text-[11px] uppercase tracking-widest text-white/40">
+              Display name (optional)
             </Label>
             <Input
+              id="edit-hub-display-name"
+              aria-describedby="edit-hub-display-name-help"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               disabled={saving}
               className="bg-white/[0.03] border-white/10"
             />
+            <p id="edit-hub-display-name-help" className="text-xs text-white/50">Leave blank to hide the name on the hub.</p>
           </div>
 
           <div className="space-y-1.5">

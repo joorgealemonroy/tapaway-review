@@ -1,5 +1,7 @@
 # Project rules
 
+- Hub display names are optional: preserve intentionally blank full_name values, allow clearing them in editors, and never render metadata/admin fallback names as public hub headings. The separate show_username preference remains independent.
+
 - Rep draft previews require an explicit preview route, an active rep and a caller-scoped assigned draft under RLS. Keep them out of public caches and analytics; null billing plans must never rewrite stored hub addresses.
 
 - Analytics reports use one canonical SQL snapshot over validated, human-classified analytics_hits, half-open bounds and kind+hub ownership; historical tables are an explicit separate unfiltered source, never a fallback or summed with canonical totals. This keeps private reports and exports reconcilable without losing earlier recorded activity.

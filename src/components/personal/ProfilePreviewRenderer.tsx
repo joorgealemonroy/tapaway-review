@@ -116,6 +116,7 @@ function ProfilePreviewRendererComponent({
   onLinkClick,
   displayMode = "default",
 }: ProfilePreviewRendererProps) {
+  const displayName = profile.full_name?.trim() || "";
   // Cover image (set in the Design tab). This is the ONLY header decoration
   // rendered now. Legacy header_type values are stored but not honored.
   const coverImageUrl = profile.header_image_url
@@ -912,9 +913,11 @@ function ProfilePreviewRendererComponent({
             pfpPosition === "left" ? "flex-1 pt-2" : "mt-4"
           } ${pfpPosition === "center" ? "text-center" : ""}`}
         >
-          <h1 className={`text-xl font-bold ${headingClass}`}>
-            {profile.full_name}
-          </h1>
+          {displayName && (
+            <h1 className={`text-xl font-bold ${headingClass}`}>
+              {displayName}
+            </h1>
+          )}
           {profile.headline && (
             <p className={`mt-1 text-sm ${textClass}`}>{profile.headline}</p>
           )}

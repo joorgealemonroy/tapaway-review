@@ -1128,7 +1128,11 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile, privatePreview 
   // Share preview (OG tags): when someone shares the hub, the native share
   // sheet and link unfurls show the hub's photo, name, and headline.
   const sharePageUrl = `https://tapaway.co/${profile.username}`;
-  const shareName = profile.full_name?.trim() || profile.username || "Business hub";
+  // A blank display name is intentional. Metadata may fall back to the address,
+  // but that fallback must never become a visible heading on the hub.
+  const displayName = profile.full_name?.trim() || "";
+  const bannerHeading = profile.show_username !== false ? `@${profile.username}` : displayName;
+  const shareName = displayName || profile.username || "Business hub";
   const shareTitle = shareName ? `${shareName} | TapAway` : "TapAway";
   const shareDescription =
     profile.headline || profile.bio || (shareName ? `Tap to view ${shareName}'s links on TapAway.` : "Tap to view this hub on TapAway.");
@@ -1380,9 +1384,11 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile, privatePreview 
           {hasBanner ? (
             // Banner mode: white text with drop shadows, readable over the banner fade
             <>
-              <h1 className="text-3xl font-bold drop-shadow-lg text-white">
-                {profile.show_username !== false ? `@${profile.username}` : shareName}
-              </h1>
+              {bannerHeading && (
+                <h1 className="text-3xl font-bold drop-shadow-lg text-white">
+                  {bannerHeading}
+                </h1>
+              )}
               {profile.headline && (
                 <p className="text-base mt-2 drop-shadow-md text-white/90">
                   {profile.headline}
@@ -1399,7 +1405,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile, privatePreview 
             </>
           ) : (
           <>
-          <h1 className={`text-2xl font-bold ${headingClass}`} style={headingStyle}>{shareName}</h1>
+          {displayName && <h1 className={`text-2xl font-bold ${headingClass}`} style={headingStyle}>{displayName}</h1>}
               {profile.headline && (
                 <p className={`text-sm ${textClass} mt-1`} style={textStyle}>{profile.headline}</p>
               )}

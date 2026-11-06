@@ -29,7 +29,8 @@ async def main():
         browser = await p.chromium.launch(**options)
         for width in [320, 360, 390, 1280]:
             context = await browser.new_context(viewport={'width': width, 'height': 1800}, accept_downloads=True)
-            state = {'admin': False, 'signed_in': True, 'assigned': True, 'rpc_mode': 'normal'}
+            state = {'admin': False, 'signed_in': True, 'assigned': True, 'public_visible': False, 'rpc_mode': 'normal'}
+            profile = dict(PROFILE)
             calls, writes, tracks, errors = [], [], [], []
             async def handle(route):
                 req = route.request
@@ -49,15 +50,15 @@ async def main():
                         data.update({'hubs': [], 'hubCount': 0, 'activity': [], 'activityCount': 0, 'nextCursor': None})
                         data['totals'] = {k: (None if k == 'sessions' and 'historical' in url else 0) for k in data['totals']}
                     return await reply(data)
-                if '/rpc/get_public_personal_profile_status' in url: return await reply([PROFILE])
-                if '/rpc/get_public_personal_profile' in url: return await reply([])
+                if '/rpc/get_public_personal_profile_status' in url: return await reply([profile])
+                if '/rpc/get_public_personal_profile' in url: return await reply([profile] if state['public_visible'] else [])
                 if '/rpc/is_username_available' in url: return await reply(True)
                 if '/rest/v1/user_roles' in url: return await reply([{'role': 'admin' if state['admin'] else 'sales_rep'}])
                 if '/rest/v1/sales_reps' in url: return await reply({'id': USER_ID, 'is_active': True} if single else [{'id': USER_ID, 'is_active': True}])
                 if '/rest/v1/personal_profiles' in url:
                     if req.method not in ['GET', 'HEAD']:
-                        writes.append(req.post_data_json); return await reply(None)
-                    return await reply((PROFILE if single else [PROFILE]) if state['assigned'] else (None if single else []))
+                        writes.append(req.post_data_json); profile.update(req.post_data_json); return await reply(None)
+                    return await reply((profile if single else [profile]) if state['assigned'] else (None if single else []))
                 if '/rest/v1/personal_links' in url:
                     return await reply([{'id': '33333333-3333-4333-8333-333333333333', 'profile_id': HUB_ID, 'label': 'Fixture menu', 'url': 'https://example.invalid/menu', 'link_type': 'custom', 'sort_order': 0, 'is_active': True, 'display_style': 'pill'}])
                 if '/rest/v1/' in url: return await reply(None if single else [])
@@ -84,6 +85,37 @@ async def main():
             await page.wait_for_function("document.body.innerText.includes('Saved')")
             assert writes and all('username' not in row for row in writes)
             assert not await page.get_by_text('Please fix username issues before saving', exact=False).count()
+            # Clearing a display name must persist, including after a page reload
+            # and an unrelated edit. No real customer records are involved.
+            async with page.expect_response(lambda r: '/rest/v1/personal_profiles' in r.url and r.request.method == 'PATCH' and r.request.post_data_json.get('full_name') == ''):
+                await page.get_by_label('Display Name (optional)', exact=True).fill('')
+            await page.reload()
+            await page.get_by_role('button', name='Hero Identity', exact=True).click()
+            assert await page.get_by_label('Display Name (optional)', exact=True).input_value() == ''
+            await page.get_by_text('Leave blank to hide the name on your hub.', exact=True).wait_for()
+            async with page.expect_response(lambda r: '/rest/v1/personal_profiles' in r.url and r.request.method == 'PATCH' and r.request.post_data_json.get('headline') == 'Fresh coffee daily'):
+                await page.get_by_placeholder('e.g. Creator • LA • Tap to connect', exact=True).fill('Fresh coffee daily')
+            assert writes[-1]['full_name'] == '' and all('username' not in row for row in writes)
+            assert not await page.get_by_text('Please add your display name before saving', exact=False).count()
+            # A public blank name must not turn into a username heading. Check
+            # normal/avatar, full-photo banner and logo layouts independently.
+            state['public_visible'] = True
+            profile.update({'subscription_status': 'active', 'is_approved': True, 'show_username': False, 'profile_photo_url': 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'})
+            for header in ['color', 'banner', 'logo']:
+                profile['header_type'] = header
+                for name in ['', '   ', 'Chosen display name']:
+                    profile['full_name'] = name
+                    await page.goto(BASE+'/fixture-coffee?admin_preview=1')
+                    await page.get_by_role('link', name='Fixture menu', exact=False).wait_for()
+                    assert await page.get_by_role('heading', level=1).all_text_contents() == ([name] if name.strip() else []), (width, header, name)
+                    assert 'fixture-coffee' in await page.title() if not name.strip() else 'Chosen display name' in await page.title()
+                    assert await page.evaluate('document.documentElement.scrollWidth <= innerWidth')
+                profile.update({'full_name': '', 'show_username': True})
+                await page.goto(BASE+'/fixture-coffee?admin_preview=1')
+                await page.get_by_text('@fixture-coffee', exact=True).wait_for()
+                assert await page.get_by_role('heading', level=1).all_text_contents() == (['@fixture-coffee'] if header == 'banner' else [])
+                profile['show_username'] = False
+            profile.clear(); profile.update(PROFILE); state['public_visible'] = False
             # Rejected rep assignment must fall back to the normal public gate.
             state['assigned'] = False
             await page.goto(BASE+'/fixture-coffee?rep_preview=1')
@@ -136,7 +168,7 @@ async def main():
             assert not errors, errors
             shots = Path('/tmp/browser/stats-release/screenshots'); shots.mkdir(parents=True, exist_ok=True)
             await page.screenshot(path=str(shots / f'report-{width}.png'))
-            print(f'PASS {width}px: assigned rep preview, public gate, draft autosave, activity/date/source filters, full CSV/print and no overflow')
+            print(f'PASS {width}px: optional display-name save/reload; blank/named/username-only color/banner/logo hubs; assigned rep preview, public gate, draft autosave, activity/date/source filters, full CSV/print and no overflow')
             await context.close()
         await browser.close()
 
