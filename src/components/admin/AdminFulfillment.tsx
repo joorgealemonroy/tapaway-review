@@ -1,4 +1,5 @@
 import { OrderHubPreview } from "./OrderHubPreview";
+import { CardPrintFile } from "./CardPrintFile";
 // AdminFulfillment. The demo/card fulfillment pipeline board.
 //
 // Single source of truth: personal_profiles.pipeline_status.
@@ -493,6 +494,7 @@ export default function AdminFulfillment() {
                     </div>
                   </div>
                   <Button variant="outline" className="w-full min-h-11 mt-4" onClick={() => setPreviewId(row.id)}>Preview hub</Button>
+                  <CardPrintFile path={row.card_print_pdf_path} hubName={row.full_name || row.username || "Hub"} filename={row.username || row.id} />
                   {!row.is_approved && !reviewed.has(row.id) && <p className="text-sm text-slate-600 mt-2">Preview this hub to unlock approval.</p>}
                   {renderAction(row)}
                 </div>

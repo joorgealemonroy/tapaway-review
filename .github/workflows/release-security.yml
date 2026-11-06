@@ -43,4 +43,5 @@ jobs:
             sleep 1
           done
           QA_BASE_URL=http://127.0.0.1:8080 python scripts/check-rep-analytics-browser.py
+          QA_BASE_URL=http://127.0.0.1:8080 python scripts/check-admin-print-files-browser.py
       - run: npm audit --omit=dev --audit-level=high

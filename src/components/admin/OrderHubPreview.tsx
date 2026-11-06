@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { ProfilePreviewPanel } from '@/components/personal/ProfilePreviewPanel';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { CardPrintFile } from './CardPrintFile';
 
 /** Uses the signed-in admin's existing RLS access, never a public draft URL. */
 export function OrderHubPreview({ id, onClose, onReviewed }: { id: string; onClose: () => void; onReviewed: () => void }) {
@@ -19,9 +20,10 @@ export function OrderHubPreview({ id, onClose, onReviewed }: { id: string; onClo
     }, retry: 1,
   });
   return <Dialog open onOpenChange={open => { if (!open) onClose(); }}><DialogContent className="max-w-lg max-h-[92dvh] overflow-y-auto bg-white text-slate-900">
-    <DialogHeader><DialogTitle>Review hub before approval</DialogTitle><DialogDescription>Check the logo, name and links. This private preview does not publish or approve anything.</DialogDescription></DialogHeader>
+    <DialogHeader><DialogTitle>Review hub before approval</DialogTitle><DialogDescription>Check the logo, name, links and uploaded card print PDF. This private preview does not publish or approve anything.</DialogDescription></DialogHeader>
     {result.isPending ? <p role="status">Loading hub preview…</p> : result.isError ? <div role="alert"><p>We couldn't load this hub. Approval stays locked until a preview loads.</p><Button onClick={() => result.refetch()}>Try again</Button></div> : result.data && <>
       <ProfilePreviewPanel profile={result.data.profile} links={result.data.links} blocks={result.data.blocks as any} />
+      <CardPrintFile path={result.data.profile.card_print_pdf_path} hubName={result.data.profile.full_name || result.data.profile.username || 'Hub'} filename={result.data.profile.username || id} />
       <a className="text-emerald-800 underline py-3" href={`/dashboard?admin_view_personal=${encodeURIComponent(id)}`}>Edit this hub</a>
       <Button onClick={() => { onReviewed(); onClose(); }}>I've reviewed this hub</Button>
     </>}
