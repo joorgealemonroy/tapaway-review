@@ -64,14 +64,15 @@ async def main():
                 if "/storage/v1/object/" in url:
                     assert "card-print-files/" in url
                     storage_path = unquote(urlparse(url).path.split("card-print-files/", 1)[1])
-                    assert storage_path in [row["card_print_pdf_path"] for row in hubs]
+                    assert storage_path in [row["card_print_pdf_path"] for row in hubs], storage_path
                     if req.method == "POST" and "/object/sign/" in url:
                         signs.append(storage_path)
                         assert req.post_data_json == {"expiresIn": 900}
                         assert req.headers.get("authorization") == "Bearer fixture"
                         if state["storage_error"]:
                             return await reply({"statusCode": "403", "message": "Fixture access denied"}, 403)
-                        return await reply({"signedURL": "/object/sign/card-print-files/" + url.split("card-print-files/", 1)[1] + "?token=fixture"})
+                        # Storage returns a raw path; the SDK applies encodeURI.
+                        return await reply({"signedURL": "/object/sign/card-print-files/" + storage_path + "?token=fixture"})
                     assert req.method == "GET"
                     if "/object/sign/" not in url:
                         downloads.append(storage_path)
