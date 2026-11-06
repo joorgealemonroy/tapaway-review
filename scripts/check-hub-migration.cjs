@@ -7,6 +7,19 @@ const support=read('supabase/migrations/20261106231500_legacy_hub_migration_supp
 const history=read('supabase/migrations/20261106231600_migrated_hub_historical_reports.sql');
 let checks=0;const pass=async(name,fn)=>{await fn();console.log('PASS '+name);checks++;};
 (async()=>{
+ await pass('Migrated dashboard cards keep the original fulfillment account and never enter personal card checkout',async()=>{
+   const vm=require('node:vm'),ts=require('typescript'),effects=[];
+   const jsx=(type,props)=>({type,props:props||{}}),generic=new Proxy({},{get:(_,k)=>String(k)});
+   const react={useState:value=>[value,()=>{}],useRef:value=>({current:value}),useEffect:fn=>effects.push(fn)};
+   const exports={};
+   vm.runInNewContext(ts.transpileModule(read('src/components/personal/CardsTab.tsx'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText,{exports,require:n=>n==='react'?react:n==='react/jsx-runtime'?{jsx,jsxs:jsx}:n==='@/integrations/supabase/client'?{supabase:{from(){throw Error('Wrong personal card flow');},functions:{invoke(){throw Error('Unexpected checkout');}}}}:generic});
+   const tree=exports.CardsTab({profileId:a,userId:owner,migratedLegacy:true,hasCardAddon:false,planType:'monthly',stripeCustomerId:'cus_existing',fullName:''});
+   for(const effect of effects)await effect();
+   const nodes=t=>Array.isArray(t)?t.flatMap(nodes):t&&typeof t==='object'?[t,...nodes(t.props.children)]:[];
+   const request=nodes(tree).find(n=>n.type==='RequestMoreCards');
+   assert.ok(request);assert.equal(request.props.restaurantId,a);assert.equal(request.props.personalProfileId,undefined);
+   assert.equal(nodes(tree).some(n=>n.type==='BuildingDashboard'),false);
+ });
  const db=new PGlite();
  await db.exec(`CREATE ROLE anon;CREATE ROLE authenticated;CREATE ROLE service_role;CREATE SCHEMA auth;
  CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql AS $$SELECT nullif(current_setting('qa.user',true),'')::uuid$$;

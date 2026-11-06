@@ -1,5 +1,6 @@
 import BuildingDashboard from "@/components/dashboard/BuildingDashboard";
 import SubscriptionInvitationCards from "@/components/dashboard/SubscriptionInvitationCards";
+import { RequestMoreCards } from "@/components/dashboard/RequestMoreCards";
 import { Link } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,6 +14,7 @@ import { Package, Crown, Minus, Plus, Loader2, MapPin, Pencil, Check } from "luc
 
 interface CardsTabProps {
   paymentFirst?: boolean;
+  migratedLegacy?: boolean;
   profileId: string;
   userId: string;
   hasCardAddon: boolean;
@@ -45,7 +47,7 @@ const MONTHLY_LIMIT = 3;
 const isAddressComplete = (addr: ShippingAddress) =>
   !!(addr.name.trim() && addr.line1.trim() && addr.city.trim() && addr.state.trim() && addr.postal_code.trim());
 
-export const CardsTab = ({ profileId, paymentFirst = false, userId, hasCardAddon, planType, stripeCustomerId, fullName }: CardsTabProps) => {
+export const CardsTab = ({ profileId, paymentFirst = false, migratedLegacy = false, userId, hasCardAddon, planType, stripeCustomerId, fullName }: CardsTabProps) => {
   const [requests, setRequests] = useState<CardRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -60,7 +62,7 @@ export const CardsTab = ({ profileId, paymentFirst = false, userId, hasCardAddon
     name: fullName || "", line1: "", line2: "", city: "", state: "", postal_code: "", country: "US",
   });
 
-  useEffect(() => { if (planType === "personal_hosted" || paymentFirst) { setLoading(false); return; } void loadRequests(); }, [profileId, planType, paymentFirst]);
+  useEffect(() => { if (planType === "personal_hosted" || paymentFirst || migratedLegacy) { setLoading(false); return; } void loadRequests(); }, [profileId, planType, paymentFirst, migratedLegacy]);
 
   const loadRequests = async () => {
     const { data, error } = await supabase
@@ -220,6 +222,9 @@ export const CardsTab = ({ profileId, paymentFirst = false, userId, hasCardAddon
   );
 
   if (paymentFirst) return <BuildingDashboard embedded profileId={profileId} />;
+  // The retained restaurant ID owns the existing fulfillment history and
+  // subscription-wide allowance. Keep using its original request flow.
+  if (migratedLegacy) return <Card><CardHeader><CardTitle>Your business cards</CardTitle><CardDescription>Your existing card benefits continue on this dashboard.</CardDescription></CardHeader><CardContent className="space-y-4"><p className="text-sm text-muted-foreground">Use your current plan's card allowance here. Hubs on the same subscription share one monthly allowance.</p><RequestMoreCards restaurantId={profileId} /></CardContent></Card>;
   if (planType === "personal_hosted") return <Card><CardHeader><CardTitle>Your personal cards</CardTitle><CardDescription>Your two-card order is a one-time purchase. Your $5/month subscription hosts your hub and analytics.</CardDescription></CardHeader><CardContent className="space-y-4"><p className="text-sm text-muted-foreground">Need another pair or help with your original order? Our team can help. Card Club is for business plans.</p><div className="flex flex-wrap gap-3"><Button asChild><Link to="/personal/design">Design two more cards · $39</Link></Button><Button asChild variant="outline"><Link to="/support#question">Get order help</Link></Button></div></CardContent></Card>;
   if (loading) {
     return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;

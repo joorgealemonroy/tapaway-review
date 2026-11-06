@@ -474,7 +474,7 @@ const PersonalDashboard = () => {
   // One-time Card Club offer for signups that selected it at checkout.
   // This is the only way to join Card Club. No self-serve subscribe exists.
   useEffect(() => {
-    if (profile && !profile.onboarding_source?.startsWith("payment_first") && profile.plan_type !== "personal_hosted" && localStorage.getItem(PENDING_CARD_CLUB_KEY) && !profile.has_card_addon) {
+    if (profile && profile.onboarding_source !== "legacy_restaurant_migration" && !profile.onboarding_source?.startsWith("payment_first") && profile.plan_type !== "personal_hosted" && localStorage.getItem(PENDING_CARD_CLUB_KEY) && !profile.has_card_addon) {
       setShowCardClubOffer(true);
     }
   }, [profile]);
@@ -1509,6 +1509,7 @@ const PersonalDashboard = () => {
           <TabsContent value="cards" className="space-y-4">
             <CardsTab
               paymentFirst={profile.onboarding_source?.startsWith("payment_first") || false}
+              migratedLegacy={profile.onboarding_source === "legacy_restaurant_migration"}
               profileId={profile.id}
               userId={profile.user_id}
               hasCardAddon={profile.has_card_addon || false}
@@ -1572,7 +1573,7 @@ const PersonalDashboard = () => {
       />
 
       {/* One-time Card Club offer (signup selection) */}
-      {showCardClubOffer && !profile.onboarding_source?.startsWith("payment_first") && profile.plan_type !== "personal_hosted" && (
+      {showCardClubOffer && profile.onboarding_source !== "legacy_restaurant_migration" && !profile.onboarding_source?.startsWith("payment_first") && profile.plan_type !== "personal_hosted" && (
         <CardClubWelcomeOffer
           profileId={profile.id}
           onDone={() => setShowCardClubOffer(false)}
