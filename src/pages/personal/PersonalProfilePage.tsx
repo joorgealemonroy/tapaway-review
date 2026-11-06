@@ -1295,7 +1295,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile, privatePreview 
             className="relative w-full flex items-center justify-center px-5"
             style={{
               paddingTop: "max(2rem, env(safe-area-inset-top, 0px))",
-              paddingBottom: "3rem",
+              paddingBottom: "0.75rem",
               ...(effectiveLogoBand ? { backgroundColor: effectiveLogoBand } : undefined),
             }}
           >
@@ -1361,8 +1361,10 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile, privatePreview 
 
         {/* Profile Content */}
         <div 
-          className={`max-w-md mx-auto ${isMasterLocationsHub ? 'px-3' : 'px-4'} ${hasBanner ? '-mt-20' : hasCover ? '-mt-16' : 'pt-10'} pb-12 relative z-10 ${pfpCentered ? "text-center" : ""}`}
+          className={`max-w-md mx-auto ${isMasterLocationsHub ? 'px-3' : 'px-4'} ${isLogoHeader ? 'pt-3' : hasBanner ? '-mt-20' : hasCover ? '-mt-16' : 'pt-10'} pb-12 relative z-10 ${pfpCentered ? "text-center" : ""}`}
         >
+          {/* Blank profile details must not reserve a gap beneath the logo. */}
+          <div className="mb-6 empty:hidden">
           {/* Avatar - hidden when the banner or logo is the header (full picture in frame) */}
           {!hasBanner && !isLogoHeader && (
             <div className={`relative ${pfpCentered ? "inline-block" : ""} mb-4`}>
@@ -1452,12 +1454,12 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile, privatePreview 
                   {(profile as any).contact_button_label || 'Save Contact'}
                 </button>
               )}
-              <div className="mb-6" />
+          </div>
 
           {/* Links section */}
           <div>
             {/* Lead Form CTA */}
-            <div className="mb-4">
+            <div className="mb-4 empty:hidden">
               <LeadFormSheet profileId={profile.id} accentColor={profileAccentColor} />
             </div>
 
