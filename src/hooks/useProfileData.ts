@@ -134,11 +134,10 @@ async function fetchProfileData(username: string): Promise<FetchProfileResult> {
     .rpc('get_public_personal_profile', { _slug: username.toLowerCase() });
   const profileData = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
 
-  const isPubliclyVisible =
-    profileData?.subscription_status === 'active' ||
-    (profileData?.subscription_status === 'trialing' && (profileData as { is_approved?: boolean }).is_approved === true);
-
-  if (profileError || !profileData || !isPubliclyVisible) {
+  // The public RPC enforces hub_access_allowed, including approved gifts.
+  // A gift can still have a pending/expired subscription; don't reject the
+  // server's access decision by treating Stripe status as public visibility.
+  if (profileError || !profileData || profileData.is_approved !== true) {
     if (profileError) console.error('[useProfileData] public profile RPC failed', profileError);
 
     // The profile may still exist with a lapsed subscription (e.g. trial

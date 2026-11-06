@@ -71,7 +71,8 @@ const PersonalProfile = () => {
           .rpc("get_public_personal_profile", { _slug: username.toLowerCase() });
         const profileData = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
 
-        if (profileError || !profileData || profileData.subscription_status !== "active") {
+        // Public access is decided by the RPC, including approved gift hubs.
+        if (profileError || !profileData || profileData.is_approved !== true) {
           setNotFound(true);
           setLoading(false);
           return;

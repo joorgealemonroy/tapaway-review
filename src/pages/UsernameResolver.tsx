@@ -142,11 +142,9 @@ const UsernameResolverInner = memo(({ slug, isAdminPreview, isRepPreview }: { sl
       }
       const profile = Array.isArray(profileRows) && profileRows.length > 0 ? profileRows[0] : null;
 
-      const isPubliclyVisible =
-        profile?.subscription_status === "active" ||
-        (profile?.subscription_status === "trialing" && (profile as { is_approved?: boolean }).is_approved === true);
-
-      if (isPubliclyVisible) {
+      // The public RPC already enforces billing, gift and approval access.
+      // Approved gifts do not need an active paid subscription to resolve.
+      if (!profileError && profile?.is_approved === true) {
         complete("personal", profile as unknown as CachedProfile);
         return;
       }

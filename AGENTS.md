@@ -1,5 +1,7 @@
 # Project rules
 
+- Public hub RPCs enforce gift, billing and approval access. Never add a client subscription-status gate that hides an approved gift returned by the public RPC; pending/expired billing status does not cancel a gift.
+
 - Hub display names are optional: preserve intentionally blank full_name values, allow clearing them in editors, and never render metadata/admin fallback names as public hub headings. The separate show_username preference remains independent.
 
 - Rep draft previews require an explicit preview route, an active rep and a caller-scoped assigned draft under RLS. Keep them out of public caches and analytics; null billing plans must never rewrite stored hub addresses.

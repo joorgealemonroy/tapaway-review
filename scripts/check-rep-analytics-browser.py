@@ -100,6 +100,22 @@ async def main():
             # A public blank name must not turn into a username heading. Check
             # normal/avatar, full-photo banner and logo layouts independently.
             state['public_visible'] = True
+            # The public RPC authorizes gifts even when Stripe status is pending
+            # or expired. Its projection does not include payment_state.
+            profile['is_approved'] = True
+            for gift_status in ['pending', 'expired']:
+                profile['subscription_status'] = gift_status
+                await page.goto(BASE+'/fixture-coffee')
+                await page.get_by_role('link', name='Fixture menu', exact=False).wait_for()
+                assert not await page.get_by_text('This TapAway page is paused.', exact=True).count()
+                assert not await page.get_by_text('Private preview · Only authorized staff can view this draft.', exact=True).count()
+                await page.reload()
+                await page.get_by_role('link', name='Fixture menu', exact=False).wait_for()
+            state['public_visible'] = False
+            await page.reload()
+            await page.get_by_text('This TapAway page is paused.', exact=True).wait_for()
+            assert not await page.get_by_role('link', name='Fixture menu', exact=False).count()
+            state['public_visible'] = True
             profile.update({'subscription_status': 'active', 'is_approved': True, 'show_username': False, 'profile_photo_url': 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'})
             for header in ['color', 'banner', 'logo']:
                 profile['header_type'] = header
@@ -169,7 +185,7 @@ async def main():
             assert not errors, errors
             shots = Path('/tmp/browser/stats-release/screenshots'); shots.mkdir(parents=True, exist_ok=True)
             await page.screenshot(path=str(shots / f'report-{width}.png'))
-            print(f'PASS {width}px: optional display-name save/reload; blank/named/username-only color/banner/logo hubs; assigned rep preview, public gate, draft autosave, activity/date/source filters, full CSV/print and no overflow')
+            print(f'PASS {width}px: pending/expired gift hubs load and reload; revoked access stays paused; optional display-name save/reload; blank/named/username-only color/banner/logo hubs; assigned rep preview, public gate, draft autosave, activity/date/source filters, full CSV/print and no overflow')
             await context.close()
         await browser.close()
 

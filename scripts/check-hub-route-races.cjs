@@ -101,6 +101,37 @@ const plain = value => JSON.parse(JSON.stringify(value));
     await reply(f.requests[3], [{ username: 'trial', subscription_status: 'trialing', is_approved: false }]);
     assert.equal(f.life.read().data, null); assert.equal(f.life.read().expiredPreview.username, 'trial'); assert.equal(f.cached.length, 0);
   });
+  await pass('Server-authorized gifts resolve and refetch without an active paid subscription', async () => {
+    const walk = node => node && typeof node === 'object' ? [node, ...(node.props?.children || []).flatMap(walk)] : [];
+    for (const status of ['pending', 'expired', 'canceled', null]) {
+      // Match the public projection: payment_state is not exposed by this RPC.
+      const gift = { ...live('gift'), subscription_status: status };
+      const f = await fixture('src/hooks/useProfileData.ts');
+      f.life.render(() => f.exports.useProfileData('gift')); f.life.effects();
+      await reply(f.requests[0], [gift]); await emptyParallel(f);
+      assert.equal(f.life.read().data.profile.username, 'gift'); assert.equal(f.life.read().expiredPreview, null);
+      assert.ok(!f.requests.some(r => r.name === 'get_public_personal_profile_status'));
+      // Revoking access must still discard cached content and show only branding.
+      const refresh = f.life.read().refetch(); await reply(f.requests.at(-1), []);
+      await reply(f.requests.at(-1), [gift]); await refresh;
+      assert.equal(f.life.read().data, null); assert.equal(f.life.read().expiredPreview.username, 'gift');
+      const resolver = await fixture('src/pages/UsernameResolver.tsx');
+      const inner = resolver.life.render(resolver.exports.default).type;
+      resolver.life.render(() => inner({ slug: 'gift' })); resolver.life.effects();
+      await reply(resolver.requests[0], [gift]);
+      const page = walk(resolver.life.read()).find(n => n.type === 'personal');
+      assert.equal(page.props.initialProfile.username, 'gift'); assert.equal(page.props.privatePreview, false);
+      assert.equal(resolver.requests.length, 1);
+    }
+  });
+  await pass('A paid-looking but unapproved public row never exposes links', async () => {
+    const f = await fixture('src/hooks/useProfileData.ts');
+    const draft = { ...live('draft'), is_approved: false };
+    f.life.render(() => f.exports.useProfileData('draft')); f.life.effects();
+    await reply(f.requests[0], [draft]); await reply(f.requests[1], [draft]);
+    assert.equal(f.life.read().data, null); assert.equal(f.life.read().expiredPreview.username, 'draft');
+    assert.equal(f.cached.length, 0); assert.ok(!f.requests.some(r => r.name === 'personal_links'));
+  });
   await pass('Every slug/history/admin-preview destination has distinct synchronous ownership', async () => {
     const f = await fixture('src/pages/UsernameResolver.tsx'); const outer = f.exports.default;
     const a = f.life.render(outer); f.route.slug = 'lasislasfontana'; f.route.key = 'b'; const b = f.life.render(outer); assert.notEqual(a.key, b.key);
