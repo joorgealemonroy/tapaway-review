@@ -27,8 +27,8 @@ async def main():
         options = {'headless': True}
         if os.environ.get('QA_CHROMIUM'): options['executable_path'] = os.environ['QA_CHROMIUM']
         browser = await p.chromium.launch(**options)
-        for width in [360, 390, 1280]:
-            context = await browser.new_context(viewport={'width': width, 'height': 900}, accept_downloads=True)
+        for width in [320, 360, 390, 1280]:
+            context = await browser.new_context(viewport={'width': width, 'height': 1800}, accept_downloads=True)
             state = {'admin': False, 'signed_in': True, 'assigned': True}
             calls, writes, tracks, errors = [], [], [], []
             async def handle(route):
@@ -108,6 +108,8 @@ async def main():
             await popup.close()
             assert await page.evaluate('document.documentElement.scrollWidth <= innerWidth')
             assert not errors, errors
+            shots = Path('/tmp/browser/stats-release/screenshots'); shots.mkdir(parents=True, exist_ok=True)
+            await page.screenshot(path=str(shots / f'report-{width}.png'))
             print(f'PASS {width}px: assigned rep preview, public gate, draft autosave, activity/date/source filters, full CSV/print and no overflow')
             await context.close()
         await browser.close()
