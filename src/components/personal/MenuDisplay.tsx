@@ -13,6 +13,26 @@ interface Props {
   interactive?: boolean;
 }
 
+/** Shared menu control for a menu dialog or the business's original PDF. */
+export const MenuButton = ({ label, href, onClick, isDarkBg, textColor }: {
+  label: string;
+  href?: string;
+  onClick?: () => void;
+  isDarkBg?: boolean;
+  textColor?: string | null;
+}) => {
+  const tileClass = isDarkBg
+    ? "bg-white/10 border-white/20 hover:bg-white/15"
+    : "bg-card border-border hover:bg-muted/60";
+  const labelClass = textColor ? "" : isDarkBg ? "text-white" : "text-foreground";
+  const className = `w-full flex items-center justify-center gap-2 rounded-2xl border px-6 py-4 font-semibold transition-colors active:scale-[0.98] ${tileClass} ${labelClass}`;
+  const style = textColor ? { color: textColor } : undefined;
+  const content = <><UtensilsCrossed className="h-5 w-5 shrink-0" aria-hidden="true" /><span>{label}</span></>;
+  return href
+    ? <a href={href} target="_blank" rel="noopener noreferrer" onClick={onClick} className={className} style={style}>{content}</a>
+    : <button type="button" onClick={onClick} className={className} style={style}>{content}</button>;
+};
+
 export const MenuDisplay = ({ menu, isDarkBg, textColor, interactive = true }: Props) => {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -48,12 +68,6 @@ export const MenuDisplay = ({ menu, isDarkBg, textColor, interactive = true }: P
 
   if (visibleSections.length === 0) return null;
 
-  const tileClass = isDarkBg
-    ? "bg-white/10 border-white/20 hover:bg-white/15"
-    : "bg-card border-border hover:bg-muted/60";
-  const labelStyle = textColor ? { color: textColor } : undefined;
-  const labelClass = textColor ? "" : isDarkBg ? "text-white" : "text-foreground";
-
   const handleOpenChange = (next: boolean) => {
     setOpen(next);
     if (!next) {
@@ -80,15 +94,12 @@ export const MenuDisplay = ({ menu, isDarkBg, textColor, interactive = true }: P
 
   return (
     <>
-      <button
-        type="button"
+      <MenuButton
+        label={menu.buttonLabel}
+        isDarkBg={isDarkBg}
+        textColor={textColor}
         onClick={() => interactive && setOpen(true)}
-        className={`w-full flex items-center justify-center gap-2 rounded-2xl border px-6 py-4 font-semibold transition-colors active:scale-[0.98] ${tileClass} ${labelClass}`}
-        style={labelStyle}
-      >
-        <UtensilsCrossed className="h-5 w-5" />
-        <span>{menu.buttonLabel}</span>
-      </button>
+      />
 
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent

@@ -31,8 +31,10 @@ import { sanitizeUrl, isValidYouTubeVideoId } from "@/lib/sanitizeUrl";
 import LeadFormSheet from "@/components/personal/LeadFormSheet";
 import MarketingExamplesCard from "@/components/personal/MarketingExamplesCard";
 import { SmsOptInDrawer } from "@/components/personal/SmsOptInDrawer";
-import { MenuDisplay } from "@/components/personal/MenuDisplay";
+import { MenuButton, MenuDisplay } from "@/components/personal/MenuDisplay";
 import { parseMenuContent } from "@/lib/menuBlock";
+import { hasLasIslasMenu } from "@/lib/lasIslasMenu";
+import originalMenu from "@/assets/las-islas-menu-mar26.pdf.asset.json";
 import { LocationsBlock } from "@/components/personal/LocationsBlock";
 import { resolveHubContrast, type HubContrast } from "@/lib/hubContrast";
 import { logoImageStyle } from "@/lib/logoHeader";
@@ -127,6 +129,17 @@ const ProfileLink = memo(function ProfileLink({
   const coverImage = link.cover_image_url;
   // Dynamic button text contrast: dark text on light buttons, white text on dark buttons
   const buttonTextColor = customColor && !isColorDark(customColor) ? '#1A1A1A' : '#FFFFFF';
+
+  if (profileId && hasLasIslasMenu(profileId) &&
+      (link.url === originalMenu.url || link.url === `https://tapaway.co${originalMenu.url}`)) {
+    return <MenuButton
+      label={link.label}
+      href={sanitizeUrl(link.url)}
+      isDarkBg={contrast.isDark}
+      textColor={contrast.textColor}
+      onClick={() => trackLinkClick(profileId, link)}
+    />;
+  }
 
   // Email link. Inline bar with email address + Connect button
   if (link.link_type === "email") {
