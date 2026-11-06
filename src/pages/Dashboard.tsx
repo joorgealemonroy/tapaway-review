@@ -46,6 +46,7 @@ const BuildingDashboard = lazy(() => import("@/components/dashboard/BuildingDash
 
 const Dashboard = () => {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const [routeDecision, setRouteDecision] = useState<"lite" | "business" | "building" | "checking">("checking");
   
@@ -63,15 +64,31 @@ const Dashboard = () => {
       setRouteDecision("lite");
       return;
     }
-    if (adminViewId || demoRestaurantId || customerRestaurantId) {
+    if (demoRestaurantId) {
       setRouteDecision("business");
       return;
     }
     
     // Otherwise, check what accounts the user has
-    if (authLoading || !user) return;
-    
+    if (authLoading) return;
+    if (!user) { navigate("/auth?redirect=/dashboard", { replace: true }); return; }
+    let cancelled = false;
+    setRouteDecision("checking");
     const decide = async () => {
+      // A migrated hub retains its UUID. Old admin links and issued dashboard
+      // links therefore find the new owner-scoped editor without breaking URLs.
+      const oldTarget = adminViewId || customerRestaurantId;
+      if (oldTarget) {
+        let query = supabase.from("personal_profiles").select("id")
+          .eq("id", oldTarget).eq("onboarding_source", "legacy_restaurant_migration");
+        if (!adminViewId) query = query.eq("user_id", user.id);
+        const { data: migrated } = await query.maybeSingle();
+        if (cancelled) return;
+        if (migrated && customerRestaurantId && !adminViewId) {
+          navigate(`/dashboard?type=lite&profile_id=${encodeURIComponent(migrated.id)}`, { replace: true });
+        } else setRouteDecision(migrated ? "lite" : "business");
+        return;
+      }
       const [restaurantResult, personalResult, onboardingResult] = await Promise.all([
         supabase
           .from("restaurants")
@@ -90,6 +107,7 @@ const Dashboard = () => {
           .limit(1)
           .maybeSingle(),
       ]);
+      if (cancelled) return;
 
       // Legacy Business dashboard only for users with an active restaurant on
       // a legacy paid plan. Everyone else. Including all new signups 
@@ -113,7 +131,8 @@ const Dashboard = () => {
 
     
     decide();
-  }, [authLoading, user, isLiteParam, adminViewPersonalId, adminViewId, demoRestaurantId, customerRestaurantId]);
+    return () => { cancelled = true; };
+  }, [authLoading, user, isLiteParam, adminViewPersonalId, adminViewId, demoRestaurantId, customerRestaurantId, navigate]);
 
   if (routeDecision === "checking") {
     return (
@@ -134,7 +153,7 @@ const Dashboard = () => {
   if (routeDecision === "lite") {
     return (
       <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
-        <PersonalDashboard />
+        <PersonalDashboard key={adminViewPersonalId || adminViewId || searchParams.get("profile_id") || "default"} />
       </Suspense>
     );
   }

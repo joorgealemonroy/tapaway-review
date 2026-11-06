@@ -39,6 +39,7 @@ interface PersonalBillingTabProps {
 export function PersonalBillingTab({ profile, onUpgrade }: PersonalBillingTabProps) {
   const [opening, setOpening] = useState(false);
   const paymentFirst = profile.onboarding_source?.startsWith("payment_first") || false;
+  const migratedLegacy = profile.onboarding_source === "legacy_restaurant_migration";
   const personalHosted = profile.plan_type === "personal_hosted";
   const openBilling = async () => {
     if (!personalHosted && !paymentFirst) { window.open(STRIPE_PORTAL_URL, "_blank", "noopener,noreferrer"); return; }
@@ -88,7 +89,7 @@ export function PersonalBillingTab({ profile, onUpgrade }: PersonalBillingTabPro
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {paymentFirst ? <div><p className="text-xl font-semibold">{profile.subscription_status === "trialing" ? "Your business trial is active" : "Your business subscription"}</p><p className="text-sm text-muted-foreground mt-2">Open billing for your exact renewal total, trial end date, and invoices. Your Cards tab shows your Card Club selection and eligibility.</p></div> : isTrialing ? (
+          {migratedLegacy ? <div><p className="text-xl font-semibold">Your existing business plan</p><p className="text-sm text-muted-foreground mt-2">Your billing and existing card benefits continue on this dashboard. Open billing to see your current price, renewal date, and invoices.</p></div> : paymentFirst ? <div><p className="text-xl font-semibold">{profile.subscription_status === "trialing" ? "Your business trial is active" : "Your business subscription"}</p><p className="text-sm text-muted-foreground mt-2">Open billing for your exact renewal total, trial end date, and invoices. Your Cards tab shows your Card Club selection and eligibility.</p></div> : isTrialing ? (
             <div>
               <div className="flex items-baseline gap-1">
                 <span className="text-3xl font-bold">Free Trial</span>
@@ -118,7 +119,7 @@ export function PersonalBillingTab({ profile, onUpgrade }: PersonalBillingTabPro
                     Billing email on file: {maskEmail(billingEmail)}
                   </p>
                 )}
-                {hasSubscription ? (
+                {hasSubscription || (migratedLegacy && profile.stripe_customer_id) ? (
                   <Button
                     variant="outline"
                     className="min-h-[44px]"

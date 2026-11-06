@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { SaveHub } from "@/components/hub/SaveHub";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { getSafeExternalUrl, sanitizeUrl } from "@/lib/sanitizeUrl";
@@ -6,6 +7,7 @@ import { getSafeExternalUrl, sanitizeUrl } from "@/lib/sanitizeUrl";
 interface Restaurant {
   id: string;
   restaurant_name: string;
+  custom_slug?: string | null;
   logo_url?: string | null;
   header_title?: string | null;
   header_subtitle?: string | null;
@@ -56,7 +58,6 @@ export const AvMealPrepHub = ({ restaurant, trackEvent }: AvMealPrepHubProps) =>
   const [trainerBundles, setTrainerBundles] = useState<TrainerBundle[]>([]);
   const [showLoveModal, setShowLoveModal] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
-  const [showA2HSModal, setShowA2HSModal] = useState(false);
   const [loveSubmitted, setLoveSubmitted] = useState(false);
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
   const [starRating, setStarRating] = useState(0);
@@ -156,11 +157,6 @@ export const AvMealPrepHub = ({ restaurant, trackEvent }: AvMealPrepHubProps) =>
     } catch (_) {}
   };
 
-  const handleA2HS = () => {
-    trackEvent("avm_add_to_home_clicked");
-    setShowA2HSModal(true);
-  };
-
   const scrollMenu = (direction: "left" | "right") => {
     if (menuGridRef.current) {
       const scrollAmount = direction === "left" ? -360 : 360;
@@ -180,7 +176,6 @@ export const AvMealPrepHub = ({ restaurant, trackEvent }: AvMealPrepHubProps) =>
     });
   };
 
-  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
 
   return (
     <div id="tapaway-av" style={{ display: "flex", justifyContent: "center", background: "#fff" }}>
@@ -385,9 +380,7 @@ export const AvMealPrepHub = ({ restaurant, trackEvent }: AvMealPrepHubProps) =>
           </div>
 
           <div className="row" style={{ marginTop: "10px" }}>
-            <button className="btn btn-outline" onClick={handleA2HS}>
-              ➕ Add to Home Screen
-            </button>
+            {restaurant.custom_slug && <SaveHub slug={restaurant.custom_slug} name={restaurant.restaurant_name} logo={restaurant.logo_url} />}
             <button className="btn btn-outline" onClick={handleShare}>
               🔗 Share
             </button>
@@ -500,42 +493,7 @@ export const AvMealPrepHub = ({ restaurant, trackEvent }: AvMealPrepHubProps) =>
         </div>
       )}
 
-      {/* A2HS Modal */}
-      {showA2HSModal && (
-        <div className={`modal ${showA2HSModal ? "show" : ""}`} onClick={(e) => e.target === e.currentTarget && setShowA2HSModal(false)}>
-          <div className="sheet" style={{ background: "transparent", border: "none", boxShadow: "none" }}>
-            <div className="bubble">
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
-                <div style={{ fontWeight: 900 }}>Install {restaurant.restaurant_name}</div>
-                <button className="close" onClick={() => setShowA2HSModal(false)}>
-                  ✕
-                </button>
-              </div>
-              <p>Add this page to your home screen for quick access.</p>
-              <p style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                {isIOS ? (
-                  <>
-                    Tap{" "}
-                    <svg className="shareIcon" viewBox="0 0 24 24" fill="none">
-                      <path
-                        d="M12 16V4m0 0-3 3m3-3 3 3"
-                        stroke="#111827"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                      <rect x="5" y="10" width="14" height="10" rx="2" stroke="#111827" strokeWidth="2" />
-                    </svg>{" "}
-                    then "Add to Home Screen".
-                  </>
-                ) : (
-                  "Open browser menu (⋮) then 'Add to Home screen'."
-                )}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+
     </div>
   );
 };

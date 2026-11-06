@@ -1,0 +1,35 @@
+.hub-save-card { display:flex; align-items:center; gap:12px; width:100%; margin:0 0 20px; padding:15px 14px; border:1px solid #ccd9d0; border-radius:18px; background:#edf4ed; color:#183b28; text-align:left; cursor:pointer; }
+.hub-save-card:hover { background:#e4eee4; }
+.hub-save-symbol { display:flex; flex-shrink:0; align-items:center; justify-content:center; width:38px; height:44px; border-radius:12px; background:#fff; }
+.hub-save-card-copy { display:flex; flex:1; min-width:0; flex-direction:column; gap:4px; }
+.hub-save-card-copy strong { font-size:14px; line-height:1.3; }
+.hub-save-card-copy>span { font-size:12px; line-height:1.45; color:#385642; }
+.hub-save-label { flex-shrink:0; font-size:13px; font-weight:700; }
+.hub-save-card:focus-visible,.hub-save-dialog button:focus-visible,.hub-brand-link:focus-visible { outline:3px solid #47783b; outline-offset:3px; }
+.hub-save-dialog { max-width:420px; max-height:90dvh; overflow-y:auto; gap:14px; border:1px solid #dbe3dc; border-radius:24px; background:#fffdf8; color:#1a2923; padding:26px 24px; text-align:left; }
+.hub-save-dialog>button:last-child { display:flex; align-items:center; justify-content:center; min-width:44px; min-height:44px; top:8px; right:8px; color:#1a2923; }
+.hub-save-preview { display:flex; align-items:center; gap:12px; padding-right:28px; }
+.hub-save-preview img { width:52px; height:52px; border:1px solid #dde5df; border-radius:14px; object-fit:contain; background:#fff; padding:3px; }
+.hub-save-preview>span { font-size:14px; font-weight:650; overflow-wrap:anywhere; }
+.hub-save-title { margin:0; font-size:23px; font-weight:750; line-height:1.2; letter-spacing:-.5px; }
+.hub-save-description { margin:0; color:#4b5d52; font-size:14px; line-height:1.5; }
+.hub-save-device { display:flex; gap:6px; padding:4px; background:#edf1eb; border-radius:12px; }
+.hub-save-device button { flex:1; min-height:44px; border:0; border-radius:9px; font-size:14px; font-weight:650; color:#3e5145; background:transparent; }
+.hub-save-device button[aria-pressed=true] { background:#fff; color:#183b28; box-shadow:0 1px 5px #00000015; }
+.hub-save-steps { display:grid; gap:17px; padding:0; margin:4px 0; list-style:none; }
+.hub-save-steps li { display:flex; align-items:flex-start; gap:12px; }
+.hub-save-steps li>span { display:flex; flex-shrink:0; align-items:center; justify-content:center; width:27px; height:27px; border-radius:50%; background:#e5efdf; color:#264a2b; font-size:13px; font-weight:750; }
+.hub-save-steps strong { font-size:14px; line-height:1.5; }
+.hub-save-steps svg,.hub-save-browser-note svg { display:inline-block; vertical-align:middle; }
+.hub-save-steps p { margin:3px 0 0; color:#4b5d52; font-size:13px; line-height:1.5; }
+.hub-save-copy { display:flex; align-items:center; justify-content:center; gap:8px; min-height:46px; border:1px solid #b7c7bb; border-radius:12px; background:#fff; color:#254a31; font-size:14px; font-weight:650; }
+.hub-save-footnote { margin:0; color:#5c6a61; font-size:11px; line-height:1.5; text-align:center; }
+.hub-save-browser-note { padding:12px; margin:0; border-radius:10px; background:#fff0cd; color:#5d4618; font-size:13px; line-height:1.5; }
+.hub-save-manual { color:#3e5145; font-size:12px; }
+.hub-save-manual input { width:100%; margin-top:6px; padding:12px; border:1px solid #b7c7bb; border-radius:8px; background:#fff; color:#1a2923; }
+.hub-save-qr { display:flex; align-items:center; gap:18px; padding:14px; border:1px solid #dde5df; border-radius:14px; background:#fff; }
+.hub-save-qr svg { flex-shrink:0; }
+.hub-save-qr p { font-size:13px; line-height:1.5; color:#4b5d52; }
+.hub-brand-link { display:inline-flex; align-items:center; gap:8px; min-height:44px; padding:10px 16px; border:1px solid #c8d2cb; border-radius:999px; background:#ffffff; color:#254a31 !important; font-size:13px; font-weight:650; text-decoration:none; }
+.hub-brand-link:hover { background:#edf4ed; }
+@media(max-width:600px) { .hub-save-dialog { width:calc(100% - 20px); max-height:calc(100dvh - 24px); padding:24px 20px max(22px,env(safe-area-inset-bottom)); } }

@@ -1,4 +1,5 @@
 import { Helmet } from "react-helmet-async";
+import { SaveHub } from "@/components/hub/SaveHub";
 import { useEffect, useState } from "react";
 import { useParams, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -472,6 +473,7 @@ const ReviewHub = () => {
             {restaurant.header_subtitle}
           </p>
 
+          {restaurant.custom_slug && <SaveHub key={restaurant.id} slug={restaurant.custom_slug} name={restaurant.restaurant_name} logo={restaurant.logo_url} />}
           {hasLasIslasMenu(restaurant.id) && <Button asChild className="mb-6 h-14 w-full text-lg font-bold"><a href={originalMenu.url} target="_blank" rel="noopener noreferrer" onClick={() => { trackEvent('menu_view'); }}>View Menu · Ver Menú</a></Button>}
 
           {/* ENGAGEMENT: Promotions and Polls */}
@@ -872,7 +874,7 @@ const ReviewHub = () => {
           </a>}
 
           <div style={{ marginTop: '16px', paddingTop: '10px', borderTop: `1px solid ${visitorTheme === 'dark' ? '#4a4a4a' : '#eee'}`, fontSize: '12px', color: getMutedTextColor() }}>
-            Powered by <a href="https://tapaway.co" target="_blank" rel="noopener noreferrer" style={{ color: getTextColor(), textDecoration: 'none', fontWeight: '700' }}>TapAway</a>
+            <a href="/personal" className="hub-brand-link">Start using TapAway</a>
           </div>
         </div>
       </div>

@@ -1,5 +1,8 @@
 # Project rules
 
+- Migrated restaurant hubs keep their IDs, owners and billing/allowance keys. The private legacy_hub_migrations mapping routes retained historical records once to the new editor; never duplicate historical events into filtered totals. Preserve per-hub PDF menus and explicitly recorded SMS consent.
+- Home-screen saving is a visitor-confirmed browser shortcut. Keep its URL and icon specific to the current public hub, hide it in private previews/standalone mode, and never report installation from a copied link or dismissed guide. Public footer links need explicit contrasting surface and text colors.
+
 - Public hub RPCs enforce gift, billing and approval access. Never add a client subscription-status gate that hides an approved gift returned by the public RPC; pending/expired billing status does not cancel a gift.
 
 - Hub display names are optional: preserve intentionally blank full_name values, allow clearing them in editors, and never render metadata/admin fallback names as public hub headings. The separate show_username preference remains independent.
