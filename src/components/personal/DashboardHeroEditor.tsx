@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, forwardRef, useImperativeHandle, useCallback, useRef } from "react";
+import { useState, useEffect, useMemo, forwardRef, useImperativeHandle, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -68,7 +68,6 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
   const [headlineValue, setHeadlineValue] = useState(headline || "");
   const [bioValue, setBioValue] = useState(bio || "");
   const [showUsernameValue, setShowUsernameValue] = useState(showUsername);
-  const suppressEditPingRef = useRef(true);
 
   // Username editing state
   // Billing drafts have no plan. Preserve their stored address (including rep
@@ -87,7 +86,6 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
   const [checkedUsername, setCheckedUsername] = useState<string | null>(null);
 
   useEffect(() => {
-    suppressEditPingRef.current = true;
     setName(fullName);
     setHeadlineValue(headline || "");
     setBioValue(bio || "");
@@ -95,14 +93,9 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
     setShowUsernameValue(showUsername);
   }, [fullName, headline, bio, username, isFree, showUsername]);
 
-  // Ping parent debounce on any user edit (skips the sync-from-props effect above).
-  useEffect(() => {
-    if (suppressEditPingRef.current) {
-      suppressEditPingRef.current = false;
-      return;
-    }
-    onEdit?.();
-  }, [name, headlineValue, bioValue, usernameInput, showUsernameValue, onEdit]);
+  // Notify autosave directly from user input handlers. A props sync after saving
+  // may leave local values unchanged, so an effect suppression flag can otherwise
+  // remain armed and swallow the user's next edit (including clearing the name).
 
   const hasChanges = useMemo(() => {
     const newPublicUsername = getPublicUsername(isFree ? "free" : "monthly", usernameInput);
@@ -264,7 +257,6 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
   }), [name, headlineValue, bioValue, usernameInput, showUsernameValue]);
 
   const restoreSnapshot = useCallback((snap: HeroSnapshot) => {
-    suppressEditPingRef.current = true;
     setName(snap.name);
     setHeadlineValue(snap.headlineValue);
     setBioValue(snap.bioValue);
@@ -302,7 +294,7 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
             id="hub-display-name"
             aria-describedby="hub-display-name-help"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => { setName(e.target.value); onEdit?.(); }}
             placeholder="Your name"
             className="h-11"
           />
@@ -318,7 +310,7 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
             </span>
             <Input
               value={usernameInput}
-              onChange={(e) => setUsernameInput(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ""))}
+              onChange={(e) => { setUsernameInput(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, "")); onEdit?.(); }}
               placeholder="yourname"
               aria-label="Your TapAway address"
               disabled={usernameLocked}
@@ -360,7 +352,7 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
           <Label className="text-xs text-muted-foreground">Show username on profile</Label>
           <Switch
             checked={showUsernameValue}
-            onCheckedChange={setShowUsernameValue}
+            onCheckedChange={(value) => { setShowUsernameValue(value); onEdit?.(); }}
           />
         </div>
 
@@ -371,7 +363,7 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
           </Label>
           <Input
             value={headlineValue}
-            onChange={(e) => setHeadlineValue(e.target.value)}
+            onChange={(e) => { setHeadlineValue(e.target.value); onEdit?.(); }}
             placeholder="e.g. Creator • LA • Tap to connect"
             className="h-11"
             maxLength={60}
@@ -386,7 +378,7 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
           </Label>
           <Textarea
             value={bioValue}
-            onChange={(e) => setBioValue(e.target.value)}
+            onChange={(e) => { setBioValue(e.target.value); onEdit?.(); }}
             placeholder="A short bio about yourself"
             className="min-h-[80px] resize-none"
             maxLength={160}

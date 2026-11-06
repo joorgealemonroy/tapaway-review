@@ -108,7 +108,8 @@ async def main():
                     await page.goto(BASE+'/fixture-coffee?admin_preview=1')
                     await page.get_by_role('link', name='Fixture menu', exact=False).wait_for()
                     assert await page.get_by_role('heading', level=1).all_text_contents() == ([name] if name.strip() else []), (width, header, name)
-                    assert 'fixture-coffee' in await page.title() if not name.strip() else 'Chosen display name' in await page.title()
+                    expected_title = name if name.strip() else 'fixture-coffee'
+                    await page.wait_for_function('(expected) => document.title.includes(expected)', arg=expected_title)
                     assert await page.evaluate('document.documentElement.scrollWidth <= innerWidth')
                 profile.update({'full_name': '', 'show_username': True})
                 await page.goto(BASE+'/fixture-coffee?admin_preview=1')

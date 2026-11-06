@@ -62,6 +62,20 @@ function fixture(overrides = {}) {
   };
 }
 (async () => {
+  await pass('A successful save cannot swallow the next edit notification when clearing a name', async () => {
+    let edits = 0;
+    const f = fixture({ onEdit: () => { edits++; } });
+    assert.equal(edits, 0);
+    f.edit('Updated name', 'name'); f.settle();
+    assert.equal(edits, 1);
+    await f.ref.current.saveAllChanges();
+    Object.assign(f.props, { fullName: 'Updated name' }); f.settle();
+    assert.equal(edits, 1, 'Synchronizing saved props must not schedule another save');
+    f.edit('', 'name'); f.settle();
+    assert.equal(edits, 2, 'Clearing after a save must still notify the autosave parent');
+    await f.ref.current.saveAllChanges();
+    assert.equal(f.calls.at(-1).update.full_name, '');
+  });
   await pass('Display names can be cleared and stay blank after saving and reloading', async () => {
     for (const value of ['', '   ']) {
       const f = fixture({ showUsername: false });
