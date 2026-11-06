@@ -1455,7 +1455,6 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile, privatePreview 
               <div className="mb-6" />
 
           {/* Links section */}
-          {!privatePreview && <SaveHub key={profile.id} slug={profile.username} name={profile.full_name || profile.contact_company || profile.contact_name || profile.username} logo={profile.profile_photo_url} />}
           <div>
             {/* Lead Form CTA */}
             <div className="mb-4">
@@ -1507,6 +1506,8 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile, privatePreview 
 
           {/* Footer */}
           <footer className="mt-6 pb-4 text-center space-y-3">
+            <div className="hub-footer-actions">
+            {!privatePreview && <SaveHub key={profile.id} slug={profile.username} name={profile.full_name || profile.contact_company || profile.contact_name || profile.username} logo={profile.profile_photo_url} />}
             {/* Glass Pill CTA. Hidden on client-branded master location hubs */}
             {!isMasterLocationsHub && (
             <motion.div 
@@ -1528,6 +1529,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile, privatePreview 
               </a>
             </motion.div>
             )}
+            </div>
             
             {/* Subtle tap-enabled indicator. Only for users with active NFC cards */}
             {data?.hasActiveCard && (

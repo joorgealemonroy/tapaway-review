@@ -48,10 +48,9 @@ export function SaveHub({ slug, name, logo }: SaveHubProps) {
       <meta name="apple-mobile-web-app-status-bar-style" content="default" />
       <meta name="mobile-web-app-capable" content="yes" />
     </Helmet>
-    {!standalone && <button className="hub-save-card" onClick={() => { setCopied(false); setCopyFailed(false); setOpen(true); }} aria-label="Save this hub to your phone">
-      <span className="hub-save-symbol"><Smartphone size={22} aria-hidden="true" /></span>
-      <span className="hub-save-card-copy"><strong>Keep this hub handy</strong><span>Add it to your Home Screen. No card needed next time.</span></span>
-      <span className="hub-save-label">Save<span aria-hidden="true"> +</span></span>
+    {!standalone && <button className="hub-save-trigger" onClick={() => { setCopied(false); setCopyFailed(false); setOpen(true); }} aria-label="Save this hub to your phone">
+      <Smartphone size={16} aria-hidden="true" />
+      <span>Save to Home Screen</span>
     </button>}
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="hub-save-dialog">
@@ -61,7 +60,7 @@ export function SaveHub({ slug, name, logo }: SaveHubProps) {
         </div>
         <DialogTitle className="hub-save-title">Save this hub to your phone</DialogTitle>
         <DialogDescription className="hub-save-description">Add a shortcut to your Home Screen and come back with one tap. Free, with no account or App Store download.</DialogDescription>
-        {device === "desktop" && <div className="hub-save-qr"><QRCode value={url} size={112} /><p>Scan with your phone’s camera, then tap <strong>Save</strong> on the hub.</p></div>}
+        {device === "desktop" && <div className="hub-save-qr"><QRCode value={url} size={112} /><p>Scan with your phone’s camera, then tap <strong>Save to Home Screen</strong> at the bottom of the hub.</p></div>}
         <div className="hub-save-device" aria-label="Choose your phone">
           <button aria-pressed={device === "iphone"} onClick={() => setDevice("iphone")}>iPhone / iPad</button>
           <button aria-pressed={device === "android"} onClick={() => setDevice("android")}>Android</button>

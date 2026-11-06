@@ -473,7 +473,6 @@ const ReviewHub = () => {
             {restaurant.header_subtitle}
           </p>
 
-          {restaurant.custom_slug && <SaveHub key={restaurant.id} slug={restaurant.custom_slug} name={restaurant.restaurant_name} logo={restaurant.logo_url} />}
           {hasLasIslasMenu(restaurant.id) && <Button asChild className="mb-6 h-14 w-full text-lg font-bold"><a href={originalMenu.url} target="_blank" rel="noopener noreferrer" onClick={() => { trackEvent('menu_view'); }}>View Menu · Ver Menú</a></Button>}
 
           {/* ENGAGEMENT: Promotions and Polls */}
@@ -873,7 +872,8 @@ const ReviewHub = () => {
             {restaurant.menu_title}
           </a>}
 
-          <div style={{ marginTop: '16px', paddingTop: '10px', borderTop: `1px solid ${visitorTheme === 'dark' ? '#4a4a4a' : '#eee'}`, fontSize: '12px', color: getMutedTextColor() }}>
+          <div className="hub-footer-actions" style={{ marginTop: '16px', paddingTop: '10px', borderTop: `1px solid ${visitorTheme === 'dark' ? '#4a4a4a' : '#eee'}`, fontSize: '12px', color: getMutedTextColor() }}>
+            {restaurant.custom_slug && <SaveHub key={restaurant.id} slug={restaurant.custom_slug} name={restaurant.restaurant_name} logo={restaurant.logo_url} />}
             <a href="/personal" className="hub-brand-link">Start using TapAway</a>
           </div>
         </div>

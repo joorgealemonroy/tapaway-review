@@ -380,7 +380,6 @@ export const AvMealPrepHub = ({ restaurant, trackEvent }: AvMealPrepHubProps) =>
           </div>
 
           <div className="row" style={{ marginTop: "10px" }}>
-            {restaurant.custom_slug && <SaveHub slug={restaurant.custom_slug} name={restaurant.restaurant_name} logo={restaurant.logo_url} />}
             <button className="btn btn-outline" onClick={handleShare}>
               🔗 Share
             </button>
@@ -391,7 +390,9 @@ export const AvMealPrepHub = ({ restaurant, trackEvent }: AvMealPrepHubProps) =>
         </section>
 
         {/* Footer */}
-        <div style={{ textAlign: "center", padding: "18px 0", fontSize: "12px", color: "#9ca3af" }}>
+        <div className="hub-footer-actions" style={{ textAlign: "center", padding: "18px 0", fontSize: "12px", color: "#9ca3af" }}>
+          {restaurant.custom_slug && <SaveHub slug={restaurant.custom_slug} name={restaurant.restaurant_name} logo={restaurant.logo_url} />}
+          <span>
           Powered by{" "}
           <a
             href="https://tapaway.co"
@@ -401,6 +402,7 @@ export const AvMealPrepHub = ({ restaurant, trackEvent }: AvMealPrepHubProps) =>
           >
             TapAway
           </a>
+          </span>
         </div>
       </div>
 
