@@ -43,6 +43,13 @@ let checks=0;const pass=async(name,fn)=>{await fn();checks++;console.log('PASS '
  const history=async(kind=null,hub=null,cursor=null)=>(await db.query('SELECT historical_analytics_report(7,$1,$2,$3,$4,$5,$6,$7,0,NULL) AS r',[kind,hub,'',until,since,cursor?.at??null,cursor?.id??null])).rows[0].r;
  await pass('Historical business and personal activity stays separate, exact and without invented sessions',async()=>{const h=await history();assert.equal(h.meta.source,'historical');assert.equal(h.totals.hub_views,1205);assert.equal(h.totals.saves,1);assert.equal(h.totals.sessions,null);assert.equal(h.hubCount,2);assert.equal((await report()).totals.hub_views,1205);assert.equal((await report()).meta.source,'filtered');assert.match(h.meta.coverage,/never add these totals/);});
  await pass('Historical equal-time pagination includes every record once beyond row caps',async()=>{let h=await history(),keys=[];while(true){keys.push(...h.activity.map(a=>a.key));if(!h.nextCursor)break;h=await history(null,null,h.nextCursor);}assert.equal(keys.length,1206);assert.equal(new Set(keys).size,1206);});
+ await pass('Historical-only business hub stays inspectable without adding records to validated totals',async()=>{
+  await db.query('INSERT INTO restaurants VALUES($1,$2,$3,$4)',[id(6),id(1),'Historical only','historical-only']);
+  await db.query("INSERT INTO analytics_events(restaurant_id,event_type,created_at) VALUES($1,'google_click','2026-11-01T10:30Z'),($1,'tap','2026-11-01T10:30Z')",[id(6)]);
+  const h=await history('business',id(6)),v=await report('business',id(6));
+  assert.equal(h.totals.events,2);assert.equal(h.totals.hub_views,1);assert.equal(h.totals.clicks,1);assert.equal(h.hubCount,1);assert.equal(h.activityCount,2);
+  assert.equal(v.totals.events,0);assert.equal(v.hubCount,0);assert.equal((await history()).totals.events,1208);
+ });
  await pass('Historical ownership and kind boundaries match filtered reports',async()=>{await db.exec("SELECT set_config('qa.admin','false',false);SET ROLE authenticated");assert.equal((await history('solo',id(2))).totals.saves,1);await assert.rejects(()=>history('business',id(2)),/denied/);await assert.rejects(()=>history(),/Admin access/);await db.exec('RESET ROLE;SET ROLE anon');await assert.rejects(()=>history(),/permission denied/);await db.exec('RESET ROLE');});
  await db.close();console.log(`PASS ${checks} canonical analytics SQL checks; isolated only.`);
 })().catch(e=>{console.error(e);process.exit(1);});

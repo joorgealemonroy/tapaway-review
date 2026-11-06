@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Canonical stats and recent activity release (2026-11-04)
+- [ ] Verify explicitly separate historical-only hubs/source counts, mounted stats surfaces and incomplete business coverage; leave obsolete billing hooks alone.
 - [ ] Implement exact owner/admin-scoped SQL snapshots, full active-hub rankings and paginated activity; reconcile read-only production counts.
 - [ ] Align admin, hub detail and customer stats; private single-client print/CSV reports and honest historical coverage.
 - [ ] Correct business tracking, action identity/deduplication and staff timing without analytics backfill.

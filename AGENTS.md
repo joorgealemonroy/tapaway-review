@@ -2,7 +2,7 @@
 
 - Rep draft previews require an explicit preview route, an active rep and a caller-scoped assigned draft under RLS. Keep them out of public caches and analytics; null billing plans must never rewrite stored hub addresses.
 
-- Analytics reports use one canonical SQL snapshot over validated, human-classified analytics_hits, half-open bounds and kind+hub ownership; never fall back to legacy counts or infer people/outcomes. This keeps private reports and exports reconcilable.
+- Analytics reports use one canonical SQL snapshot over validated, human-classified analytics_hits, half-open bounds and kind+hub ownership; historical tables are an explicit separate unfiltered source, never a fallback or summed with canonical totals. This keeps private reports and exports reconcilable without losing earlier recorded activity.
 
 - Invitation dashboard targets are server-derived after association and selected from authenticated owner-scoped rows; existing real same-owner dual-kind hubs are preserved, while new incompatible claims remain blocked.
 

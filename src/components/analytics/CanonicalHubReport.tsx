@@ -73,7 +73,8 @@ function HubReportBody({ hubId, kind, initialDays = 30, initialUntil, initialSou
     {report.isError && <div role="alert"><p>Report unavailable.{d ? ' Showing the last successful snapshot.' : ' No counts substituted.'}</p><Button variant="outline" onClick={()=>void report.refetch()}>Retry report</Button></div>}
     {exportError && <p role="alert" className="text-destructive">{exportError}</p>}
     {d && <>
-      {source === 'historical' && <p className="rounded border border-amber-500/40 p-3 text-sm">Historical records are unfiltered. They may overlap filtered activity; never add the two reports. Visit sessions were not recorded.</p>}
+      {source === 'historical' && <p className="rounded border border-border p-3 text-sm">Historical records are unfiltered. They may overlap filtered activity; never add the two reports. Visit sessions were not recorded.</p>}
+      <p className="text-sm text-muted-foreground">{d.totals.events.toLocaleString()} recorded events in this source and period · {source === 'historical' ? 'Historical / unfiltered' : 'Validated / rule-filtered'}</p>
       <p className="text-xs text-muted-foreground">{reportTime(d.meta.since)} — {reportTime(d.meta.until)} · end exclusive<br/>Updated {reportTime(d.meta.asOf)} · Los Angeles time{report.isFetching ? ' · refreshing' : ''}</p>
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">{[['Hub views',d.totals.hub_views],['Link actions',d.totals.clicks],['Contact saves',d.totals.saves],['Visit sessions',d.totals.sessions]].map(([label,n])=><div key={label} className="min-w-0 border-l-2 border-primary pl-3"><strong className="block text-3xl tabular-nums">{n === null ? 'Not recorded' : Number(n).toLocaleString()}</strong><span className="text-sm text-muted-foreground">{label}</span></div>)}</div>
       {!d.activityCount && <p className="border-y border-border py-6">No recorded activity in this period. Missing history is not evidence of no visits.</p>}
