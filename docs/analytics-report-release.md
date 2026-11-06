@@ -23,7 +23,7 @@ Global canonical configuration: cutover `2026-08-30T07:19:04.315478Z`, raw reten
 - Supported migration workflow applied pending 0042 plus an identical idempotent 0043 report definition; both SQL hashes are `3e9f3eb675042709815a9ef15040288d6a88a7fc7d914ac40a7faae17dc0df0c`. Existing 0040/0041 remain applied. No manual ledger edits. Generated types refreshed.
 - Deployed exactly `track` and `analytics-report`; GET track returned 405 and invalid authenticated report returned 401. Both report RPCs deny anonymous execution, allow authenticated execution, and authorize kind+hub ownership inside a fixed-search-path function.
 - `QA_MODULES=/tmp/stats-qa/node_modules npm run test:release`: 28 suites passed, including 12 isolated canonical/historical SQL checks and export safety checks. `npm run security:source`: passed. `npm run security:test`: 11 checks passed. No real provider transactions.
-- Browser fixture command `python3 scripts/check-rep-analytics-browser.py`: 320/360/390/1280 widths, source/date changes, activity pagination, full CSV/print, no overflow; fixture screenshots reviewed. Authenticated production admin reports were read through the actual UI/client with collectors intercepted, without producing analytics.
+- Browser fixture command `python3 scripts/check-rep-analytics-browser.py`: 320/360/390/1280 widths, source/date changes, activity pagination, full CSV/print, slow/range-switch responses, error/retry and empty states, no overflow; fixture screenshots reviewed. Authenticated production admin reports were read through the actual UI/client with collectors intercepted, without producing analytics.
 
 ### Frozen production reconciliation
 
