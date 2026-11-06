@@ -79,6 +79,7 @@ import type { CachedProfile } from "@/hooks/useProfileCache";
 interface Props {
   usernameOverride?: string;
   initialProfile?: CachedProfile;
+  privatePreview?: boolean;
 }
 
 // Fire-and-forget link click tracker (centralized analytics client)
@@ -840,13 +841,13 @@ const ProfileBlock = memo(function ProfileBlock({
   }
 });
 
-const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) => {
+const PersonalProfilePage = ({ usernameOverride, initialProfile, privatePreview = false }: Props = {}) => {
   const { username: paramUsername, slug } = useParams<{ username?: string; slug?: string }>();
   const username = usernameOverride || paramUsername || slug;
   const navigate = useNavigate();
   
   // Use optimized data fetching with caching. Pass initialProfile to skip redundant query
-  const { data, loading, error, expiredPreview } = useProfileData(username, initialProfile);
+  const { data, loading, error, expiredPreview } = useProfileData(username, initialProfile, privatePreview);
 
   // Track visit after data loads (non-blocking)
   useEffect(() => {

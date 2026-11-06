@@ -1280,10 +1280,10 @@ const PersonalDashboard = () => {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => window.open(`/${profile.username}`, "_blank")}
+              onClick={() => window.open(`/${profile.username}${isRepDemo ? "?rep_preview=1" : isAdminView ? "?admin_preview=1" : ""}`, "_blank", "noopener,noreferrer")}
             >
               <Eye className="h-4 w-4 mr-1" />
-              View
+              {isRepDemo ? "Preview" : "View"}
             </Button>
           </div>
 

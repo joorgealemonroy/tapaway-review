@@ -167,7 +167,7 @@ async function fetchProfileData(username: string): Promise<FetchProfileResult> {
   return { kind: 'live', data: { profile: profileData as any, ...parallel } };
 }
 
-export function useProfileData(username: string | undefined, initialProfile?: CachedProfile): UseProfileDataResult {
+export function useProfileData(username: string | undefined, initialProfile?: CachedProfile, privatePreview = false): UseProfileDataResult {
   const usernameKey = username?.toLowerCase();
   const [state, setState] = useState<Omit<UseProfileDataResult, 'refetch'> & { usernameKey?: string }>({
     usernameKey, data: null, loading: true, error: null, expiredPreview: null,
@@ -178,7 +178,7 @@ export function useProfileData(username: string | undefined, initialProfile?: Ca
   /** Apply a fetch result to hook state. `cacheLive` only caches full live hubs. */
   const applyResult = useCallback((result: FetchProfileResult, usernameKey: string) => {
     if (result.kind === 'live') {
-      setCachedProfile(usernameKey, result.data);
+      if (!privatePreview) setCachedProfile(usernameKey, result.data);
       setState({ usernameKey, data: result.data, expiredPreview: null, error: null, loading: false });
       preloadCriticalImages(result.data);
     } else if (result.kind === 'expired') {
@@ -191,7 +191,7 @@ export function useProfileData(username: string | undefined, initialProfile?: Ca
       invalidateProfileCache(usernameKey);
       setState({ usernameKey, data: null, expiredPreview: null, error: 'not_found', loading: false });
     }
-  }, []);
+  }, [privatePreview]);
 
   const loadProfile = useCallback(async () => {
     const id = ++requestId.current;

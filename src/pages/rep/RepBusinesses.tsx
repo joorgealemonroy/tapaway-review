@@ -429,7 +429,7 @@ const RepBusinesses = () => {
             const opt = hub.is_approved
               ? { value: 'converted', label: 'Live · Approved', dot: 'bg-emerald-400' }
               : PIPELINE_STATUSES.find(o => o.value === currentStatus) || PIPELINE_STATUSES[0];
-            const liveUrl = hub.custom_slug ? `/${hub.custom_slug}` : `/hub/${hub.id}`;
+            const liveUrl = hub.custom_slug ? `/${hub.custom_slug}${!hub.is_approved ? '?rep_preview=1' : ''}` : `/hub/${hub.id}`;
             const uploading = uploadingId === hub.id;
             const statusLocked = hub.is_approved || currentStatus === 'ready_for_review';
 
@@ -533,7 +533,7 @@ const RepBusinesses = () => {
                     onClick={() => window.open(liveUrl, '_blank', 'noopener,noreferrer')}
                     className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border border-white/10 bg-white/[0.03] text-white/70 hover:bg-white/[0.06]"
                   >
-                    <ExternalLink className="h-3.5 w-3.5" /> Open
+                    <ExternalLink className="h-3.5 w-3.5" /> {hub.is_approved ? 'Open' : 'Preview'}
                   </button>
                   <button
                     onClick={() => sendClaimLink(hub)}

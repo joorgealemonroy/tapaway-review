@@ -35,11 +35,12 @@ async function fixture(file) {
   const life = lifecycle(); const requests = []; const cached = []; const invalidated = [];
   const route = { slug: 'lasislas', key: 'a', search: '', state: null };
   const admin = { isAdmin: false, loading: false };
+  const auth = { user: null, loading: false };
   const db = {
     rpc(name, args) { const d = deferred(); requests.push({ name, args, ...d }); return d.promise; },
-    from(table) { const d = deferred(); requests.push({ name: table, ...d }); const query = { then: (...a) => d.promise.then(...a) }; for (const method of ['select', 'eq', 'or', 'order', 'maybeSingle']) query[method] = () => query; return query; },
+    from(table) { const d = deferred(); const request = { name: table, filters: [], ...d }; requests.push(request); const query = { then: (...a) => d.promise.then(...a) }; for (const method of ['select', 'eq', 'or', 'order', 'maybeSingle']) query[method] = (...args) => { request.filters.push([method, ...args]); return query; }; return query; },
   };
-  const context = vm.createContext({ console, Promise, URLSearchParams, document: { querySelectorAll: () => [], createElement: () => ({}), head: { appendChild() {} } }, __react: life.react, __db: db, __route: route, __admin: admin, __cache: (key, data) => cached.push({ key, data }), __invalidate: key => invalidated.push(key) });
+  const context = vm.createContext({ console, Promise, URLSearchParams, document: { querySelectorAll: () => [], createElement: () => ({}), head: { appendChild() {} } }, __react: life.react, __db: db, __route: route, __admin: admin, __auth: auth, __cache: (key, data) => cached.push({ key, data }), __invalidate: key => invalidated.push(key) });
   const mocks = {
     react: 'module.exports=globalThis.__react;',
     'react-router-dom': 'export const useParams=()=>globalThis.__route; export const useLocation=()=>globalThis.__route;',
@@ -49,6 +50,7 @@ async function fixture(file) {
     '@/lib/reservedUsernames': 'export const isUsernameReserved=s=>s==="reserved";',
     '@/components/personal/OptimizedImage': 'export const getOptimizedImageUrl=x=>x;',
     '@/hooks/useAdminAccess': 'export const useAdminAccess=()=>globalThis.__admin;',
+    '@/hooks/useAuth': 'export const useAuth=()=>globalThis.__auth;',
     '@/lib/hubProfileColumns': 'export const HUB_PROFILE_COLUMNS="id,username";',
     './personal/PersonalProfilePage': 'export default "personal";',
     './ReviewHub': 'export default "restaurant";', './NotFound': 'export default "notfound";',
@@ -58,7 +60,7 @@ async function fixture(file) {
   const output = await build({ entryPoints: [path.join(root, file)], bundle: true, write: false, format: 'cjs', jsx: 'transform', plugins: [{ name: 'offline', setup(b) { b.onResolve({ filter: /.*/ }, a => a.kind === 'entry-point' ? null : a.path in mocks ? { path: a.path, namespace: 'mock' } : (() => { throw Error(`Unexpected import ${a.path}`); })()); b.onLoad({ filter: /.*/, namespace: 'mock' }, a => ({ contents: mocks[a.path], loader: 'js' })); } }] });
   context.module = { exports: {} }; context.exports = context.module.exports;
   new vm.Script(output.outputFiles[0].text).runInContext(context);
-  return { life, requests, cached, invalidated, route, admin, exports: context.module.exports };
+  return { life, requests, cached, invalidated, route, admin, auth, exports: context.module.exports };
 }
 const reply = async (request, data) => { assert.ok(request, 'Expected pending lookup'); request.resolve({ data, error: null }); await flush(); };
 const live = username => ({ id: username, username, subscription_status: 'active', is_approved: true });
@@ -121,6 +123,35 @@ const plain = value => JSON.parse(JSON.stringify(value));
       f.life.render(() => inner({ slug: 'private', isAdminPreview: true })); f.life.effects(); assert.equal(f.requests[0].name, isAdmin ? 'personal_profiles' : 'get_public_personal_profile');
       f.life.unmount(); await reply(f.requests[0], isAdmin ? live('private') : []);
     }
+  });
+  await pass('Rep preview requires login, active rep and an assigned unapproved row', async () => {
+    const walk = node => node && typeof node === 'object' ? [node, ...(node.props?.children || []).flatMap(walk)] : [];
+    for (const access of ['anonymous', 'inactive', 'unassigned', 'assigned']) {
+      const f = await fixture('src/pages/UsernameResolver.tsx');
+      f.auth.user = access === 'anonymous' ? null : { id: 'rep-one' };
+      const inner = f.life.render(f.exports.default).type;
+      f.life.render(() => inner({ slug: 'draft', isRepPreview: true })); f.life.effects();
+      if (access === 'anonymous') { assert.equal(f.requests[0].name, 'get_public_personal_profile'); continue; }
+      assert.equal(f.requests[0].name, 'sales_reps');
+      assert.ok(f.requests[0].filters.some(x => x[0] === 'eq' && x[1] === 'is_active' && x[2] === true));
+      await reply(f.requests[0], access === 'inactive' ? null : { id: 'rep-one' });
+      if (access === 'inactive') { assert.equal(f.requests[1].name, 'get_public_personal_profile'); continue; }
+      assert.equal(f.requests[1].name, 'personal_profiles');
+      assert.ok(f.requests[1].filters.some(x => x[0] === 'eq' && x[1] === 'is_approved' && x[2] === false));
+      assert.ok(f.requests[1].filters.some(x => x[0] === 'or' && x[1] === 'sales_rep_id.eq.rep-one,created_by_rep_id.eq.rep-one'));
+      await reply(f.requests[1], access === 'assigned' ? { ...live('draft'), subscription_status: 'pending', is_approved: false } : null);
+      if (access === 'unassigned') { assert.equal(f.requests[2].name, 'get_public_personal_profile'); continue; }
+      const page = walk(f.life.read()).find(x => x.type === 'personal');
+      assert.equal(page.props.initialProfile.username, 'draft'); assert.equal(page.props.privatePreview, true);
+      assert.equal(f.requests.length, 2);
+    }
+  });
+  await pass('Private preview remounts across logout and never populates public cache', async () => {
+    const f = await fixture('src/pages/UsernameResolver.tsx'); f.route.search = '?rep_preview=1'; f.auth.user = { id: 'rep-one' };
+    const before = f.life.render(f.exports.default); f.auth.user = null; assert.notEqual(before.key, f.life.render(f.exports.default).key);
+    const h = await fixture('src/hooks/useProfileData.ts'); const draft = { ...live('draft'), subscription_status: 'pending', is_approved: false };
+    h.life.render(() => h.exports.useProfileData('draft', draft, true)); h.life.effects(); await emptyParallel(h);
+    assert.equal(h.life.read().data.profile.username, 'draft'); assert.equal(h.cached.length, 0);
   });
   console.log(`PASS ${checks} async hub route regression checks; no network traffic.`);
 })().catch(error => { console.error(error); process.exit(1); });

@@ -71,7 +71,9 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
   const suppressEditPingRef = useRef(true);
 
   // Username editing state
-  const isFree = !planType || planType === "free";
+  // Billing drafts have no plan. Preserve their stored address (including rep
+  // slugs) instead of silently applying the legacy free-personal tap prefix.
+  const isFree = planType === "free" && username.startsWith("tap");
   const extractEditableUsername = (storedUsername: string) => {
     if (isFree && storedUsername.startsWith("tap")) {
       return storedUsername.slice(3);
@@ -82,6 +84,7 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
   const [usernameInput, setUsernameInput] = useState(extractEditableUsername(username));
   const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken" | "invalid" | "unknown">("idle");
   const [usernameError, setUsernameError] = useState<string | null>(null);
+  const [checkedUsername, setCheckedUsername] = useState<string | null>(null);
 
   useEffect(() => {
     suppressEditPingRef.current = true;
@@ -102,7 +105,7 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
   }, [name, headlineValue, bioValue, usernameInput, showUsernameValue, onEdit]);
 
   const hasChanges = useMemo(() => {
-    const newPublicUsername = getPublicUsername(isFree ? "free" : (planType as any) || "free", usernameInput);
+    const newPublicUsername = getPublicUsername(isFree ? "free" : "monthly", usernameInput);
     return (
       name !== fullName ||
       headlineValue !== (headline || "") ||
@@ -120,12 +123,13 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
 
   // Debounced username availability check
   useEffect(() => {
+    setCheckedUsername(null);
     if (usernameLocked) {
       setUsernameStatus("idle");
       setUsernameError(null);
       return;
     }
-    const newPublicUsername = getPublicUsername(isFree ? "free" : (planType as any) || "free", usernameInput);
+    const newPublicUsername = getPublicUsername(isFree ? "free" : "monthly", usernameInput);
 
 
     if (newPublicUsername === username) {
@@ -139,14 +143,14 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
       setUsernameError("Username must be at least 3 characters");
       return;
     }
-    if (usernameInput.length > 30) {
+    if (usernameInput.length > 40) {
       setUsernameStatus("invalid");
-      setUsernameError("Username must be 30 characters or less");
+      setUsernameError("Username must be 40 characters or less");
       return;
     }
-    if (!/^[a-z0-9_]+$/.test(usernameInput)) {
+    if (!/^[a-z0-9_-]+$/.test(usernameInput)) {
       setUsernameStatus("invalid");
-      setUsernameError("Only lowercase letters, numbers, and underscores");
+      setUsernameError("Only lowercase letters, numbers, hyphens, and underscores");
       return;
     }
 
@@ -167,6 +171,7 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
         });
         if (!current) return;
         if (error) throw error;
+        setCheckedUsername(newPublicUsername);
         setUsernameStatus(data ? "available" : "taken");
         if (!data) setUsernameError("This username is already taken");
       } catch (err) {
@@ -180,7 +185,7 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
     }, 500);
 
     return () => { current = false; clearTimeout(timer); };
-  }, [usernameInput, username, isFree, planType, usernameLocked]);
+  }, [usernameInput, username, isFree, planType, usernameLocked, profileId]);
 
   const handleSave = useCallback(async () => {
     if (!hasChanges) return;
@@ -189,11 +194,11 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
       throw new Error("Please add your display name before saving");
     }
 
-    const newPublicUsername = getPublicUsername(isFree ? "free" : (planType as any) || "free", usernameInput);
+    const newPublicUsername = getPublicUsername(isFree ? "free" : "monthly", usernameInput);
     const usernameChanged = !usernameLocked && newPublicUsername !== username;
 
-    if (usernameChanged && usernameStatus !== "available") {
-      throw new Error("Please fix username issues before saving");
+    if (usernameChanged && (usernameStatus !== "available" || checkedUsername !== newPublicUsername)) {
+      throw new Error(usernameError || "Please wait for your new address to be checked before saving");
     }
 
     const updates: Record<string, any> = {
@@ -223,6 +228,7 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
           .from("nfc_cards")
           .update({ destination_value: newPublicUsername })
           .eq("owner_user_id", user.id)
+          .eq("destination_value", username)
           .eq("destination_type", "profile");
         if (nfcError) {
           // Profile already saved. Don't throw, but the user must know
@@ -240,7 +246,7 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
 
     onUpdate(updates);
     setUsernameStatus("idle");
-  }, [hasChanges, isFree, planType, usernameInput, username, usernameStatus, name, headlineValue, bioValue, profileId, onUpdate, showUsernameValue, usernameLocked]);
+  }, [hasChanges, isFree, planType, usernameInput, username, usernameStatus, checkedUsername, usernameError, name, headlineValue, bioValue, profileId, onUpdate, showUsernameValue, usernameLocked]);
 
 
   const discardChanges = useCallback(() => {
@@ -282,7 +288,7 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
     restoreSnapshot,
   }), [handleSave, discardChanges, hasChanges, getSnapshot, restoreSnapshot]);
 
-  const usernameChanged = getPublicUsername(isFree ? "free" : (planType as any) || "free", usernameInput) !== username;
+  const usernameChanged = getPublicUsername(isFree ? "free" : "monthly", usernameInput) !== username;
 
   const [isOpen, setIsOpen] = useState(planType === "personal_hosted");
 
@@ -313,7 +319,7 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
             </span>
             <Input
               value={usernameInput}
-              onChange={(e) => setUsernameInput(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
+              onChange={(e) => setUsernameInput(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ""))}
               placeholder="yourname"
               aria-label="Your TapAway address"
               disabled={usernameLocked}

@@ -7,6 +7,7 @@ import PersonalProfilePage from "./personal/PersonalProfilePage";
 import { lazy, Suspense } from "react";
 import type { CachedProfile } from "@/hooks/useProfileCache";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
+import { useAuth } from "@/hooks/useAuth";
 import { HUB_PROFILE_COLUMNS } from "@/lib/hubProfileColumns";
 
 // Lazy load ReviewHub since it's less common and heavier
@@ -24,28 +25,33 @@ const PROFILE_COLUMNS = HUB_PROFILE_COLUMNS;
 
 const AdminPreviewRibbon = () => (
   <div className="fixed top-0 inset-x-0 z-[9999] bg-amber-500 text-black text-center py-1.5 text-xs font-semibold shadow-md">
-    Preview. This hub is not yet approved and not publicly visible.
+    Private preview · Only authorized staff can view this draft.
   </div>
 );
 
 const UsernameResolver = () => {
   const { slug } = useParams<{ slug: string }>();
   const location = useLocation();
+  const { user, loading: authLoading } = useAuth();
   const routeState = location.state as { type?: string } | null;
   const isAdminPreview = new URLSearchParams(location.search).get("admin_preview") === "1";
+  const isRepPreview = new URLSearchParams(location.search).get("rep_preview") === "1";
+
+  if ((isAdminPreview || isRepPreview) && authLoading) return <MinimalLoader />;
 
   // If CardResolver already confirmed this is a personal profile, skip the DB query entirely
-  if (routeState?.type === 'personal' && !isAdminPreview) {
+  if (routeState?.type === 'personal' && !isAdminPreview && !isRepPreview) {
     return <PersonalProfilePage key={JSON.stringify([slug, location.key, location.search])} />;
   }
 
   // Route ownership changes synchronously, before effects run: never render
   // the previous hub with the destination's params (including history visits).
-  return <UsernameResolverInner key={JSON.stringify([slug, location.key, location.search])} slug={slug} isAdminPreview={isAdminPreview} />;
+  return <UsernameResolverInner key={JSON.stringify([slug, location.key, location.search, user?.id])} slug={slug} isAdminPreview={isAdminPreview} isRepPreview={isRepPreview} />;
 };
 
-const UsernameResolverInner = memo(({ slug, isAdminPreview }: { slug?: string; isAdminPreview?: boolean }) => {
+const UsernameResolverInner = memo(({ slug, isAdminPreview, isRepPreview }: { slug?: string; isAdminPreview?: boolean; isRepPreview?: boolean }) => {
   const { isAdmin, loading: adminLoading } = useAdminAccess();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [resolvedType, setResolvedType] = useState<"personal" | "restaurant" | "notfound" | null>(null);
   const [resolvedProfile, setResolvedProfile] = useState<CachedProfile | null>(null);
@@ -91,7 +97,7 @@ const UsernameResolverInner = memo(({ slug, isAdminPreview }: { slug?: string; i
       };
 
       // Admin preview: bypass the public gate and read from personal_profiles directly
-      if (isAdminPreview && isAdmin) {
+      if ((isAdminPreview || isRepPreview) && isAdmin) {
         const { data: adminProfile } = await supabase
           .from("personal_profiles")
           .select(PROFILE_COLUMNS)
@@ -101,6 +107,25 @@ const UsernameResolverInner = memo(({ slug, isAdminPreview }: { slug?: string; i
         if (adminProfile) {
           complete("personal", adminProfile as unknown as CachedProfile, true);
           return;
+        }
+      }
+
+      // Explicit private preview for an active rep's assigned, unapproved hub.
+      // Both queries use the caller's authenticated client and existing RLS.
+      // A URL flag alone never exposes a draft or changes public entitlement.
+      if (isRepPreview && user && !isAdmin) {
+        const { data: rep, error: repError } = await supabase
+          .from("sales_reps").select("id").eq("id", user.id).eq("is_active", true).maybeSingle();
+        if (!repError && rep?.id === user.id) {
+          const { data: draft, error: draftError } = await supabase
+            .from("personal_profiles").select(PROFILE_COLUMNS)
+            .eq("username", lowerSlug).eq("is_approved", false)
+            .or(`sales_rep_id.eq.${user.id},created_by_rep_id.eq.${user.id}`)
+            .maybeSingle();
+          if (!draftError && draft) {
+            complete("personal", draft as unknown as CachedProfile, true);
+            return;
+          }
         }
       }
 
@@ -126,8 +151,7 @@ const UsernameResolverInner = memo(({ slug, isAdminPreview }: { slug?: string; i
         return;
       }
 
-      // Private ownership does not grant public service. Only the explicit,
-      // verified admin preview above may bypass a paused hub's public gate.
+      // Private preview never changes the normal public route's billing gate.
 
       // Lapsed solo subscription (e.g. trial ended without payment): the
       // public RPC won't resolve it, but the status RPC tells us an approved
@@ -146,7 +170,7 @@ const UsernameResolverInner = memo(({ slug, isAdminPreview }: { slug?: string; i
 
     resolve();
     return () => { cancelled = true; };
-  }, [slug, isAdminPreview, isAdmin, adminLoading]);
+  }, [slug, isAdminPreview, isRepPreview, isAdmin, adminLoading, user?.id]);
 
   if (loading || adminLoading) {
     return <MinimalLoader />;
@@ -156,7 +180,9 @@ const UsernameResolverInner = memo(({ slug, isAdminPreview }: { slug?: string; i
     return (
       <>
         {adminPreviewActive && <AdminPreviewRibbon />}
-        <PersonalProfilePage initialProfile={resolvedProfile ?? undefined} />
+        <div className={adminPreviewActive ? "pt-10" : undefined}>
+          <PersonalProfilePage initialProfile={resolvedProfile ?? undefined} privatePreview={adminPreviewActive} />
+        </div>
       </>
     );
   }

@@ -145,6 +145,8 @@ export function track(
   options: TrackOptions = {},
 ): void {
   if (typeof window === "undefined") return;
+  const previewParams = new URLSearchParams(window.location.search);
+  if (previewParams.get("admin_preview") === "1" || previewParams.get("rep_preview") === "1") return;
   // Only server-verified billing events may claim a financial conversion.
   if (["trial_start_confirmed", "paid_conversion", "subscription_renewal", "purchase", "purchase_completed"].includes(event)) return;
 
