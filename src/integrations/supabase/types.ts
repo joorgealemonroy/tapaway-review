@@ -4150,6 +4150,318 @@ export type Database = {
         }
         Relationships: []
       }
+      profile_location_subscriptions: {
+        Row: {
+          consent_text: string
+          consent_version: number
+          consented_at: string
+          contact_id: string
+          location_id: string
+          profile_id: string
+          revoked_at: string | null
+        }
+        Insert: {
+          consent_text: string
+          consent_version: number
+          consented_at?: string
+          contact_id: string
+          location_id: string
+          profile_id: string
+          revoked_at?: string | null
+        }
+        Update: {
+          consent_text?: string
+          consent_version?: number
+          consented_at?: string
+          contact_id?: string
+          location_id?: string
+          profile_id?: string
+          revoked_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profile_location_subscriptions_contact_id_profile_id_fkey"
+            columns: ["contact_id", "profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile_sms_contacts"
+            referencedColumns: ["id", "profile_id"]
+          },
+          {
+            foreignKeyName: "profile_location_subscriptions_location_id_profile_id_fkey"
+            columns: ["location_id", "profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile_locations"
+            referencedColumns: ["id", "profile_id"]
+          },
+        ]
+      }
+      profile_locations: {
+        Row: {
+          address: string | null
+          created_at: string
+          directions_url: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean
+          is_placeholder: boolean
+          name: string
+          profile_id: string
+          restock_note: string | null
+          restocked_at: string | null
+          slug: string
+          sort_order: number
+          subtitle: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          directions_url?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          is_placeholder?: boolean
+          name: string
+          profile_id: string
+          restock_note?: string | null
+          restocked_at?: string | null
+          slug: string
+          sort_order?: number
+          subtitle?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          directions_url?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          is_placeholder?: boolean
+          name?: string
+          profile_id?: string
+          restock_note?: string | null
+          restocked_at?: string | null
+          slug?: string
+          sort_order?: number
+          subtitle?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profile_locations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "personal_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profile_locations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "personal_profiles_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profile_sms_consent_events: {
+        Row: {
+          action: string
+          consent_text: string | null
+          consent_version: number | null
+          contact_id: string
+          created_at: string
+          id: string
+          location_id: string | null
+          profile_id: string
+          source: string
+          topic: string
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          consent_text?: string | null
+          consent_version?: number | null
+          contact_id: string
+          created_at?: string
+          id?: string
+          location_id?: string | null
+          profile_id: string
+          source: string
+          topic: string
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          consent_text?: string | null
+          consent_version?: number | null
+          contact_id?: string
+          created_at?: string
+          id?: string
+          location_id?: string | null
+          profile_id?: string
+          source?: string
+          topic?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profile_sms_consent_events_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "profile_sms_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profile_sms_consent_events_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "profile_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profile_sms_consent_events_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "personal_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profile_sms_consent_events_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "personal_profiles_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profile_sms_contacts: {
+        Row: {
+          capture_id: string
+          created_at: string
+          id: string
+          opted_out_at: string | null
+          ordering_consent_at: string | null
+          ordering_consent_text: string | null
+          ordering_consent_version: number | null
+          ordering_opt_in: boolean
+          phone: string
+          profile_id: string
+          updated_at: string
+        }
+        Insert: {
+          capture_id: string
+          created_at?: string
+          id?: string
+          opted_out_at?: string | null
+          ordering_consent_at?: string | null
+          ordering_consent_text?: string | null
+          ordering_consent_version?: number | null
+          ordering_opt_in?: boolean
+          phone: string
+          profile_id: string
+          updated_at?: string
+        }
+        Update: {
+          capture_id?: string
+          created_at?: string
+          id?: string
+          opted_out_at?: string | null
+          ordering_consent_at?: string | null
+          ordering_consent_text?: string | null
+          ordering_consent_version?: number | null
+          ordering_opt_in?: boolean
+          phone?: string
+          profile_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profile_sms_contacts_capture_id_fkey"
+            columns: ["capture_id"]
+            isOneToOne: true
+            referencedRelation: "personal_email_captures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profile_sms_contacts_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "personal_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profile_sms_contacts_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "personal_profiles_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profile_sms_programs: {
+        Row: {
+          brand_name: string
+          consent_version: number
+          created_at: string
+          frequency_text: string
+          opt_out_webhook_verified_at: string | null
+          privacy_url: string
+          profile_id: string
+          registration_reference: string | null
+          sender_number: string | null
+          sender_status: string
+          sender_verified_at: string | null
+          terms_url: string
+          updated_at: string
+        }
+        Insert: {
+          brand_name: string
+          consent_version?: number
+          created_at?: string
+          frequency_text?: string
+          opt_out_webhook_verified_at?: string | null
+          privacy_url?: string
+          profile_id: string
+          registration_reference?: string | null
+          sender_number?: string | null
+          sender_status?: string
+          sender_verified_at?: string | null
+          terms_url?: string
+          updated_at?: string
+        }
+        Update: {
+          brand_name?: string
+          consent_version?: number
+          created_at?: string
+          frequency_text?: string
+          opt_out_webhook_verified_at?: string | null
+          privacy_url?: string
+          profile_id?: string
+          registration_reference?: string | null
+          sender_number?: string | null
+          sender_status?: string
+          sender_verified_at?: string | null
+          terms_url?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profile_sms_programs_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "personal_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profile_sms_programs_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "personal_profiles_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       promo_tokens: {
         Row: {
           created_at: string
@@ -5281,9 +5593,11 @@ export type Database = {
       }
       sms_campaigns: {
         Row: {
+          campaign_type: string | null
           created_at: string
           failure_count: number
           id: string
+          location_id: string | null
           message: string
           profile_id: string
           recipient_count: number
@@ -5291,9 +5605,11 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          campaign_type?: string | null
           created_at?: string
           failure_count?: number
           id?: string
+          location_id?: string | null
           message: string
           profile_id: string
           recipient_count?: number
@@ -5301,9 +5617,11 @@ export type Database = {
           user_id: string
         }
         Update: {
+          campaign_type?: string | null
           created_at?: string
           failure_count?: number
           id?: string
+          location_id?: string | null
           message?: string
           profile_id?: string
           recipient_count?: number
@@ -5311,6 +5629,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "sms_campaign_location_profile_fkey"
+            columns: ["location_id", "profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile_locations"
+            referencedColumns: ["id", "profile_id"]
+          },
           {
             foreignKeyName: "sms_campaigns_profile_id_fkey"
             columns: ["profile_id"]
@@ -6066,6 +6391,10 @@ export type Database = {
         Returns: Json
       }
       build_google_review_url: { Args: { place_id: string }; Returns: string }
+      can_manage_profile_locations: {
+        Args: { p_profile_id: string }
+        Returns: boolean
+      }
       canonical_analytics_report: {
         Args: {
           _cursor_at?: string
@@ -6193,6 +6522,21 @@ export type Database = {
         }[]
       }
       get_hub_payment_offer: { Args: { _slug: string }; Returns: Json }
+      get_profile_location_sms_recipients: {
+        Args: {
+          p_campaign_type: string
+          p_location_id?: string
+          p_profile_id: string
+        }
+        Returns: {
+          capture_id: string
+          phone: string
+        }[]
+      }
+      get_profile_sms_dashboard: {
+        Args: { p_profile_id: string }
+        Returns: Json
+      }
       get_public_booking_slots: {
         Args: { _from: string; _product_id: string; _to: string }
         Returns: {
@@ -6303,6 +6647,14 @@ export type Database = {
           profile_photo_url: string
           username: string
         }[]
+      }
+      get_public_profile_locations: {
+        Args: { p_profile_id: string }
+        Returns: Json
+      }
+      get_public_profile_sms_program: {
+        Args: { p_profile_id: string }
+        Returns: Json
       }
       get_public_restaurant_hub: {
         Args: { _id?: string; _slug?: string }
@@ -6444,6 +6796,20 @@ export type Database = {
         Returns: boolean
       }
       profile_has_active_card: { Args: { _user_id: string }; Returns: boolean }
+      profile_location_sms_recipient_allowed: {
+        Args: {
+          p_campaign_type: string
+          p_location_id: string
+          p_phone: string
+          p_profile_id: string
+          p_sender_number: string
+        }
+        Returns: boolean
+      }
+      profile_sms_consent_text: {
+        Args: { p_profile_id: string; p_topic: string }
+        Returns: string
+      }
       recompute_closer_pool: {
         Args: { _period_label: string; _rep_id: string }
         Returns: undefined
@@ -6477,6 +6843,19 @@ export type Database = {
           p_profile_id: string
           p_transactional_consent: boolean
           p_transactional_text: string
+          p_user_agent: string
+        }
+        Returns: string
+      }
+      record_profile_location_sms_opt_in: {
+        Args: {
+          p_consent_version: number
+          p_location_id: string
+          p_name: string
+          p_ordering_consent: boolean
+          p_phone: string
+          p_profile_id: string
+          p_restock_consent: boolean
           p_user_agent: string
         }
         Returns: string
@@ -6553,6 +6932,11 @@ export type Database = {
         Args: { _restaurant_id: string }
         Returns: boolean
       }
+      revoke_legacy_shared_sms: { Args: { p_phone: string }; Returns: Json }
+      revoke_profile_location_sms: {
+        Args: { p_phone: string; p_sender_number: string }
+        Returns: boolean
+      }
       rpt_admin_hub_table: {
         Args: { _caller_user_id: string; _since: string; _until: string }
         Returns: {
@@ -6621,6 +7005,16 @@ export type Database = {
           inserted: number
           updated: number
         }[]
+      }
+      update_profile_sms_program: {
+        Args: {
+          p_brand_name: string
+          p_frequency_text: string
+          p_privacy_url: string
+          p_profile_id: string
+          p_terms_url: string
+        }
+        Returns: undefined
       }
       verify_account_otp: {
         Args: { _code_hash: string; _consume?: boolean; _email: string }
