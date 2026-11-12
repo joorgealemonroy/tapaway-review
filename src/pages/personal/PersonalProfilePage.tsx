@@ -32,6 +32,9 @@ import LeadFormSheet from "@/components/personal/LeadFormSheet";
 import MarketingExamplesCard from "@/components/personal/MarketingExamplesCard";
 import { SmsOptInDrawer } from "@/components/personal/SmsOptInDrawer";
 import { MenuButton, MenuDisplay } from "@/components/personal/MenuDisplay";
+import { MealCatalog } from "@/components/personal/MealCatalog";
+import { WeeklyCutoff } from "@/components/personal/WeeklyCutoff";
+import { boundMealCatalog, menuUsesVisibleLink } from "@/lib/hubContentBindings";
 import { parseMenuContent } from "@/lib/menuBlock";
 import { hasLasIslasMenu } from "@/lib/lasIslasMenu";
 import originalMenu from "@/assets/las-islas-menu-mar26.pdf.asset.json";
@@ -106,7 +109,9 @@ const ProfileLink = memo(function ProfileLink({
   index = 99,
   profilePhotoUrl,
   accentColor,
-  contrast
+  contrast,
+  catalogContent,
+  privatePreview = false
 }: { 
   link: { id: string; link_type: string; label: string; url: string; pill_color: string | null; display_style?: string | null; cover_image_url?: string | null; grid_size?: string | null; thumbnail_url?: string | null };
   profileId?: string;
@@ -116,6 +121,8 @@ const ProfileLink = memo(function ProfileLink({
   profilePhotoUrl?: string | null;
   accentColor?: string | null;
   contrast: HubContrast;
+  catalogContent?: Record<string, unknown> | null;
+  privatePreview?: boolean;
 }) {
 
   const config = getPlatformConfig(link.link_type);
@@ -132,6 +139,12 @@ const ProfileLink = memo(function ProfileLink({
   const coverImage = link.cover_image_url;
   // Dynamic button text contrast: dark text on light buttons, white text on dark buttons
   const buttonTextColor = customColor && !isColorDark(customColor) ? '#1A1A1A' : '#FFFFFF';
+
+  if (catalogContent) return <MealCatalog content={catalogContent} accentColor={accentColor}
+    interactive={!privatePreview}
+    trigger={{ label: String(catalogContent.buttonLabel || link.label), imageUrl: coverImage || undefined, isGrid }}
+    onOpen={() => { if (profileId && !privatePreview) trackEvent("cta_click", { hubId: profileId, hubKind: "solo", props: { cta: "menu_open", link_id: link.id } }); }}
+    onOrder={() => { if (profileId && !privatePreview) trackEvent("cta_click", { hubId: profileId, hubKind: "solo", props: { cta: "menu_order", link_id: link.id } }); }} />;
 
   if (profileId && hasLasIslasMenu(profileId) &&
       (link.url === originalMenu.url || link.url === `https://tapaway.co${originalMenu.url}`)) {
@@ -610,6 +623,7 @@ const ProfileBlock = memo(function ProfileBlock({
       return <div className="w-full">{imageWithOverlay}</div>;
     }
     case "text":
+      if (content.variant === "weekly_cutoff") return <WeeklyCutoff content={content} accentColor={accentColor} />;
       return (
         <div className={`w-full ${alignClass}`}>
           <h3 className={`text-lg font-bold ${textClass}`} style={textStyleObj}>{content.title}</h3>
@@ -617,6 +631,10 @@ const ProfileBlock = memo(function ProfileBlock({
         </div>
       );
     case "button": {
+      if (content.style === "plain") return <a href={sanitizeUrl(content.url)} target="_blank" rel="noopener noreferrer"
+        onClick={() => { if (profileId && !privatePreview) trackEvent("cta_click", { hubId: profileId, hubKind: "solo", props: { cta: "button", block_id: block.id } }); }}
+        className="flex min-h-14 w-full items-center justify-center rounded-2xl border border-border bg-card px-5 py-4 text-center font-semibold text-foreground shadow-sm transition-opacity hover:opacity-80 active:scale-[0.99]"
+        style={textStyleObj}>{content.label}</a>;
       const btnAlignClass = block.alignment === "left" ? "justify-start" : block.alignment === "right" ? "justify-end" : "justify-center";
       return (
         <div className={`w-full flex ${btnAlignClass}`}>
@@ -788,6 +806,9 @@ const ProfileBlock = memo(function ProfileBlock({
       );
     }
     case "menu": {
+      if (content.variant === "meal_catalog") return <MealCatalog content={content} accentColor={accentColor} interactive={!privatePreview}
+        onOpen={() => { if (profileId && !privatePreview) trackEvent("cta_click", { hubId: profileId, hubKind: "solo", props: { cta: "menu_open", block_id: block.id } }); }}
+        onOrder={() => { if (profileId && !privatePreview) trackEvent("cta_click", { hubId: profileId, hubKind: "solo", props: { cta: "menu_order", block_id: block.id } }); }} />;
       const menu = parseMenuContent(content);
       if (menu.sections.length === 0) return null;
       return <MenuDisplay menu={menu} isDarkBg={isDarkBg} textColor={textColor} />;
@@ -1121,7 +1142,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile, privatePreview 
 
   const unifiedItems: UnifiedItem[] = [
     ...nonFeaturedPillLinks.map((link): UnifiedItem => ({ kind: "link", data: link })),
-    ...blocks.map((block): UnifiedItem => ({ kind: "block", data: block })),
+    ...blocks.filter(block => !menuUsesVisibleLink(block, links)).map((block): UnifiedItem => ({ kind: "block", data: block })),
   ].sort((a, b) => a.data.sort_order - b.data.sort_order);
 
   // Extract featured link (renders at top separately)
@@ -1496,7 +1517,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile, privatePreview 
             {/* Featured link - rendered prominently at top */}
             {featuredLink && (
               <div className="mb-4">
-                <ProfileLink link={featuredLink} profileId={profile.id} isFeatured index={0} profilePhotoUrl={profile.profile_photo_url} accentColor={profileAccentColor} contrast={hubContrast} />
+                <ProfileLink link={featuredLink} profileId={profile.id} isFeatured index={0} profilePhotoUrl={profile.profile_photo_url} accentColor={profileAccentColor} contrast={hubContrast} catalogContent={boundMealCatalog(blocks, featuredLink.id)} privatePreview={privatePreview} />
               </div>
             )}
 
@@ -1513,14 +1534,14 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile, privatePreview 
                     <div key={`grid-group-${idx}`} className="grid grid-cols-2 gap-3">
                       {item.links.map((link: any, i: number) => (
                         <div key={`grid-${link.id}`} className={item.links.length === 1 ? 'col-span-2' : ''}>
-                          <ProfileLink link={link} profileId={profile.id} isGrid index={startIndex + i} profilePhotoUrl={profile.profile_photo_url} accentColor={profileAccentColor} contrast={hubContrast} />
+                          <ProfileLink link={link} profileId={profile.id} isGrid index={startIndex + i} profilePhotoUrl={profile.profile_photo_url} accentColor={profileAccentColor} contrast={hubContrast} catalogContent={boundMealCatalog(blocks, link.id)} privatePreview={privatePreview} />
                         </div>
                       ))}
                     </div>
                   );
                 } else if (item.kind === "link") {
                   const currentIndex = linkIndex++;
-                  return <ProfileLink key={`link-${item.data.id}`} link={item.data} profileId={profile.id} index={currentIndex} profilePhotoUrl={profile.profile_photo_url} accentColor={profileAccentColor} contrast={hubContrast} />;
+                  return <ProfileLink key={`link-${item.data.id}`} link={item.data} profileId={profile.id} index={currentIndex} profilePhotoUrl={profile.profile_photo_url} accentColor={profileAccentColor} contrast={hubContrast} catalogContent={boundMealCatalog(blocks, item.data.id)} privatePreview={privatePreview} />;
                 } else {
                   return <ProfileBlock key={`block-${item.data.id}`} block={item.data} profileId={profile.id} username={profile.username} isDarkBg={isDarkBg} textColor={profileTextColor} accentColor={profileAccentColor} privatePreview={privatePreview} />;
                 }

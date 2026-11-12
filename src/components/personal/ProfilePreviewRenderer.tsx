@@ -12,6 +12,9 @@ import MarketingExamplesCard from "./MarketingExamplesCard";
 import { parseMenuContent } from "@/lib/menuBlock";
 import { LocationsBlock } from "./LocationsBlock";
 import { ManagedLocationsBlock, ManagedSmsBlock } from "./ManagedHubBlocks";
+import { MealCatalog } from "./MealCatalog";
+import { WeeklyCutoff } from "./WeeklyCutoff";
+import { boundMealCatalog, menuUsesVisibleLink } from "@/lib/hubContentBindings";
 
 
 
@@ -192,7 +195,7 @@ function ProfilePreviewRendererComponent({
   const unifiedItems = useMemo(() => {
     const items: Array<{ type: "link" | "block"; data: LinkData | BlockData }> = [];
     nonFeaturedPillLinks.forEach((link) => items.push({ type: "link", data: link }));
-    activeBlocks.forEach((block) => items.push({ type: "block", data: block }));
+    activeBlocks.filter(block => !menuUsesVisibleLink(block, activeLinks)).forEach((block) => items.push({ type: "block", data: block }));
     items.sort((a, b) => {
       const aOrder =
         a.type === "link"
@@ -205,7 +208,7 @@ function ProfilePreviewRendererComponent({
       return aOrder - bOrder;
     });
     return items;
-  }, [nonFeaturedPillLinks, activeBlocks]);
+  }, [nonFeaturedPillLinks, activeBlocks, activeLinks]);
 
   // Group consecutive grid links for 2-column rendering (same as live profile)
   const groupedItems = useMemo(() => {
@@ -374,6 +377,9 @@ function ProfilePreviewRendererComponent({
   };
 
   const renderLink = (link: LinkData, isFeatured = false, isGrid = false, index = 99) => {
+    const catalog = boundMealCatalog(activeBlocks, link.id);
+    if (catalog) return <MealCatalog key={link.id} content={catalog} accentColor={profile.button_theme} interactive={false}
+      trigger={{ label: String(catalog.buttonLabel || link.label), imageUrl: link.cover_image_url || undefined, isGrid }} />;
     const platform = getPlatformConfig(link.link_type);
     const Icon = platform?.icon;
 
@@ -541,6 +547,7 @@ function ProfilePreviewRendererComponent({
 
     switch (block.block_type) {
       case "text": {
+        if (content.variant === "weekly_cutoff") return <WeeklyCutoff key={block.id} content={content} accentColor={profile.button_theme} />;
         const text = (content.text as string) || "";
         return (
           <div key={block.id} className={`px-1 ${alignClass}`}>
@@ -555,6 +562,15 @@ function ProfilePreviewRendererComponent({
             <h2 className={`text-xl font-bold ${headingClass}`}>{headingText}</h2>
           </div>
         );
+      }
+      case "button": {
+        if (content.style === "plain") return <a key={block.id} href={sanitizeUrl(String(content.url || ""))}
+          target="_blank" rel="noopener noreferrer" onClick={event => handleLinkClick(event, String(content.url || ""))}
+          className="flex min-h-14 w-full items-center justify-center rounded-2xl border border-border bg-card px-5 py-4 text-center font-semibold text-foreground shadow-sm"
+          style={profile.text_color ? { color: profile.text_color } : undefined}>{String(content.label || "")}</a>;
+        return <a key={block.id} href={sanitizeUrl(String(content.url || ""))} target="_blank" rel="noopener noreferrer"
+          onClick={event => handleLinkClick(event, String(content.url || ""))}
+          className={`block rounded-full bg-primary px-6 py-3 text-center font-semibold text-primary-foreground ${block.alignment === "full" ? "w-full" : "w-fit mx-auto"}`}>{String(content.label || "")}</a>;
       }
       case "divider":
         return (
@@ -724,6 +740,7 @@ function ProfilePreviewRendererComponent({
         );
       }
       case "menu": {
+        if (content.variant === "meal_catalog") return <MealCatalog key={block.id} content={content} accentColor={profile.button_theme} interactive={false} />;
         const menu = parseMenuContent(content);
         if (menu.sections.length === 0) return null;
         return (

@@ -3,6 +3,13 @@ export interface MenuItem {
   description?: string;
   price?: string;
   hidden?: boolean;
+  imageUrl?: string;
+  calories?: number;
+  protein?: number;
+  carbs?: number;
+  fat?: number;
+  serving?: string;
+  allergens?: string[];
 }
 
 export interface MenuSection {
@@ -17,6 +24,24 @@ export interface MenuContent {
 }
 
 const DEFAULT_TITLE = "Our Menu";
+
+/** Preserve optional meal-catalog details without changing ordinary menu shapes. */
+function mealDetails(value: unknown): Partial<MenuItem> {
+  const source = value && typeof value === "object" ? value as Record<string, unknown> : {};
+  const details: Partial<MenuItem> = {};
+  for (const key of ["imageUrl", "serving"] as const) {
+    if (typeof source[key] === "string" && source[key].trim()) details[key] = source[key].trim();
+  }
+  for (const key of ["calories", "protein", "carbs", "fat"] as const) {
+    const number = source[key];
+    if (typeof number === "number" && Number.isFinite(number) && number >= 0) details[key] = number;
+  }
+  if (Array.isArray(source.allergens)) {
+    details.allergens = source.allergens.filter((value): value is string => typeof value === "string")
+      .map(value => value.trim()).filter(Boolean);
+  }
+  return details;
+}
 
 /** Read a menu block's stored content (sections may be a JSON string or array). */
 export function parseMenuContent(raw: unknown): MenuContent {
@@ -36,6 +61,7 @@ export function parseMenuContent(raw: unknown): MenuContent {
                   description: item?.description ? String(item.description).trim() : "",
                   price: item?.price ? String(item.price).trim() : "",
                   hidden: item?.hidden === true || item?.hidden === "true",
+                  ...mealDetails(item),
                 }))
                 .filter((item) => item.name.length > 0)
             : [],
@@ -68,6 +94,7 @@ export function serializeMenuContent(menu: MenuContent): Record<string, string> 
             description: (item.description || "").trim(),
             price: (item.price || "").trim(),
             hidden: !!item.hidden,
+            ...mealDetails(item),
           })),
       }))
     ),
@@ -176,6 +203,7 @@ export function mergeMenuSections(groups: MenuSection[][]): MenuSection[] {
           description: (item.description || "").trim(),
           price,
           hidden: false,
+          ...mealDetails(item),
         });
       }
     }

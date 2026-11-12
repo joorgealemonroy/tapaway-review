@@ -24,12 +24,14 @@ import {
   parseMenuText,
   mergeMenuSections,
   menuSectionsToText,
+  type MenuItem,
   type MenuSection,
 } from "@/lib/menuBlock";
 
 interface Props {
   sections: MenuSection[];
   onSectionsChange: (sections: MenuSection[]) => void;
+  showNutrition?: boolean;
 }
 
 const MAX_PHOTOS = 15;
@@ -41,7 +43,7 @@ interface MenuPhoto {
   preview: string;
 }
 
-export const MenuBlockEditor = ({ sections, onSectionsChange }: Props) => {
+export const MenuBlockEditor = ({ sections, onSectionsChange, showNutrition = false }: Props) => {
   const [pasteText, setPasteText] = useState("");
   const [importSlug, setImportSlug] = useState("");
   const [importing, setImporting] = useState(false);
@@ -159,6 +161,12 @@ export const MenuBlockEditor = ({ sections, onSectionsChange }: Props) => {
 
   const updateSection = (index: number, patch: Partial<MenuSection>) => {
     update(sections.map((section, i) => (i === index ? { ...section, ...patch } : section)));
+  };
+
+  const updateItem = (sectionIndex: number, itemIndex: number, patch: Partial<MenuItem>) => {
+    updateSection(sectionIndex, {
+      items: sections[sectionIndex].items.map((item, index) => index === itemIndex ? { ...item, ...patch } : item),
+    });
   };
 
   const moveSection = (index: number, direction: -1 | 1) => {
@@ -446,6 +454,19 @@ export const MenuBlockEditor = ({ sections, onSectionsChange }: Props) => {
                       {item.hidden ? "Hidden from visitors" : "Visible"}
                     </span>
                   </div>
+                  {showNutrition && <details className="rounded-lg border border-border bg-background/60 p-2">
+                    <summary className="min-h-9 cursor-pointer py-2 text-xs font-medium">Photo &amp; nutrition details</summary>
+                    <div className="space-y-3 pt-2">
+                      <div className="space-y-1"><Label htmlFor={`meal-${sectionIndex}-${itemIndex}-image`} className="text-xs">Image URL</Label><Input id={`meal-${sectionIndex}-${itemIndex}-image`} value={item.imageUrl || ""} onChange={event => updateItem(sectionIndex, itemIndex, { imageUrl: event.target.value })} placeholder="https://…" className="h-10 text-sm" /></div>
+                      <div className="space-y-1"><Label htmlFor={`meal-${sectionIndex}-${itemIndex}-serving`} className="text-xs">Serving shown</Label><Input id={`meal-${sectionIndex}-${itemIndex}-serving`} value={item.serving || ""} onChange={event => updateItem(sectionIndex, itemIndex, { serving: event.target.value })} placeholder="Standard · 6 oz" className="h-10 text-sm" /></div>
+                      <div className="grid grid-cols-2 gap-2">
+                        {([
+                          ["calories", "Calories"], ["protein", "Protein (g)"], ["carbs", "Carbs (g)"], ["fat", "Fat (g)"],
+                        ] as const).map(([key, label]) => <div key={key} className="space-y-1"><Label htmlFor={`meal-${sectionIndex}-${itemIndex}-${key}`} className="text-xs">{label}</Label><Input id={`meal-${sectionIndex}-${itemIndex}-${key}`} type="number" min="0" step="any" inputMode="decimal" value={item[key] ?? ""} onChange={event => updateItem(sectionIndex, itemIndex, { [key]: event.target.value === "" ? undefined : Number(event.target.value) })} placeholder="Not listed" className="h-10 text-sm" /></div>)}
+                      </div>
+                      <div className="space-y-1"><Label htmlFor={`meal-${sectionIndex}-${itemIndex}-allergens`} className="text-xs">Reported allergens</Label><Input id={`meal-${sectionIndex}-${itemIndex}-allergens`} value={(item.allergens || []).join(", ")} onChange={event => updateItem(sectionIndex, itemIndex, { allergens: event.target.value.split(",").map(value => value.trim()) })} placeholder="Dairy, soy…" className="h-10 text-sm" /><p className="text-[11px] leading-relaxed text-muted-foreground">Separate with commas. Only add reported allergens; a blank field does not mean allergen-free.</p></div>
+                    </div>
+                  </details>}
                 </div>
               ))}
 

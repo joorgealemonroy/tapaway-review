@@ -37,6 +37,7 @@ import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { MenuBlockEditor } from "@/components/personal/MenuBlockEditor";
 import { parseMenuContent, serializeMenuContent, type MenuSection } from "@/lib/menuBlock";
+import { parseWeeklyCutoffConfig } from "@/lib/weeklyCutoff";
 import {
   parseLocationsContent,
   serializeLocationsContent,
@@ -92,6 +93,10 @@ export const BlockModal = ({
   planType,
   onUpgrade,
 }: Props) => {
+  const editingContent = editingBlock?.content && typeof editingBlock.content === "object"
+    ? editingBlock.content as Record<string, unknown> : {};
+  const isMealCatalog = editingBlock?.block_type === "menu" && editingContent.variant === "meal_catalog";
+  const isWeeklyCutoff = editingBlock?.block_type === "text" && editingContent.variant === "weekly_cutoff";
   const isManagedBlock = !!editingBlock?.content && typeof editingBlock.content === "object" &&
     String((editingBlock.content as Record<string, unknown>).managed) === "true";
   const [selectedType, setSelectedType] = useState<string | null>(null);
@@ -105,6 +110,8 @@ export const BlockModal = ({
   const [uploadingImage, setUploadingImage] = useState(false);
   const [textTitle, setTextTitle] = useState("");
   const [textBody, setTextBody] = useState("");
+  const [cutoffConfig, setCutoffConfig] = useState(() => parseWeeklyCutoffConfig());
+  const [cutoffTime, setCutoffTime] = useState("23:00");
   const [buttonLabel, setButtonLabel] = useState("");
   const [buttonUrl, setButtonUrl] = useState("");
   const [alignment, setAlignment] = useState("center");
@@ -148,6 +155,7 @@ export const BlockModal = ({
   const [menuTitle, setMenuTitle] = useState("Our Menu");
   const [menuButtonLabel, setMenuButtonLabel] = useState("View Menu");
   const [menuSections, setMenuSections] = useState<MenuSection[]>([]);
+  const [menuOrderUrl, setMenuOrderUrl] = useState("");
 
   // Locations block
   const [locationsTitle, setLocationsTitle] = useState("Our Locations");
@@ -194,6 +202,11 @@ export const BlockModal = ({
         } else if (editingBlock.block_type === "text") {
           setTextTitle(content.title || "");
           setTextBody(content.body || "");
+          if (content.variant === "weekly_cutoff") {
+            const cutoff = parseWeeklyCutoffConfig(content);
+            setCutoffConfig(cutoff);
+            setCutoffTime(`${String(cutoff.hour).padStart(2, "0")}:${String(cutoff.minute).padStart(2, "0")}`);
+          }
         } else if (editingBlock.block_type === "button") {
           setButtonLabel(content.label || "");
           setButtonUrl(content.url || "");
@@ -244,6 +257,7 @@ export const BlockModal = ({
           setMenuTitle(parsedMenu.title);
           setMenuButtonLabel(parsedMenu.buttonLabel);
           setMenuSections(parsedMenu.sections);
+          setMenuOrderUrl(content.orderUrl || "");
         } else if (editingBlock.block_type === "sms_subscribe") {
           setSmsHeadline(content.headline || "");
           setSmsDescription(content.description || "");
@@ -270,6 +284,8 @@ export const BlockModal = ({
     setImageUrl("");
     setTextTitle("");
     setTextBody("");
+    setCutoffConfig(parseWeeklyCutoffConfig());
+    setCutoffTime("23:00");
     setButtonLabel("");
     setButtonUrl("");
     setAlignment("center");
@@ -305,6 +321,7 @@ export const BlockModal = ({
     setMenuTitle("Our Menu");
     setMenuButtonLabel("View Menu");
     setMenuSections([]);
+    setMenuOrderUrl("");
     // Locations
     setLocationsTitle("Our Locations");
     setLocationsSubtitle("Choose a location to view their menu, directions, socials & more.");
@@ -775,6 +792,21 @@ export const BlockModal = ({
         break;
       }
       case "text": {
+        if (isWeeklyCutoff) {
+          if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(cutoffTime)) {
+            toast.error("Choose a valid cutoff time");
+            return;
+          }
+          try { new Intl.DateTimeFormat("en-US", { timeZone: cutoffConfig.timeZone.trim() }); }
+          catch { toast.error("Enter a valid timezone, such as America/Los_Angeles"); return; }
+          const [hour, minute] = cutoffTime.split(":").map(Number);
+          const cutoff = parseWeeklyCutoffConfig({ ...cutoffConfig, hour, minute });
+          content = {
+            variant: "weekly_cutoff", label: cutoff.label, deliveryLabel: cutoff.deliveryLabel,
+            weekday: String(cutoff.weekday), hour: String(cutoff.hour), minute: String(cutoff.minute), timeZone: cutoff.timeZone,
+          };
+          break;
+        }
         if (!textTitle.trim()) {
           toast.error("Please enter a title");
           return;
@@ -788,6 +820,7 @@ export const BlockModal = ({
           return;
         }
         content = { label: buttonLabel, url: buttonUrl.startsWith("http") ? buttonUrl : `https://${buttonUrl}` };
+        if (editingContent.style === "plain") content.style = "plain";
         break;
       }
       case "email_capture": {
@@ -888,6 +921,18 @@ export const BlockModal = ({
           buttonLabel: menuButtonLabel,
           sections: cleaned,
         });
+        if (isMealCatalog) {
+          const orderUrl = menuOrderUrl.trim();
+          if (orderUrl) {
+            try { if (new URL(orderUrl).protocol !== "https:") throw new Error(); }
+            catch { toast.error("Use a complete HTTPS link for online ordering"); return; }
+          }
+          content.variant = "meal_catalog";
+          content.orderUrl = orderUrl;
+          for (const key of ["triggerLinkId", "sourceUrl", "updatedAt"]) {
+            if (typeof editingContent[key] === "string") content[key] = editingContent[key];
+          }
+        }
         break;
       }
     }
@@ -1155,7 +1200,17 @@ export const BlockModal = ({
             </>
           )}
 
-          {selectedType === "text" && (
+          {selectedType === "text" && (isWeeklyCutoff ? (
+            <div className="space-y-4">
+              <div className="space-y-2"><Label htmlFor="cutoff-label">Countdown heading</Label><Input id="cutoff-label" value={cutoffConfig.label} maxLength={80} onChange={event => setCutoffConfig(value => ({ ...value, label: event.target.value }))} placeholder="Order cutoff" className="h-12" /></div>
+              <div className="space-y-2"><Label htmlFor="cutoff-delivery">Delivery note (optional)</Label><Input id="cutoff-delivery" value={cutoffConfig.deliveryLabel} maxLength={80} onChange={event => setCutoffConfig(value => ({ ...value, deliveryLabel: event.target.value }))} placeholder="Sunday delivery" className="h-12" /></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2"><Label htmlFor="cutoff-weekday">Cutoff day</Label><select id="cutoff-weekday" value={cutoffConfig.weekday} onChange={event => setCutoffConfig(value => ({ ...value, weekday: Number(event.target.value) }))} className="flex h-12 w-full rounded-md border border-input bg-background px-3 text-sm">{["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].map((day, index) => <option key={day} value={index}>{day}</option>)}</select></div>
+                <div className="space-y-2"><Label htmlFor="cutoff-time">Cutoff time</Label><Input id="cutoff-time" type="time" value={cutoffTime} onChange={event => setCutoffTime(event.target.value)} className="h-12" /></div>
+              </div>
+              <div className="space-y-2"><Label htmlFor="cutoff-timezone">Business timezone</Label><Input id="cutoff-timezone" value={cutoffConfig.timeZone} onChange={event => setCutoffConfig(value => ({ ...value, timeZone: event.target.value }))} placeholder="America/Los_Angeles" className="h-12" /><p className="text-xs text-muted-foreground">The countdown follows this timezone for every visitor. America/Los_Angeles uses Pacific time.</p></div>
+            </div>
+          ) : (
             <>
               <div className="space-y-2">
                 <Label>Title</Label>
@@ -1176,7 +1231,7 @@ export const BlockModal = ({
                 />
               </div>
             </>
-          )}
+          ))}
 
           {selectedType === "button" && (
             <>
@@ -1603,7 +1658,8 @@ export const BlockModal = ({
                   className="h-11"
                 />
               </div>
-              <MenuBlockEditor sections={menuSections} onSectionsChange={setMenuSections} />
+              {isMealCatalog && <div className="space-y-2"><Label htmlFor="catalog-order-url">Online ordering link</Label><Input id="catalog-order-url" value={menuOrderUrl} onChange={event => setMenuOrderUrl(event.target.value)} placeholder="https://…" className="h-11" /><p className="text-xs text-muted-foreground">Visitors browse here and complete their order on this website.</p></div>}
+              <MenuBlockEditor sections={menuSections} onSectionsChange={setMenuSections} showNutrition={isMealCatalog} />
             </div>
           )}
 
