@@ -36,6 +36,9 @@ import { parseMenuContent } from "@/lib/menuBlock";
 import { hasLasIslasMenu } from "@/lib/lasIslasMenu";
 import originalMenu from "@/assets/las-islas-menu-mar26.pdf.asset.json";
 import { LocationsBlock } from "@/components/personal/LocationsBlock";
+import { ManagedLocationBanner, ManagedLocationsBlock, ManagedSmsBlock } from "@/components/personal/ManagedHubBlocks";
+import { useManagedHub } from "@/hooks/useManagedHub";
+import { isManagedLocationsBlock, profileLocationUrl } from "@/lib/profileLocations";
 import { resolveHubContrast, type HubContrast } from "@/lib/hubContrast";
 import { logoImageStyle } from "@/lib/logoHeader";
 import { sampleBottomEdgeColor } from "@/lib/sampleBannerColor";
@@ -440,13 +443,19 @@ const SocialIconBar = memo(function SocialIconBar({
 const ProfileBlock = memo(function ProfileBlock({ 
   block,
   profileId,
+  username,
   isDarkBg,
-  textColor
+  textColor,
+  accentColor,
+  privatePreview = false
 }: { 
   block: { id: string; block_type: string; content: unknown; alignment: string | null };
   profileId?: string;
+  username?: string;
   isDarkBg?: boolean;
   textColor?: string | null;
+  accentColor?: string | null;
+  privatePreview?: boolean;
 }) {
   const [emailSubmitting, setEmailSubmitting] = useState(false);
   const [emailSubmitted, setEmailSubmitted] = useState(false);
@@ -726,6 +735,7 @@ const ProfileBlock = memo(function ProfileBlock({
       );
     }
     case "sms_subscribe": {
+      if (String(content.managed) === "true" && profileId && username) return <ManagedSmsBlock profileId={profileId} username={username} content={content} accentColor={accentColor} isPreview={privatePreview} />;
       const isLegacy = content.style === undefined;
       const buttonOnly = content.style === "button";
       const headline = ((content.headline as string) ?? "").trim() || (isLegacy ? "Join our VIP Text List" : "");
@@ -783,6 +793,7 @@ const ProfileBlock = memo(function ProfileBlock({
       return <MenuDisplay menu={menu} isDarkBg={isDarkBg} textColor={textColor} />;
     }
     case "locations": {
+      if (String(content.managed) === "true" && profileId && username) return <ManagedLocationsBlock profileId={profileId} username={username} content={content} textColor={textColor} isPreview={privatePreview} />;
       return (
         <LocationsBlock content={content} isDarkBg={isDarkBg} textColor={textColor} />
       );
@@ -862,13 +873,17 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile, privatePreview 
   
   // Use optimized data fetching with caching. Pass initialProfile to skip redundant query
   const { data, loading, error, expiredPreview } = useProfileData(username, initialProfile, privatePreview);
+  const hasManagedLocations = !!data?.blocks.some(isManagedLocationsBlock);
+  const managedHub = useManagedHub(data?.profile.id, hasManagedLocations);
+  const activeLocationId = hasManagedLocations ? managedHub.selectedLocation?.id : undefined;
+  const currentHubUrl = data?.profile ? profileLocationUrl(data.profile.username, activeLocationId) : "";
 
   // Track visit after data loads (non-blocking)
   useEffect(() => {
-    if (data?.profile?.id) {
-      trackProfileVisit(data.profile.id);
+    if (data?.profile?.id && !privatePreview && (!hasManagedLocations || !managedHub.loading)) {
+      trackProfileVisit(data.profile.id, activeLocationId);
     }
-  }, [data?.profile?.id]);
+  }, [data?.profile?.id, privatePreview, hasManagedLocations, managedHub.loading, activeLocationId]);
 
   // Preload critical images via <link rel="preload"> tags
   useEffect(() => {
@@ -945,7 +960,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile, privatePreview 
 
   const handleShare = useCallback(() => {
     if (!data?.profile) return;
-    const shareUrl = `https://tapaway.co/${data.profile.username}`;
+    const shareUrl = currentHubUrl;
     // Mobile-first: use the native share sheet when available, fall back to
     // the in-app share drawer/modal otherwise.
     if (typeof navigator !== "undefined" && (navigator as any).share) {
@@ -962,7 +977,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile, privatePreview 
       return;
     }
     setShowShareModal(true);
-  }, [data?.profile]);
+  }, [data?.profile, currentHubUrl]);
 
   const handleSaveContact = useCallback(async () => {
     setShowContactTooltip(false);
@@ -1469,6 +1484,8 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile, privatePreview 
               )}
           </div>
 
+          {hasManagedLocations && !privatePreview && <ManagedLocationBanner profileId={profile.id} username={profile.username} />}
+
           {/* Links section */}
           <div>
             {/* Lead Form CTA */}
@@ -1505,7 +1522,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile, privatePreview 
                   const currentIndex = linkIndex++;
                   return <ProfileLink key={`link-${item.data.id}`} link={item.data} profileId={profile.id} index={currentIndex} profilePhotoUrl={profile.profile_photo_url} accentColor={profileAccentColor} contrast={hubContrast} />;
                 } else {
-                  return <ProfileBlock key={`block-${item.data.id}`} block={item.data} profileId={profile.id} isDarkBg={isDarkBg} textColor={profileTextColor} />;
+                  return <ProfileBlock key={`block-${item.data.id}`} block={item.data} profileId={profile.id} username={profile.username} isDarkBg={isDarkBg} textColor={profileTextColor} accentColor={profileAccentColor} privatePreview={privatePreview} />;
                 }
               });
               })()}
@@ -1522,7 +1539,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile, privatePreview 
           {/* Footer */}
           <footer className="mt-6 pb-4 text-center space-y-3">
             <div className="hub-footer-actions">
-            {!privatePreview && <SaveHub key={profile.id} slug={profile.username} name={profile.full_name || profile.contact_company || profile.contact_name || profile.username} logo={profile.profile_photo_url} />}
+            {!privatePreview && <SaveHub key={`${profile.id}-${activeLocationId || "main"}`} slug={profile.username} name={`${profile.full_name || profile.contact_company || profile.contact_name || profile.username}${managedHub.selectedLocation ? ` · ${managedHub.selectedLocation.name}` : ""}`} logo={profile.profile_photo_url} locationId={activeLocationId} />}
             {/* Glass Pill CTA. Hidden on client-branded master location hubs */}
             {!isMasterLocationsHub && (
             <motion.div 
@@ -1576,7 +1593,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile, privatePreview 
       {/* Desktop-only QR code - positioned outside the phone frame */}
       <div className="hidden md:flex fixed bottom-8 right-8 bg-white p-4 rounded-2xl shadow-xl flex-col items-center gap-2 z-50">
         <QRCode 
-          value={`https://tapaway.co/${profile.username}`} 
+          value={currentHubUrl}
           size={100}
           level="M"
         />
@@ -1593,7 +1610,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile, privatePreview 
           profile_photo_url: profile.profile_photo_url,
           header_image_url: profile.header_image_url,
         }}
-        shareUrl={`https://tapaway.co/${profile.username}`}
+        shareUrl={currentHubUrl}
       />
     </div>
   );

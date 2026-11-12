@@ -290,6 +290,16 @@ Deno.serve(async (req) => {
       if (typeof value === "string") props[key] = value.slice(0, 120);
       else if (value === null || typeof value === "boolean" || typeof value === "number" && Number.isFinite(value)) props[key] = value as number | boolean | null;
     }
+    // Fridge attribution is meaningful only for a location owned by this hub.
+    // Never accept another merchant's location or an arbitrary label as fact.
+    if (Object.prototype.hasOwnProperty.call(props, "location_id")) {
+      const locationId = isUuid(props.location_id);
+      if (locationId && hubId && hubKind === "solo") {
+        const { data: location, error: locationError } = await admin.from("profile_locations")
+          .select("id").eq("id", locationId).eq("profile_id", hubId).eq("is_active", true).maybeSingle();
+        if (locationError || !location) delete props.location_id;
+      } else delete props.location_id;
+    }
 
     const row = {
       event_id: eventId,

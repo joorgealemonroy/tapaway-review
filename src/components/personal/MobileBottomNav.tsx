@@ -1,4 +1,4 @@
-import { Link2, Palette, BarChart3, MoreHorizontal, Mail, MessageSquare, Sparkles, Users, CreditCard, Moon, Sun, ArrowLeftRight, LayoutDashboard } from "lucide-react";
+import { Link2, Palette, BarChart3, MoreHorizontal, Mail, MessageSquare, Sparkles, Users, CreditCard, Moon, Sun, ArrowLeftRight, LayoutDashboard, MapPin } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
 import { useState, useEffect } from "react";
@@ -18,6 +18,7 @@ interface MobileBottomNavProps {
   activeProfileId?: string;
   onSwitchProfile?: (profileId: string) => void;
   isTrialing?: boolean;
+  hasLocations?: boolean;
 }
  
  const PRIMARY_TABS = [
@@ -35,12 +36,13 @@ const BASE_MORE_TABS = [
 ];
 
  
-export const MobileBottomNav = ({ activeTab, onTabChange, isAffiliate, allProfiles = [], activeProfileId, onSwitchProfile, isTrialing = false }: MobileBottomNavProps) => {
+export const MobileBottomNav = ({ activeTab, onTabChange, isAffiliate, allProfiles = [], activeProfileId, onSwitchProfile, isTrialing = false, hasLocations = false }: MobileBottomNavProps) => {
   const [moreOpen, setMoreOpen] = useState(false);
   const navigate = useNavigate();
   useEffect(() => { document.documentElement.classList.remove("dark"); }, []);
 
   const MORE_TABS = [
+    ...(hasLocations ? [{ value: "locations", label: "Locations", icon: MapPin, description: "Manage fridge locations and QR codes" }] : []),
     ...BASE_MORE_TABS.filter(t => !(isTrialing && t.value === "cards")),
     ...(isAffiliate ? [{ value: "affiliate", label: "Affiliate", icon: Users, description: "Your affiliate dashboard" }] : []),
   ];

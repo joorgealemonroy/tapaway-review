@@ -6,17 +6,17 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 import { hubSaveDevice, isEmbeddedBrowser, publicHubUrl, type HubSaveDevice } from "@/lib/hubSave";
 import "./save-hub.css";
 
-interface SaveHubProps { slug: string; name: string; logo?: string | null; }
+interface SaveHubProps { slug: string; name: string; logo?: string | null; locationId?: string | null; }
 
 /** Home-screen shortcuts work without an account, an app download or a cached hub. */
-export function SaveHub({ slug, name, logo }: SaveHubProps) {
+export function SaveHub({ slug, name, logo, locationId }: SaveHubProps) {
   const [open, setOpen] = useState(false);
   const [device, setDevice] = useState<HubSaveDevice>(() => hubSaveDevice(navigator.userAgent, navigator.maxTouchPoints));
   const [copied, setCopied] = useState(false);
   const [copyFailed, setCopyFailed] = useState(false);
   const [standalone, setStandalone] = useState(false);
   const embedded = isEmbeddedBrowser(navigator.userAgent) || (device === "iphone" && /CriOS|FxiOS|EdgiOS|OPiOS/.test(navigator.userAgent));
-  const url = publicHubUrl(slug);
+  const url = publicHubUrl(slug) + (locationId && /^[0-9a-f-]{36}$/i.test(locationId) ? `?location=${encodeURIComponent(locationId)}` : "");
   const title = name.trim() || slug;
 
   useEffect(() => {

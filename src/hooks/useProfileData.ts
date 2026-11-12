@@ -246,6 +246,6 @@ export function useProfileData(username: string | undefined, initialProfile?: Ca
  * deduplicates remounts/refreshes and classifies bot/internal/preview traffic
  * server-side. It no longer inserts into personal_analytics directly.
  */
-export function trackProfileVisit(profileId: string): void {
-  trackEvent('hub_view', { hubId: profileId, hubKind: 'solo' });
+export function trackProfileVisit(profileId: string, locationId?: string): void {
+  trackEvent('hub_view', { hubId: profileId, hubKind: 'solo', ...(locationId ? { props: { location_id: locationId } } : {}) });
 }

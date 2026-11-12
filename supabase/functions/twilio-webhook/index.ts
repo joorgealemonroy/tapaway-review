@@ -21,6 +21,8 @@ const OPT_OUT_KEYWORDS = new Set([
   "CANCEL",
   "QUIT",
   "END",
+  "REVOKE",
+  "OPTOUT",
 ]);
 
 function twiml(status = 200) {
@@ -68,6 +70,7 @@ Deno.serve(async (req) => {
     const raw = await readLimitedText(req, 16000);
     const params = new URLSearchParams(raw);
     const from = (params.get("From") ?? "").trim();
+    const to = (params.get("To") ?? "").trim();
     const body = (params.get("Body") ?? "").trim();
     const keyword = body.toUpperCase();
 
@@ -87,7 +90,7 @@ Deno.serve(async (req) => {
     }
 
 
-    if (!from || !OPT_OUT_KEYWORDS.has(keyword)) {
+    if (!from || (!OPT_OUT_KEYWORDS.has(keyword) && params.get("OptOutType")?.toUpperCase() !== "STOP")) {
       return twiml(200);
     }
 
@@ -102,37 +105,26 @@ Deno.serve(async (req) => {
       auth: { persistSession: false },
     });
 
-    // Opt out across BOTH subscriber tables in parallel
-    const [personalRes, restaurantRes] = await Promise.all([
-      admin
-        .from("personal_email_captures")
-        .update({ sms_opt_in: false })
-        .eq("phone", from)
-        .select("id"),
-      admin
-        .from("restaurant_sms_subscribers")
-        .update({ sms_opt_in: false })
-        .eq("phone", from)
-        .select("id"),
-    ]);
-
-    if (personalRes.error) {
-      console.error("twilio-webhook personal update failed", personalRes.error);
-    } else {
-      console.log(
-        `twilio-webhook opted out ${personalRes.data?.length ?? 0} personal row(s)`,
-      );
+    // Dedicated merchant senders revoke only that merchant's topic/location
+    // permissions. The signed To number selects the merchant, never a caller ID
+    // or an untrusted profile field. Legacy shared-sender handling stays below.
+    if (to) {
+      const { data: managed, error: managedError } = await admin.rpc("revoke_profile_location_sms", {
+        p_sender_number: to, p_phone: from,
+      });
+      if (managedError) return twiml(503);
+      const sharedSender = Deno.env.get("TWILIO_FROM_NUMBER") || "";
+      const alsoSharedSender = sharedSender && to.replace(/\D/g, "") === sharedSender.replace(/\D/g, "");
+      // An accidental sender collision must not suppress STOP for legacy
+      // recipients. Sending from such a configuration is blocked separately.
+      if (managed === true && !alsoSharedSender) return twiml(200);
     }
 
-    if (restaurantRes.error) {
-      console.error("twilio-webhook restaurant update failed", restaurantRes.error);
-    } else {
-      console.log(
-        `twilio-webhook opted out ${restaurantRes.data?.length ?? 0} restaurant row(s)`,
-      );
-    }
-
-    return twiml(personalRes.error || restaurantRes.error ? 503 : 200);
+    // Atomically exclude every managed merchant from the old shared-number
+    // opt-out. A reply to TapAway's number must not disable a different brand.
+    const { error: legacyError } = await admin.rpc("revoke_legacy_shared_sms", { p_phone: from });
+    if (legacyError) console.error("twilio-webhook legacy opt-out could not be recorded");
+    return twiml(legacyError ? 503 : 200);
   } catch (err) {
     console.error("twilio-webhook unexpected error", err);
     return twiml(200);

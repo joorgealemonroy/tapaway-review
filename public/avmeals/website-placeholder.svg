@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="520" viewBox="0 0 800 520">
+  <rect width="800" height="520" fill="#edf3eb"/>
+  <circle cx="730" cy="70" r="230" fill="#dfead8"/>
+  <circle cx="60" cy="490" r="180" fill="#e3eddc"/>
+  <g fill="none" stroke="#005b32" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="319" y="134" width="162" height="150" rx="16"/>
+    <path d="M319 176h162M350 154h1m21 0h1m21 0h1M353 212h94M353 240h65"/>
+  </g>
+  <text x="400" y="348" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="35" fill="#005b32">Explore our menu</text>
+  <text x="400" y="392" text-anchor="middle" font-family="Arial,sans-serif" font-size="23" fill="#4f6854">A.V. Meal Prep</text>
+</svg>

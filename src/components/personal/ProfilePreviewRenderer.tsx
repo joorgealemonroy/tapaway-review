@@ -11,6 +11,7 @@ import { sanitizeUrl } from "@/lib/sanitizeUrl";
 import MarketingExamplesCard from "./MarketingExamplesCard";
 import { parseMenuContent } from "@/lib/menuBlock";
 import { LocationsBlock } from "./LocationsBlock";
+import { ManagedLocationsBlock, ManagedSmsBlock } from "./ManagedHubBlocks";
 
 
 
@@ -667,6 +668,7 @@ function ProfilePreviewRendererComponent({
         );
       }
       case "sms_subscribe": {
+        if (String(content.managed) === "true") return <ManagedSmsBlock key={block.id} profileId={profile.id} username={profile.username} content={content} accentColor={profile.button_theme} isPreview />;
         const isLegacy = content.style === undefined;
         const buttonOnly = content.style === "button";
         const headline = ((content.headline as string) ?? "").trim() || (isLegacy ? "Join our VIP Text List" : "");
@@ -709,6 +711,7 @@ function ProfilePreviewRendererComponent({
         );
       }
       case "locations": {
+        if (String(content.managed) === "true") return <ManagedLocationsBlock key={block.id} profileId={profile.id} username={profile.username} content={content} textColor={profile.text_color} isPreview />;
         return (
           <div key={block.id}>
             <LocationsBlock

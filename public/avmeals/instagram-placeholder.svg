@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="520" viewBox="0 0 800 520">
+  <rect width="800" height="520" fill="#e8efe6"/>
+  <circle cx="40" cy="30" r="220" fill="#dce8d7"/>
+  <circle cx="770" cy="510" r="210" fill="#e0ebdb"/>
+  <g fill="none" stroke="#005b32" stroke-width="8" stroke-linecap="round">
+    <rect x="325" y="134" width="150" height="150" rx="39"/>
+    <circle cx="400" cy="209" r="36"/>
+    <circle cx="446" cy="164" r="5" fill="#005b32" stroke="none"/>
+  </g>
+  <text x="400" y="348" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="35" fill="#005b32">Follow our kitchen</text>
+  <text x="400" y="392" text-anchor="middle" font-family="Arial,sans-serif" font-size="23" fill="#4f6854">@a.v.mealpreps</text>
+</svg>

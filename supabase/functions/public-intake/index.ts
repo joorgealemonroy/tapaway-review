@@ -25,7 +25,7 @@ serve(async req => {
     let body;
     try { body = JSON.parse(await readLimitedText(req, 16000)); } catch { return json({ error: "Please check your details and try again." }, 400); }
     if (typeof body?.website === "string" && body.website.trim()) return json({ success: true });
-    if (!body || !["capture", "support", "rep_application", "sms_signup"].includes(body.action)) return json({ error: "Unknown request." }, 400);
+    if (!body || !["capture", "support", "rep_application", "sms_signup", "location_sms_subscribe"].includes(body.action)) return json({ error: "Unknown request." }, 400);
     const action = body.action as string;
     if (await takeQuota(req, `intake-${action}-network`, action === "rep_application" ? 3 : 10) < 0 ||
         await takeQuota(req, "intake-global", 2000, "all") < 0) return json({ error: "Please try again later." }, 429);
@@ -34,7 +34,31 @@ serve(async req => {
     if ((body.name && !name) || (body.email && (!email || !emailValid(email))) || phone === null)
       return json({ error: "Please check your name and contact details." }, 400);
 
-    if (action === "capture" || action === "sms_signup") {
+    if (action === "location_sms_subscribe") {
+      const profileId = typeof body.profileId === "string" && UUID.test(body.profileId) ? body.profileId : "";
+      const locationId = body.locationId == null || body.locationId === "" ? null : body.locationId;
+      if (!profileId || (locationId !== null && (typeof locationId !== "string" || !UUID.test(locationId))))
+        return json({ error: "This hub or location is unavailable." }, 400);
+      if (!phone || !/^\+[1-9]\d{6,14}$/.test(phone) || (body.restockConsent !== true && body.orderingConsent !== true)
+        || !Number.isInteger(body.consentVersion) || body.consentVersion < 1)
+        return json({ error: "Add your phone number and choose the texts you want to receive." }, 400);
+      if (await takeQuota(req, "intake-contact", 3, phone) < 0 || await takeQuota(req, "intake-profile", 150, profileId) < 0)
+        return json({ error: "Please try again later." }, 429);
+      // The database checks active profile/location ownership, exact current
+      // consent version, and deduplicates this phone without trusting client copy.
+      const { error } = await db.rpc("record_profile_location_sms_opt_in", {
+        p_profile_id: profileId, p_location_id: locationId, p_phone: phone, p_name: name || null,
+        p_restock_consent: body.restockConsent === true, p_ordering_consent: body.orderingConsent === true,
+        p_consent_version: body.consentVersion, p_user_agent: text(req.headers.get("user-agent"), 500) || null,
+      });
+      if (error?.code === "22023") {
+        const allowed = ["This hub is unavailable", "Text signup is still being prepared", "Please refresh the signup form and review the updated consent",
+          "Please check your phone number and text preferences", "This location is unavailable", "Choose an available location for restock alerts",
+          "Contact data changed. Please contact this business."];
+        return json({ error: allowed.includes(error.message) ? error.message : "Please reload the form and check your preferences." }, 400);
+      }
+      if (error) throw new Error("Location signup unavailable");
+    } else if (action === "capture" || action === "sms_signup") {
       const marketing = body.marketingConsent === true, transactional = body.transactionalConsent === true;
       const marketingText = text(body.marketingText, 2000), transactionalText = text(body.transactionalText, 2000);
       if ((!email && !phone) || ((marketing || transactional) && !phone) || (marketing && !marketingText) || (transactional && !transactionalText))

@@ -92,6 +92,8 @@ export const BlockModal = ({
   planType,
   onUpgrade,
 }: Props) => {
+  const isManagedBlock = !!editingBlock?.content && typeof editingBlock.content === "object" &&
+    String((editingBlock.content as Record<string, unknown>).managed) === "true";
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   
@@ -834,9 +836,14 @@ export const BlockModal = ({
               description: smsDescription.trim(),
               buttonText: smsButtonText.trim() || "Join the VIP List",
             };
+        if (isManagedBlock) content.managed = "true";
         break;
       }
       case "locations": {
+        if (isManagedBlock) {
+          content = { managed: "true", title: locationsTitle.trim(), subtitle: locationsSubtitle.trim(), ctaLabel: locationsCta.trim() || DEFAULT_LOCATIONS_CTA };
+          break;
+        }
         const cleanedLocations = locations
           .map((l) => ({
             name: (l.name ?? "").trim(),
@@ -1422,8 +1429,8 @@ export const BlockModal = ({
               <div className="rounded-lg bg-muted/50 p-3 flex items-start gap-2">
                 <MapPin className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
                 <p className="text-xs text-muted-foreground">
-                  Great for multi-location owners. Enter a TapAway slug (like <span className="font-medium">islasmarias</span>) to
-                  jump straight to that hub, or paste a full web address for an outside link.
+                  {isManagedBlock ? "Edit this section's wording here. Add, edit, or archive your fridge locations in the Locations tab of your dashboard." : <>Great for multi-location owners. Enter a TapAway slug (like <span className="font-medium">islasmarias</span>) to
+                  jump straight to that hub, or paste a full web address for an outside link.</>}
                 </p>
               </div>
 
@@ -1458,7 +1465,7 @@ export const BlockModal = ({
                 />
               </div>
 
-              <div className="space-y-3">
+              {!isManagedBlock && <><div className="space-y-3">
                 {locations.map((loc, index) => {
                   const dest = resolveLocationDestination(loc.destination);
                   return (
@@ -1572,7 +1579,7 @@ export const BlockModal = ({
 
               <Button type="button" variant="outline" className="w-full" onClick={addLocation}>
                 <Plus className="h-4 w-4 mr-1.5" /> Add location
-              </Button>
+              </Button></>}
             </div>
           )}
 

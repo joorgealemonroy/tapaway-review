@@ -323,6 +323,13 @@
       "when": 1794006960000,
       "tag": "0045_migrated_hub_historical_reports",
       "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1794463200000,
+      "tag": "0046_profile_locations_and_sms",
+      "breakpoints": true
     }
   ]
 }

@@ -78,20 +78,6 @@ Deno.serve(async (req) => {
       });
       return json(500, { error: "Server configuration error (Supabase)" });
     }
-    if (!LOVABLE_API_KEY) {
-      console.error("send-mass-sms misconfigured: LOVABLE_API_KEY is not set");
-      return json(500, { error: "LOVABLE_API_KEY not configured" });
-    }
-    if (!TWILIO_API_KEY) {
-      console.error("send-mass-sms misconfigured: TWILIO_API_KEY is not set (Twilio not connected)");
-      return json(500, { error: "Twilio is not connected" });
-    }
-    if (!TWILIO_FROM_NUMBER) {
-      console.error("send-mass-sms misconfigured: TWILIO_FROM_NUMBER is not set");
-      return json(500, { error: "TWILIO_FROM_NUMBER is not configured" });
-    }
-
-
     // ---- Authn ----
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) return json(401, { error: "Unauthorized" });
@@ -153,6 +139,10 @@ Deno.serve(async (req) => {
     };
     let campaignTable = "";
     let campaignRow: Record<string, any> = {};
+    let managedProgram = false;
+    let campaignType: "restock" | "ordering" | null = null;
+    let locationId: string | null = null;
+    let sendFromNumber = TWILIO_FROM_NUMBER;
 
     if (profileId) {
       // ---- Personal flow ----
@@ -170,14 +160,42 @@ Deno.serve(async (req) => {
         if (active !== true) return json(403, { error: "Your messaging tools need an active plan. Open Billing or contact TapAway." });
       }
 
-      const { data: recipients, error: recErr } = await admin
-        .from("personal_email_captures")
-        .select("phone")
-        .eq("profile_id", profileId)
-        .eq("sms_opt_in", true)
-        .eq(consentColumn, true)
-        .not("phone", "is", null);
-      if (recErr) return json(500, { error: "Failed to load recipients" });
+      // New managed programs must use their own approved sender and exact
+      // merchant/topic consent. They cannot fall back to the generic VIP list.
+      const { data: program, error: programError } = await admin.from("profile_sms_programs")
+        .select("brand_name,sender_status,sender_number,registration_reference,sender_verified_at,opt_out_webhook_verified_at")
+        .eq("profile_id", profileId).maybeSingle();
+      if (programError) return json(503, { error: "Messaging setup is temporarily unavailable." });
+      let recipients: { phone: unknown }[] = [];
+      if (program) {
+        managedProgram = true;
+        if (program.sender_status !== "ready" || !/^\+[1-9]\d{6,14}$/.test(program.sender_number || "")
+          || !program.registration_reference || !program.sender_verified_at || !program.opt_out_webhook_verified_at
+          || (TWILIO_FROM_NUMBER && normalizePhone(program.sender_number || "") === normalizePhone(TWILIO_FROM_NUMBER))) {
+          return json(409, { code: "SMS_SENDER_NOT_READY", error: "Your text list is ready to grow. Sending will open after your business sender is verified." });
+        }
+        if (isReviewRequest || !["restock", "ordering"].includes(body.campaign_type))
+          return json(400, { error: "Choose restock alerts or weekly ordering reminders for this audience." });
+        campaignType = body.campaign_type;
+        locationId = body.location_id == null || body.location_id === "" ? null : body.location_id;
+        if ((locationId !== null && (typeof locationId !== "string" || !UUID_RE.test(locationId)))
+          || (campaignType === "ordering" && locationId !== null))
+          return json(400, { error: "Choose a valid location audience." });
+        if (campaignType === "restock" && body.confirmed_restock !== true)
+          return json(400, { error: "Confirm the selected locations have been restocked before sending." });
+        const result = await admin.rpc("get_profile_location_sms_recipients", {
+          p_profile_id: profileId, p_campaign_type: campaignType, p_location_id: locationId,
+        });
+        if (result.error) return json(result.error.code === "22023" ? 400 : 503, { error: "This text audience is unavailable. Check the selected location." });
+        recipients = result.data || [];
+        sendFromNumber = program.sender_number;
+        senderName = program.brand_name;
+      } else {
+        const result = await admin.from("personal_email_captures").select("phone")
+          .eq("profile_id", profileId).eq("sms_opt_in", true).eq(consentColumn, true).not("phone", "is", null);
+        if (result.error) return json(500, { error: "Failed to load recipients" });
+        recipients = result.data || [];
+      }
 
       recipientTable = "personal_email_captures";
       recipientOwnerColumn = "profile_id";
@@ -190,7 +208,7 @@ Deno.serve(async (req) => {
         ),
       );
 
-      senderName =
+      if (!managedProgram) senderName =
         (profile.full_name && String(profile.full_name).trim()) ||
         (profile.contact_name && String(profile.contact_name).trim()) ||
         (profile.username ? `@${profile.username}` : "TapAway");
@@ -201,6 +219,7 @@ Deno.serve(async (req) => {
         user_id: userId,
         message,
         recipient_count: phones.length,
+        ...(managedProgram ? { campaign_type: campaignType, location_id: locationId } : {}),
       };
     } else {
       // ---- Restaurant flow ----
@@ -250,6 +269,8 @@ Deno.serve(async (req) => {
       };
     }
 
+    if (!LOVABLE_API_KEY || !TWILIO_API_KEY || !sendFromNumber)
+      return json(503, { error: "Messaging connection is not ready. Please contact TapAway." });
 
     // ---- Review-request dedup: one SMS per phone number per business, ever.
     // Check the send log BEFORE sending; numbers already texted a review
@@ -325,6 +346,7 @@ Deno.serve(async (req) => {
     const BATCH = 10;
     let success = 0;
     let failure = 0;
+    let skippedOptOuts = 0;
 
     for (let i = 0; i < eligiblePhones.length; i += BATCH) {
       const batch = eligiblePhones.slice(i, i + BATCH);
@@ -335,11 +357,19 @@ Deno.serve(async (req) => {
           try {
             // Consent can be revoked after the initial audience snapshot. Recheck
             // the same program immediately before each individual provider send.
-            const { data: currentConsent, error: consentError } = await admin.from(recipientTable)
-              .select("phone").eq(recipientOwnerColumn, ownerId).eq("sms_opt_in", true)
-              .eq(consentColumn, true).in("phone", contactVariants.get(to) || []).limit(1);
-            if (consentError) throw new Error("Consent lookup unavailable");
-            if (!currentConsent?.length) return null;
+            if (managedProgram) {
+              const { data: allowed, error: consentError } = await admin.rpc("profile_location_sms_recipient_allowed", {
+                p_profile_id: profileId, p_phone: to, p_campaign_type: campaignType, p_location_id: locationId, p_sender_number: sendFromNumber,
+              });
+              if (consentError) throw new Error("Consent lookup unavailable");
+              if (allowed !== true) { skippedOptOuts++; return null; }
+            } else {
+              const { data: currentConsent, error: consentError } = await admin.from(recipientTable)
+                .select("phone").eq(recipientOwnerColumn, ownerId).eq("sms_opt_in", true)
+                .eq(consentColumn, true).in("phone", contactVariants.get(to) || []).limit(1);
+              if (consentError) throw new Error("Consent lookup unavailable");
+              if (!currentConsent?.length) return null;
+            }
             if (await takeQuota(req, "sms-recipient-account", 500, userId) < 0 || await takeQuota(req, "sms-recipient-global", 2000, "all-accounts") < 0) return false;
             // Reserve BEFORE sending: a unique business/phone constraint prevents
             // concurrent requests from texting the same review request twice.
@@ -359,7 +389,7 @@ Deno.serve(async (req) => {
               },
               body: new URLSearchParams({
                 To: to,
-                From: TWILIO_FROM_NUMBER,
+                From: sendFromNumber,
                 Body: fullMessage,
               }),
             });
@@ -386,13 +416,14 @@ Deno.serve(async (req) => {
 
     await admin
       .from(campaignTable)
-      .update({ success_count: success, failure_count: failure })
+      .update({ success_count: success, failure_count: failure, ...(managedProgram ? { recipient_count: success + failure } : {}) })
       .eq("id", campaign.id);
 
     return json(200, {
-      recipient_count: eligiblePhones.length,
+      recipient_count: managedProgram ? success + failure : eligiblePhones.length,
       success_count: success,
       failure_count: failure,
+      ...(managedProgram ? { skipped_opt_outs: skippedOptOuts } : {}),
       ...(isReviewRequest ? { skipped_duplicates: skippedDuplicates, review_request: true } : {}),
     });
   } catch (err) {
