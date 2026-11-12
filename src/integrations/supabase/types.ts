@@ -2674,6 +2674,59 @@ export type Database = {
         }
         Relationships: []
       }
+      legacy_hub_migrations: {
+        Row: {
+          migrated_at: string
+          original_slug: string
+          profile_id: string
+          restaurant_id: string
+          restaurant_snapshot: Json
+        }
+        Insert: {
+          migrated_at?: string
+          original_slug: string
+          profile_id: string
+          restaurant_id: string
+          restaurant_snapshot: Json
+        }
+        Update: {
+          migrated_at?: string
+          original_slug?: string
+          profile_id?: string
+          restaurant_id?: string
+          restaurant_snapshot?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "legacy_hub_migrations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "personal_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "legacy_hub_migrations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "personal_profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "legacy_hub_migrations_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: true
+            referencedRelation: "restaurant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "legacy_hub_migrations_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: true
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       link_check_runs: {
         Row: {
           created_at: string
