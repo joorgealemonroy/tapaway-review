@@ -6522,6 +6522,7 @@ export type Database = {
         }[]
       }
       get_hub_payment_offer: { Args: { _slug: string }; Returns: Json }
+      get_hub_slug_redirect: { Args: { _slug: string }; Returns: string | null }
       get_profile_location_sms_recipients: {
         Args: {
           p_campaign_type: string

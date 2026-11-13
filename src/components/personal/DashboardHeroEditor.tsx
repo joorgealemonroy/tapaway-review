@@ -10,7 +10,6 @@ import { cn } from "@/lib/utils";
 import { invalidateProfileCache } from "@/hooks/useProfileCache";
 import { isUsernameReserved } from "@/lib/reservedUsernames";
 import { getPublicUsername } from "@/lib/personalUsername";
-import { toast } from "sonner";
 
 export interface HeroSnapshot {
   name: string;
@@ -209,24 +208,9 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
 
     if (error) throw error;
 
-    // If username changed, sync NFC cards
+    // The database updates NFC destinations and retains old links in the same
+    // transaction as the slug. It uses the hub owner, including in admin view.
     if (usernameChanged) {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user && planType !== "personal_hosted") {
-        const { error: nfcError } = await supabase
-          .from("nfc_cards")
-          .update({ destination_value: newPublicUsername })
-          .eq("owner_user_id", user.id)
-          .eq("destination_value", username)
-          .eq("destination_type", "profile");
-        if (nfcError) {
-          // Profile already saved. Don't throw, but the user must know
-          // their physical cards still point at the old username.
-          console.error("Failed to sync NFC cards with new username:", nfcError);
-          toast.error("Profile saved, but your NFC cards couldn't be updated. Contact support so they still point to your new URL.");
-        }
-      }
-
       invalidateProfileCache(username);
       invalidateProfileCache(newPublicUsername);
     } else {
@@ -329,7 +313,7 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
           </div>
           {usernameLocked ? (
             <p className="text-xs text-muted-foreground">
-              Username is locked once your hub is approved.
+              Only an administrator can change the URL after approval.
             </p>
           ) : (
             <>
@@ -339,7 +323,7 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
               {usernameChanged && usernameStatus === "available" && (
                 <div className="flex items-start gap-1.5 text-xs text-amber-600">
                   <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-                  <span>{planType === "personal_hosted" ? "Your printed TapAway cards keep working when you change this address." : "Changing your username will update your profile URL and all linked cards"}</span>
+                  <span>Your old URL and printed TapAway cards will keep working.</span>
                 </div>
               )}
             </>

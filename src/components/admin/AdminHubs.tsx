@@ -13,8 +13,10 @@ import RequireHubPaymentDialog, { type HubPaymentTarget } from "./RequireHubPaym
 import SubscriptionInvitationDialog, { type SubscriptionInvitationTarget } from "./SubscriptionInvitationDialog";
 import { canInviteSubscription } from "../../../shared/subscriptionInvitation";
 import { Button } from "@/components/ui/button";
+import ChangeHubSlugDialog from "./ChangeHubSlugDialog";
 export default function AdminHubs() {
   const hubs = useAdminHubs();
+  const [slugTarget, setSlugTarget] = useState<Hub | null>(null);
   const [paymentTarget, setPaymentTarget] = useState<HubPaymentTarget>(null);
   const [invitationTarget, setInvitationTarget] = useState<SubscriptionInvitationTarget>(null);
   const [search, setSearch] = useState(""),
@@ -149,6 +151,7 @@ export default function AdminHubs() {
               <Link className="aw-small-button" to={hubEditPath(h)}>
                 Edit hub <ArrowUpRight size={15} />
               </Link>
+              <Button variant="outline" size="sm" onClick={() => setSlugTarget(h)}>Change URL</Button>
               {h.slug && (
                 <a
                   href={`/${encodeURIComponent(h.slug)}`}
@@ -191,6 +194,7 @@ export default function AdminHubs() {
         icon only for accounts you’ve given free access.
       </p>
       <RequireHubPaymentDialog target={paymentTarget} onClose={() => setPaymentTarget(null)} onSaved={async () => { await hubs.refetch(); }} />
+      <ChangeHubSlugDialog target={slugTarget} onClose={() => setSlugTarget(null)} onSaved={async () => { await hubs.refetch(); }} />
       <SubscriptionInvitationDialog target={invitationTarget} onClose={() => setInvitationTarget(null)} />
     </>
   );

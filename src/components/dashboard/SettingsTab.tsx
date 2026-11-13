@@ -361,7 +361,7 @@ export const SettingsTab = ({ restaurantId }: SettingsTabProps) => {
               </p>
               <p className={`text-xs mt-1 ${isAdmin ? 'text-blue-700' : 'text-amber-700'}`}>
                 {isAdmin ? (
-                  <>✓ Admin: You can edit this slug. Use only lowercase letters, numbers, and hyphens.</>
+                  <>Admin: You can change this URL after approval. Old links and printed cards keep working.</>
                 ) : (
                   <>⚠️ Slug cannot be changed after creation. Contact TapAway support if needed.</>
                 )}
