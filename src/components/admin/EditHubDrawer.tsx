@@ -13,6 +13,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Loader2, Plus, Trash2, Lock } from "lucide-react";
+import { useAdminAccess } from "@/hooks/useAdminAccess";
+import { invalidateProfileCache } from "@/hooks/useProfileCache";
 
 export interface EditHubTarget {
   id: string;
@@ -36,6 +38,7 @@ interface Props {
 }
 
 const EditHubDrawer = ({ target, onClose, onSaved }: Props) => {
+  const { isAdmin, loading: adminLoading } = useAdminAccess();
   const [fullName, setFullName] = useState("");
   const [username, setUsername] = useState("");
   const [photoUrl, setPhotoUrl] = useState("");
@@ -44,7 +47,7 @@ const EditHubDrawer = ({ target, onClose, onSaved }: Props) => {
   const [loadingLinks, setLoadingLinks] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const usernameLocked = target?.is_approved === true;
+  const usernameLocked = adminLoading || (target?.is_approved === true && !isAdmin);
 
   useEffect(() => {
     if (!target) return;
@@ -118,7 +121,7 @@ const EditHubDrawer = ({ target, onClose, onSaved }: Props) => {
         profile_photo_url: photoUrl.trim() || null,
         print_notes: notes.trim() || null,
       };
-      if (!usernameLocked && username.trim()) {
+      if (!usernameLocked) {
         profilePatch.username = username.trim().replace(/^@/, "").toLowerCase();
       }
 
@@ -127,6 +130,8 @@ const EditHubDrawer = ({ target, onClose, onSaved }: Props) => {
         .update(profilePatch)
         .eq("id", target.id);
       if (error) throw error;
+      if (target.username) invalidateProfileCache(target.username);
+      if (typeof profilePatch.username === "string") invalidateProfileCache(profilePatch.username);
 
       await Promise.all(
         links.map((l) =>
@@ -141,7 +146,7 @@ const EditHubDrawer = ({ target, onClose, onSaved }: Props) => {
       onSaved?.();
       onClose();
     } catch (e) {
-      toast.error("Save failed: " + (e instanceof Error ? e.message : "unknown"));
+      toast.error("Save failed: " + (e && typeof e === "object" && "message" in e ? String(e.message) : "unknown"));
     } finally {
       setSaving(false);
     }
@@ -186,11 +191,9 @@ const EditHubDrawer = ({ target, onClose, onSaved }: Props) => {
               disabled={saving || usernameLocked}
               className="bg-white/[0.03] border-white/10 font-mono"
             />
-            {usernameLocked && (
-              <p className="text-[11px] text-amber-300/70">
-                Locked. This hub is approved and its link is already in circulation.
-              </p>
-            )}
+            <p className="text-[11px] text-white/60">
+              {usernameLocked ? "Only an administrator can change the URL after approval." : "Admin access: you can change approved hub URLs. Old links and printed cards keep working."}
+            </p>
           </div>
 
           <div className="space-y-1.5">

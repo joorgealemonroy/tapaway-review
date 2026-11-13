@@ -1,5 +1,5 @@
 import { useEffect, useState, memo } from "react";
-import { useParams, useLocation } from "react-router-dom";
+import { useParams, useLocation, Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import { isUsernameReserved } from "@/lib/reservedUsernames";
@@ -50,12 +50,14 @@ const UsernameResolver = () => {
 };
 
 const UsernameResolverInner = memo(({ slug, isAdminPreview, isRepPreview }: { slug?: string; isAdminPreview?: boolean; isRepPreview?: boolean }) => {
+  const location = useLocation();
   const { isAdmin, loading: adminLoading } = useAdminAccess();
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [resolvedType, setResolvedType] = useState<"personal" | "restaurant" | "notfound" | null>(null);
   const [resolvedProfile, setResolvedProfile] = useState<CachedProfile | null>(null);
   const [adminPreviewActive, setAdminPreviewActive] = useState(false);
+  const [redirectSlug, setRedirectSlug] = useState<string | null>(null);
 
   useEffect(() => {
     // Wait until admin status is resolved so we can auto-fallback to admin
@@ -67,6 +69,7 @@ const UsernameResolverInner = memo(({ slug, isAdminPreview, isRepPreview }: { sl
     setResolvedType(null);
     setResolvedProfile(null);
     setAdminPreviewActive(false);
+    setRedirectSlug(null);
     const complete = (type: "personal" | "restaurant" | "notfound", profile: CachedProfile | null = null, preview = false) => {
       if (cancelled) return;
       setResolvedProfile(profile);
@@ -163,7 +166,21 @@ const UsernameResolverInner = memo(({ slug, isAdminPreview, isRepPreview }: { sl
         return;
       }
 
-      complete(await resolveRestaurantType());
+      const restaurantType = await resolveRestaurantType();
+      if (restaurantType === "restaurant") {
+        complete(restaurantType);
+        return;
+      }
+      // Only missing addresses need an alias lookup. Normal live hubs keep
+      // their fast path; the destination still enforces its public access gate.
+      const { data: canonicalSlug, error: redirectError } = await supabase.rpc("get_hub_slug_redirect", { _slug: lowerSlug });
+      if (cancelled) return;
+      if (!redirectError && canonicalSlug && canonicalSlug !== lowerSlug && /^[a-z0-9_-]{1,80}$/.test(canonicalSlug) && !isUsernameReserved(canonicalSlug)) {
+        setRedirectSlug(canonicalSlug);
+        setLoading(false);
+        return;
+      }
+      complete("notfound");
     };
 
     resolve();
@@ -172,6 +189,10 @@ const UsernameResolverInner = memo(({ slug, isAdminPreview, isRepPreview }: { sl
 
   if (loading || adminLoading) {
     return <MinimalLoader />;
+  }
+
+  if (redirectSlug) {
+    return <Navigate to={{ pathname: `/${redirectSlug}`, search: location.search, hash: location.hash }} replace state={null} />;
   }
 
   if (resolvedType === "personal") {

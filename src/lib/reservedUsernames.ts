@@ -18,6 +18,11 @@ export const RESERVED_USERNAMES = new Set([
   "support",
   "terms",
   "trial-confirmed",
+  "c", "import", "select-dashboard", "onboarding-success", "onboarding-start",
+  "van-success", "claim", "acceptable-use", "affiliate-terms", "nfc-disclaimer",
+  "ai-disclaimer", "dmca", "cookie-policy", "dpa", "affiliate", "rep-checkout-success",
+  "compliance", "sms-signup", "restaurants", "barbershops", "salons", "cafes",
+  "auto-shops", "soniamonroy",
   
   // Common reserved
   "www",

@@ -1403,7 +1403,7 @@ const PersonalDashboard = () => {
               bio={profile.bio}
               planType={profile.plan_type}
               showUsername={profile.show_username ?? true}
-              usernameLocked={!!profile.is_approved && profile.plan_type !== "personal_hosted"}
+              usernameLocked={!!profile.is_approved && !isAdminView}
 
               onUpdate={(updates) => setProfile(prev => prev ? { ...prev, ...updates } : null)}
               onPendingChangesChange={setHeroHasPending}

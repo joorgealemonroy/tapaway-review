@@ -43,7 +43,7 @@ async function fixture(file) {
   const context = vm.createContext({ console, Promise, URLSearchParams, document: { querySelectorAll: () => [], createElement: () => ({}), head: { appendChild() {} } }, __react: life.react, __db: db, __route: route, __admin: admin, __auth: auth, __cache: (key, data) => cached.push({ key, data }), __invalidate: key => invalidated.push(key) });
   const mocks = {
     react: 'module.exports=globalThis.__react;',
-    'react-router-dom': 'export const useParams=()=>globalThis.__route; export const useLocation=()=>globalThis.__route;',
+    'react-router-dom': 'export const useParams=()=>globalThis.__route; export const useLocation=()=>globalThis.__route; export const Navigate="navigate";',
     '@/integrations/supabase/client': 'export const supabase=globalThis.__db;',
     '@/lib/analytics': 'export const track=()=>{};',
     './useProfileCache': 'export const setCachedProfile=globalThis.__cache; export const invalidateProfileCache=globalThis.__invalidate;',
@@ -147,6 +147,30 @@ const plain = value => JSON.parse(JSON.stringify(value));
     const beforeRestaurant = f.life.read(); assert.equal(typeof beforeRestaurant.type, 'function');
     await reply(f.requests[3], []); await reply(f.requests[4], [{ id: 'b', payment_state: 'paid' }]); assert.equal(f.life.read().props.children[0].type, 'lazy');
     await reply(old, [live('a')]); assert.equal(f.life.read().props.children[0].type, 'lazy');
+  });
+  await pass('Old hub URLs redirect with query and fragment intact, and stale aliases cannot redirect another route', async () => {
+    const f = await fixture('src/pages/UsernameResolver.tsx'); f.route.search = '?location=fridge-one&utm_source=card'; f.route.hash = '#menu';
+    const inner = f.life.render(f.exports.default).type; let slug = 'old-address';
+    const render = () => inner({ slug }); f.life.render(render); f.life.effects();
+    for (let i = 0; i < 4; i++) await reply(f.requests[i], []);
+    assert.equal(f.requests[4].name, 'get_hub_slug_redirect');
+    await reply(f.requests[4], 'greensleeves');
+    const redirect = f.life.read(); assert.equal(redirect.type, 'navigate');
+    assert.deepEqual(plain(redirect.props.to), { pathname: '/greensleeves', search: f.route.search, hash: '#menu' });
+    assert.equal(redirect.props.replace, true); assert.equal(redirect.props.state, null);
+    slug = 'second-old'; f.life.render(render); f.life.effects();
+    for (let i = 5; i < 9; i++) await reply(f.requests[i], []);
+    const stale = f.requests[9]; slug = 'new-hub'; f.life.render(render); f.life.effects();
+    await reply(f.requests[10], [live('new-hub')]); await reply(stale, 'wrong-hub');
+    assert.notEqual(f.life.read().type, 'navigate');
+  });
+  await pass('Unknown, reserved and malformed redirect targets never navigate', async () => {
+    for (const target of [null, 'https://outside.invalid', 'old-address', 'reserved']) {
+      const f = await fixture('src/pages/UsernameResolver.tsx'); const inner = f.life.render(f.exports.default).type;
+      f.life.render(() => inner({ slug: 'old-address' })); f.life.effects();
+      for (let i = 0; i < 4; i++) await reply(f.requests[i], []);
+      await reply(f.requests[4], target); assert.notEqual(f.life.read().type, 'navigate');
+    }
   });
   await pass('Explicit admin preview requires verified admin; private ownership does not bypass public lookup', async () => {
     for (const isAdmin of [false, true]) {

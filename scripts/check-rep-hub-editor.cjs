@@ -116,14 +116,12 @@ function fixture(overrides = {}) {
       f.edit('New display name', 'name'); f.settle(); await f.ref.current.saveAllChanges(); assert.equal('username' in f.calls[0].update, false);
     }
   });
-  await pass('Hyphenated address change is checked and updates only NFC cards targeting this hub', async () => {
+  await pass('Hyphenated address change is checked and saved atomically by the database', async () => {
     const f = fixture(); f.edit('deadbeet-coffee-new'); f.settle(); f.timers();
     assert.equal(f.requests[0].args.check_username, 'deadbeet-coffee-new');
     await f.answer(true); await f.ref.current.saveAllChanges();
     assert.equal(f.calls[0].update.username, 'deadbeet-coffee-new');
-    const card = f.calls.find(c => c.table === 'nfc_cards');
-    assert.ok(card.filters.some(([key, value]) => key === 'destination_value' && value === 'deadbeet-coffee'));
-    assert.ok(card.filters.some(([key, value]) => key === 'owner_user_id' && value === 'rep-one'));
+    assert.equal(f.calls.length, 1, 'Slug and cards must not be split across client requests; the SQL suite verifies the owner-bound trigger');
   });
   await pass('Another candidate cannot reuse a previous availability result, including before effects', async () => {
     const f = fixture(); f.edit('first-candidate'); f.settle(); f.timers(); await f.answer(true);
