@@ -455,7 +455,7 @@ export const ImageCropper = ({
                 <FlipVertical2 className="h-4 w-4 mr-2" />Flip vertical
               </Button>
               <Button type="button" variant="outline" size="sm"
-                onClick={() => changeOrientation({ ...orientation, rotation: (orientation.rotation + 90) % 360 })}>
+                onClick={() => changeOrientation({ rotation: (orientation.rotation + 90) % 360, flipHorizontal: orientation.flipVertical, flipVertical: orientation.flipHorizontal })}>
                 <RotateCw className="h-4 w-4 mr-2" />Rotate 90°
               </Button>
             </div>

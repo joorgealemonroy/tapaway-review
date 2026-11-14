@@ -86,10 +86,10 @@ async def run(browser, width):
         await page.get_by_role('heading',name='Welcome back, Fixture').wait_for()
         await page.get_by_role('button',name='Businesses',exact=True).click()
         await page.get_by_role('button',name='Edit',exact=True).click()
-        await page.get_by_role('button',name='Hero Identity',exact=True).wait_for()
+        await page.get_by_role('button',name='Partner Portal',exact=True).wait_for()
         await page.go_back();await page.get_by_role('button',name='Edit',exact=True).wait_for()
-        await page.go_forward();await page.get_by_role('button',name='Hero Identity',exact=True).wait_for()
-        await page.reload();await page.get_by_role('button',name='Hero Identity',exact=True).wait_for()
+        await page.go_forward();await page.get_by_role('button',name='Partner Portal',exact=True).wait_for()
+        await page.reload();await page.get_by_role('button',name='Partner Portal',exact=True).wait_for()
         assert state['logouts']==0
         assert await page.evaluate('(key)=>!!localStorage.getItem(key)',KEY)
         # Login URL also restores the session without creating another login history entry.
@@ -117,7 +117,7 @@ async def run(browser, width):
         assert profile['background_color']=='#e2ecd8'
         # Adjust an already-uploaded photo, save its actual pixels, then reopen it.
         await page.goto(BASE+f'/dashboard?lite=1&profile_id={PID}&tab=links')
-        await page.get_by_role('button',name='More actions for Photo Collage',exact=True).click()
+        await page.get_by_role('button',name='More actions for Block',exact=True).click()
         await page.get_by_role('menuitem',name='Edit',exact=True).click()
         await page.get_by_role('button',name='Adjust photo 1',exact=True).click()
         crop=page.get_by_role('dialog',name='Adjust collage photo',exact=True)
@@ -127,15 +127,22 @@ async def run(browser, width):
             if uploads: break
             await asyncio.sleep(.1)
         assert await quadrants(page,list(uploads.values())[-1])==['green','red','yellow','blue']
+        await page.locator('img[src*="/public/personal-photos/"]').first.wait_for()
         await page.get_by_role('button',name='Adjust photo 1',exact=True).click()
         await crop.get_by_role('button',name='Flip vertical',exact=True).click()
         await crop.get_by_role('button',name='Rotate 90°',exact=True).click()
-        await crop.get_by_role('button',name='Reset',exact=True).click()
         await crop.get_by_role('button',name='Save',exact=True).click()
         for _ in range(50):
             if len(uploads)>=2: break
             await asyncio.sleep(.1)
-        assert await quadrants(page,list(uploads.values())[-1])==['green','red','yellow','blue'],'Reset must preserve the saved photo without re-flipping'
+        assert await quadrants(page,list(uploads.values())[-1])==['green','yellow','red','blue'],'Vertical flip followed by clockwise rotation must match the preview'
+        await page.get_by_role('button',name='Adjust photo 1',exact=True).click()
+        await crop.get_by_role('button',name='Reset',exact=True).click()
+        await crop.get_by_role('button',name='Save',exact=True).click()
+        for _ in range(50):
+            if len(uploads)>=3: break
+            await asyncio.sleep(.1)
+        assert await quadrants(page,list(uploads.values())[-1])==['green','yellow','red','blue'],'Reset must preserve the saved photo without re-flipping'
         await page.get_by_role('dialog',name='Edit block',exact=True).get_by_role('button',name='Save',exact=True).click()
         for _ in range(50):
             if PHOTO not in block['content']['media']:break
