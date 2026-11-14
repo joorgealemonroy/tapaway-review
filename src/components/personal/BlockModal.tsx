@@ -626,6 +626,7 @@ export const BlockModal = ({
 
     // Single image via "+ Add" → keep cropper flow
     if (files.length === 1 && files[0].type.startsWith("image/")) {
+      setEditingCollageIndex(null);
       const objectUrl = URL.createObjectURL(files[0]);
       setCollageRawImage(objectUrl);
       setShowCollageCropper(true);
@@ -1359,7 +1360,7 @@ export const BlockModal = ({
             <>
               <div className="space-y-2">
               <Label>Photos & Videos (max 9)</Label>
-                <p className="text-xs text-muted-foreground">Drag &amp; drop or click to add. Images and videos up to 1 minute.</p>
+                <p className="text-xs text-muted-foreground">Drag &amp; drop or click to add. Use the crop button on any photo to crop, flip or rotate it. Videos can be up to 1 minute.</p>
                 <input
                   ref={collageFileInputRef}
                   type="file"
@@ -1429,8 +1430,9 @@ export const BlockModal = ({
                         <button
                           onClick={() => handleEditCollageImage(idx)}
                           className="absolute top-1 left-1 h-6 w-6 bg-black/50 rounded-full flex items-center justify-center hover:bg-black/70 before:absolute before:-inset-2.5 before:content-['']"
-                          title="Crop image"
-                          aria-label="Crop image"
+                          type="button"
+                          title="Crop, flip or rotate photo"
+                          aria-label={`Adjust photo ${idx + 1}`}
                         >
                           <Crop className="h-3 w-3 text-white" />
                         </button>
@@ -1857,6 +1859,8 @@ export const BlockModal = ({
           onCropComplete={handleCollageCropComplete}
           aspectRatio={1}
           cropShape="rect"
+          allowOrientation
+          title="Adjust collage photo"
         />
       )}
     </>

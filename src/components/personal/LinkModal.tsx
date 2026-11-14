@@ -321,7 +321,7 @@ export const LinkModal = ({
 
     // Reject scheme-less domain-only input (e.g. "facebook.com/") which used to
     // save as a recursive link like https://facebook.com/facebook.com
-    if (!url || isBareDomainHandle(value)) {
+    if (!url || (selectedPlatform.inputType === "handle" && isBareDomainHandle(value))) {
       const example = selectedPlatform.placeholder || "yourpage";
       toast.error(`Enter your page name, e.g. ${example}`);
       return;
@@ -708,7 +708,7 @@ export const LinkModal = ({
         {inputValue && !detectedPlatform && (() => {
           const previewValue = selectedPlatform.extractValue(inputValue.trim()) || inputValue.trim();
           const previewUrl = selectedPlatform.generateUrl(previewValue);
-          const invalid = !previewUrl || isBareDomainHandle(previewValue);
+          const invalid = !previewUrl || (selectedPlatform.inputType === "handle" && isBareDomainHandle(previewValue));
           return (
             // break-all (not truncate): a 200+ char URL with no spaces must
             // wrap inside the sheet. It must never push the page wider than

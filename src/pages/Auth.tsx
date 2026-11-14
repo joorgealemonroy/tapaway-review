@@ -1,5 +1,6 @@
+import { useAuth } from "@/hooks/useAuth";
 import "@/components/landing/storefront.css";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
@@ -23,7 +24,7 @@ const Auth = () => {
   const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(false);
+  const { user: signedInUser, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -39,18 +40,6 @@ const Auth = () => {
   // Get redirect destination from URL params
   const requestedRedirect = searchParams.get("redirect") || "/dashboard";
   const redirectTo = safeInternalPath(requestedRedirect);
-
-  // Detect OAuth return. If user already has a session on mount in login mode, auto-redirect
-  useEffect(() => {
-    const checkOAuthReturn = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user && mode === "login") {
-        const destination = await determineRedirectDestination();
-        navigate(destination);
-      }
-    };
-    checkOAuthReturn();
-  }, []);
 
   const handleOAuth = async (provider: "google" | "apple") => {
     setOauthLoading(true);
@@ -83,9 +72,7 @@ const Auth = () => {
       if (error) throw error;
       setMessage("Logged in successfully. Redirecting…");
 
-      // Determine redirect destination based on role
-      const destination = await determineRedirectDestination();
-      navigate(destination);
+      // The session listener below handles routing once login is restored.
     } catch (e: any) {
       setError(e.message ?? "Unable to log in. Please check your credentials.");
     } finally {
@@ -94,32 +81,35 @@ const Auth = () => {
   };
 
   // Helper to determine redirect destination based on role
-  const determineRedirectDestination = async (): Promise<string> => {
+  const hasExplicitRedirect = !!searchParams.get("redirect");
+  const determineRedirectDestination = useCallback(async (): Promise<string> => {
     // If there's a redirect param (e.g., from onboarding flow), always honor it
-    const hasExplicitRedirect = searchParams.get("redirect");
     if (hasExplicitRedirect) {
       return redirectTo;
     }
 
     // Get current user to check roles
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError) throw userError;
     if (!user) {
       return "/dashboard";
     }
 
     // Roles are verified by the server, never inferred from an email address.
-    const { data: isAdmin } = await supabase.rpc("is_admin");
+    const { data: isAdmin, error: adminError } = await supabase.rpc("is_admin");
+    if (adminError) throw adminError;
     if (isAdmin === true) {
       return "/admin";
     }
 
     // Check if sales rep (via sales_reps table)
-    const { data: salesRepData } = await supabase
+    const { data: salesRepData, error: repError } = await supabase
       .from("sales_reps")
       .select("id")
       .eq("id", user.id)
       .eq("is_active", true)
       .maybeSingle();
+    if (repError) throw repError;
 
     if (salesRepData) {
       return "/rep";
@@ -138,6 +128,8 @@ const Auth = () => {
        .eq("user_id", user.id)
        .maybeSingle()
    ]);
+   if (restaurantResult.error) throw restaurantResult.error;
+   if (personalResult.error) throw personalResult.error;
 
    const restaurant = restaurantResult.data;
    const personal = personalResult.data;
@@ -169,7 +161,20 @@ const Auth = () => {
    }
    // No accounts at all
    return "/onboarding";
-  };
+  }, [hasExplicitRedirect, redirectTo]);
+
+  // Back, reload and OAuth returns all reuse the remembered session. Replace
+  // the login entry so Back cannot strand a signed-in rep on the login form.
+  useEffect(() => {
+    if (authLoading || !signedInUser || mode !== "login") return;
+    let cancelled = false;
+    determineRedirectDestination().then((destination) => {
+      if (!cancelled) navigate(destination, { replace: true });
+    }).catch(() => {
+      if (!cancelled) setError("You’re signed in, but your workspace could not load. Please refresh to retry.");
+    });
+    return () => { cancelled = true; };
+  }, [authLoading, signedInUser?.id, mode, determineRedirectDestination, navigate]);
 
   const onForgot = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -254,6 +259,12 @@ const Auth = () => {
   };
 
   const { title, subtitle } = getTitleAndSubtitle();
+
+  if (authLoading || (signedInUser && mode === "login" && !error)) {
+    return <div className="min-h-screen flex items-center justify-center" role="status">
+      <Loader2 className="h-6 w-6 animate-spin mr-2" /> Opening your workspace…
+    </div>;
+  }
 
   return (
     <div className="storefront auth-surface min-h-screen flex items-center justify-center px-4">
@@ -353,15 +364,7 @@ const Auth = () => {
               </div>
 
               <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <label className="inline-flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={e => setRememberMe(e.target.checked)}
-                    className="rounded border-input"
-                  />
-                  <span>Remember me</span>
-                </label>
+                <span>Sign-in is remembered on this device.</span>
                 <button
                   type="button"
                   onClick={() => {

@@ -3,7 +3,8 @@ import Cropper, { Area, MediaSize, Size } from "react-easy-crop";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { ZoomIn, ZoomOut, RotateCcw, Maximize2 } from "lucide-react";
+import { ZoomIn, ZoomOut, RotateCcw, RotateCw, FlipHorizontal2, FlipVertical2, Maximize2 } from "lucide-react";
+import { orientImage, type ImageOrientation } from "@/lib/orientImage";
 
 interface Props {
   open: boolean;
@@ -26,8 +27,10 @@ interface Props {
   /** Always render the export at the full frame size, even when zoomed out. */
   fullFrameOutput?: boolean;
   title?: string;
+  allowOrientation?: boolean;
 }
 
+const ORIGINAL_ORIENTATION: ImageOrientation = { rotation: 0, flipHorizontal: false, flipVertical: false };
 
 const createImage = (url: string): Promise<HTMLImageElement> =>
   new Promise((resolve, reject) => {
@@ -281,12 +284,17 @@ export const ImageCropper = ({
   outputQuality = DEFAULT_QUALITY,
   fullFrameOutput,
   title,
+  allowOrientation = false,
 }: Props) => {
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
   const [fill, setFill] = useState<string>(fillColor || "#ffffff");
   const [activeSrc, setActiveSrc] = useState<string>(imageSrc);
+  const [orientation, setOrientation] = useState(ORIGINAL_ORIENTATION);
+  const [oriented, setOriented] = useState<{ source: string; orientation: ImageOrientation; url: string } | null>(null);
+  const [imageError, setImageError] = useState<string | null>(null);
+  const [savingImage, setSavingImage] = useState(false);
   const mediaSizeRef = useRef<MediaSize | null>(null);
   const cropSizeRef = useRef<Size | null>(null);
 
@@ -299,6 +307,9 @@ export const ImageCropper = ({
     setCroppedAreaPixels(null);
     setFill(fillColor || "#ffffff");
     setActiveSrc(imageSrc);
+    setOrientation(ORIGINAL_ORIENTATION);
+    setOriented(null);
+    setImageError(null);
     mediaSizeRef.current = null;
     cropSizeRef.current = null;
 
@@ -311,6 +322,33 @@ export const ImageCropper = ({
       cancelled = true;
     };
   }, [open, imageSrc, fillColor, autoTrim]);
+
+  // Transform the full source first, then crop that exact preview. Reopening a
+  // saved photo starts from its baked pixels without applying a second flip.
+  const needsOrientation = allowOrientation && (orientation.rotation !== 0 || orientation.flipHorizontal || orientation.flipVertical);
+  const orientationReady = !needsOrientation || (oriented?.source === activeSrc && oriented.orientation === orientation);
+  const previewSrc = needsOrientation ? (orientationReady ? oriented!.url : "") : activeSrc;
+  useEffect(() => {
+    if (!open || !needsOrientation) return;
+    let cancelled = false;
+    setImageError(null);
+    orientImage(activeSrc, orientation).then((url) => {
+      if (!cancelled) setOriented({ source: activeSrc, orientation, url });
+    }).catch(() => {
+      if (!cancelled) setImageError("Could not adjust this photo. Reset and try again.");
+    });
+    return () => { cancelled = true; };
+  }, [open, activeSrc, orientation, needsOrientation]);
+
+  const changeOrientation = (next: ImageOrientation) => {
+    if (next.rotation !== orientation.rotation || next.flipHorizontal !== orientation.flipHorizontal || next.flipVertical !== orientation.flipVertical) {
+      setCroppedAreaPixels(null);
+    }
+    setCrop({ x: 0, y: 0 });
+    setZoom(1);
+    setImageError(null);
+    setOrientation(next);
+  };
 
 
   const onCropChange = useCallback((location: { x: number; y: number }) => {
@@ -339,11 +377,12 @@ export const ImageCropper = ({
   }, [minZoom]);
 
   const handleSave = async () => {
-    if (!croppedAreaPixels) return;
+    if (!croppedAreaPixels || !orientationReady || imageError || savingImage) return;
 
+    setSavingImage(true);
     try {
       const { blob, dataUrl } = await getCroppedImg(
-        activeSrc,
+        previewSrc,
         croppedAreaPixels,
         editableFill ? fill : fillColor,
         maxOutputDimension,
@@ -355,12 +394,14 @@ export const ImageCropper = ({
       onOpenChange(false);
     } catch (e) {
       console.error("Error cropping image:", e);
+      setImageError("Could not save this photo. Reset and try again.");
+    } finally {
+      setSavingImage(false);
     }
   };
 
   const handleReset = () => {
-    setCrop({ x: 0, y: 0 });
-    setZoom(1);
+    changeOrientation(ORIGINAL_ORIENTATION);
   };
 
   // Default: circular avatar photos stay centered and cannot be pulled out of bounds.
@@ -371,7 +412,7 @@ export const ImageCropper = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md mx-4 p-0 overflow-hidden">
+      <DialogContent className="w-[calc(100%-2rem)] max-w-md max-h-[90dvh] p-0 overflow-y-auto">
         <DialogHeader className="p-4 pb-0">
           <DialogTitle>{title || "Crop your photo"}</DialogTitle>
         </DialogHeader>
@@ -381,8 +422,9 @@ export const ImageCropper = ({
           className="relative h-72"
           style={{ backgroundColor: activeFill || "#000000" }}
         >
-          <Cropper
-            image={activeSrc}
+          {previewSrc && <Cropper
+            key={previewSrc}
+            image={previewSrc}
             crop={crop}
             zoom={zoom}
             minZoom={minZoom}
@@ -396,11 +438,29 @@ export const ImageCropper = ({
             onCropComplete={onCropAreaComplete}
             onMediaLoaded={(size) => { mediaSizeRef.current = size; }}
             onCropSizeChange={(size) => { cropSizeRef.current = size; }}
-          />
+          />}
+          {!orientationReady && <div className="absolute inset-0 flex items-center justify-center text-white bg-black/60" role="status">Adjusting photo…</div>}
         </div>
 
         {/* Controls */}
         <div className="p-4 space-y-4">
+          {allowOrientation && (
+            <div className="flex flex-wrap gap-2" aria-label="Photo orientation">
+              <Button type="button" variant="outline" size="sm" aria-pressed={orientation.flipHorizontal}
+                onClick={() => changeOrientation({ ...orientation, flipHorizontal: !orientation.flipHorizontal })}>
+                <FlipHorizontal2 className="h-4 w-4 mr-2" />Flip horizontal
+              </Button>
+              <Button type="button" variant="outline" size="sm" aria-pressed={orientation.flipVertical}
+                onClick={() => changeOrientation({ ...orientation, flipVertical: !orientation.flipVertical })}>
+                <FlipVertical2 className="h-4 w-4 mr-2" />Flip vertical
+              </Button>
+              <Button type="button" variant="outline" size="sm"
+                onClick={() => changeOrientation({ ...orientation, rotation: (orientation.rotation + 90) % 360 })}>
+                <RotateCw className="h-4 w-4 mr-2" />Rotate 90°
+              </Button>
+            </div>
+          )}
+          {imageError && <p className="text-sm text-destructive" role="alert">{imageError}</p>}
           {/* Zoom slider */}
           <div className="flex items-center gap-3">
             <ZoomOut className="h-4 w-4 text-muted-foreground" />
@@ -440,7 +500,7 @@ export const ImageCropper = ({
             {cropShape === "rect" && (
               <Button variant="outline" onClick={fitWholeImage} className="flex-1">
                 <Maximize2 className="h-4 w-4 mr-2" />
-                Fit whole logo
+                Fit image
               </Button>
             )}
             <Button
@@ -454,8 +514,9 @@ export const ImageCropper = ({
             <Button
               onClick={handleSave}
               className="flex-1"
+              disabled={!croppedAreaPixels || !orientationReady || !!imageError || savingImage}
             >
-              Save
+              {savingImage ? "Saving…" : "Save"}
             </Button>
           </div>
         </div>

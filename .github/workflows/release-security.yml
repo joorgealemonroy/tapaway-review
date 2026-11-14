@@ -42,6 +42,7 @@ jobs:
             if curl --silent --fail http://127.0.0.1:8080/ > /dev/null; then break; fi
             sleep 1
           done
+          QA_BASE_URL=http://127.0.0.1:8080 python scripts/check-hub-editor-session-browser.py
           QA_BASE_URL=http://127.0.0.1:8080 python scripts/check-rep-analytics-browser.py
           QA_BASE_URL=http://127.0.0.1:8080 python scripts/check-admin-print-files-browser.py
           QA_BASE_URL=http://127.0.0.1:8080 python scripts/check-admin-hub-slugs-browser.py

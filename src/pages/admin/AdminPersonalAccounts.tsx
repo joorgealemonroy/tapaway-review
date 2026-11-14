@@ -1,3 +1,4 @@
+import { HUB_BACKGROUND_PRESETS } from "@/lib/hubAppearance";
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -111,7 +112,7 @@ const GRADIENT_PRESETS = [
   "linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)",
 ];
 
-const BG_PRESETS = ["#ffffff", "#f5f5f5", "#fafafa", "#f0f0f0", "#e8e8e8", "#1a1a1a"];
+
 
 // BG_GRADIENT_PRESETS removed - ambient gradients are now auto-generated from banner images
 
@@ -1765,9 +1766,12 @@ Login at: ${window.location.origin}/auth`;
                 <div className="space-y-3">
                   <Label className="text-sm font-medium">Page Background</Label>
                   <div className="flex flex-wrap gap-2">
-                    {BG_PRESETS.map((color) => (
+                    {HUB_BACKGROUND_PRESETS.map(({ name, color }) => (
                       <button
                         key={color}
+                        title={name}
+                        aria-label={`Background color ${name}`}
+                        type="button"
                         onClick={() => setCreateForm({ ...createForm, backgroundColor: color })}
                         className={`h-8 w-8 rounded-full border-2 transition-all ${
                           createForm.backgroundColor === color ? "border-primary scale-110" : "border-border hover:scale-105"
@@ -2181,9 +2185,12 @@ Login at: ${window.location.origin}/auth`;
                 <div className="space-y-3">
                   <Label className="text-sm font-medium">Page Background</Label>
                   <div className="flex flex-wrap gap-2">
-                    {BG_PRESETS.map((color) => (
+                    {HUB_BACKGROUND_PRESETS.map(({ name, color }) => (
                       <button
                         key={color}
+                        title={name}
+                        aria-label={`Background color ${name}`}
+                        type="button"
                         onClick={() => setEditForm({ ...editForm, backgroundColor: color })}
                         className={`h-8 w-8 rounded-full border-2 transition-all ${
                           editForm.backgroundColor === color ? "border-primary scale-110" : "border-border hover:scale-105"
