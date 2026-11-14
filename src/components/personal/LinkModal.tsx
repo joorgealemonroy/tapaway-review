@@ -323,7 +323,7 @@ export const LinkModal = ({
     // save as a recursive link like https://facebook.com/facebook.com
     if (!url || (selectedPlatform.inputType === "handle" && isBareDomainHandle(value))) {
       const example = selectedPlatform.placeholder || "yourpage";
-      toast.error(`Enter your page name, e.g. ${example}`);
+      toast.error(`Enter a valid ${selectedPlatform.label} value, e.g. ${example}`);
       return;
     }
 
@@ -715,7 +715,7 @@ export const LinkModal = ({
             // the viewport on mobile.
             <p className={`text-xs break-all ${invalid ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"}`}>
               {invalid
-                ? `Enter your page name, e.g. ${selectedPlatform.placeholder}`
+                ? `Enter a valid ${selectedPlatform.label} value, e.g. ${selectedPlatform.placeholder}`
                 : `→ ${previewUrl}`}
             </p>
           );
