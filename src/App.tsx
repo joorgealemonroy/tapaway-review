@@ -1,3 +1,4 @@
+import { RepRoute } from "@/components/rep/RepRoute";
 import AdminWorkspace from "@/components/admin/AdminWorkspace";
 import CustomerNotifications from "@/components/dashboard/CustomerNotifications";
 import { Toaster } from "@/components/ui/toaster";
@@ -212,15 +213,15 @@ const App = () => {
                 <Route path="/dpa" element={<DPA />} />
                 
                 {/* Sales Rep Portal */}
-                <Route path="/rep" element={<RepHome />} />
-                <Route path="/rep/restaurants" element={<RepRestaurants />} />
+                <Route path="/rep" element={<RepRoute><RepHome /></RepRoute>} />
+                <Route path="/rep/restaurants" element={<RepRoute><RepRestaurants /></RepRoute>} />
                 {/* /rep/close removed 2026-09-09 (locked): rep creates demos, Jorge closes */}
-                <Route path="/rep/demo/new" element={<RepDemoCreate />} />
-                <Route path="/rep/demo/:id" element={<RepDemoCreate />} />
-                <Route path="/rep/commissions" element={<RepCommissions />} />
-                <Route path="/rep/resources" element={<RepResources />} />
-                <Route path="/rep/docs" element={<RepDocs />} />
-                <Route path="/rep/profile" element={<RepProfile />} />
+                <Route path="/rep/demo/new" element={<RepRoute><RepDemoCreate /></RepRoute>} />
+                <Route path="/rep/demo/:id" element={<RepRoute><RepDemoCreate /></RepRoute>} />
+                <Route path="/rep/commissions" element={<RepRoute><RepCommissions /></RepRoute>} />
+                <Route path="/rep/resources" element={<RepRoute><RepResources /></RepRoute>} />
+                <Route path="/rep/docs" element={<RepRoute><RepDocs /></RepRoute>} />
+                <Route path="/rep/profile" element={<RepRoute><RepProfile /></RepRoute>} />
                 <Route path="/rep/apply" element={<RepApply />} />
                 <Route path="/rep/setup-password" element={<RepSetupPassword />} />
                 

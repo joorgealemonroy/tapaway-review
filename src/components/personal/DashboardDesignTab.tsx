@@ -1,3 +1,4 @@
+import { HUB_BACKGROUND_PRESETS } from "@/lib/hubAppearance";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,15 +54,7 @@ type DesignDatabaseUpdates = Partial<{
 type DesignPreviewUpdates = Parameters<Props["onUpdate"]>[0];
 
 // One curated set of solid page colors. No gradients, no fades.
-const BG_PRESETS = [
-  "#ffffff",
-  "#f5f5f5",
-  "#fef3c7",
-  "#ecfdf5",
-  "#e0f2fe",
-  "#ede9fe",
-  "#fce7f3",
-];
+
 
 const isSolidHex = (value: string) => /^#[0-9A-Fa-f]{6}$/.test(value);
 
@@ -499,14 +492,15 @@ export const DashboardDesignTab = ({
         </div>
 
         <div className="flex flex-wrap gap-3">
-          {BG_PRESETS.map((color) => {
+          {HUB_BACKGROUND_PRESETS.map(({ name, color }) => {
             const selected = pendingBgColor === color;
             return (
               <button
                 key={color}
                 type="button"
                 onClick={() => handleBgColorChange(color)}
-                aria-label={`Background color ${color}`}
+                aria-label={`Background color ${name}`}
+                title={name}
                 aria-pressed={selected}
                 className={`h-12 w-12 rounded-full border-2 transition-all ${
                   selected

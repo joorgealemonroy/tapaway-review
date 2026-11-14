@@ -3,6 +3,7 @@ import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 
 interface AuthContextType {
@@ -21,12 +22,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
+    let active = true;
+    let authRevision = 0;
     // Avoid re-setting identical session objects: every setState here creates a
     // new `user` identity that re-triggers downstream effects (admin/rep checks),
     // which caused repeated duplicate queries.
     const applySession = (next: Session | null) => {
+      if (!active) return;
       setSession((prev) => {
         if (prev?.access_token === next?.access_token) return prev;
         return next;
@@ -42,17 +47,39 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        authRevision += 1;
+        if (event === "SIGNED_OUT") {
+          queryClient.removeQueries({ queryKey: ["sales-rep"] });
+          queryClient.removeQueries({ queryKey: ["admin-role"] });
+        }
         applySession(session);
       }
     );
 
     // Then check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      applySession(session);
-    });
+    const restoreSession = async () => {
+      const revision = authRevision;
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        // A newer sign-in, refresh or explicit sign-out wins over an older read.
+        if (active && revision === authRevision) applySession(session);
+      } catch (err) {
+        console.error("Could not restore session:", err);
+        if (active && revision === authRevision) setLoading(false);
+      }
+    };
+    void restoreSession();
+    const onPageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) void restoreSession();
+    };
+    window.addEventListener("pageshow", onPageShow);
 
-    return () => subscription.unsubscribe();
-  }, []);
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+      window.removeEventListener("pageshow", onPageShow);
+    };
+  }, [queryClient]);
 
 
   const signUp = async (email: string, _password: string) => {

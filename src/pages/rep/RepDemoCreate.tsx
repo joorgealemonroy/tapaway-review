@@ -84,7 +84,7 @@ const RepDemoCreate = () => {
 
   // Legacy /rep/demo/:id → jump straight into the real dashboard for that profile.
   useEffect(() => {
-    if (editId) navigate(`/dashboard?profile_id=${editId}`);
+    if (editId) navigate(`/dashboard?profile_id=${editId}`, { replace: true });
   }, [editId, navigate]);
 
   // Redirect guards

@@ -285,24 +285,23 @@ const linkedinHandle = (raw: string) =>
 const yelpHandle = (raw: string) => multiSegmentHandle(raw, /^yelp\.com/i, YELP_PREFIX, true);
 
 /**
- * Domain suffixes that make a dotted string an actual domain rather than a
- * handle. Social usernames legitimately contain dots (`el.chilitos`,
- * `j.smith`), so only flag input that ends in a real TLD.
+ * Reject platform homepages, not arbitrary dotted usernames. A handle such as
+ * `rebels.burgers.br` or `studio.co` is valid even when its last segment is a TLD.
  */
-const DOMAIN_SUFFIXES = [
-  "com", "net", "org", "io", "co", "me", "tv", "gg", "app", "dev", "xyz",
-  "info", "biz", "us", "uk", "ca", "mx", "es", "de", "fr", "it", "nl", "au",
-  "jp", "br", "in", "ru", "ch", "se", "no", "link", "site", "online", "shop",
-  "store", "live", "page", "bio", "gov", "edu",
-];
+const PLATFORM_HOSTS = new Set([
+  "instagram.com", "tiktok.com", "youtube.com", "youtu.be", "x.com", "twitter.com",
+  "threads.net", "threads.com", "linkedin.com", "facebook.com", "fb.com", "m.facebook.com",
+  "discord.gg", "discord.com", "twitch.tv", "snapchat.com", "pinterest.com",
+  "wa.me", "api.whatsapp.com", "t.me", "telegram.me", "yelp.com", "venmo.com",
+  "cash.app", "paypal.me", "patreon.com", "ko-fi.com", "soundcloud.com",
+  "bandcamp.com", "github.com", "behance.net", "dribbble.com",
+]);
 
 /** True when a "handle" is really just a bare domain (facebook.com, www.tiktok.com …). */
 export const isBareDomainHandle = (value: string): boolean => {
   if (!value) return true;
-  const v = value.trim().replace(/^www\./i, "").toLowerCase();
-  if (!/^[a-z0-9-]+(\.[a-z0-9-]+)+$/i.test(v)) return false;
-  const tld = v.split(".").pop() || "";
-  return DOMAIN_SUFFIXES.includes(tld);
+  const v = value.trim().replace(/^https?:\/\//i, "").replace(/^www\./i, "").replace(/\/+$/, "").toLowerCase();
+  return !v || PLATFORM_HOSTS.has(v);
 };
 
 

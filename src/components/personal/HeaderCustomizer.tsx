@@ -1,3 +1,4 @@
+import { HUB_BACKGROUND_PRESETS } from "@/lib/hubAppearance";
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -267,14 +268,15 @@ export const HeaderCustomizer = ({
       <div className="pt-2 border-t border-border space-y-3">
         <Label className="text-sm font-medium text-foreground">Page Background</Label>
         <div className="flex flex-wrap gap-2">
-          {["#ffffff", "#f5f5f5", "#fafafa", "#f0f0f0", "#e8e8e8", "#1a1a1a"].map((color) => (
+          {HUB_BACKGROUND_PRESETS.map(({ name, color }) => (
             <button
               key={color}
               onClick={() => {
                 onUpdate({ backgroundColor: color });
                 setBgColorInput(color);
               }}
-              aria-label={`Set background color ${color}`}
+              aria-label={`Set background color ${name}`}
+              title={name}
               className={`h-11 w-11 rounded-full border-2 transition-all ${
                 backgroundColor === color ? "border-primary scale-110" : "border-border hover:scale-105"
               }`}
