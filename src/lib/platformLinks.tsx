@@ -241,11 +241,13 @@ export const stripHost = (raw: string, hostPattern: RegExp, keepQuery = false, k
   let s = raw.trim();
   // App-scheme handles, e.g. instagram://user?username=foo
   const appScheme = s.match(/^[a-z][a-z0-9+.-]*:\/\/[^?]*\?(?:username|user)=([^&]+)/i);
-  if (appScheme) return decodeURIComponent(appScheme[1]).replace(/^@/, "");
+  if (appScheme) {
+    try { return decodeURIComponent(appScheme[1]).replace(/^@/, ""); } catch { return ""; }
+  }
   s = s.replace(/^[a-z][a-z0-9+.-]*:\/\//i, "");
   s = s.replace(/^www\./i, "");
   const m = s.match(hostPattern);
-  if (m) s = s.slice(m[0].length);
+  if (m && (!s[m[0].length] || /[/?#]/.test(s[m[0].length]))) s = s.slice(m[0].length);
   s = s.replace(/^\/+/, "");
   const path = s.split(/[?#]/)[0];
   const query = s.split(/[?#]/)[1];
@@ -313,6 +315,36 @@ const safeUrl = (handle: string, build: (h: string) => string): string => {
 };
 
 
+// Preserve complete video/music links while normalizing profile handles.
+const youtubeValue = (raw: string): string => {
+  const value = raw.trim();
+  if (!value || isBareDomainHandle(value)) return "";
+  if (/^(?:https?:\/\/)?(?:www\.)?(?:youtube\.com|youtu\.be)(?:[/?#]|$)/i.test(value)) {
+    const url = new URL(/^https?:\/\//i.test(value) ? value : `https://${value}`);
+    const path = url.pathname.replace(/^\/+|\/+$/g, "");
+    if (!path) return "";
+    if (url.hostname === "youtu.be" || /^(?:watch|shorts|live|playlist)(?:\/|$)/i.test(path)) return url.href;
+    return path.replace(/^@/, "");
+  }
+  return value.replace(/^@/, "");
+};
+
+const paypalValue = (raw: string): string => {
+  const value = raw.trim();
+  if (/^(?:https?:\/\/)?(?:www\.)?paypal\.com(?:[/?#]|$)/i.test(value)) {
+    return /^https?:\/\//i.test(value) ? value : `https://${value}`;
+  }
+  return stripHost(value, /^paypal\.me/i, true, true);
+};
+
+const musicUrl = (value: string, host: string): string => {
+  const raw = value.trim();
+  if (!raw) return "";
+  if (/^https?:\/\//i.test(raw)) return raw;
+  if (/^(?:open\.)?spotify\.com(?:\/|$)/i.test(raw) || /^music\.apple\.com(?:\/|$)/i.test(raw)) return `https://${raw}`;
+  return `https://${host}/${raw.replace(/^\/+/, "")}`;
+};
+
 export const PLATFORM_CONFIGS: PlatformConfig[] = [
 
   {
@@ -348,11 +380,14 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
     icon: Youtube,
     inputType: "options",
     placeholder: "handle or channel ID",
-    generateUrl: (v) => v.startsWith("UC") ? `https://youtube.com/channel/${v}` : `https://youtube.com/@${v.replace(/^@/, "")}`,
-    extractValue: (url) => {
-      if (url.includes("/channel/")) return url.split("/channel/")[1]?.split("/")[0] || "";
-      return url.replace(/^https?:\/\/(www\.)?youtube\.com\/@?/, "").split("/")[0] || "";
+    generateUrl: (v) => {
+      const h = youtubeValue(v);
+      if (!h) return "";
+      if (/^(?:channel|c|user)\//i.test(h)) return `https://youtube.com/${h}`;
+      if (/^https?:\/\//i.test(h)) return h;
+      return h.startsWith("UC") ? `https://youtube.com/channel/${h}` : `https://youtube.com/@${h.replace(/^@/, "")}`;
     },
+    extractValue: youtubeValue,
     color: "text-white",
     bgColor: "bg-[#FF0000]",
   },
@@ -463,8 +498,19 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
     icon: WhatsAppIcon,
     inputType: "url",
     placeholder: "wa.me/1234567890",
-    generateUrl: (v) => v.startsWith("http") ? v : `https://wa.me/${v.replace(/\D/g, "")}`,
-    extractValue: (url) => url.replace(/^https?:\/\/(www\.)?(wa\.me|api\.whatsapp\.com\/send\?phone=)/, "").split(/[/?]/)[0] || url,
+    generateUrl: (v) => {
+      const raw = v.trim();
+      if (!raw) return "";
+      if (/^(?:https?:\/\/)?(?:www\.)?(?:wa\.me|api\.whatsapp\.com)(?:[/?]|$)/i.test(raw)) {
+        const url = new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`);
+        const phone = url.hostname.endsWith("wa.me") ? url.pathname.slice(1) : url.searchParams.get("phone") || "";
+        return /\d/.test(phone) ? url.href : "";
+      }
+      if (/^https?:\/\//i.test(raw)) return raw;
+      const digits = raw.replace(/\D/g, "");
+      return digits ? `https://wa.me/${digits}` : "";
+    },
+    extractValue: (url) => url.trim(),
     color: "text-white",
     bgColor: "bg-[#25D366]",
   },
@@ -589,8 +635,8 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
     inputType: "cashtag",
     placeholder: "cashtag",
     prefix: "$",
-    generateUrl: (v) => `https://cash.app/$${v.replace(/^\$/, "")}`,
-    extractValue: (url) => url.replace(/^https?:\/\/(www\.)?cash\.app\/\$?/, "").split("/")[0] || "",
+    generateUrl: (v) => safeUrl(stripHost(v, /^cash\.app/i).replace(/^\$/, ""), (h) => `https://cash.app/$${h}`),
+    extractValue: (url) => stripHost(url, /^cash\.app/i).replace(/^\$/, ""),
     color: "text-white",
     bgColor: "bg-[#00D632]",
   },
@@ -600,8 +646,8 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
     icon: PayPalIcon,
     inputType: "url",
     placeholder: "paypal.me/yourname",
-    generateUrl: (v) => v.startsWith("http") ? v : `https://paypal.me/${v}`,
-    extractValue: (url) => url.replace(/^https?:\/\/(www\.)?paypal\.me\//, "").split("/")[0] || url,
+    generateUrl: (v) => safeUrl(paypalValue(v), (h) => /^https?:\/\//i.test(h) ? h : `https://paypal.me/${h}`),
+    extractValue: paypalValue,
     color: "text-white",
     bgColor: "bg-[#003087]",
   },
@@ -611,8 +657,8 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
     icon: PatreonIcon,
     inputType: "handle",
     placeholder: "yourname",
-    generateUrl: (v) => `https://patreon.com/${v}`,
-    extractValue: (url) => url.replace(/^https?:\/\/(www\.)?patreon\.com\//, "").split("/")[0] || "",
+    generateUrl: (v) => safeUrl(stripHost(v, /^patreon\.com/i), (h) => `https://patreon.com/${h}`),
+    extractValue: (url) => stripHost(url, /^patreon\.com/i),
     color: "text-white",
     bgColor: "bg-[#FF424D]",
   },
@@ -622,8 +668,8 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
     icon: KofiIcon,
     inputType: "handle",
     placeholder: "yourname",
-    generateUrl: (v) => `https://ko-fi.com/${v}`,
-    extractValue: (url) => url.replace(/^https?:\/\/(www\.)?ko-fi\.com\//, "").split("/")[0] || "",
+    generateUrl: (v) => safeUrl(stripHost(v, /^ko-fi\.com/i), (h) => `https://ko-fi.com/${h}`),
+    extractValue: (url) => stripHost(url, /^ko-fi\.com/i),
     color: "text-white",
     bgColor: "bg-[#FF5E5B]",
   },
@@ -633,8 +679,8 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
     icon: SpotifyIcon,
     inputType: "url",
     placeholder: "spotify.com/artist/...",
-    generateUrl: (v) => v.startsWith("http") ? v : `https://open.spotify.com/${v}`,
-    extractValue: (url) => url,
+    generateUrl: (v) => musicUrl(v, "open.spotify.com"),
+    extractValue: (url) => url.trim(),
     color: "text-white",
     bgColor: "bg-[#1DB954]",
   },
@@ -644,8 +690,8 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
     icon: Music,
     inputType: "url",
     placeholder: "music.apple.com/...",
-    generateUrl: (v) => v.startsWith("http") ? v : `https://music.apple.com/${v}`,
-    extractValue: (url) => url,
+    generateUrl: (v) => musicUrl(v, "music.apple.com"),
+    extractValue: (url) => url.trim(),
     color: "text-white",
     bgColor: "bg-gradient-to-br from-[#FC3C44] to-[#A445B2]",
   },
@@ -655,8 +701,8 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
     icon: SoundCloudIcon,
     inputType: "handle",
     placeholder: "yourname",
-    generateUrl: (v) => `https://soundcloud.com/${v}`,
-    extractValue: (url) => url.replace(/^https?:\/\/(www\.)?soundcloud\.com\//, "").split("/")[0] || "",
+    generateUrl: (v) => safeUrl(stripHost(v, /^soundcloud\.com/i), (h) => `https://soundcloud.com/${h}`),
+    extractValue: (url) => stripHost(url, /^soundcloud\.com/i),
     color: "text-white",
     bgColor: "bg-[#FF5500]",
   },
@@ -666,8 +712,13 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
     icon: BandcampIcon,
     inputType: "url",
     placeholder: "yourname.bandcamp.com",
-    generateUrl: (v) => v.startsWith("http") ? v : `https://${v}.bandcamp.com`,
-    extractValue: (url) => url.replace(/^https?:\/\//, "").replace(/\.bandcamp\.com.*$/, "") || url,
+    generateUrl: (v) => {
+      const raw = v.trim();
+      if (!raw || isBareDomainHandle(raw)) return "";
+      if (/^https?:\/\//i.test(raw)) return raw;
+      return /\.bandcamp\.com(?:[/?#]|$)/i.test(raw) ? `https://${raw}` : `https://${raw}.bandcamp.com`;
+    },
+    extractValue: (url) => url.trim(),
     color: "text-white",
     bgColor: "bg-[#1DA0C3]",
   },
@@ -677,8 +728,8 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
     icon: GitHubIcon,
     inputType: "handle",
     placeholder: "yourname",
-    generateUrl: (v) => `https://github.com/${v}`,
-    extractValue: (url) => url.replace(/^https?:\/\/(www\.)?github\.com\//, "").split("/")[0] || "",
+    generateUrl: (v) => safeUrl(stripHost(v, /^github\.com/i), (h) => `https://github.com/${h}`),
+    extractValue: (url) => stripHost(url, /^github\.com/i),
     color: "text-white",
     bgColor: "bg-[#181717]",
   },
@@ -688,8 +739,8 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
     icon: BehanceIcon,
     inputType: "handle",
     placeholder: "yourname",
-    generateUrl: (v) => `https://behance.net/${v}`,
-    extractValue: (url) => url.replace(/^https?:\/\/(www\.)?behance\.net\//, "").split("/")[0] || "",
+    generateUrl: (v) => safeUrl(stripHost(v, /^behance\.net/i), (h) => `https://behance.net/${h}`),
+    extractValue: (url) => stripHost(url, /^behance\.net/i),
     color: "text-white",
     bgColor: "bg-[#1769FF]",
   },
@@ -699,8 +750,8 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
     icon: DribbbleIcon,
     inputType: "handle",
     placeholder: "yourname",
-    generateUrl: (v) => `https://dribbble.com/${v}`,
-    extractValue: (url) => url.replace(/^https?:\/\/(www\.)?dribbble\.com\//, "").split("/")[0] || "",
+    generateUrl: (v) => safeUrl(stripHost(v, /^dribbble\.com/i), (h) => `https://dribbble.com/${h}`),
+    extractValue: (url) => stripHost(url, /^dribbble\.com/i),
     color: "text-white",
     bgColor: "bg-[#EA4C89]",
   },
