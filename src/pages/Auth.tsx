@@ -121,11 +121,13 @@ const Auth = () => {
        .from("restaurants")
        .select("id, onboarding_completed, subscription_status, payment_state")
        .eq("owner_id", user.id)
+       .limit(1)
        .maybeSingle(),
      supabase
        .from("personal_profiles")
        .select("id")
        .eq("user_id", user.id)
+       .limit(1)
        .maybeSingle()
    ]);
    if (restaurantResult.error) throw restaurantResult.error;
