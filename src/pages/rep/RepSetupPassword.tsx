@@ -106,7 +106,7 @@ export default function RepSetupPassword() {
         }
 
         toast.success("Welcome to TapAway! 🎉");
-        navigate("/rep");
+        navigate("/rep", { replace: true });
       }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Failed to set password";

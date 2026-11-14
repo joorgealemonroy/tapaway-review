@@ -95,6 +95,9 @@ async def run(browser, width):
         # Login URL also restores the session without creating another login history entry.
         await page.goto(BASE+'/auth?redirect=%2Frep%2Frestaurants')
         await page.get_by_role('button',name='Edit',exact=True).wait_for()
+        await page.goto(BASE+f'/rep/demo/{PID}')
+        await page.get_by_role('button',name='Partner Portal',exact=True).wait_for()
+        await page.go_back();await page.get_by_role('button',name='Edit',exact=True).wait_for()
         await page.goto(BASE+f'/dashboard?lite=1&profile_id={PID}&tab=links')
         await page.get_by_role('button',name='Add link',exact=True).click()
         await page.get_by_role('button',name='TikTok',exact=True).click()
