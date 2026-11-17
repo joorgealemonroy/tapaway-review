@@ -21,6 +21,7 @@ export default function CloseSaleDialog({
   onClose: () => void;
 }) {
   const [loading, setLoading] = useState(false);
+  const [failed, setFailed] = useState(false);
   const [url, setUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -30,6 +31,7 @@ export default function CloseSaleDialog({
     }
     let cancelled = false;
     setLoading(true);
+    setFailed(false);
     (async () => {
       try {
         const { data, error } = await supabase.functions.invoke("create-claim-checkout", {
@@ -41,7 +43,7 @@ export default function CloseSaleDialog({
         if (!cancelled) setUrl(tapawayUrl(`/claim?t=${encodeURIComponent(token)}`));
       } catch (err) {
         console.error("[close-sale] mint error", err);
-        if (!cancelled) toast.error("Could not create the sales link");
+        if (!cancelled) setFailed(true);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -58,13 +60,15 @@ export default function CloseSaleDialog({
           <DialogTitle>Close sale. {target?.name}</DialogTitle>
         </DialogHeader>
 
-        {loading || !url ? (
+        {failed ? (
+          <p role="alert" className="text-sm text-destructive">Could not create the payment link. Close this window and try again.</p>
+        ) : loading || !url ? (
           <div className="py-10 flex justify-center">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="flex justify-center p-4 bg-white rounded-lg">
+            <div data-light-surface className="flex justify-center p-4 bg-white rounded-lg">
               <QRCode value={url} size={180} />
             </div>
             <p className="text-xs text-muted-foreground text-center">
