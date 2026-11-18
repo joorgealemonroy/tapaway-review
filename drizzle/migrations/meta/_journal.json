@@ -344,6 +344,13 @@
       "when": 1794974547146,
       "tag": "0048_allow_admin_to_end_hub_gift",
       "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1794975238502,
+      "tag": "0049_scope_app_settings_public_read",
+      "breakpoints": true
     }
   ]
 }
