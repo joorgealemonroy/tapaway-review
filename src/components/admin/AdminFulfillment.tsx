@@ -1,4 +1,3 @@
-import { OrderHubPreview } from "./OrderHubPreview";
 // AdminFulfillment. The demo/card fulfillment pipeline board.
 //
 // Single source of truth: personal_profiles.pipeline_status.
@@ -18,7 +17,11 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, ArrowLeft, Printer, PackageCheck, CheckCircle2, XCircle } from "lucide-react";
+import { tapawayUrl } from "@/lib/siteUrl";
 import { approveDemo, approveToastText } from "@/lib/approveDemo";
+import { OrderHubPreview } from "@/components/admin/OrderHubPreview";
+import CloseSaleDialog, { type CloseSaleTarget } from "@/components/admin/CloseSaleDialog";
+import RequireHubPaymentDialog, { type HubPaymentTarget } from "@/components/admin/RequireHubPaymentDialog";
 import RepTally from "@/components/admin/RepTally";
 
 type Row = {
@@ -29,6 +32,8 @@ type Row = {
   updated_at: string | null;
   pipeline_status: string | null;
   is_approved: boolean | null;
+  payment_state: string | null;
+  stripe_subscription_id: string | null;
   sales_rep_id: string | null;
   created_by_rep_id: string | null;
   approved_at: string | null;
@@ -141,8 +146,10 @@ const inTab = (row: Row, tab: QueueTab): boolean => {
 export default function AdminFulfillment() {
   const navigate = useNavigate();
   const [previewId, setPreviewId] = useState<string | null>(null);
-  const [reviewed, setReviewed] = useState<Set<string>>(new Set());
+  const [saleTarget, setSaleTarget] = useState<CloseSaleTarget>(null);
+  const [paymentTarget, setPaymentTarget] = useState<HubPaymentTarget>(null);
   const [rows, setRows] = useState<Row[]>([]);
+  const previewRow = rows.find(row => row.id === previewId);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<QueueTab>("review");
   const [search, setSearch] = useState("");
@@ -150,12 +157,11 @@ export default function AdminFulfillment() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    setReviewed(new Set());
     try {
       const { data, error } = await supabase
         .from("personal_profiles")
         .select(
-          "id, full_name, username, created_at, updated_at, pipeline_status, is_approved, sales_rep_id, created_by_rep_id, approved_at, printed_at, activated_at, delivered_at, converted_at, card_print_pdf_path"
+          "id, full_name, username, created_at, updated_at, pipeline_status, is_approved, payment_state, stripe_subscription_id, sales_rep_id, created_by_rep_id, approved_at, printed_at, activated_at, delivered_at, converted_at, card_print_pdf_path"
         )
         .or("sales_rep_id.not.is.null,created_by_rep_id.not.is.null")
         .order("updated_at", { ascending: false })
@@ -228,12 +234,23 @@ export default function AdminFulfillment() {
     if (error) throw error;
   };
 
-  const handleApprove = async (row: Row) => {
+  const copyLockedHubLink = async (username: string | null) => {
+    if (!username) return;
+    try {
+      await navigator.clipboard.writeText(tapawayUrl(`/${encodeURIComponent(username)}`));
+      toast.success("Payment page link copied.");
+    } catch {
+      toast.error("Could not copy the payment page link.");
+    }
+  };
+
+  const handleApprove = async (row: Row, forContent: boolean) => {
     setActingId(row.id);
     try {
-      const result = await approveDemo(row.id);
+      const result = await approveDemo(row.id, { forContent });
+      setPreviewId(null);
       const t = approveToastText(result.award, "awardError" in result);
-      if (t.kind === "success") toast.success(t.text);
+      if (t.kind === "success") toast.success(forContent ? "Approved for content. The hub is live as a gift." : t.text);
       else toast.warning(t.text);
       await load();
     } catch (e) {
@@ -321,14 +338,7 @@ export default function AdminFulfillment() {
     const btn =
       "w-full min-h-[44px] mt-3 flex items-center justify-center gap-2 text-sm font-medium rounded-lg";
 
-    if (!row.is_approved || status === "draft" || status === "ready_for_review" || status === "changes_requested" || !status) {
-      return (
-        <Button className={btn} onClick={() => void handleApprove(row)} disabled={busy || !reviewed.has(row.id)}>
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-          Approve demo
-        </Button>
-      );
-    }
+    if (!row.is_approved) return null;
     if (status === "approved") {
       return (
         <Button className={btn} onClick={() => void handleAdvance(row, "card_ready", "printed_at", "printed")} disabled={busy}>
@@ -493,7 +503,27 @@ export default function AdminFulfillment() {
                     </div>
                   </div>
                   <Button variant="outline" className="w-full min-h-11 mt-4" onClick={() => setPreviewId(row.id)}>Preview hub</Button>
-                  {!row.is_approved && !reviewed.has(row.id) && <p className="text-sm text-slate-600 mt-2">Preview this hub to unlock approval.</p>}
+                  {row.payment_state === "complimentary" && <p className="mt-3 text-sm text-muted-foreground">Gifted · For content</p>}
+                  {row.payment_state === "payment_required" && (
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <p className="text-sm text-muted-foreground">Paused · Payment required</p>
+                      {row.username && (
+                        <Button variant="outline" onClick={() => void copyLockedHubLink(row.username)}>
+                          Copy payment page link
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                  {row.is_approved && !row.stripe_subscription_id && row.payment_state !== "paying" && row.payment_state !== "payment_required" && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Button variant="outline" onClick={() => setSaleTarget({ id: row.id, name: row.full_name || row.username || "Hub" })}>
+                        Get payment link
+                      </Button>
+                      <Button variant="outline" onClick={() => setPaymentTarget({ id: row.id, name: row.full_name || row.username || "Hub", slug: row.username, gifted: row.payment_state === "complimentary" })}>
+                        Require payment
+                      </Button>
+                    </div>
+                  )}
                   {renderAction(row)}
                 </div>
               );
@@ -501,7 +531,18 @@ export default function AdminFulfillment() {
           </div>
         )}
 
-        {previewId && <OrderHubPreview id={previewId} onClose={() => setPreviewId(null)} onReviewed={() => setReviewed(previous => new Set([...previous, previewId]))} />}
+        {previewRow && (
+          <OrderHubPreview
+            key={previewRow.id}
+            id={previewRow.id}
+            busy={actingId === previewRow.id}
+            canGift={!previewRow.stripe_subscription_id && previewRow.payment_state !== "paying" && previewRow.payment_state !== "payment_required"}
+            onClose={() => setPreviewId(null)}
+            onApprove={previewRow.is_approved ? undefined : forContent => void handleApprove(previewRow, forContent)}
+          />
+        )}
+        <CloseSaleDialog target={saleTarget} onClose={() => setSaleTarget(null)} />
+        <RequireHubPaymentDialog target={paymentTarget} onClose={() => setPaymentTarget(null)} onSaved={load} />
         {/* Rep $5 tally */}
         <RepTally />
       </div>

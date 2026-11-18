@@ -238,7 +238,7 @@ export function StorefrontFooter() {
         <div className="sf-footer-top">
           <div>
             <Brand />
-            <p className="mt-3 text-xs text-[#72796c]">
+            <p className="mt-3 sf-footer-tagline text-xs">
               Your world, one tap away.
             </p>
           </div>

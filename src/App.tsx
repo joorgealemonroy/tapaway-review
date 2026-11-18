@@ -1,10 +1,11 @@
 import AdminWorkspace from "@/components/admin/AdminWorkspace";
+import { SiteTheme } from "@/components/SiteTheme";
 import CustomerNotifications from "@/components/dashboard/CustomerNotifications";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation, createRoutesFromElements } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "@/hooks/useAuth";
 import { Suspense, useEffect } from "react";
@@ -142,6 +143,125 @@ function StartRedirect() {
   return <Navigate to={`/onboarding${search}`} replace />;
 }
 
+const siteRoutes = (
+  <>
+    <Route path="/" element={<Index />} />
+    <Route path="/business" element={<Navigate to="/" replace />} />
+    {/* Personal storefront; legacy account routes keep their redirects. */}
+    <Route path="/personal" element={<Personal />} />
+    <Route path="/personal/vibe" element={<Navigate to="/" replace />} />
+    <Route path="/personal/signup" element={<Navigate to="/" replace />} />
+    <Route path="/personal/signup/complete" element={<Navigate to="/" replace />} />
+    <Route path="/personal/pricing" element={<Navigate to="/personal#pricing" replace />} />
+    <Route path="/personal/order" element={<PersonalOrder />} />
+    <Route path="/personal/design" element={<PersonalDesigner />} />
+    <Route path="/connect/:cardId" element={<PersonalCardLink />} handle={{ hub: true }} />
+    <Route path="/personal/dashboard" element={<Navigate to="/dashboard" replace />} />
+    <Route path="/import" element={<ImportProfile />} />
+    <Route path="/demo" element={<Demo />} />
+    <Route path="/auth" element={<Auth />} />
+    <Route path="/auth/magic" element={<MagicLinkVerify />} />
+    <Route path="/select-dashboard" element={<Navigate to="/dashboard" replace />} />
+    <Route path="/auth/reset-password" element={<ResetPassword />} />
+    <Route path="/auth/set-password" element={<SetPassword />} />
+    <Route path="/onboarding" element={<Onboarding />} />
+    <Route path="/onboarding-success" element={<OnboardingSuccess />} />
+    <Route path="/van-success" element={<VanSuccess />} />
+    <Route path="/onboarding-start" element={<Navigate to="/onboarding?source=stripe" replace />} />
+    <Route path="/onboarding/start" element={<Navigate to="/onboarding?source=stripe" replace />} />
+    <Route path="/start" element={<StartRedirect />} />
+    <Route path="/paywall" element={<Paywall />} />
+    <Route path="/welcome" element={<Welcome />} />
+    <Route path="/trial-confirmed" element={<Navigate to="/onboarding?source=stripe" replace />} />
+    <Route path="/claim" element={<ClaimHubPage />} />
+    <Route path="/dashboard" element={<Dashboard />} />
+    <Route path="/admin" element={<Admin />} />
+    <Route path="/terms" element={<Terms />} />
+    <Route path="/privacy" element={<Privacy />} />
+    <Route path="/refund" element={<Refund />} />
+    <Route path="/support" element={<Support />} />
+    <Route path="/acceptable-use" element={<AcceptableUse />} />
+    <Route path="/affiliate-terms" element={<AffiliateTerms />} />
+    <Route path="/nfc-disclaimer" element={<NFCDisclaimer />} />
+    <Route path="/ai-disclaimer" element={<AIDisclaimer />} />
+    <Route path="/dmca" element={<DMCA />} />
+    <Route path="/cookie-policy" element={<CookiePolicy />} />
+    <Route path="/dpa" element={<DPA />} />
+
+    {/* Sales Rep Portal */}
+    <Route path="/rep" element={<RepHome />} />
+    <Route path="/rep/restaurants" element={<RepRestaurants />} />
+    {/* /rep/close removed 2026-09-09 (locked): rep creates demos, Jorge closes */}
+    <Route path="/rep/demo/new" element={<RepDemoCreate />} />
+    <Route path="/rep/demo/:id" element={<RepDemoCreate />} />
+    <Route path="/rep/commissions" element={<RepCommissions />} />
+    <Route path="/rep/resources" element={<RepResources />} />
+    <Route path="/rep/docs" element={<RepDocs />} />
+    <Route path="/rep/profile" element={<RepProfile />} />
+    <Route path="/rep/apply" element={<RepApply />} />
+    <Route path="/rep/setup-password" element={<RepSetupPassword />} />
+
+    {/* Admin Rep Management */}
+    <Route path="/admin/reps" element={<AdminReps />} />
+    <Route path="/admin/new-orders" element={<AdminNewOrders />} />
+    <Route path="/admin/commissions" element={<AdminCommissions />} />
+    <Route path="/admin/settings/comp" element={<AdminCompSettings />} />
+    <Route path="/admin/tax-review" element={<AdminTaxReview />} />
+    <Route path="/admin/payouts" element={<AdminPayouts />} />
+    <Route path="/admin/demo-requests" element={<AdminDemoRequests />} />
+    <Route path="/admin/personal-accounts" element={<AdminPersonalAccounts />} />
+    <Route path="/admin/affiliates" element={<AdminAffiliates />} />
+    <Route path="/admin/cards" element={<AdminCards />} />
+    <Route path="/admin/personal-card-orders" element={<AdminPersonalCardOrders />} />
+    <Route path="/admin/founders" element={<AdminFounders />} />
+    <Route path="/admin/sms-subscribers" element={<AdminSmsSubscribers />} />
+    <Route path="/admin/hub-health" element={<AdminHubHealth />} />
+    <Route path="/admin/analytics" element={<AdminAnalytics />} />
+    <Route path="/admin/print-queue" element={<Navigate to="/admin/fulfillment" replace />} />
+    <Route path="/admin/fulfillment" element={<AdminFulfillment />} />
+    <Route path="/admin/errors" element={<AdminErrors />} />
+    <Route path="/admin/locations" element={<AdminLocations />} />
+    <Route path="/admin/van" element={<VanVisit />} />
+    <Route path="/admin/discounts" element={<AdminDiscounts />} />
+    <Route path="/admin/custom-plans" element={<AdminCustomPlans />} />
+    <Route path="/admin/emails" element={<AdminEmails />} />
+    <Route path="/admin/card-showcase" element={<AdminCardShowcase />} />
+
+    <Route path="/affiliate" element={<AffiliateDashboard />} />
+    <Route path="/rep-checkout-success" element={<RepCheckoutSuccess />} />
+    <Route path="/examples" element={<Examples />} />
+    <Route path="/compliance" element={<Compliance />} />
+    <Route path="/sms-signup" element={<SmsSignup />} />
+
+    {/* SEO landing pages (must stay above the /:slug resolver) */}
+    <Route path="/faq" element={<Faq />} />
+    <Route path="/about" element={<About />} />
+    <Route path="/restaurants" element={<Restaurants />} />
+    <Route path="/barbershops" element={<Barbershops />} />
+    <Route path="/salons" element={<Salons />} />
+    <Route path="/cafes" element={<Cafes />} />
+    <Route path="/auto-shops" element={<AutoShops />} />
+
+    {/* NFC Card Activation */}
+    <Route path="/c/:publicCode" element={<CardResolver />} handle={{ hub: true }} />
+
+    <Route path="/hub/:restaurantId" element={<ReviewHub />} handle={{ hub: true }} />
+
+    {/* Legacy Personal Profile URL - 301 redirect to /:username */}
+    <Route path="/u/:username" element={<LegacyProfileRedirect />} handle={{ hub: true }} />
+
+    {/* Vanity redirect: Sonia's old hub URL now points to the landing page */}
+    <Route path="/soniamonroy" element={<Navigate to="/" replace />} />
+
+    {/* Dynamic username/slug resolver - handles both personal profiles and restaurant slugs */}
+    <Route path="/:slug" element={<UsernameResolver />} handle={{ hub: true }} />
+
+    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+    <Route path="*" element={<NotFound />} />
+  </>
+);
+const routeConfig = createRoutesFromElements(siteRoutes);
+
 const App = () => {
   // A successful boot means the current bundle loaded. Release the one-shot
   // reload guard so a future deploy can reload again if needed.
@@ -154,130 +274,18 @@ const App = () => {
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
-      <Sonner />
       <BrowserRouter>
         <AuthProvider>
           <StorefrontRouteSurface />
+          <SiteTheme routes={routeConfig} />
           <ErrorBoundary>
             <Suspense fallback={<PageLoader />}>
               <RepImpersonationOverlay />
               <SiteAnalytics />
-              <CustomerNotifications /><AdminWorkspace><Routes>
-
-              <Route path="/" element={<Index />} />
-                <Route path="/business" element={<Navigate to="/" replace />} />
-                {/* Personal storefront; legacy account routes keep their redirects. */}
-                <Route path="/personal" element={<Personal />} />
-                <Route path="/personal/vibe" element={<Navigate to="/" replace />} />
-                <Route path="/personal/signup" element={<Navigate to="/" replace />} />
-                <Route path="/personal/signup/complete" element={<Navigate to="/" replace />} />
-                <Route path="/personal/pricing" element={<Navigate to="/personal#pricing" replace />} />
-                <Route path="/personal/order" element={<PersonalOrder />} />
-                <Route path="/personal/design" element={<PersonalDesigner />} />
-                <Route path="/connect/:cardId" element={<PersonalCardLink />} />
-                <Route path="/personal/dashboard" element={<Navigate to="/dashboard" replace />} />
-                <Route path="/import" element={<ImportProfile />} />
-                <Route path="/demo" element={<Demo />} />
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/auth/magic" element={<MagicLinkVerify />} />
-                <Route path="/select-dashboard" element={<Navigate to="/dashboard" replace />} />
-                <Route path="/auth/reset-password" element={<ResetPassword />} />
-                <Route path="/auth/set-password" element={<SetPassword />} />
-                <Route path="/onboarding" element={<Onboarding />} />
-                <Route path="/onboarding-success" element={<OnboardingSuccess />} />
-                <Route path="/van-success" element={<VanSuccess />} />
-                <Route path="/onboarding-start" element={<Navigate to="/onboarding?source=stripe" replace />} />
-                <Route path="/onboarding/start" element={<Navigate to="/onboarding?source=stripe" replace />} />
-                <Route path="/start" element={<StartRedirect />} />
-                <Route path="/paywall" element={<Paywall />} />
-                <Route path="/welcome" element={<Welcome />} />
-                <Route path="/trial-confirmed" element={<Navigate to="/onboarding?source=stripe" replace />} />
-                <Route path="/claim" element={<ClaimHubPage />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/admin" element={<Admin />} />
-                <Route path="/terms" element={<Terms />} />
-                <Route path="/privacy" element={<Privacy />} />
-                <Route path="/refund" element={<Refund />} />
-                <Route path="/support" element={<Support />} />
-                <Route path="/acceptable-use" element={<AcceptableUse />} />
-                <Route path="/affiliate-terms" element={<AffiliateTerms />} />
-                <Route path="/nfc-disclaimer" element={<NFCDisclaimer />} />
-                <Route path="/ai-disclaimer" element={<AIDisclaimer />} />
-                <Route path="/dmca" element={<DMCA />} />
-                <Route path="/cookie-policy" element={<CookiePolicy />} />
-                <Route path="/dpa" element={<DPA />} />
-                
-                {/* Sales Rep Portal */}
-                <Route path="/rep" element={<RepHome />} />
-                <Route path="/rep/restaurants" element={<RepRestaurants />} />
-                {/* /rep/close removed 2026-09-09 (locked): rep creates demos, Jorge closes */}
-                <Route path="/rep/demo/new" element={<RepDemoCreate />} />
-                <Route path="/rep/demo/:id" element={<RepDemoCreate />} />
-                <Route path="/rep/commissions" element={<RepCommissions />} />
-                <Route path="/rep/resources" element={<RepResources />} />
-                <Route path="/rep/docs" element={<RepDocs />} />
-                <Route path="/rep/profile" element={<RepProfile />} />
-                <Route path="/rep/apply" element={<RepApply />} />
-                <Route path="/rep/setup-password" element={<RepSetupPassword />} />
-                
-                {/* Admin Rep Management */}
-                <Route path="/admin/reps" element={<AdminReps />} />
-                <Route path="/admin/new-orders" element={<AdminNewOrders />} />
-                <Route path="/admin/commissions" element={<AdminCommissions />} />
-                <Route path="/admin/settings/comp" element={<AdminCompSettings />} />
-                <Route path="/admin/tax-review" element={<AdminTaxReview />} />
-                <Route path="/admin/payouts" element={<AdminPayouts />} />
-                <Route path="/admin/demo-requests" element={<AdminDemoRequests />} />
-                <Route path="/admin/personal-accounts" element={<AdminPersonalAccounts />} />
-                <Route path="/admin/affiliates" element={<AdminAffiliates />} />
-                <Route path="/admin/cards" element={<AdminCards />} />
-                <Route path="/admin/personal-card-orders" element={<AdminPersonalCardOrders />} />
-                <Route path="/admin/founders" element={<AdminFounders />} />
-                <Route path="/admin/sms-subscribers" element={<AdminSmsSubscribers />} />
-                <Route path="/admin/hub-health" element={<AdminHubHealth />} />
-                <Route path="/admin/analytics" element={<AdminAnalytics />} />
-                <Route path="/admin/print-queue" element={<Navigate to="/admin/fulfillment" replace />} />
-                <Route path="/admin/fulfillment" element={<AdminFulfillment />} />
-                <Route path="/admin/errors" element={<AdminErrors />} />
-                <Route path="/admin/locations" element={<AdminLocations />} />
-                <Route path="/admin/van" element={<VanVisit />} />
-                <Route path="/admin/discounts" element={<AdminDiscounts />} />
-                <Route path="/admin/custom-plans" element={<AdminCustomPlans />} />
-                <Route path="/admin/emails" element={<AdminEmails />} />
-                <Route path="/admin/card-showcase" element={<AdminCardShowcase />} />
-                
-                <Route path="/affiliate" element={<AffiliateDashboard />} />
-                <Route path="/rep-checkout-success" element={<RepCheckoutSuccess />} />
-                <Route path="/examples" element={<Examples />} />
-                <Route path="/compliance" element={<Compliance />} />
-                <Route path="/sms-signup" element={<SmsSignup />} />
-
-                {/* SEO landing pages (must stay above the /:slug resolver) */}
-                <Route path="/faq" element={<Faq />} />
-                <Route path="/about" element={<About />} />
-                <Route path="/restaurants" element={<Restaurants />} />
-                <Route path="/barbershops" element={<Barbershops />} />
-                <Route path="/salons" element={<Salons />} />
-                <Route path="/cafes" element={<Cafes />} />
-                <Route path="/auto-shops" element={<AutoShops />} />
-                
-                {/* NFC Card Activation */}
-                <Route path="/c/:publicCode" element={<CardResolver />} />
-                
-                <Route path="/hub/:restaurantId" element={<ReviewHub />} />
-                
-                {/* Legacy Personal Profile URL - 301 redirect to /:username */}
-                <Route path="/u/:username" element={<LegacyProfileRedirect />} />
-
-                {/* Vanity redirect: Sonia's old hub URL now points to the landing page */}
-                <Route path="/soniamonroy" element={<Navigate to="/" replace />} />
-                
-                {/* Dynamic username/slug resolver - handles both personal profiles and restaurant slugs */}
-                <Route path="/:slug" element={<UsernameResolver />} />
-                
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                <Route path="*" element={<NotFound />} />
-              </Routes></AdminWorkspace>
+              <CustomerNotifications />
+              <AdminWorkspace>
+                <Routes>{siteRoutes}</Routes>
+              </AdminWorkspace>
             </Suspense>
           </ErrorBoundary>
         </AuthProvider>

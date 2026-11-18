@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-export type HubPaymentTarget = { id: string; name: string; slug: string | null } | null;
+export type HubPaymentTarget = { id: string; name: string; slug: string | null; gifted?: boolean } | null;
 
 export default function RequireHubPaymentDialog({ target, onClose, onSaved }: {
   target: HubPaymentTarget;
@@ -20,7 +20,7 @@ export default function RequireHubPaymentDialog({ target, onClose, onSaved }: {
     setError("");
     try {
       const { data, error: requestError } = await supabase.functions.invoke("hub-payment-request", {
-        body: { action: "require", profileId: target.id, confirm: true },
+        body: { action: "require", profileId: target.id, confirm: true, endGift: target.gifted === true },
       });
       if (requestError || data?.ok !== true) {
         let reason = data?.error;
@@ -40,21 +40,21 @@ export default function RequireHubPaymentDialog({ target, onClose, onSaved }: {
   };
   return (
     <Dialog open={!!target} onOpenChange={open => { if (!open && !busy) onClose(); }}>
-      <DialogContent className="w-[calc(100%-2rem)] max-h-[90dvh] overflow-y-auto rounded-2xl border-[#dfe6d8] bg-[#fffdf7] text-[#19382b] sm:max-w-md" onInteractOutside={event => { if (busy) event.preventDefault(); }} onEscapeKeyDown={event => { if (busy) event.preventDefault(); }}>
+      <DialogContent className="w-[calc(100%-2rem)] max-h-[90dvh] overflow-y-auto rounded-2xl border-border bg-background text-foreground sm:max-w-md" onInteractOutside={event => { if (busy) event.preventDefault(); }} onEscapeKeyDown={event => { if (busy) event.preventDefault(); }}>
         <DialogHeader>
-          <span className="mb-2 flex h-11 w-11 items-center justify-center rounded-xl bg-[#edf3e6]"><LockKeyhole className="h-5 w-5" /></span>
+          <span className="mb-2 flex h-11 w-11 items-center justify-center rounded-xl bg-muted"><LockKeyhole className="h-5 w-5" /></span>
           <DialogTitle className="text-xl">Require payment for this hub?</DialogTitle>
-          <DialogDescription className="break-words text-[#5b695e]">{target?.name}{target?.slug ? ` · tapaway.co/${target.slug}` : ""}</DialogDescription>
+          <DialogDescription className="break-words text-muted-foreground">{target?.name}{target?.slug ? ` · tapaway.co/${target.slug}` : ""}</DialogDescription>
         </DialogHeader>
-        <div className="space-y-3 text-sm leading-relaxed text-[#465b4b]">
-          <p>This pauses the public links for this hub. The owner will see their activity and one option to activate the 4 cards they already have for <strong className="text-[#19382b]">$20/month</strong>.</p>
+        <div className="space-y-3 text-sm leading-relaxed text-muted-foreground">
+          <p>This pauses the public links for this hub. The owner will see their activity and one option to activate the 4 cards they already have for <strong className="text-foreground">$20/month</strong>.</p>
           <p>The same cards and page address will work again after verified payment. Their content and activity stay saved.</p>
-          <p className="rounded-xl bg-[#edf3e6] p-3 text-xs">This changes only this hub. It doesn’t charge a saved card or send a message. Existing subscriptions and gift accounts are protected.</p>
+          <p className="rounded-xl bg-muted p-3 text-xs">{target?.gifted ? 'This ends the gift and pauses the hub until payment. No message or charge is sent.' : 'This changes only this hub. No message or charge is sent.'}</p>
         </div>
         {error && <p role="alert" className="rounded-xl border border-orange-200 bg-orange-50 p-3 text-sm leading-relaxed text-orange-900">{error}</p>}
         <div className="mt-2 flex flex-col-reverse gap-2 sm:flex-row">
-          <button type="button" disabled={busy} onClick={onClose} className="min-h-11 rounded-xl border border-[#dfe6d8] px-4 text-sm font-semibold disabled:opacity-60 sm:flex-1">Keep as is</button>
-          <button type="button" disabled={busy} onClick={requirePayment} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#234d37] px-4 text-sm font-semibold text-[#fffdf7] disabled:opacity-60 sm:flex-1">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}Require payment</button>
+          <button type="button" disabled={busy} onClick={onClose} className="min-h-11 rounded-xl border border-border px-4 text-sm font-semibold disabled:opacity-60 sm:flex-1">Keep as is</button>
+          <button type="button" disabled={busy} onClick={requirePayment} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground disabled:opacity-60 sm:flex-1">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}Require payment</button>
         </div>
       </DialogContent>
     </Dialog>

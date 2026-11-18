@@ -134,11 +134,8 @@ async function fetchProfileData(username: string): Promise<FetchProfileResult> {
     .rpc('get_public_personal_profile', { _slug: username.toLowerCase() });
   const profileData = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
 
-  const isPubliclyVisible =
-    profileData?.subscription_status === 'active' ||
-    (profileData?.subscription_status === 'trialing' && (profileData as { is_approved?: boolean }).is_approved === true);
-
-  if (profileError || !profileData || !isPubliclyVisible) {
+  // The public RPC applies the current access policy, including gifts and pauses.
+  if (profileError || !profileData) {
     if (profileError) console.error('[useProfileData] public profile RPC failed', profileError);
 
     // The profile may still exist with a lapsed subscription (e.g. trial

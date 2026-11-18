@@ -11,16 +11,17 @@ export type ApproveDemoResult =
   | { ok: true; award: string | null }
   | { ok: true; award: string | null; awardError: true };
 
-export async function approveDemo(profileId: string): Promise<ApproveDemoResult> {
+export async function approveDemo(profileId: string, { forContent = false } = {}): Promise<ApproveDemoResult> {
   const { data: userRes } = await supabase.auth.getUser();
   const adminId = userRes?.user?.id ?? null;
 
   // Never synthesise a business name from the slug: a blank name is an
   // intentional state. Approval only moves the pipeline stage forward.
-  const { error } = await supabase
+  let approval = supabase
     .from("personal_profiles")
     .update({
       is_approved: true,
+      ...(forContent ? { payment_state: "complimentary" } : {}),
       plan_type: "solo_pro",
       pipeline_status: "approved",
       approved_at: new Date().toISOString(),
@@ -31,9 +32,14 @@ export async function approveDemo(profileId: string): Promise<ApproveDemoResult>
       rep_note_at: null,
     } as never)
     .eq("id", profileId);
+  if (forContent) {
+    approval = approval.is("stripe_subscription_id", null)
+      .or("payment_state.is.null,payment_state.not.in.(paying,payment_required)");
+  }
+  const { data, error } = await approval.select("id").single();
 
-  if (error) {
-    throw new Error("Approval failed: " + error.message);
+  if (error || !data) {
+    throw new Error("Approval failed: " + (error?.message ?? "Hub could not be updated"));
   }
 
   try {
