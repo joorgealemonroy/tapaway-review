@@ -132,7 +132,7 @@ Deno.serve(async req => {
       if (body.confirm !== true || typeof body.profileId !== 'string' || !uuid.test(body.profileId)) return json({ error: 'Confirm the selected hub first.' }, 400);
       await quota(req, 'admin', 40, auth.user.id);
       await availablePrice(getStripe());
-      const result = await db.rpc('require_hub_payment', { _profile_id: body.profileId, _requested_by: auth.user.id });
+      const result = await db.rpc('require_hub_payment', { _profile_id: body.profileId, _requested_by: auth.user.id, ...(body.endGift === true ? { _end_gift: true } : {}) });
       if (result.error) return json({ error: 'This hub cannot be paused for this offer. Check its billing and gift status first.' }, 409);
       return json({ ok: true });
     }

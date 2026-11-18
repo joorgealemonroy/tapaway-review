@@ -1,0 +1,103 @@
+.site-theme-toggle {
+  position: fixed;
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  left: max(1rem, env(safe-area-inset-left));
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid hsl(var(--input));
+  border-radius: 50%;
+  background: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+  box-shadow: 0 2px 10px rgb(0 0 0 / 15%);
+}
+.site-theme-toggle:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 3px;
+}
+
+:root.dark {
+  --dark-page: #121815;
+  --dark-panel: #1c2520;
+  --dark-subtle: #26332b;
+  --dark-border: #495b50;
+  --dark-text: #f0f5f1;
+  --dark-muted: #bbc9be;
+  --dark-link: #afdbbb;
+  --app-bg: var(--dark-page) !important;
+  color-scheme: dark;
+}
+:root.dark,
+:root.dark[data-admin-surface],
+.dark :is(.storefront, .checkout-surface) {
+  --background: 151 14% 8%;
+  --foreground: 132 20% 95%;
+  --card: 147 14% 13%;
+  --card-foreground: 132 20% 95%;
+  --popover: 147 14% 13%;
+  --popover-foreground: 132 20% 95%;
+  --primary: 136 38% 76%;
+  --primary-foreground: 148 26% 12%;
+  --secondary: 143 15% 18%;
+  --secondary-foreground: 132 20% 95%;
+  --muted: 143 15% 18%;
+  --muted-foreground: 133 12% 76%;
+  --accent: 143 15% 21%;
+  --accent-foreground: 132 20% 95%;
+  --border: 143 11% 32%;
+  --input: 143 11% 36%;
+  --ring: 136 38% 76%;
+  --hero-background: 151 14% 8%;
+  --hero-foreground: 132 20% 95%;
+  color-scheme: dark;
+}
+.dark :is(.storefront, .checkout-surface) {
+  background: var(--dark-page);
+  color: var(--dark-text);
+}
+
+/* Phone mockups, QR codes and the card art use their own palette. */
+.dark :is(.sf-phone, [data-hub-preview], .sf-mini-card) {
+  --dark-page: initial;
+  --dark-panel: initial;
+  --dark-subtle: initial;
+  --dark-border: initial;
+  --dark-text: initial;
+  --dark-muted: initial;
+  --dark-link: initial;
+  color-scheme: light;
+}
+.dark .sf-phone { color: #111512; }
+.dark .sf-mini-card:not(.light, .pink, .yellow) { color: white; }
+
+.dark :is(.bg-white, .bg-gray-50, .bg-slate-50, .bg-zinc-50, .bg-neutral-50):not(:where([data-hub-preview] *, [data-light-surface], [data-light-surface] *)) {
+  background-color: var(--dark-panel);
+}
+.dark :is(.bg-gray-100, .bg-slate-100, .bg-zinc-100, .bg-neutral-100):not(:where([data-hub-preview] *)) {
+  background-color: var(--dark-subtle);
+}
+.dark :is(.border-gray-200, .border-slate-200, .border-zinc-200, .border-neutral-200):not(:where([data-hub-preview] *)) {
+  border-color: var(--dark-border);
+}
+.dark :is(.text-black, .text-gray-900, .text-slate-900, .text-zinc-900, .text-neutral-900, .text-gray-800, .text-slate-800):not(:where([data-hub-preview] *)) {
+  color: var(--dark-text);
+}
+.dark :is(.text-gray-500, .text-gray-600, .text-gray-700, .text-slate-500, .text-slate-600, .text-slate-700, .text-zinc-600):not(:where([data-hub-preview] *)) {
+  color: var(--dark-muted);
+}
+
+.dark .customer-workspace {
+  --primary: 136 38% 76%;
+  --primary-foreground: 148 26% 12%;
+  --ring: 136 38% 76%;
+}
+:root.dark[data-admin-surface] { --app-bg: var(--dark-page) !important; }
+.dark .sf-phone :is(h3, .sf-phone-action) { color: #111512; }
+.dark .sf-hero-actions .sf-button.secondary,
+.dark .sf-faq-grid button { color: var(--dark-text); }
+
+@media (max-width: 767px) {
+  [data-admin-surface] .site-theme-toggle { bottom: max(4.75rem, calc(env(safe-area-inset-bottom) + 4rem)); }
+}

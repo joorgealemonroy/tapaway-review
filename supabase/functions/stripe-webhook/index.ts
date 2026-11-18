@@ -1807,6 +1807,7 @@ async function handleInPersonClose(stripe: Stripe, session: Stripe.Checkout.Sess
   const update: Record<string, unknown> = {
     subscription_status: subscription.status,
     pipeline_status: 'active',
+    payment_state: 'paying',
     plan_type: planType,
     has_card_addon: cardClub,
     is_approved: true,

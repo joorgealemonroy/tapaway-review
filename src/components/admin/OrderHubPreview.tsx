@@ -1,12 +1,20 @@
-import { useQuery } from '@tanstack/react-query';
+import { CardPrintFile } from "./CardPrintFile";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from '@/integrations/supabase/client';
 import { ProfilePreviewPanel } from '@/components/personal/ProfilePreviewPanel';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { CardPrintFile } from './CardPrintFile';
 
 /** Uses the signed-in admin's existing RLS access, never a public draft URL. */
-export function OrderHubPreview({ id, onClose, onReviewed }: { id: string; onClose: () => void; onReviewed: () => void }) {
+export function OrderHubPreview({ id, busy, canGift, onClose, onApprove }: {
+  id: string;
+  busy: boolean;
+  canGift: boolean;
+  onClose: () => void;
+  onApprove?: (forContent: boolean) => void;
+}) {
+  const [forContent, setForContent] = useState(false);
   const result = useQuery({
     queryKey: ['admin-order-preview', id],
     queryFn: async () => {
@@ -19,13 +27,48 @@ export function OrderHubPreview({ id, onClose, onReviewed }: { id: string; onClo
       return { profile: profile.data, links: (links.data || []).filter(l => !l.is_archived), blocks: (blocks.data || []).filter(b => !b.is_archived) };
     }, retry: 1,
   });
-  return <Dialog open onOpenChange={open => { if (!open) onClose(); }}><DialogContent className="max-w-lg max-h-[92dvh] overflow-y-auto bg-white text-slate-900">
-    <DialogHeader><DialogTitle>Review hub before approval</DialogTitle><DialogDescription>Check the logo, name, links and uploaded card print PDF. This private preview does not publish or approve anything.</DialogDescription></DialogHeader>
-    {result.isPending ? <p role="status">Loading hub preview…</p> : result.isError ? <div role="alert"><p>We couldn't load this hub. Approval stays locked until a preview loads.</p><Button onClick={() => result.refetch()}>Try again</Button></div> : result.data && <>
-      <ProfilePreviewPanel profile={result.data.profile} links={result.data.links} blocks={result.data.blocks as any} />
-      <CardPrintFile path={result.data.profile.card_print_pdf_path} hubName={result.data.profile.full_name || result.data.profile.username || 'Hub'} filename={result.data.profile.username || id} />
-      <a className="text-emerald-800 underline py-3" href={`/dashboard?admin_view_personal=${encodeURIComponent(id)}`}>Edit this hub</a>
-      <Button onClick={() => { onReviewed(); onClose(); }}>I've reviewed this hub</Button>
-    </>}
-  </DialogContent></Dialog>;
+  return (
+    <Dialog open onOpenChange={open => { if (!open && !busy) onClose(); }}>
+      <DialogContent className="max-h-[92dvh] max-w-lg grid-rows-[auto_minmax(0,1fr)_auto] bg-background text-foreground">
+        <DialogHeader>
+          <DialogTitle>Hub preview</DialogTitle>
+          <DialogDescription>Review the logo, name and links.</DialogDescription>
+        </DialogHeader>
+        <div className="min-h-0 space-y-3 overflow-y-auto">
+          {result.isPending && <p role="status">Loading hub preview…</p>}
+          {result.isError && (
+            <div className="space-y-2" role="alert">
+              <p>We couldn't load this hub. Try again to review it before approving.</p>
+              <Button onClick={() => result.refetch()}>Try again</Button>
+            </div>
+          )}
+          {result.data && !result.isError && (
+            <>
+              <div data-hub-preview>
+                <ProfilePreviewPanel profile={result.data.profile} links={result.data.links} blocks={result.data.blocks as any} />
+              </div>
+              <CardPrintFile path={result.data.profile.card_print_pdf_path} hubName={result.data.profile.full_name || result.data.profile.username || "Hub"} filename={result.data.profile.username || id} />
+              <a className="inline-block py-2 text-primary underline" href={`/dashboard?admin_view_personal=${encodeURIComponent(id)}`}>Edit this hub</a>
+            </>
+          )}
+        </div>
+        {result.isSuccess && onApprove && (
+          <div className="space-y-3 border-t pt-3">
+            {canGift && (
+              <label className="flex items-start gap-3 text-sm">
+                <input type="checkbox" className="mt-1 size-4" checked={forContent} disabled={busy} onChange={event => setForContent(event.target.checked)} />
+                <span>
+                  <strong>For content (gift)</strong>
+                  <span className="block text-muted-foreground">Make the hub live without payment on approval.</span>
+                </span>
+              </label>
+            )}
+            <Button className="w-full" disabled={busy} onClick={() => onApprove(canGift && forContent)}>
+              {busy ? "Approving…" : canGift && forContent ? "Approve as gift" : "Approve demo"}
+            </Button>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
 }
