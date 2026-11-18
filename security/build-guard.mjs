@@ -8,6 +8,8 @@ export const PUBLIC_ENV_NAMES = Object.freeze([
   'VITE_GOOGLE_MAPS_API_KEY', 'VITE_GOOGLE_MAPS_MAP_ID', 'VITE_STRIPE_PUBLISHABLE_KEY',
 ]);
 const publicNames = new Set(PUBLIC_ENV_NAMES);
+// Build-tool flags that start with VITE_ but are never bundled: envPrefix exposes only PUBLIC_ENV_NAMES.
+const TOOLING_ONLY_ENV_NAMES = new Set(['VITE_CONFIG_NATIVE_IGNORE_WARNING']);
 const secretName = /(?:SECRET|TOKEN|PASSWORD|PRIVATE_KEY|CONNECTION_STRING|DATABASE_URL|API_KEY|MIGRATION_URL|SERVICE_ROLE)/i;
 const fixture = /(?:fixture|example|placeholder|your[_ -]|replace[_ -]|test[_-]only|qa[_-]only|redacted|dummy|fake)/i;
 const rules = [
@@ -69,7 +71,7 @@ export function collectKnownSecrets(env) {
 export function validatePublicEnv(env) {
   const findings = [];
   for (const [name,value] of Object.entries(env)) {
-    if (!name.startsWith('VITE_') || value === '') continue;
+    if (!name.startsWith('VITE_') || value === '' || TOOLING_ONLY_ENV_NAMES.has(name)) continue;
     if (!publicNames.has(name)) { findings.push({ file: 'build environment', line: 1, kind: `unapproved-public-variable:${name}` }); continue; }
     findings.push(...scanText(value, name));
     if (['VITE_SUPABASE_PUBLISHABLE_KEY', 'VITE_SUPABASE_ANON_KEY'].includes(name) && !(/^sb_publishable_[A-Za-z0-9_-]+$/.test(value) || jwtPayload(value)?.role === 'anon')) findings.push({file:name,line:1,kind:'expected-public-anon-or-publishable-key'});
