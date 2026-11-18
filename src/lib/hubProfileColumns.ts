@@ -47,4 +47,5 @@ export const HUB_PROFILE_COLUMNS = [
   "contact_button_label",
   "is_approved",
   "created_by_rep_id",
+  "buttons_only",
 ].join(", ");

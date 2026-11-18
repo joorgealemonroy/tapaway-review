@@ -1,4 +1,6 @@
 import { lightHubBackground } from "@/lib/hubAppearance";
+import { hubButtonColors, isGridTileLink, rendersAsButton, splitHubLinks } from "@/lib/hubLinkButtons";
+import { HubLinkButton } from "./HubLinkButton";
 import { memo, useMemo, useState } from "react";
 
 import { ExternalLink, Mail, UserPlus, Share2 } from "lucide-react";
@@ -77,6 +79,7 @@ interface ProfileData {
   contact_button_label?: string | null;
   button_theme?: string | null;
   text_color?: string | null;
+  buttons_only?: boolean | null;
 }
 
 interface LinkData {
@@ -159,17 +162,15 @@ function ProfilePreviewRendererComponent({
     [links]
   );
 
-  // Separate icon-style links from pill-style links
-  // "icon" and "both" both show in the icon bar
-  const iconLinks = useMemo(
-    () => activeLinks.filter((l) => l.display_style === 'icon' || l.display_style === 'both'),
-    [activeLinks]
+  // Same icon-bar / list split as the live hub, including Buttons only.
+  const buttonsOnly = profile.buttons_only === true;
+  const { iconLinks, listLinks: pillLinks } = useMemo(
+    () => splitHubLinks(activeLinks, buttonsOnly),
+    [activeLinks, buttonsOnly]
   );
-
-  // "pill" and "both" both show as buttons (exclude "icon" only)
-  const pillLinks = useMemo(
-    () => activeLinks.filter((l) => l.display_style !== 'icon'),
-    [activeLinks]
+  const linkButtonColors = useMemo(
+    () => hubButtonColors(profile.button_theme, previewContrast.isDark),
+    [profile.button_theme, previewContrast.isDark]
   );
 
   const featuredLink = useMemo(
@@ -222,7 +223,7 @@ function ProfilePreviewRendererComponent({
     for (const item of unifiedItems) {
       if (item.type === "link") {
         const link = item.data as LinkData;
-        if (link.cover_image_url && link.grid_size === "half") {
+        if (isGridTileLink(link, buttonsOnly)) {
           currentGridGroup.push(link);
         } else {
           // Flush current grid group if any
@@ -246,7 +247,7 @@ function ProfilePreviewRendererComponent({
       result.push({ kind: "grid-group", links: currentGridGroup });
     }
     return result;
-  }, [unifiedItems]);
+  }, [unifiedItems, buttonsOnly]);
 
   const handleLinkClick = (e: React.MouseEvent, url: string) => {
     if (isPreview) {
@@ -379,9 +380,25 @@ function ProfilePreviewRendererComponent({
   const renderLink = (link: LinkData, isFeatured = false, isGrid = false, index = 99) => {
     const catalog = boundMealCatalog(activeBlocks, link.id);
     if (catalog) return <MealCatalog key={link.id} content={catalog} accentColor={profile.button_theme} interactive={false}
-      trigger={{ label: String(catalog.buttonLabel || link.label), imageUrl: link.cover_image_url || undefined, isGrid }} />;
+      trigger={{ label: String(catalog.buttonLabel || link.label), imageUrl: buttonsOnly ? undefined : link.cover_image_url || undefined, isGrid: buttonsOnly ? false : isGrid }} />;
     const platform = getPlatformConfig(link.link_type);
     const Icon = platform?.icon;
+
+    // Plain full-width button (saved "Button" style or hub-wide Buttons only)
+    if (rendersAsButton(link, buttonsOnly)) {
+      return (
+        <HubLinkButton
+          key={link.id}
+          href={sanitizeUrl(link.url)}
+          label={link.label}
+          colors={linkButtonColors}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => handleLinkClick(e, link.url)}
+          compact
+        />
+      );
+    }
 
     // Email link. Inline bar with email + Connect button
     if (link.link_type === "email") {

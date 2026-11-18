@@ -22,6 +22,7 @@ interface ProfileData {
   contact_button_label?: string | null;
   button_theme?: string | null;
   text_color?: string | null;
+  buttons_only?: boolean | null;
 }
 
 interface LinkData {

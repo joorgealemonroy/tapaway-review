@@ -19,7 +19,7 @@ export interface AdminLink {
   value: string;
   url: string;
   pillColor?: string | null;
-  displayStyle?: "pill" | "icon" | "both";
+  displayStyle?: "pill" | "icon" | "both" | "button";
   isActive: boolean;
   isFeatured: boolean;
   sortOrder: number;
@@ -41,7 +41,7 @@ export const AdminLinksManager = ({ links, onLinksChange }: Props) => {
   const existingTypes: string[] = [];
 
   const handleAddLink = (linkData: { type: string; value: string; url: string; label: string; pillColor?: string | null; displayStyle?: string }) => {
-    const newDisplayStyle = (linkData.displayStyle as "pill" | "icon" | "both") || "pill";
+    const newDisplayStyle = (linkData.displayStyle as "pill" | "icon" | "both" | "button") || "pill";
     
     // If adding a link with "icon" or "both" style, check for existing icon of same type
     let updatedLinks = [...links];

@@ -36,6 +36,9 @@ interface Props {
   headerType: string | null;
   isFoundingUser?: boolean;
   showFoundingBadge?: boolean;
+  /** Per-hub "Buttons only" link layout. Off by default. */
+  buttonsOnly?: boolean;
+  onButtonsOnlyChange?: (value: boolean) => void;
   onUpdate: (updates: {
     backgroundColor?: string | null;
     profilePhotoUrl?: string | null;
@@ -72,8 +75,38 @@ export const DashboardDesignTab = ({
   headerType,
   isFoundingUser,
   showFoundingBadge,
+  buttonsOnly = false,
+  onButtonsOnlyChange,
   onUpdate,
 }: Props) => {
+  const [buttonsOnlyOn, setButtonsOnlyOn] = useState(buttonsOnly);
+  const [savingButtonsOnly, setSavingButtonsOnly] = useState(false);
+  useEffect(() => { setButtonsOnlyOn(buttonsOnly); }, [buttonsOnly, profileId]);
+
+  const handleButtonsOnlyChange = async (checked: boolean) => {
+    if (savingButtonsOnly) return;
+    setSavingButtonsOnly(true);
+    setButtonsOnlyOn(checked);
+    onButtonsOnlyChange?.(checked);
+    try {
+      // Only the hub-wide flag changes; each link keeps its own saved style,
+      // so switching this off restores them.
+      const { error } = await supabase
+        .from("personal_profiles")
+        .update({ buttons_only: checked })
+        .eq("id", profileId);
+      if (error) throw error;
+      toast.success(checked ? "Buttons only is on" : "Buttons only is off");
+    } catch (err) {
+      console.error("Buttons only save error:", err);
+      setButtonsOnlyOn(!checked);
+      onButtonsOnlyChange?.(!checked);
+      toast.error("Couldn't save Buttons only. Please try again.");
+    } finally {
+      setSavingButtonsOnly(false);
+    }
+  };
+
   const [pendingBgColor, setPendingBgColor] = useState(backgroundColor);
   const [bgColorInput, setBgColorInput] = useState(backgroundColor || "#ffffff");
   const [pendingHeaderType, setPendingHeaderType] = useState(headerType);
@@ -525,6 +558,24 @@ export const DashboardDesignTab = ({
 
         <p className="text-sm text-muted-foreground">Each palette keeps your text readable. Spacing and image proportions are handled for you.</p>
       </section>
+
+      {/* Buttons only (per hub, optional) */}
+      <div className="border-t pt-6">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h3 id="buttons-only-label" className="text-base font-semibold text-foreground">Buttons only</h3>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              Show every link as a simple full-width button, without icons, thumbnails or image tiles. Turn it off to bring back each link's own style.
+            </p>
+          </div>
+          <Switch
+            checked={buttonsOnlyOn}
+            disabled={savingButtonsOnly}
+            aria-labelledby="buttons-only-label"
+            onCheckedChange={(checked) => { void handleButtonsOnlyChange(checked); }}
+          />
+        </div>
+      </div>
 
       {/* Founding Creator Badge Toggle */}
       {isFoundingUser && (

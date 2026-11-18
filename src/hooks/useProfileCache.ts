@@ -48,6 +48,8 @@ export interface CachedProfile {
   button_theme?: string | null;
   text_color?: string | null;
   show_username?: boolean;
+  /** Per-hub "Buttons only" link layout (off unless the owner turns it on). */
+  buttons_only?: boolean | null;
   // Provenance / status (used for the unclaimed demo hub disclaimer)
   subscription_status?: string | null;
   is_approved?: boolean | null;

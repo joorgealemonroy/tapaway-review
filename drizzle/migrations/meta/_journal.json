@@ -358,6 +358,13 @@
       "when": 1794975262040,
       "tag": "0050_scope_support_request_user_insert",
       "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "7",
+      "when": 1794975499148,
+      "tag": "0051_hub_buttons_only_and_button_link_style",
+      "breakpoints": true
     }
   ]
 }

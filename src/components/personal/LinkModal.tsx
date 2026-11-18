@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { PLATFORM_CONFIGS, getPlatformConfig, PlatformConfig, PLATFORM_COLORS, detectPlatformFromUrl, isBareDomainHandle, LINK_MODAL_PLATFORM_TYPES } from "@/lib/platformLinks";
 import { PersonalLink } from "@/hooks/usePersonalOnboarding";
-import { ArrowLeft, Check, Sparkles, LayoutList, Circle, ImagePlus, X, Loader2, Globe } from "lucide-react";
+import { ArrowLeft, Check, Sparkles, LayoutList, Circle, ImagePlus, X, Loader2, Globe, RectangleHorizontal } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ImageCropper } from "./ImageCropper";
@@ -55,6 +55,8 @@ const COLOR_PRESETS = [
   "#ec4899", // Pink
 ];
 
+type LinkDisplayStyle = "pill" | "icon" | "both" | "button";
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -83,7 +85,7 @@ export const LinkModal = ({
   const [pillColor, setPillColor] = useState<string | null>(null);
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [detectedPlatform, setDetectedPlatform] = useState<PlatformConfig | null>(null);
-  const [displayStyle, setDisplayStyle] = useState<"pill" | "icon" | "both">("pill");
+  const [displayStyle, setDisplayStyle] = useState<LinkDisplayStyle>("pill");
   const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [gridSize, setGridSize] = useState<"half" | "full">("half");
@@ -114,7 +116,7 @@ export const LinkModal = ({
         setInputValue(editingLink.value);
         setCustomLabel(editingLink.label !== config.label ? editingLink.label : "");
         setPillColor(editingLink.pillColor || null);
-        setDisplayStyle((editingLink.displayStyle as "pill" | "icon" | "both") || "pill");
+        setDisplayStyle((editingLink.displayStyle as LinkDisplayStyle) || "pill");
         setCoverImageUrl(editingLink.coverImageUrl || null);
         setGridSize(((editingLink as any).gridSize as "half" | "full") || "half");
         setThumbnailUrl(editingLink.thumbnailUrl || null);
@@ -500,58 +502,54 @@ export const LinkModal = ({
           </div>
         )}
 
-        {/* Display style toggle - only for social platforms */}
-        {config.type !== "website" && config.type !== "email" && (
-          <div className="space-y-2">
-            <Label className="text-sm text-muted-foreground">Display style</Label>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setDisplayStyle("pill")}
-                className={`flex-1 flex flex-col items-center justify-center gap-1 p-3 rounded-lg border-2 transition-all ${
-                  displayStyle === "pill" 
-                    ? "border-primary bg-primary/5" 
-                    : "border-border hover:border-muted-foreground/50"
-                }`}
-              >
-                <LayoutList className="h-4 w-4" />
-                <span className="text-xs font-medium">Button</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setDisplayStyle("icon")}
-                className={`flex-1 flex flex-col items-center justify-center gap-1 p-3 rounded-lg border-2 transition-all ${
-                  displayStyle === "icon" 
-                    ? "border-primary bg-primary/5" 
-                    : "border-border hover:border-muted-foreground/50"
-                }`}
-              >
-                <Circle className="h-4 w-4" />
-                <span className="text-xs font-medium">Icon</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setDisplayStyle("both")}
-                className={`flex-1 flex flex-col items-center justify-center gap-1 p-3 rounded-lg border-2 transition-all ${
-                  displayStyle === "both" 
-                    ? "border-primary bg-primary/5" 
-                    : "border-border hover:border-muted-foreground/50"
-                }`}
-              >
+        {/* Display style. Social links can also be icons; every link except
+            email can be a plain full-width button. */}
+        {config.type !== "email" && (() => {
+          const isSocial = config.type !== "website";
+          const options: Array<{ value: LinkDisplayStyle; label: string; icon: ReactNode }> = [
+            { value: "pill", label: "Row", icon: <LayoutList className="h-4 w-4" /> },
+            ...(isSocial ? [
+              { value: "icon" as const, label: "Icon", icon: <Circle className="h-4 w-4" /> },
+              { value: "both" as const, label: "Both", icon: (
                 <div className="flex items-center gap-0.5">
                   <LayoutList className="h-3 w-3" />
                   <span className="text-[10px]">+</span>
                   <Circle className="h-3 w-3" />
                 </div>
-                <span className="text-xs font-medium">Both</span>
-              </button>
+              ) },
+            ] : []),
+            { value: "button", label: "Button", icon: <RectangleHorizontal className="h-4 w-4" /> },
+          ];
+          return (
+          <div className="space-y-2">
+            <Label className="text-sm text-muted-foreground">Display style</Label>
+            <div className="flex gap-2" role="radiogroup" aria-label="Display style">
+              {options.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={displayStyle === option.value}
+                  onClick={() => setDisplayStyle(option.value)}
+                  className={`flex-1 flex flex-col items-center justify-center gap-1 p-3 rounded-lg border-2 transition-all ${
+                    displayStyle === option.value
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:border-muted-foreground/50"
+                  }`}
+                >
+                  {option.icon}
+                  <span className="text-xs font-medium">{option.label}</span>
+                </button>
+              ))}
             </div>
             <p className="text-xs text-muted-foreground">
-              {displayStyle === "icon" 
-                ? "Shows as a small icon in the social bar" 
+              {displayStyle === "icon"
+                ? "Shows as a small icon in the social bar"
                 : displayStyle === "both"
-                ? "Shows as a button AND an icon in the social bar"
-                : "Shows as a full button with label"}
+                ? "Shows as a row AND an icon in the social bar"
+                : displayStyle === "button"
+                ? "Shows as a plain full-width button with centered text"
+                : "Shows as a row with its icon and label"}
             </p>
             {/* Warning when another link of same type already has icon */}
             {(displayStyle === "icon" || displayStyle === "both") && 
@@ -562,7 +560,8 @@ export const LinkModal = ({
               </p>
             )}
           </div>
-        )}
+          );
+        })()}
 
         {/* Thumbnail icon upload - shows as small icon on left of button */}
         {!coverImageUrl && (

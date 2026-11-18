@@ -29,7 +29,7 @@ export interface AdminLink {
   value: string;
   url: string;
   pillColor?: string | null;
-  displayStyle?: "pill" | "icon" | "both";
+  displayStyle?: "pill" | "icon" | "both" | "button";
   isActive: boolean;
   isFeatured: boolean;
   sortOrder: number;
@@ -149,7 +149,7 @@ export const AdminUnifiedContent = ({ links, blocks, onLinksChange, onBlocksChan
 
   // Link handlers
   const handleAddLink = (linkData: { type: string; value: string; url: string; label: string; pillColor?: string | null; displayStyle?: string; coverImageUrl?: string | null; gridSize?: string | null; thumbnailUrl?: string | null }) => {
-    const newDisplayStyle = (linkData.displayStyle as "pill" | "icon" | "both") || "pill";
+    const newDisplayStyle = (linkData.displayStyle as "pill" | "icon" | "both" | "button") || "pill";
     const maxOrder = unifiedItems.length > 0 ? Math.max(...unifiedItems.map(getSortOrder)) : -1;
     
     let updatedLinks = [...links];

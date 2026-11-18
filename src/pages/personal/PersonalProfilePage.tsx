@@ -37,6 +37,8 @@ import { WeeklyCutoff } from "@/components/personal/WeeklyCutoff";
 import { boundMealCatalog, menuUsesVisibleLink } from "@/lib/hubContentBindings";
 import { parseMenuContent } from "@/lib/menuBlock";
 import { hasLasIslasMenu } from "@/lib/lasIslasMenu";
+import { hubButtonColors, isGridTileLink, rendersAsButton, splitHubLinks } from "@/lib/hubLinkButtons";
+import { HubLinkButton } from "@/components/personal/HubLinkButton";
 import originalMenu from "@/assets/las-islas-menu-mar26.pdf.asset.json";
 import { LocationsBlock } from "@/components/personal/LocationsBlock";
 import { ManagedLocationBanner, ManagedLocationsBlock, ManagedSmsBlock } from "@/components/personal/ManagedHubBlocks";
@@ -111,7 +113,9 @@ const ProfileLink = memo(function ProfileLink({
   accentColor,
   contrast,
   catalogContent,
-  privatePreview = false
+  privatePreview = false,
+  buttonsOnly = false,
+  buttonColors
 }: { 
   link: { id: string; link_type: string; label: string; url: string; pill_color: string | null; display_style?: string | null; cover_image_url?: string | null; grid_size?: string | null; thumbnail_url?: string | null };
   profileId?: string;
@@ -123,6 +127,9 @@ const ProfileLink = memo(function ProfileLink({
   contrast: HubContrast;
   catalogContent?: Record<string, unknown> | null;
   privatePreview?: boolean;
+  /** Per-hub "Buttons only" setting: render-time only, never rewrites saved styles. */
+  buttonsOnly?: boolean;
+  buttonColors?: { background: string; color: string };
 }) {
 
   const config = getPlatformConfig(link.link_type);
@@ -142,7 +149,7 @@ const ProfileLink = memo(function ProfileLink({
 
   if (catalogContent) return <MealCatalog content={catalogContent} accentColor={accentColor}
     interactive={!privatePreview}
-    trigger={{ label: String(catalogContent.buttonLabel || link.label), imageUrl: coverImage || undefined, isGrid }}
+    trigger={{ label: String(catalogContent.buttonLabel || link.label), imageUrl: buttonsOnly ? undefined : coverImage || undefined, isGrid: buttonsOnly ? false : isGrid }}
     onOpen={() => { if (profileId && !privatePreview) trackEvent("cta_click", { hubId: profileId, hubKind: "solo", props: { cta: "menu_open", link_id: link.id } }); }}
     onOrder={() => { if (profileId && !privatePreview) trackEvent("cta_click", { hubId: profileId, hubKind: "solo", props: { cta: "menu_order", link_id: link.id } }); }} />;
 
@@ -155,6 +162,21 @@ const ProfileLink = memo(function ProfileLink({
       textColor={contrast.textColor}
       onClick={() => trackLinkClick(profileId, link)}
     />;
+  }
+
+  // Plain full-width button: a link saved with the "Button" style, or every
+  // link when the hub has Buttons only switched on.
+  if (rendersAsButton(link, buttonsOnly) && buttonColors) {
+    return (
+      <HubLinkButton
+        href={sanitizeUrl(link.url)}
+        label={link.label}
+        colors={buttonColors}
+        target={linkTarget}
+        rel={linkRel}
+        onClick={() => profileId && trackLinkClick(profileId, link)}
+      />
+    );
   }
 
   // Email link. Inline bar with email address + Connect button
@@ -1133,9 +1155,10 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile, privatePreview 
 
   // Separate icon-style links from pill-style links
   // Icon links include both 'icon' and 'both' display styles
-  const iconLinks = links.filter((l: any) => l.is_active !== false && l.url && l.url.trim() !== '' && (l.display_style === 'icon' || l.display_style === 'both'));
-  // Pill links include everything except 'icon' only (so 'both' appears in both places)
-  const pillLinks = links.filter((l: any) => l.is_active !== false && l.display_style !== 'icon');
+  // Pill links include everything except 'icon' only (so 'both' appears in both places).
+  // With Buttons only, the icon bar is hidden and every link joins the button stack.
+  const buttonsOnly = (profile as { buttons_only?: boolean | null }).buttons_only === true;
+  const { iconLinks, listLinks: pillLinks } = splitHubLinks(links as any[], buttonsOnly);
 
   // All non-featured items go into unified list for proper sort order
   const nonFeaturedPillLinks = pillLinks.filter((l: any) => !l.is_featured);
@@ -1153,7 +1176,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile, privatePreview 
   let currentGridGroup: typeof links = [];
   
   for (const item of unifiedItems) {
-    if (item.kind === "link" && item.data.grid_size === 'half' && item.data.cover_image_url) {
+    if (item.kind === "link" && isGridTileLink(item.data, buttonsOnly)) {
       currentGridGroup.push(item.data);
     } else {
       // Flush current grid group if any
@@ -1247,6 +1270,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile, privatePreview 
   // against the inline background, regardless of system dark/light mode
   const profileTextColor: string | null = "#1a2923";
   const profileAccentColor = (profile as any).button_theme as string | null;
+  const linkButtonColors = hubButtonColors(profileAccentColor, hubContrast.isDark);
   // Guaranteed fallback so legacy profiles (null text_color) never have invisible text
   const safeTextColor = profileTextColor || (isDarkBg ? '#FFFFFF' : '#1A1A1A');
   const headingClass = profileTextColor ? "" : (isDarkBg ? "text-white" : "text-gray-900");
@@ -1517,7 +1541,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile, privatePreview 
             {/* Featured link - rendered prominently at top */}
             {featuredLink && (
               <div className="mb-4">
-                <ProfileLink link={featuredLink} profileId={profile.id} isFeatured index={0} profilePhotoUrl={profile.profile_photo_url} accentColor={profileAccentColor} contrast={hubContrast} catalogContent={boundMealCatalog(blocks, featuredLink.id)} privatePreview={privatePreview} />
+                <ProfileLink link={featuredLink} profileId={profile.id} isFeatured index={0} profilePhotoUrl={profile.profile_photo_url} accentColor={profileAccentColor} contrast={hubContrast} catalogContent={boundMealCatalog(blocks, featuredLink.id)} privatePreview={privatePreview} buttonsOnly={buttonsOnly} buttonColors={linkButtonColors} />
               </div>
             )}
 
@@ -1534,14 +1558,14 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile, privatePreview 
                     <div key={`grid-group-${idx}`} className="grid grid-cols-2 gap-3">
                       {item.links.map((link: any, i: number) => (
                         <div key={`grid-${link.id}`} className={item.links.length === 1 ? 'col-span-2' : ''}>
-                          <ProfileLink link={link} profileId={profile.id} isGrid index={startIndex + i} profilePhotoUrl={profile.profile_photo_url} accentColor={profileAccentColor} contrast={hubContrast} catalogContent={boundMealCatalog(blocks, link.id)} privatePreview={privatePreview} />
+                          <ProfileLink link={link} profileId={profile.id} isGrid index={startIndex + i} profilePhotoUrl={profile.profile_photo_url} accentColor={profileAccentColor} contrast={hubContrast} catalogContent={boundMealCatalog(blocks, link.id)} privatePreview={privatePreview} buttonsOnly={buttonsOnly} buttonColors={linkButtonColors} />
                         </div>
                       ))}
                     </div>
                   );
                 } else if (item.kind === "link") {
                   const currentIndex = linkIndex++;
-                  return <ProfileLink key={`link-${item.data.id}`} link={item.data} profileId={profile.id} index={currentIndex} profilePhotoUrl={profile.profile_photo_url} accentColor={profileAccentColor} contrast={hubContrast} catalogContent={boundMealCatalog(blocks, item.data.id)} privatePreview={privatePreview} />;
+                  return <ProfileLink key={`link-${item.data.id}`} link={item.data} profileId={profile.id} index={currentIndex} profilePhotoUrl={profile.profile_photo_url} accentColor={profileAccentColor} contrast={hubContrast} catalogContent={boundMealCatalog(blocks, item.data.id)} privatePreview={privatePreview} buttonsOnly={buttonsOnly} buttonColors={linkButtonColors} />;
                 } else {
                   return <ProfileBlock key={`block-${item.data.id}`} block={item.data} profileId={profile.id} username={profile.username} isDarkBg={isDarkBg} textColor={profileTextColor} accentColor={profileAccentColor} privatePreview={privatePreview} />;
                 }

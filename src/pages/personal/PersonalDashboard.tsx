@@ -117,6 +117,7 @@ interface PersonalProfile {
   founding_number?: number | null;
   show_founding_badge?: boolean;
   show_username?: boolean;
+  buttons_only?: boolean | null;
   has_card_addon?: boolean;
   // Rep-demo fields
   sales_rep_id?: string | null;
@@ -1441,6 +1442,11 @@ const PersonalDashboard = () => {
               headerType={(profile as any).header_type ?? null}
               isFoundingUser={profile.is_founding_user}
               showFoundingBadge={profile.show_founding_badge}
+              buttonsOnly={profile.buttons_only === true}
+              onButtonsOnlyChange={(value) => {
+                setProfile(prev => prev ? { ...prev, buttons_only: value } : null);
+                invalidateProfileCache(profile.username);
+              }}
               onUpdate={handleDesignUpdate}
             />
 

@@ -3845,6 +3845,7 @@ export type Database = {
           bio: string | null
           business_phone: string | null
           button_theme: string | null
+          buttons_only: boolean
           card_back_text: string | null
           card_confirmed: boolean | null
           card_confirmed_at: string | null
@@ -3953,6 +3954,7 @@ export type Database = {
           bio?: string | null
           business_phone?: string | null
           button_theme?: string | null
+          buttons_only?: boolean
           card_back_text?: string | null
           card_confirmed?: boolean | null
           card_confirmed_at?: string | null
@@ -4061,6 +4063,7 @@ export type Database = {
           bio?: string | null
           business_phone?: string | null
           button_theme?: string | null
+          buttons_only?: boolean
           card_back_text?: string | null
           card_confirmed?: boolean | null
           card_confirmed_at?: string | null
@@ -6632,6 +6635,7 @@ export type Database = {
           bg_style: string
           bio: string
           button_theme: string
+          buttons_only: boolean
           contact_address: string
           contact_button_label: string
           contact_company: string

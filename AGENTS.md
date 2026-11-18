@@ -30,3 +30,4 @@
 - payment-first-webhook verifies signature, then event livemode vs mode, and claims events as `pf:<id>` so it never collides with the legacy stripe-webhook in processed_stripe_events.
 - Card Club eligibility lives only in card_club_entitlement(): first = first paid invoice + interval, next = last admin approval + interval; one pending request at a time.
 - Legacy free monthly cards are reserved only via reserve_legacy_allowance() (row lock per legacy_allowance_key, one pool per paid subscription, never per page); accounts without paid Stripe billing never qualify, so pages cannot multiply the benefit.
+- Per-hub "Buttons only" (personal_profiles.buttons_only) and the per-link "button" display_style are render-time rules shared by the public hub and the editor preview through src/lib/hubLinkButtons.ts; toggling never rewrites saved link styles, so turning it off restores each link.
