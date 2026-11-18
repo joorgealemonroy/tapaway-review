@@ -21,7 +21,7 @@ import { OptimizedAvatar, getOptimizedImageUrl } from "@/components/personal/Opt
 import { supabase } from "@/integrations/supabase/client";
 import { ImageLightbox } from "@/components/personal/ImageLightbox";
 import { downloadVCard } from "@/lib/vcard";
-import QRCode from "react-qr-code";
+import QRCode from "@/lib/qrCode";
 import { ShareModal } from "@/components/personal/ShareModal";
 
 import { useAppBackground } from "@/hooks/useAppBackground";

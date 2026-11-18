@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import QRCode from "react-qr-code";
+import QRCode from "@/lib/qrCode";
 import { supabase } from "@/integrations/supabase/client";
 import { tapawayUrl } from "@/lib/siteUrl";
 import { Button } from "@/components/ui/button";

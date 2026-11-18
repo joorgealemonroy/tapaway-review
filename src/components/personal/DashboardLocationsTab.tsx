@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import QRCode from "react-qr-code";
+import QRCode from "@/lib/qrCode";
 import { Archive, ArrowUpRight, Copy, Download, Loader2, MapPin, Pencil, Plus, QrCode, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";

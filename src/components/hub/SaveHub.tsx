@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { ArrowUpFromLine, Check, Copy, MoreHorizontal, MoreVertical, Plus, Smartphone } from "lucide-react";
-import QRCode from "react-qr-code";
+import QRCode from "@/lib/qrCode";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { hubSaveDevice, isEmbeddedBrowser, publicHubUrl, type HubSaveDevice } from "@/lib/hubSave";
 import "./save-hub.css";

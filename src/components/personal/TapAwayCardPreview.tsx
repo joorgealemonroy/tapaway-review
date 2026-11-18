@@ -1,6 +1,6 @@
 import { useState, forwardRef, useImperativeHandle, useRef } from "react";
 import { Check } from "lucide-react";
-import QRCode from "react-qr-code";
+import QRCode from "@/lib/qrCode";
 import nfcTapIcon from "@/assets/nfc-tap-icon.png";
 
 interface Props {

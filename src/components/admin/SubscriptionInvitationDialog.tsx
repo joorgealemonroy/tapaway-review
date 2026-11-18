@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import QRCode from "react-qr-code";
+import QRCode from "@/lib/qrCode";
 import { Copy, ExternalLink, Loader2, Share2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { tapawayUrl } from "@/lib/siteUrl";

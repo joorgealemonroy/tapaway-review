@@ -5,12 +5,13 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
+// Root-anchored deny paths: a bare "**/supabase/**" would also block the generated src/integrations/supabase client.
 export default defineConfig(({ mode }) => ({
   envPrefix: [...PUBLIC_ENV_NAMES],
   server: {
     host: "::",
     port: 8080,
-    fs: { strict: true, deny: [".env", ".env.*", "*.{crt,pem,key,p12,pfx}", "**/.git/**", "**/supabase/**", "**/drizzle/**", "**/scripts/**", "**/security/**"] },
+    fs: { strict: true, deny: [".env", ".env.*", "*.{crt,pem,key,p12,pfx}", "**/.git/**", ...["supabase", "drizzle", "scripts", "security"].map((dir) => `${path.resolve(__dirname, dir)}/**`)] },
   },
   plugins: [react(), clientBuildGuard({ ...loadEnv(mode, process.cwd(), ""), ...process.env }), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {

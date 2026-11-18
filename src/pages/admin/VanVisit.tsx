@@ -14,7 +14,7 @@
 // SECURITY DEFINER RPCs or existing admin RLS policies.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import QRCode from "react-qr-code";
+import QRCode from "@/lib/qrCode";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdminGuard } from "@/hooks/useAdminGuard";
 import { supabase } from "@/integrations/supabase/client";

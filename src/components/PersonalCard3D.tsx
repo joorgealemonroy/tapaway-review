@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import QRCode from "react-qr-code";
+import QRCode from "@/lib/qrCode";
 
 const PersonalCard3D = () => {
   const [isFlipped, setIsFlipped] = useState(false);
