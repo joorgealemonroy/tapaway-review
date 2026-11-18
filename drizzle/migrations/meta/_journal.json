@@ -351,6 +351,13 @@
       "when": 1794975238502,
       "tag": "0049_scope_app_settings_public_read",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1794975262040,
+      "tag": "0050_scope_support_request_user_insert",
+      "breakpoints": true
     }
   ]
 }
