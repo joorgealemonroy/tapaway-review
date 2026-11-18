@@ -1,5 +1,7 @@
 # Project rules
 
+- Conserve Lovable credits: inspect, implement, review and test through GitHub/local code first. Do not start a credit-consuming Lovable build/chat unless the user explicitly asks for it or approves a specific need; use direct publishing only when needed for the authorized release. Batch related changes and never rerun a paid build for routine verification.
+
 - Share the verified onboarding catalog client between public pricing and signup; unavailable or missing prices cannot enable checkout actions because Stripe is authoritative.
 - Keep versioned bucket constraints in supabase/storage-buckets.json and apply them through supported Storage administration, never migration SQL; isolated fixtures load this configuration separately to avoid claiming migrations configure storage.
 - Keep public quantity labels separate from internal plan identifiers and grandfathered economics to preserve existing subscriptions.
