@@ -2518,6 +2518,59 @@ export type Database = {
           },
         ]
       }
+      hub_slug_redirects: {
+        Row: {
+          changed_by: string | null
+          created_at: string
+          profile_id: string | null
+          restaurant_id: string | null
+          slug: string
+        }
+        Insert: {
+          changed_by?: string | null
+          created_at?: string
+          profile_id?: string | null
+          restaurant_id?: string | null
+          slug: string
+        }
+        Update: {
+          changed_by?: string | null
+          created_at?: string
+          profile_id?: string | null
+          restaurant_id?: string | null
+          slug?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hub_slug_redirects_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "personal_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hub_slug_redirects_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "personal_profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hub_slug_redirects_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hub_slug_redirects_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_forms: {
         Row: {
           button_title: string
@@ -6522,7 +6575,7 @@ export type Database = {
         }[]
       }
       get_hub_payment_offer: { Args: { _slug: string }; Returns: Json }
-      get_hub_slug_redirect: { Args: { _slug: string }; Returns: string | null }
+      get_hub_slug_redirect: { Args: { _slug: string }; Returns: string }
       get_profile_location_sms_recipients: {
         Args: {
           p_campaign_type: string
@@ -6755,6 +6808,7 @@ export type Database = {
           visitors: number
         }[]
       }
+      hub_slug_is_reserved: { Args: { _slug: string }; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
       is_affiliate: { Args: never; Returns: boolean }
       is_clean_greeting: { Args: { input: string }; Returns: boolean }
