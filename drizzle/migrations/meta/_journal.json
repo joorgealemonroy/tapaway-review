@@ -337,6 +337,13 @@
       "when": 1794463802967,
       "tag": "0047_apply_pending_0044_0046_noop",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1794974547146,
+      "tag": "0048_allow_admin_to_end_hub_gift",
+      "breakpoints": true
     }
   ]
 }

@@ -6935,7 +6935,11 @@ export type Database = {
         Returns: boolean
       }
       require_hub_payment: {
-        Args: { _profile_id: string; _requested_by: string }
+        Args: {
+          _end_gift?: boolean
+          _profile_id: string
+          _requested_by: string
+        }
         Returns: string
       }
       reserve_creator_booking: {
