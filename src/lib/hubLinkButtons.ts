@@ -61,5 +61,8 @@ function luminance(hex: string): number {
  */
 export function hubButtonColors(buttonTheme: string | null | undefined, pageIsDark: boolean): { background: string; color: string } {
   const background = buttonTheme && HEX.test(buttonTheme) ? buttonTheme : pageIsDark ? "#FFFFFF" : "#1A1A1A";
-  return { background, color: luminance(background) > 0.4 ? "#1A1A1A" : "#FFFFFF" };
+  const backgroundLuminance = luminance(background);
+  const darkContrast = (backgroundLuminance + 0.05) / (luminance("#1A1A1A") + 0.05);
+  const lightContrast = 1.05 / (backgroundLuminance + 0.05);
+  return { background, color: darkContrast >= lightContrast ? "#1A1A1A" : "#FFFFFF" };
 }

@@ -1,6 +1,7 @@
 import { lightHubBackground } from "@/lib/hubAppearance";
 import { hubButtonColors, isGridTileLink, rendersAsButton, splitHubLinks } from "@/lib/hubLinkButtons";
 import { HubLinkButton } from "./HubLinkButton";
+import { HubBannerCaption, HubImageCaption } from "./HubImageCaptions";
 import { memo, useMemo, useState } from "react";
 
 import { ExternalLink, Mail, UserPlus, Share2 } from "lucide-react";
@@ -340,6 +341,7 @@ function ProfilePreviewRendererComponent({
     
     // Get gradient for Instagram
     const getBrandStyle = (type: string): React.CSSProperties => {
+      if (type === 'google_review') return { backgroundColor: '#FFFFFF' };
       if (type === 'instagram') {
         return { background: PLATFORM_COLORS.instagramGradient };
       }
@@ -443,7 +445,6 @@ function ProfilePreviewRendererComponent({
             {...(index < 4 ? ({ fetchpriority: "high" } as Record<string, string>) : {})}
             className="w-full h-full object-cover transition-transform group-hover:scale-105"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
           {Icon && (
             <div 
               className={`absolute top-1.5 left-1.5 h-6 w-6 rounded-full flex items-center justify-center shadow-lg ${platform?.gradient || platform?.bgColor || 'bg-primary'}`}
@@ -451,11 +452,7 @@ function ProfilePreviewRendererComponent({
               <Icon className={`h-3 w-3 ${platform?.color || 'text-white'}`} />
             </div>
           )}
-          <div className="absolute bottom-1.5 left-1.5 right-1.5">
-            <span className="text-white font-bold text-xs drop-shadow-lg uppercase tracking-wide">
-              {link.label}
-            </span>
-          </div>
+          <HubImageCaption label={link.label} compact />
         </a>
       );
     }
@@ -479,7 +476,6 @@ function ProfilePreviewRendererComponent({
             {...(index < 4 ? ({ fetchpriority: "high" } as Record<string, string>) : {})}
             className="w-full h-full object-cover transition-transform group-hover:scale-105"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
           {Icon && (
             <div 
               className={`absolute top-2 left-2 h-8 w-8 rounded-full flex items-center justify-center shadow-lg ${platform?.gradient || platform?.bgColor || 'bg-primary'}`}
@@ -487,11 +483,7 @@ function ProfilePreviewRendererComponent({
               <Icon className={`h-4 w-4 ${platform?.color || 'text-white'}`} />
             </div>
           )}
-          <div className="absolute bottom-2 left-2 right-2">
-            <span className="text-white font-bold text-base drop-shadow-lg uppercase tracking-wide">
-              {link.label}
-            </span>
-          </div>
+          <HubImageCaption label={link.label} compact large />
         </a>
       );
     }
@@ -946,10 +938,18 @@ function ProfilePreviewRendererComponent({
 
         {/* Name and headline */}
         <div
-          className={`${
+          className={`relative ${
             pfpPosition === "left" ? "flex-1 pt-2" : "mt-4"
           } ${pfpPosition === "center" ? "text-center" : ""}`}
         >
+          {isBannerHeader ? (
+            <HubBannerCaption
+              heading={profile.show_username !== false ? `@${profile.username}` : displayName}
+              headline={profile.headline}
+              bio={profile.bio}
+              compact
+            />
+          ) : <>
           {displayName && (
             <h1 className={`text-xl font-bold ${headingClass}`}>
               {displayName}
@@ -958,13 +958,14 @@ function ProfilePreviewRendererComponent({
           {profile.headline && (
             <p className={`mt-1 text-sm ${textClass}`}>{profile.headline}</p>
           )}
+          </>}
           {/* Social icon bar */}
           {renderIconBar()}
         </div>
       </div>
 
       {/* Bio */}
-      {profile.bio && (
+      {!isBannerHeader && profile.bio && (
         <div className="mt-4 px-6">
           <p
             className={`text-sm whitespace-pre-wrap ${textClass} ${

@@ -1,5 +1,7 @@
 # Project rules
 
+- Conserve Lovable credits: inspect, implement, review and test through GitHub/local code first. Do not start a credit-consuming Lovable build/chat unless the user explicitly asks for it or approves a specific need; use direct publishing only when needed for the authorized release. Batch related changes and never rerun a paid build for routine verification.
+
 - Migrated restaurant hubs keep their IDs, owners and billing/allowance keys. The private legacy_hub_migrations mapping routes retained historical records once to the new editor; never duplicate historical events into filtered totals. Preserve per-hub PDF menus and explicitly recorded SMS consent.
 - Home-screen saving is a visitor-confirmed browser shortcut. Keep its URL and icon specific to the current public hub, hide it in private previews/standalone mode, and never report installation from a copied link or dismissed guide. Public footer links need explicit contrasting surface and text colors.
 

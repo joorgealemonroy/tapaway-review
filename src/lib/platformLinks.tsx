@@ -541,8 +541,9 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
       const placeId = normalizeGooglePlaceId(url);
       return placeId || url;
     },
-    color: "text-white",
-    bgColor: "bg-[#4285F4]",
+    // The blue segment of the multicolor G disappears on Google's blue.
+    color: "text-[#4285F4]",
+    bgColor: "bg-white",
   },
   {
     type: "yelp",

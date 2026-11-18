@@ -39,6 +39,7 @@ import { parseMenuContent } from "@/lib/menuBlock";
 import { hasLasIslasMenu } from "@/lib/lasIslasMenu";
 import { hubButtonColors, isGridTileLink, rendersAsButton, splitHubLinks } from "@/lib/hubLinkButtons";
 import { HubLinkButton } from "@/components/personal/HubLinkButton";
+import { HubBannerCaption, HubImageCaption } from "@/components/personal/HubImageCaptions";
 import originalMenu from "@/assets/las-islas-menu-mar26.pdf.asset.json";
 import { LocationsBlock } from "@/components/personal/LocationsBlock";
 import { ManagedLocationBanner, ManagedLocationsBlock, ManagedSmsBlock } from "@/components/personal/ManagedHubBlocks";
@@ -174,7 +175,10 @@ const ProfileLink = memo(function ProfileLink({
         colors={buttonColors}
         target={linkTarget}
         rel={linkRel}
-        onClick={() => profileId && trackLinkClick(profileId, link)}
+        onClick={(event) => {
+          if (privatePreview) { event.preventDefault(); return; }
+          if (profileId) trackLinkClick(profileId, link);
+        }}
       />
     );
   }
@@ -221,17 +225,12 @@ const ProfileLink = memo(function ProfileLink({
           loading={index < 4 ? "eager" : "lazy"}
           className="w-full h-full object-cover transition-transform group-hover:scale-105"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
         <div 
           className={`absolute top-2 left-2 h-8 w-8 rounded-full flex items-center justify-center shadow-lg ${config?.gradient || config?.bgColor || 'bg-primary'}`}
         >
           {Icon && <Icon className={`h-4 w-4 ${config?.color || 'text-white'}`} />}
         </div>
-        <div className="absolute bottom-2 left-2 right-2">
-          <span className="text-white font-bold text-sm drop-shadow-lg uppercase tracking-wide truncate">
-            {link.label}
-          </span>
-        </div>
+        <HubImageCaption label={link.label} />
       </a>
     );
   }
@@ -253,17 +252,12 @@ const ProfileLink = memo(function ProfileLink({
           loading={index < 4 ? "eager" : "lazy"}
           className="w-full h-full object-cover transition-transform group-hover:scale-105"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
         <div 
           className={`absolute top-3 left-3 h-10 w-10 rounded-full flex items-center justify-center shadow-lg ${config?.gradient || config?.bgColor || 'bg-primary'}`}
         >
           {Icon && <Icon className={`h-5 w-5 ${config?.color || 'text-white'}`} />}
         </div>
-        <div className="absolute bottom-3 left-3 right-3">
-          <span className="text-white font-bold text-lg drop-shadow-lg uppercase tracking-wide truncate">
-            {link.label}
-          </span>
-        </div>
+        <HubImageCaption label={link.label} large />
       </a>
     );
   }
@@ -1458,23 +1452,9 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile, privatePreview 
 
           {/* Name & Username & Headline/Bio */}
           {hasBanner ? (
-            // Banner mode: white text with drop shadows, readable over the banner fade
+            // Keep text readable even where the banner fades into a light page.
             <>
-              {bannerHeading && (
-                <h1 className="text-3xl font-bold drop-shadow-lg text-white">
-                  {bannerHeading}
-                </h1>
-              )}
-              {profile.headline && (
-                <p className="text-base mt-2 drop-shadow-md text-white/90">
-                  {profile.headline}
-                </p>
-              )}
-              {profile.bio && (
-                <p className="text-base font-bold mt-3 max-w-xs mx-auto drop-shadow-md leading-relaxed text-white">
-                  {profile.bio}
-                </p>
-              )}
+              <HubBannerCaption heading={bannerHeading} headline={profile.headline} bio={profile.bio} />
               {/* Social icon bar */}
               <SocialIconBar links={iconLinks} isDarkBg={true} profileId={profile.id} />
               <div className="mb-3" />
