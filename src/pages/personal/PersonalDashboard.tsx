@@ -45,7 +45,7 @@ import EmailLeadsTab from "@/components/personal/EmailLeadsTab";
 import SmsMarketingTab from "@/components/personal/SmsMarketingTab";
 import LocationSmsMarketingTab from "@/components/personal/LocationSmsMarketingTab";
 import DashboardLocationsTab from "@/components/personal/DashboardLocationsTab";
-import { isManagedLocationsBlock } from "@/lib/profileLocations";
+import { isManagedLocationsBlock, isPickupLocationsBlock, pickupLocationsLimit } from "@/lib/profileLocations";
 import { AdvancedAnalyticsTab } from "@/components/personal/AdvancedAnalyticsTab";
 import { DashboardContactCard } from "@/components/personal/DashboardContactCard";
 import { PersonalBillingTab } from "@/components/personal/PersonalBillingTab";
@@ -164,6 +164,9 @@ const PersonalDashboard = () => {
   const [links, setLinks] = useState<DbPersonalLink[]>([]);
   const [blocks, setBlocks] = useState<PersonalBlock[]>([]);
   const hasManagedLocations = blocks.some(isManagedLocationsBlock);
+  const pickupLocationsBlock = blocks.find(isPickupLocationsBlock);
+  const hasPickupLocations = !!pickupLocationsBlock;
+  const pickupLimit = pickupLocationsLimit((pickupLocationsBlock?.content ?? {}) as Record<string, unknown>);
   const [copied, setCopied] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [cropperOpen, setCropperOpen] = useState(false);
@@ -1295,7 +1298,7 @@ const PersonalDashboard = () => {
 
         {profile.plan_type === "personal_hosted" && !isAdminView && <div className="mb-6"><PersonalHubGuide key={profile.id} profileId={profile.id} username={profile.username} onGoToTab={tab=>{setActiveTab(tab);window.scrollTo({top:0,behavior:"smooth"});}}/></div>}
         <div className="mb-6"><CustomerGuide activeTab={activeTab} onNavigate={tab => { setActiveTab(tab); window.scrollTo({ top: 0, behavior: "smooth" }); }} /></div>
-        {hasManagedLocations && activeTab === "overview" && <div className="mb-5 rounded-xl border bg-card p-4 space-y-3"><div><h2 className="font-semibold">One dashboard for every location</h2><p className="mt-1 text-sm text-muted-foreground">Update your main hub, manage fridge links, and prepare text alerts here.</p></div><div className="flex flex-wrap gap-2"><Button onClick={() => setActiveTab("locations")}><MapPin className="mr-2 h-4 w-4" />Manage locations</Button><Button variant="outline" onClick={() => setActiveTab("sms")}><MessageSquare className="mr-2 h-4 w-4" />Text updates</Button></div></div>}
+        {hasManagedLocations && activeTab === "overview" && <div className="mb-5 rounded-xl border bg-card p-4 space-y-3"><div><h2 className="font-semibold">{hasPickupLocations ? "One hub, two pickup locations" : "One dashboard for every location"}</h2><p className="mt-1 text-sm text-muted-foreground">{hasPickupLocations ? "Update your hub, edit pickup details, and prepare text updates here." : "Update your main hub, manage fridge links, and prepare text alerts here."}</p></div><div className="flex flex-wrap gap-2"><Button onClick={() => setActiveTab("locations")}><MapPin className="mr-2 h-4 w-4" />{hasPickupLocations ? "Edit pickup locations" : "Manage locations"}</Button><Button variant="outline" onClick={() => setActiveTab("sms")}><MessageSquare className="mr-2 h-4 w-4" />Text updates</Button></div></div>}
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={(tab) => { setActiveTab(tab); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="space-y-6">
           <TabsList className={"hidden md:flex flex-wrap w-full h-auto gap-1 p-2"}>
@@ -1478,14 +1481,14 @@ const PersonalDashboard = () => {
           </TabsContent>
 
           {/* Customer info Tab */}
-          {hasManagedLocations && <TabsContent value="locations" className="space-y-4"><DashboardLocationsTab key={profile.id} profileId={profile.id} username={profile.username} /></TabsContent>}
+          {hasManagedLocations && <TabsContent value="locations" className="space-y-4"><DashboardLocationsTab key={profile.id} profileId={profile.id} username={profile.username} pickupMode={hasPickupLocations} maxLocations={pickupLimit} /></TabsContent>}
           <TabsContent value="leads" className="space-y-4">
             <EmailLeadsTab profileId={profile.id} />
           </TabsContent>
 
           {/* SMS Marketing Tab */}
           <TabsContent value="sms" className="space-y-4">
-            {hasManagedLocations ? <LocationSmsMarketingTab key={profile.id} profileId={profile.id} username={profile.username} businessName={profile.full_name} /> : <SmsMarketingTab profileId={profile.id} />}
+            {hasManagedLocations ? <LocationSmsMarketingTab key={profile.id} profileId={profile.id} username={profile.username} businessName={profile.full_name} pickupMode={hasPickupLocations} /> : <SmsMarketingTab profileId={profile.id} />}
           </TabsContent>
 
           {/* Analytics Tab */}
@@ -1600,6 +1603,7 @@ const PersonalDashboard = () => {
         onTabChange={(tab) => { setActiveTab(tab); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
         isAffiliate={isAffiliate}
         hasLocations={hasManagedLocations}
+        hasPickupLocations={hasPickupLocations}
         allProfiles={allProfiles.map(p => ({ id: p.id, username: p.username }))}
         activeProfileId={profile.id}
         onSwitchProfile={(profileId) => {

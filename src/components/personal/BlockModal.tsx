@@ -97,6 +97,7 @@ export const BlockModal = ({
     ? editingBlock.content as Record<string, unknown> : {};
   const isMealCatalog = editingBlock?.block_type === "menu" && editingContent.variant === "meal_catalog";
   const isWeeklyCutoff = editingBlock?.block_type === "text" && editingContent.variant === "weekly_cutoff";
+  const isCustomerReviews = editingBlock?.block_type === "text" && editingContent.variant === "customer_reviews";
   const isManagedBlock = !!editingBlock?.content && typeof editingBlock.content === "object" &&
     String((editingBlock.content as Record<string, unknown>).managed) === "true";
   const [selectedType, setSelectedType] = useState<string | null>(null);
@@ -812,7 +813,7 @@ export const BlockModal = ({
           toast.error("Please enter a title");
           return;
         }
-        content = { title: textTitle, body: textBody };
+        content = isCustomerReviews ? { variant: "customer_reviews", title: textTitle.trim() } : { title: textTitle, body: textBody };
         break;
       }
       case "button": {
@@ -870,12 +871,17 @@ export const BlockModal = ({
               description: smsDescription.trim(),
               buttonText: smsButtonText.trim() || "Join the VIP List",
             };
-        if (isManagedBlock) content.managed = "true";
+        if (isManagedBlock) {
+          content.managed = "true";
+          if (editingContent.mode) content.mode = String(editingContent.mode);
+        }
         break;
       }
       case "locations": {
         if (isManagedBlock) {
-          content = { managed: "true", title: locationsTitle.trim(), subtitle: locationsSubtitle.trim(), ctaLabel: locationsCta.trim() || DEFAULT_LOCATIONS_CTA };
+          content = { managed: "true", title: locationsTitle.trim(), subtitle: locationsSubtitle.trim(), ctaLabel: locationsCta.trim() || (editingContent.mode === "pickup" ? "Get directions" : DEFAULT_LOCATIONS_CTA) };
+          if (editingContent.mode) content.mode = String(editingContent.mode);
+          if (editingContent.maxLocations != null) content.maxLocations = String(editingContent.maxLocations);
           break;
         }
         const cleanedLocations = locations
@@ -1222,7 +1228,7 @@ export const BlockModal = ({
                   className="h-12"
                 />
               </div>
-              <div className="space-y-2">
+              {!isCustomerReviews && <div className="space-y-2">
                 <Label>Body (optional)</Label>
                 <Textarea
                   placeholder="Add some details..."
@@ -1230,7 +1236,8 @@ export const BlockModal = ({
                   onChange={(e) => setTextBody(e.target.value)}
                   rows={3}
                 />
-              </div>
+              </div>}
+              {isCustomerReviews && <p className="rounded-lg bg-muted/50 p-3 text-sm text-muted-foreground">Customer ratings and optional written reviews appear automatically at the top of your hub. Edit the section heading here.</p>}
             </>
           ))}
 
@@ -1486,7 +1493,7 @@ export const BlockModal = ({
               <div className="rounded-lg bg-muted/50 p-3 flex items-start gap-2">
                 <MapPin className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
                 <p className="text-xs text-muted-foreground">
-                  {isManagedBlock ? "Edit this section's wording here. Add, edit, or archive your fridge locations in the Locations tab of your dashboard." : <>Great for multi-location owners. Enter a TapAway slug (like <span className="font-medium">islasmarias</span>) to
+                  {isManagedBlock ? editingContent.mode === "pickup" ? "Edit this section’s wording here. Update the two pickup locations in the Locations tab. Both stay on your hub." : "Edit this section's wording here. Add, edit, or archive your fridge locations in the Locations tab of your dashboard." : <>Great for multi-location owners. Enter a TapAway slug (like <span className="font-medium">islasmarias</span>) to
                   jump straight to that hub, or paste a full web address for an outside link.</>}
                 </p>
               </div>
@@ -1506,7 +1513,7 @@ export const BlockModal = ({
                 <Textarea
                   value={locationsSubtitle}
                   onChange={(e) => setLocationsSubtitle(e.target.value)}
-                  placeholder="Choose a location to view their menu, directions, socials & more."
+                  placeholder={editingContent.mode === "pickup" ? "Optional pickup note" : "Choose a location to view their menu, directions, socials & more."}
                   rows={2}
                   maxLength={160}
                 />
@@ -1516,7 +1523,7 @@ export const BlockModal = ({
                 <Input
                   value={locationsCta}
                   onChange={(e) => setLocationsCta(e.target.value)}
-                  placeholder={DEFAULT_LOCATIONS_CTA}
+                  placeholder={editingContent.mode === "pickup" ? "Get directions" : DEFAULT_LOCATIONS_CTA}
                   className="h-11"
                   maxLength={30}
                 />

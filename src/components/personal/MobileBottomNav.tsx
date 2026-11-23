@@ -19,6 +19,7 @@ interface MobileBottomNavProps {
   onSwitchProfile?: (profileId: string) => void;
   isTrialing?: boolean;
   hasLocations?: boolean;
+  hasPickupLocations?: boolean;
 }
  
  const PRIMARY_TABS = [
@@ -36,13 +37,13 @@ const BASE_MORE_TABS = [
 ];
 
  
-export const MobileBottomNav = ({ activeTab, onTabChange, isAffiliate, allProfiles = [], activeProfileId, onSwitchProfile, isTrialing = false, hasLocations = false }: MobileBottomNavProps) => {
+export const MobileBottomNav = ({ activeTab, onTabChange, isAffiliate, allProfiles = [], activeProfileId, onSwitchProfile, isTrialing = false, hasLocations = false, hasPickupLocations = false }: MobileBottomNavProps) => {
   const [moreOpen, setMoreOpen] = useState(false);
   const navigate = useNavigate();
   useEffect(() => { document.documentElement.classList.remove("dark"); }, []);
 
   const MORE_TABS = [
-    ...(hasLocations ? [{ value: "locations", label: "Locations", icon: MapPin, description: "Manage fridge locations and QR codes" }] : []),
+    ...(hasLocations ? [{ value: "locations", label: "Locations", icon: MapPin, description: hasPickupLocations ? "Edit pickup addresses and directions" : "Manage fridge locations and QR codes" }] : []),
     ...BASE_MORE_TABS.filter(t => !(isTrialing && t.value === "cards")),
     ...(isAffiliate ? [{ value: "affiliate", label: "Affiliate", icon: Users, description: "Your affiliate dashboard" }] : []),
   ];

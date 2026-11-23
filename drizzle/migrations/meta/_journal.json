@@ -365,6 +365,20 @@
       "when": 1794975499148,
       "tag": "0051_hub_buttons_only_and_button_link_style",
       "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "7",
+      "when": 1795410000000,
+      "tag": "0052_profile_reviews",
+      "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "7",
+      "when": 1795413600000,
+      "tag": "0053_verified_profile_reviews",
+      "breakpoints": true
     }
   ]
 }

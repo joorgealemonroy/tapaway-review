@@ -186,3 +186,7 @@ verify_jwt = false
 
 [functions.public-intake]
 verify_jwt = false
+
+# Public review actions verify scoped OTP challenges/capabilities inside the handler.
+[functions.profile-review]
+verify_jwt = false

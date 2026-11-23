@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ProfileLocation, profileLocationUrl } from "@/lib/profileLocations";
 
-interface Props { profileId: string; username: string; onUpdated?: () => void; }
+interface Props { profileId: string; username: string; pickupMode?: boolean; maxLocations?: number; onUpdated?: () => void; }
 type LocationDraft = Pick<ProfileLocation, "name" | "subtitle" | "address" | "directions_url" | "image_url" | "is_placeholder" | "restock_note">;
 const emptyDraft = (): LocationDraft => ({ name: "", subtitle: "", address: "", directions_url: "", image_url: "", is_placeholder: true, restock_note: "" });
 const httpsOrEmpty = (value: string | null, allowLocalImage = false) => {
@@ -20,7 +20,7 @@ const httpsOrEmpty = (value: string | null, allowLocalImage = false) => {
   try { return new URL(value.trim()).protocol === "https:"; } catch { return false; }
 };
 
-export default function DashboardLocationsTab({ profileId, username, onUpdated }: Props) {
+export default function DashboardLocationsTab({ profileId, username, pickupMode = false, maxLocations = 2, onUpdated }: Props) {
   const [locations, setLocations] = useState<ProfileLocation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -48,8 +48,10 @@ export default function DashboardLocationsTab({ profileId, username, onUpdated }
   useEffect(() => { void load(); return () => { requestId.current += 1; }; }, [load]);
   const active = locations.filter(location => location.is_active);
   const archived = locations.filter(location => !location.is_active);
+  const pickupLimitReached = pickupMode && active.length >= maxLocations;
 
   const edit = (location?: ProfileLocation) => {
+    if (!location && pickupLimitReached) { toast.error(`This hub displays ${maxLocations} pickup locations. Edit an existing location to replace it.`); return; }
     setEditing(location ?? "new");
     setDraft(location ? { name: location.name, subtitle: location.subtitle ?? "", address: location.address ?? "", directions_url: location.directions_url ?? "", image_url: location.image_url ?? "", is_placeholder: location.is_placeholder, restock_note: location.restock_note ?? "" } : emptyDraft());
   };
@@ -61,6 +63,7 @@ export default function DashboardLocationsTab({ profileId, username, onUpdated }
 
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (editing === "new" && pickupLimitReached) { toast.error(`This hub already has ${maxLocations} pickup locations.`); return; }
     if (!draft.name.trim()) { toast.error("Add a location name."); return; }
     if (!httpsOrEmpty(draft.directions_url) || !httpsOrEmpty(draft.image_url, true)) { toast.error("Use a full https:// directions link and a valid image address."); return; }
     if (!draft.is_placeholder && !draft.address?.trim()) { toast.error("Add the store address before making this a real location."); return; }
@@ -80,6 +83,7 @@ export default function DashboardLocationsTab({ profileId, username, onUpdated }
   };
 
   const setActive = async (location: ProfileLocation, isActive: boolean) => {
+    if (isActive && pickupLimitReached) { toast.error(`Archive a pickup location before restoring another.`); return; }
     setBusyId(location.id);
     try {
       const { error: updateError } = await (supabase.from("profile_locations" as any) as any)
@@ -113,40 +117,40 @@ export default function DashboardLocationsTab({ profileId, username, onUpdated }
 
   return <div className="space-y-5">
     <Card className="p-4 sm:p-5 space-y-3">
-      <div><h2 className="font-semibold text-lg">Your main hub</h2><p className="text-sm text-muted-foreground">One portable card for your whole business. Customers can choose a location, order meals, and find your socials.</p></div>
+      <div><h2 className="font-semibold text-lg">{pickupMode ? "Your hub" : "Your main hub"}</h2><p className="text-sm text-muted-foreground">{pickupMode ? "One hub for reviews, meals, and both pickup locations. Use this same link on all your cards." : "One portable card for your whole business. Customers can choose a location, order meals, and find your socials."}</p></div>
       <p className="break-all text-sm font-medium select-all">{profileLocationUrl(username)}</p>
       {linkActions("main-hub", profileLocationUrl(username))}
     </Card>
     <div className="flex flex-wrap items-center justify-between gap-3">
-      <div><h2 className="text-lg font-semibold">Fridge locations</h2><p className="text-sm text-muted-foreground">Manage every location here. Each fridge gets its own link.</p></div>
-      <Button className="min-h-11" onClick={() => edit()}><Plus className="mr-2 h-4 w-4" />Add location</Button>
+      <div><h2 className="text-lg font-semibold">{pickupMode ? "Pickup locations" : "Fridge locations"}</h2><p className="text-sm text-muted-foreground">{pickupMode ? `Edit the ${maxLocations} pickup locations shown at the bottom of your hub.` : "Manage every location here. Each fridge gets its own link."}</p></div>
+      {!pickupLimitReached && <Button className="min-h-11" disabled={loading || !!error} onClick={() => edit()}><Plus className="mr-2 h-4 w-4" />{pickupMode ? "Add pickup location" : "Add location"}</Button>}
     </div>
     {error && <div className="rounded-lg border p-4 space-y-2" role="alert"><p className="text-sm">{error}</p><Button variant="outline" onClick={() => void load()}>Retry</Button></div>}
     {loading && <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Loading locations…</div>}
-    {!loading && !error && active.length === 0 && <Card className="p-5 text-sm text-muted-foreground">Add your first location to create a fridge link. Your main hub stays the same as you grow.</Card>}
+    {!loading && !error && active.length === 0 && <Card className="p-5 text-sm text-muted-foreground">{pickupMode ? "Add pickup locations to show customers where to collect their meals." : "Add your first location to create a fridge link. Your main hub stays the same as you grow."}</Card>}
     {active.map(location => <Card key={location.id} className="p-4 sm:p-5 space-y-4">
       <div className="flex items-start gap-3">
         {location.image_url ? <img src={location.image_url} alt="" loading="lazy" className="h-16 w-16 rounded-xl object-cover shrink-0" /> : <div className="h-16 w-16 rounded-xl bg-muted flex items-center justify-center shrink-0"><MapPin className="h-6 w-6 text-muted-foreground" /></div>}
         <div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><h3 className="font-semibold break-words">{location.name}</h3>{location.is_placeholder && <span className="rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground">Placeholder</span>}</div><p className="mt-1 text-sm text-muted-foreground break-words">{location.address || "Add the store address when ready"}</p>{location.subtitle && <p className="mt-1 text-xs text-muted-foreground">{location.subtitle}</p>}</div>
       </div>
-      {location.is_placeholder && <p className="text-xs text-muted-foreground">Ready to customize. Restock signups become available after this is set as a real location.</p>}
-      <p className="text-xs text-muted-foreground break-all select-all">{profileLocationUrl(username, location.id)}</p>
-      {linkActions(location.name, profileLocationUrl(username, location.id))}
+      {location.is_placeholder && <p className="text-xs text-muted-foreground">{pickupMode ? "Add the pickup name and address, then uncheck “placeholder” to show directions." : "Ready to customize. Restock signups become available after this is set as a real location."}</p>}
+      {!pickupMode && <><p className="text-xs text-muted-foreground break-all select-all">{profileLocationUrl(username, location.id)}</p>
+      {linkActions(location.name, profileLocationUrl(username, location.id))}</>}
       <div className="flex flex-wrap gap-2 border-t pt-3"><Button variant="outline" size="sm" className="min-h-10" onClick={() => edit(location)}><Pencil className="mr-2 h-4 w-4" />Edit location</Button><Button variant="ghost" size="sm" className="min-h-10" disabled={busyId === location.id} onClick={() => void setActive(location, false)}>{busyId === location.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Archive className="mr-2 h-4 w-4" />}Archive</Button></div>
     </Card>)}
-    {archived.length > 0 && <div className="space-y-3"><Button variant="ghost" onClick={() => setShowArchived(value => !value)}>{showArchived ? "Hide" : "Show"} archived locations ({archived.length})</Button>{showArchived && archived.map(location => <Card key={location.id} className="p-4 flex flex-wrap items-center justify-between gap-3"><div><p className="font-medium">{location.name}</p><p className="text-xs text-muted-foreground">Hidden from the hub and new restock signups</p></div><Button variant="outline" disabled={busyId === location.id} onClick={() => void setActive(location, true)}><RotateCcw className="mr-2 h-4 w-4" />Restore</Button></Card>)}</div>}
-    <Dialog open={editing !== null} onOpenChange={open => { if (!open && !saving) setEditing(null); }}><DialogContent className="max-h-[90dvh] overflow-y-auto w-[calc(100%_-_2rem)] sm:max-w-lg"><DialogHeader><DialogTitle>{editing === "new" ? "Add a fridge location" : "Edit location"}</DialogTitle><DialogDescription>The location keeps the same card link when you update its details.</DialogDescription></DialogHeader>
+    {archived.length > 0 && <div className="space-y-3"><Button variant="ghost" onClick={() => setShowArchived(value => !value)}>{showArchived ? "Hide" : "Show"} archived locations ({archived.length})</Button>{showArchived && archived.map(location => <Card key={location.id} className="p-4 flex flex-wrap items-center justify-between gap-3"><div><p className="font-medium">{location.name}</p><p className="text-xs text-muted-foreground">{pickupMode ? "Hidden from your hub" : "Hidden from the hub and new restock signups"}</p></div><Button variant="outline" disabled={busyId === location.id || pickupLimitReached} onClick={() => void setActive(location, true)}><RotateCcw className="mr-2 h-4 w-4" />Restore</Button></Card>)}</div>}
+    <Dialog open={editing !== null} onOpenChange={open => { if (!open && !saving) setEditing(null); }}><DialogContent className="max-h-[90dvh] overflow-y-auto w-[calc(100%_-_2rem)] sm:max-w-lg"><DialogHeader><DialogTitle>{editing === "new" ? pickupMode ? "Add a pickup location" : "Add a fridge location" : pickupMode ? "Edit pickup location" : "Edit location"}</DialogTitle><DialogDescription>{pickupMode ? "Update the pickup details shown on your hub. Your hub link stays the same." : "The location keeps the same card link when you update its details."}</DialogDescription></DialogHeader>
       <form onSubmit={save} className="space-y-4">
         <div className="space-y-2"><Label htmlFor="location-name">Store or location name</Label><Input id="location-name" value={draft.name} onChange={event => patch({ name: event.target.value })} maxLength={120} placeholder="Store name" required /></div>
         <div className="space-y-2"><Label htmlFor="location-address">Store address</Label><Input id="location-address" value={draft.address || ""} onChange={event => patch({ address: event.target.value })} maxLength={300} placeholder="Street, city, state" /></div>
-        <div className="space-y-2"><Label htmlFor="location-subtitle">Short description</Label><Input id="location-subtitle" value={draft.subtitle || ""} onChange={event => patch({ subtitle: event.target.value })} maxLength={160} placeholder="Find our fridge near the checkout" /></div>
+        <div className="space-y-2"><Label htmlFor="location-subtitle">Short description</Label><Input id="location-subtitle" value={draft.subtitle || ""} onChange={event => patch({ subtitle: event.target.value })} maxLength={160} placeholder={pickupMode ? "Pickup instructions or opening hours" : "Find our fridge near the checkout"} /></div>
         <div className="space-y-2"><Label htmlFor="location-directions">Directions link (optional)</Label><Input id="location-directions" type="url" value={draft.directions_url || ""} onChange={event => patch({ directions_url: event.target.value })} maxLength={2000} placeholder="https://maps.google.com/…" /></div>
         <div className="space-y-2"><Label htmlFor="location-image">Location image URL (optional)</Label><Input id="location-image" type="text" inputMode="url" value={draft.image_url || ""} onChange={event => patch({ image_url: event.target.value })} maxLength={2000} placeholder="https://…" /><p className="text-xs text-muted-foreground">Leave blank to use the location placeholder.</p></div>
-        <div className="space-y-2"><Label htmlFor="location-note">Restock note (optional)</Label><Textarea id="location-note" value={draft.restock_note || ""} onChange={event => patch({ restock_note: event.target.value })} maxLength={240} placeholder="For example: New meals arrive weekly" rows={2} /></div>
+        {!pickupMode && <div className="space-y-2"><Label htmlFor="location-note">Restock note (optional)</Label><Textarea id="location-note" value={draft.restock_note || ""} onChange={event => patch({ restock_note: event.target.value })} maxLength={240} placeholder="For example: New meals arrive weekly" rows={2} /></div>}
         <label className="flex items-start gap-3 rounded-lg border p-3 text-sm"><input className="mt-1 h-4 w-4 shrink-0" type="checkbox" checked={draft.is_placeholder} onChange={event => patch({ is_placeholder: event.target.checked })} /><span>This is a placeholder location<span className="block mt-1 text-xs text-muted-foreground">Uncheck after adding the real store name and address.</span></span></label>
         <DialogFooter><Button type="button" variant="outline" disabled={saving} onClick={() => setEditing(null)}>Cancel</Button><Button type="submit" disabled={saving}>{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Save location</Button></DialogFooter>
       </form>
     </DialogContent></Dialog>
-    <Dialog open={!!qr} onOpenChange={open => { if (!open) setQr(null); }}><DialogContent className="w-[calc(100%_-_2rem)] sm:max-w-sm"><DialogHeader><DialogTitle>{qr?.name === "main-hub" ? "Main hub QR code" : "Fridge QR code"}</DialogTitle><DialogDescription>{qr?.name === "main-hub" ? "Use this on the portable card for all locations." : qr?.name}</DialogDescription></DialogHeader>{qr && <><div className="mx-auto rounded-xl bg-white p-5"><QRCode value={qr.url} size={192} className="h-auto max-w-full" /></div><p className="break-all text-center text-xs text-muted-foreground select-all">{qr.url}</p><Button disabled={downloading} onClick={() => void downloadQr()}>{downloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}Download QR image</Button></>}</DialogContent></Dialog>
+    <Dialog open={!!qr} onOpenChange={open => { if (!open) setQr(null); }}><DialogContent className="w-[calc(100%_-_2rem)] sm:max-w-sm"><DialogHeader><DialogTitle>{pickupMode ? "Hub QR code" : qr?.name === "main-hub" ? "Main hub QR code" : "Fridge QR code"}</DialogTitle><DialogDescription>{pickupMode ? "Use this same QR code for both pickup locations." : qr?.name === "main-hub" ? "Use this on the portable card for all locations." : qr?.name}</DialogDescription></DialogHeader>{qr && <><div className="mx-auto rounded-xl bg-white p-5"><QRCode value={qr.url} size={192} className="h-auto max-w-full" /></div><p className="break-all text-center text-xs text-muted-foreground select-all">{qr.url}</p><Button disabled={downloading} onClick={() => void downloadQr()}>{downloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}Download QR image</Button></>}</DialogContent></Dialog>
   </div>;
 }

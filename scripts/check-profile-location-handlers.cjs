@@ -46,6 +46,23 @@ async function sender(status='ready') {
  await pass('Ordering-only campaigns deliberately use the ordering audience without a fridge filter',async()=>{
   const {s,send}=await sender();assert.equal((await send({campaign_type:'ordering',location_id:null,message:'This week’s menu is ready.'})).status,200);assert.equal(s.audienceCalls[0].p_campaign_type,'ordering');assert.equal(s.audienceCalls[0].p_location_id,null);assert.equal(s.provider.length,2);
  });
+ await pass('Offers use only their own consent audience and recheck STOP before sending',async()=>{
+  const {s,send}=await sender();s.revokedPhone='+16615550124';
+  const r=await send({campaign_type:'offers',location_id:null,confirmed_restock:false,message:'Our latest meals and offers are available.'});
+  assert.equal(r.status,200);const body=await r.json();assert.equal(body.recipient_count,1);assert.equal(body.success_count,1);assert.equal(body.skipped_opt_outs,1);
+  assert.equal(s.audienceCalls.length,1);assert.equal(s.audienceCalls[0].p_profile_id,PROFILE);assert.equal(s.audienceCalls[0].p_campaign_type,'offers');assert.equal(s.audienceCalls[0].p_location_id,null);
+  assert.equal(s.rechecks.length,2);assert.ok(s.rechecks.every(call=>call.p_campaign_type==='offers'&&call.p_location_id===null&&call.p_sender_number==='+16615550999'));
+  assert.equal(s.provider.length,1);assert.equal(s.provider[0].get('To'),'+16615550123');assert.equal(s.provider[0].get('From'),'+16615550999');assert.match(s.provider[0].get('Body'),/Reply STOP to opt out/);
+  const campaign=s.db.rows('sms_campaigns')[0];assert.equal(campaign.campaign_type,'offers');assert.equal(campaign.location_id,null);
+ });
+ await pass('Offers cannot bypass sender readiness, select a location or fall back to generic contacts',async()=>{
+  const pending=await sender('pending');assert.equal((await pending.send({campaign_type:'offers',location_id:null})).status,409);assert.equal(pending.s.provider.length,0);assert.equal(pending.s.audienceCalls.length,0);
+  const scoped=await sender();assert.equal((await scoped.send({campaign_type:'offers'})).status,400);assert.equal(scoped.s.audienceCalls.length,0);
+  assert.equal((await scoped.send({campaign_type:'offers',location_id:null,message:'Please leave us a review.'})).status,400);assert.equal(scoped.s.provider.length,0);
+  scoped.s.audienceError=true;assert.equal((await scoped.send({campaign_type:'offers',location_id:null})).status,400);assert.equal(scoped.s.provider.length,0);
+  const unconfigured=await sender();unconfigured.s.db.rows('profile_sms_programs').splice(0);
+  assert.equal((await unconfigured.send({campaign_type:'offers',location_id:null})).status,400);assert.equal(unconfigured.s.provider.length,0);assert.equal(unconfigured.s.db.rows('sms_campaigns').length,0);
+ });
  await pass('Location signup normalizes a phone, records only explicit selected consent and preserves rate limits',async()=>{
   const s=environment();Object.assign(s.env,{SUPABASE_URL:'https://database.invalid'});const records=[];const old=s.db.rpc.bind(s.db);
   s.db.rpc=async(name,args)=>{if(name==='record_profile_location_sms_opt_in'){records.push(args);return{data:'contact',error:null};}return old(name,args);};
@@ -71,14 +88,14 @@ async function sender(status='ready') {
   assert.equal((await h(req('invalid'))).status,200);assert.equal(calls.length,0);assert.equal((await h(req(sig,params.toString()+'&Injected=true'))).status,200);assert.equal(calls.length,0);
   assert.equal((await h(req(sig))).status,200);assert.equal(calls.length,1);assert.equal(calls[0].p_sender_number,'+16615550999');assert.equal(calls[0].p_phone,'+16615550123');assert.equal(s.db.rows('personal_email_captures')[0].sms_opt_in,true);
  });
- await pass('Shared-number STOP reaches legacy revocation even if a managed sender was misconfigured to collide',async()=>{
+ await pass('Shared-number STOP suppresses verification texts and reaches legacy revocation even if a managed sender was misconfigured to collide',async()=>{
   for(const managed of [false,true]) {
    const s=environment();const webhookUrl='https://functions.invalid/twilio-webhook';Object.assign(s.env,{SUPABASE_URL:'https://database.invalid',TWILIO_AUTH_TOKEN:'fixture-secret',TWILIO_WEBHOOK_URL:webhookUrl,TWILIO_FROM_NUMBER:'+12025550180'});s.context.Deno.serve=h=>s.context.__handler=h;
    const calls=[];s.db.rpc=async(name,args)=>{calls.push({name,args});return{data:name==='revoke_profile_location_sms'?managed:{personal_count:1,restaurant_count:1},error:null};};
    const h=await load('supabase/functions/twilio-webhook/index.ts',s);const params=new URLSearchParams({From:'+16615550123',To:'+12025550180',Body:'STOP'});
    const signed=webhookUrl+[...params.keys()].sort().map(k=>k+params.get(k)).join('');const sig=createHmac('sha1','fixture-secret').update(signed).digest('base64');
    const r=await h(new Request(webhookUrl,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','x-twilio-signature':sig},body:params.toString()}));
-   assert.equal(r.status,200);assert.deepEqual(calls.map(c=>c.name),['revoke_profile_location_sms','revoke_legacy_shared_sms']);assert.equal(calls[1].args.p_phone,'+16615550123');
+   assert.equal(r.status,200);assert.deepEqual(calls.map(c=>c.name),['revoke_profile_location_sms','suppress_profile_review_otp','revoke_legacy_shared_sms']);assert.equal(calls[1].args.p_phone,'+16615550123');assert.equal(calls[2].args.p_phone,'+16615550123');
   }
  });
  console.log(`${checks} managed location handler checks passed. No external traffic.`);

@@ -17,6 +17,8 @@ import { LocationsBlock } from "./LocationsBlock";
 import { ManagedLocationsBlock, ManagedSmsBlock } from "./ManagedHubBlocks";
 import { MealCatalog } from "./MealCatalog";
 import { WeeklyCutoff } from "./WeeklyCutoff";
+import { CustomerReviews } from "./CustomerReviews";
+import { isCustomerReviewsBlock } from "@/lib/profileReviews";
 import { boundMealCatalog, menuUsesVisibleLink } from "@/lib/hubContentBindings";
 
 
@@ -192,12 +194,13 @@ function ProfilePreviewRendererComponent({
         .sort((a, b) => a.sort_order - b.sort_order),
     [blocks]
   );
+  const customerReviewsBlock = activeBlocks.find(isCustomerReviewsBlock);
 
   // Unified items sorted by sort_order (same logic as live profile)
   const unifiedItems = useMemo(() => {
     const items: Array<{ type: "link" | "block"; data: LinkData | BlockData }> = [];
     nonFeaturedPillLinks.forEach((link) => items.push({ type: "link", data: link }));
-    activeBlocks.filter(block => !menuUsesVisibleLink(block, activeLinks)).forEach((block) => items.push({ type: "block", data: block }));
+    activeBlocks.filter(block => !isCustomerReviewsBlock(block) && !menuUsesVisibleLink(block, activeLinks)).forEach((block) => items.push({ type: "block", data: block }));
     items.sort((a, b) => {
       const aOrder =
         a.type === "link"
@@ -1005,6 +1008,9 @@ function ProfilePreviewRendererComponent({
 
       {/* Content */}
       <div className="mt-6 space-y-3 px-6 pb-8">
+        {customerReviewsBlock && <CustomerReviews key={`${profile.id}-${customerReviewsBlock.id}`} profileId={profile.id}
+          title={String((customerReviewsBlock.content as Record<string, unknown>).title || "Customer reviews")}
+          accentColor={profile.button_theme} isPreview />}
         {/* Featured link */}
         {featuredLink && renderLink(featuredLink, true, false, 0)}
 

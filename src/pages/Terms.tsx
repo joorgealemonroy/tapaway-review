@@ -27,10 +27,10 @@ const Terms = () => {
         <p className="text-muted-foreground mb-8">Last Updated: August 1, 2026</p>
 
         {/* A2P 10DLC / TCR-required SMS terms block, placed above the fold so reviewers can find it immediately */}
-        <section className="border border-primary/30 bg-primary/5 p-5 rounded-lg mb-8">
+        <section id="sms" className="scroll-mt-24 border border-primary/30 bg-primary/5 p-5 rounded-lg mb-8">
           <h2 className="text-2xl font-bold mb-3">SMS & Mobile Messaging Terms</h2>
           <p className="text-sm text-foreground mb-3">
-            TapAway operates <strong>two independent SMS programs</strong> on behalf of registered
+            TapAway operates <strong>separate recurring SMS programs</strong> on behalf of registered
             small business owners (restaurants, bakeries, salons, barbers, and similar merchants).
             Each program uses its own unchecked-by-default opt-in checkbox:
           </p>
@@ -45,7 +45,7 @@ const Terms = () => {
           </ul>
           <p className="text-sm text-foreground mb-3">
             Opting into one program does <strong>not</strong> opt you into the other. SMS consent
-            is <strong>never</strong> required to complete a purchase or create an account.
+            is <strong>never</strong> required to complete a purchase, create an account, or leave a review.
             Recipients opt in via web forms on TapAway hubs, our{" "}
             <a href="/sms-signup" className="underline">SMS signup page</a>, or by texting the
             keyword <strong>TAPVIP</strong> to <strong>(978) 827-2929</strong>.
@@ -62,6 +62,32 @@ const Terms = () => {
             Carriers are not liable for delayed or undelivered messages. Message & data rates may
             apply. Message frequency varies.
           </p>
+          <div id="review-verification" className="mt-5 scroll-mt-24 space-y-3 border-t border-primary/20 pt-5 text-sm text-foreground">
+            <h3 className="text-lg font-semibold">Phone verification for customer reviews</h3>
+            <p>
+              When you choose <strong>Send code</strong>, you ask TapAway to send a one-time
+              security code to the mobile number you provide. A code confirms access to that number so
+              you can publish or edit your review. Standard message and data rates may apply. Requesting
+              a code does not subscribe you to marketing, offers, or review reminders.
+            </p>
+            <p>
+              Your score and any feedback you publish are visible on the business’s hub. Your phone
+              number is not shown with the review. One review is kept per verified phone number for each
+              participating hub. You can change your score or feedback using your review session, or
+              verify the same number again to recover editing access. A “Phone verified” label confirms
+              control of a number; it does not confirm a purchase or a person’s identity.
+            </p>
+            <p>
+              The optional offers checkbox is separate. Selecting it authorizes recurring automated
+              marketing texts from the business named beside that checkbox, about its offers and
+              announcements. Message frequency varies. Consent is not a condition of purchase or of
+              leaving a review. An unchecked box does not create a new subscription or change an
+              existing subscription. Reply <strong>STOP</strong> to unsubscribe or <strong>HELP</strong>
+              {" "}for assistance, or email <a href="mailto:tap@tapaway.co" className="underline">tap@tapaway.co</a>.
+              Carriers are not liable for delayed or undelivered messages.
+            </p>
+            <p className="text-xs text-muted-foreground">Review verification terms updated November 22, 2026.</p>
+          </div>
         </section>
 
         <div className="prose prose-slate dark:prose-invert max-w-none space-y-8">
@@ -83,7 +109,7 @@ const Terms = () => {
               <strong>CONTINUED USE OF TAPAWAY CONSTITUTES ACCEPTANCE.</strong> By simply accessing or using TapAway in any 
               capacity, you automatically agree to all terms, policies, and legal agreements. No checkbox, signature, or 
               explicit confirmation is required. Your use of the Service is your acceptance.
-              Contractual acceptance covers your purchase and service terms. TapAway does not load advertising pixels or send checkout events to advertising attribution services.
+              Contractual acceptance covers your purchase and service terms. Receiving recurring SMS messages requires your separate, explicit opt-in; using the site or accepting these Terms does not provide that opt-in. TapAway does not load advertising pixels or send checkout events to advertising attribution services.
             </p>
             <p className="text-muted-foreground">
               If you do not agree to these Terms in their entirety, you must immediately stop using TapAway and delete your 

@@ -29,7 +29,7 @@ const Privacy = () => {
         <p className="text-muted-foreground mb-8">Tracking description updated: October 20, 2026</p>
 
         {/* SMS / A2P 10DLC Carrier-required disclosure. Exact clause required by TCR */}
-        <div className="border border-primary/30 bg-primary/5 p-4 rounded-lg mb-8">
+        <div id="sms" className="scroll-mt-24 border border-primary/30 bg-primary/5 p-4 rounded-lg mb-8">
           <h2 className="text-lg font-bold mb-2">SMS Communications & Mobile Information</h2>
           <p className="text-sm text-foreground font-medium mb-3">
             No mobile information will be shared with third parties or affiliates for marketing or
@@ -37,7 +37,7 @@ const Privacy = () => {
             data and consent; this information will not be shared with any third parties.
           </p>
           <p className="text-sm text-foreground mb-3">
-            TapAway operates <strong>two independent SMS programs</strong>, each with its own
+            TapAway operates <strong>separate recurring SMS programs</strong>, each with its own
             unchecked-by-default opt-in:
           </p>
           <ul className="list-disc pl-5 text-sm text-foreground space-y-1 mb-3">
@@ -52,7 +52,7 @@ const Privacy = () => {
           </ul>
           <p className="text-sm text-foreground mb-3">
             Opting into one program does <strong>not</strong> enroll you in the other, and SMS
-            consent is <strong>never</strong> a condition of any purchase or account creation.
+            consent is <strong>never</strong> a condition of any purchase, account creation, or review.
           </p>
           <ul className="list-disc pl-5 text-sm text-foreground space-y-1">
             <li>
@@ -64,6 +64,29 @@ const Privacy = () => {
             <li>Message and data rates may apply.</li>
             <li>Reply <strong>STOP</strong> to cancel at any time, or <strong>HELP</strong> for assistance.</li>
           </ul>
+          <div id="review-verification" className="mt-5 scroll-mt-24 space-y-3 border-t border-primary/20 pt-5 text-sm text-foreground">
+            <h3 className="text-lg font-semibold">Phone verification and public reviews</h3>
+            <p>
+              When you request a review verification code, we use your mobile number to deliver the
+              security code, protect access to your review, and help you edit it later. Your score,
+              optional written feedback, review dates, and phone-verification status are public.
+              Your phone number, security code, and editing token are not included in public reviews.
+            </p>
+            <p>
+              Requesting or entering a security code does not add you to a marketing list. If you
+              separately select the business’s offers checkbox, we save your verified number in that
+              business’s subscriber list and record the consent wording, version, time, and source.
+              We use messaging service providers to deliver the texts you request. You can stop
+              promotional messages by replying STOP; that does not remove your public review.
+            </p>
+            <p>
+              A review editing token may be stored in your browser for up to 30 days. You can choose
+              to use a different number or clear your browser’s site data to remove local access.
+              Verify your number again when your session expires or when using another device.
+              For privacy requests, contact <a href="mailto:tap@tapaway.co" className="underline">tap@tapaway.co</a>.
+            </p>
+            <p className="text-xs text-muted-foreground">Review verification privacy details updated November 22, 2026.</p>
+          </div>
         </div>
 
         <div className="prose prose-slate dark:prose-invert max-w-none space-y-8">
