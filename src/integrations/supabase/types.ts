@@ -4320,9 +4320,302 @@ export type Database = {
           },
         ]
       }
+      profile_review_challenges: {
+        Row: {
+          attempts: number
+          code_hash: string
+          consumed_at: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          otp_consent_text: string
+          otp_consent_version: number
+          otp_consented_at: string
+          phone: string
+          profile_id: string
+          sent_at: string | null
+          session_hash: string | null
+          user_agent: string | null
+          verification_id: string | null
+        }
+        Insert: {
+          attempts?: number
+          code_hash: string
+          consumed_at?: string | null
+          created_at?: string
+          expires_at: string
+          id: string
+          otp_consent_text: string
+          otp_consent_version: number
+          otp_consented_at?: string
+          phone: string
+          profile_id: string
+          sent_at?: string | null
+          session_hash?: string | null
+          user_agent?: string | null
+          verification_id?: string | null
+        }
+        Update: {
+          attempts?: number
+          code_hash?: string
+          consumed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          otp_consent_text?: string
+          otp_consent_version?: number
+          otp_consented_at?: string
+          phone?: string
+          profile_id?: string
+          sent_at?: string | null
+          session_hash?: string | null
+          user_agent?: string | null
+          verification_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profile_review_challenges_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "personal_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profile_review_challenges_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "personal_profiles_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profile_review_identities: {
+        Row: {
+          created_at: string
+          id: string
+          phone: string
+          profile_id: string
+          verified_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          phone: string
+          profile_id: string
+          verified_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          phone?: string
+          profile_id?: string
+          verified_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profile_review_identities_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "personal_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profile_review_identities_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "personal_profiles_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profile_review_otp_suppressions: {
+        Row: {
+          phone: string
+          suppressed_at: string
+        }
+        Insert: {
+          phone: string
+          suppressed_at?: string
+        }
+        Update: {
+          phone?: string
+          suppressed_at?: string
+        }
+        Relationships: []
+      }
+      profile_review_sessions: {
+        Row: {
+          created_at: string
+          expires_at: string
+          identity_id: string
+          profile_id: string
+          token_hash: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          identity_id: string
+          profile_id: string
+          token_hash: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          identity_id?: string
+          profile_id?: string
+          token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profile_review_sessions_identity_id_profile_id_fkey"
+            columns: ["identity_id", "profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile_review_identities"
+            referencedColumns: ["id", "profile_id"]
+          },
+        ]
+      }
+      profile_review_settings: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          profile_id: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          profile_id: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profile_review_settings_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "personal_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profile_review_settings_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "personal_profiles_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profile_review_writes: {
+        Row: {
+          created_at: string
+          identity_id: string
+          profile_id: string
+          request_hash: string
+          review_id: string
+          sms_status: string
+          submission_id: string
+        }
+        Insert: {
+          created_at?: string
+          identity_id: string
+          profile_id: string
+          request_hash: string
+          review_id: string
+          sms_status: string
+          submission_id: string
+        }
+        Update: {
+          created_at?: string
+          identity_id?: string
+          profile_id?: string
+          request_hash?: string
+          review_id?: string
+          sms_status?: string
+          submission_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profile_review_writes_identity_id_profile_id_fkey"
+            columns: ["identity_id", "profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile_review_identities"
+            referencedColumns: ["id", "profile_id"]
+          },
+          {
+            foreignKeyName: "profile_review_writes_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "profile_reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profile_reviews: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          profile_id: string
+          rating: number
+          reviewer_identity_id: string | null
+          submission_id: string
+          updated_at: string
+          visitor_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          profile_id: string
+          rating: number
+          reviewer_identity_id?: string | null
+          submission_id: string
+          updated_at?: string
+          visitor_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          profile_id?: string
+          rating?: number
+          reviewer_identity_id?: string | null
+          submission_id?: string
+          updated_at?: string
+          visitor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profile_reviews_identity_profile_fk"
+            columns: ["reviewer_identity_id", "profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile_review_identities"
+            referencedColumns: ["id", "profile_id"]
+          },
+          {
+            foreignKeyName: "profile_reviews_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "personal_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profile_reviews_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "personal_profiles_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profile_sms_consent_events: {
         Row: {
           action: string
+          consent_privacy_url: string | null
+          consent_terms_url: string | null
           consent_text: string | null
           consent_version: number | null
           contact_id: string
@@ -4336,6 +4629,8 @@ export type Database = {
         }
         Insert: {
           action: string
+          consent_privacy_url?: string | null
+          consent_terms_url?: string | null
           consent_text?: string | null
           consent_version?: number | null
           contact_id: string
@@ -4349,6 +4644,8 @@ export type Database = {
         }
         Update: {
           action?: string
+          consent_privacy_url?: string | null
+          consent_terms_url?: string | null
           consent_text?: string | null
           consent_version?: number | null
           contact_id?: string
@@ -4396,6 +4693,10 @@ export type Database = {
           capture_id: string
           created_at: string
           id: string
+          offers_consent_at: string | null
+          offers_consent_text: string | null
+          offers_consent_version: number | null
+          offers_opt_in: boolean
           opted_out_at: string | null
           ordering_consent_at: string | null
           ordering_consent_text: string | null
@@ -4409,6 +4710,10 @@ export type Database = {
           capture_id: string
           created_at?: string
           id?: string
+          offers_consent_at?: string | null
+          offers_consent_text?: string | null
+          offers_consent_version?: number | null
+          offers_opt_in?: boolean
           opted_out_at?: string | null
           ordering_consent_at?: string | null
           ordering_consent_text?: string | null
@@ -4422,6 +4727,10 @@ export type Database = {
           capture_id?: string
           created_at?: string
           id?: string
+          offers_consent_at?: string | null
+          offers_consent_text?: string | null
+          offers_consent_version?: number | null
+          offers_opt_in?: boolean
           opted_out_at?: string | null
           ordering_consent_at?: string | null
           ordering_consent_text?: string | null
@@ -6494,6 +6803,18 @@ export type Database = {
         }[]
       }
       cleanup_expired_archives: { Args: never; Returns: undefined }
+      create_profile_review_challenge: {
+        Args: {
+          p_challenge_id: string
+          p_code_hash: string
+          p_otp_consent: boolean
+          p_otp_consent_version: number
+          p_phone: string
+          p_profile_id: string
+          p_user_agent: string
+        }
+        Returns: undefined
+      }
       creator_booking_is_public: {
         Args: { _profile_id: string }
         Returns: boolean
@@ -6589,6 +6910,14 @@ export type Database = {
           capture_id: string
           phone: string
         }[]
+      }
+      get_profile_review_config: {
+        Args: { p_profile_id: string }
+        Returns: Json
+      }
+      get_profile_review_session: {
+        Args: { p_profile_id: string; p_token_hash: string }
+        Returns: Json
       }
       get_profile_sms_dashboard: {
         Args: { p_profile_id: string }
@@ -6708,6 +7037,10 @@ export type Database = {
       }
       get_public_profile_locations: {
         Args: { p_profile_id: string }
+        Returns: Json
+      }
+      get_public_profile_reviews: {
+        Args: { p_limit?: number; p_offset?: number; p_profile_id: string }
         Returns: Json
       }
       get_public_profile_sms_program: {
@@ -6838,6 +7171,10 @@ export type Database = {
         Args: { _payment_intent_id: string; _subscription_id: string }
         Returns: undefined
       }
+      mark_profile_review_code_sent: {
+        Args: { p_challenge_id: string; p_profile_id: string }
+        Returns: boolean
+      }
       payment_reversal_reason: {
         Args: {
           _mode: string
@@ -6863,6 +7200,14 @@ export type Database = {
           p_profile_id: string
           p_sender_number: string
         }
+        Returns: boolean
+      }
+      profile_review_otp_allowed: {
+        Args: { p_phone: string }
+        Returns: boolean
+      }
+      profile_reviews_enabled: {
+        Args: { p_profile_id: string }
         Returns: boolean
       }
       profile_sms_consent_text: {
@@ -6915,6 +7260,16 @@ export type Database = {
           p_phone: string
           p_profile_id: string
           p_restock_consent: boolean
+          p_user_agent: string
+        }
+        Returns: string
+      }
+      record_profile_review_offers_opt_in: {
+        Args: {
+          p_consent_version: number
+          p_phone: string
+          p_profile_id: string
+          p_review_id: string
           p_user_agent: string
         }
         Returns: string
@@ -7058,9 +7413,37 @@ export type Database = {
           source: string
         }[]
       }
+      save_verified_profile_review: {
+        Args: {
+          p_comment: string
+          p_consent_version: number
+          p_marketing_consent: boolean
+          p_profile_id: string
+          p_rating: number
+          p_request_hash: string
+          p_submission_id: string
+          p_token_hash: string
+          p_user_agent: string
+        }
+        Returns: Json
+      }
       storefront_take_quota: {
         Args: { _key: string; _limit: number }
         Returns: number
+      }
+      submit_profile_review: {
+        Args: {
+          p_comment: string
+          p_profile_id: string
+          p_rating: number
+          p_submission_id: string
+          p_visitor_id: string
+        }
+        Returns: string
+      }
+      suppress_profile_review_otp: {
+        Args: { p_phone: string }
+        Returns: undefined
       }
       sync_business_locations_admin: {
         Args: never
@@ -7082,6 +7465,16 @@ export type Database = {
       verify_account_otp: {
         Args: { _code_hash: string; _consume?: boolean; _email: string }
         Returns: boolean
+      }
+      verify_profile_review_challenge: {
+        Args: {
+          p_challenge_id: string
+          p_code_hash: string
+          p_profile_id: string
+          p_token_hash: string
+          p_verification_id: string
+        }
+        Returns: Json
       }
     }
     Enums: {
