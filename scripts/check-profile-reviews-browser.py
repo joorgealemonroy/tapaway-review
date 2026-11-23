@@ -273,10 +273,12 @@ async def run():
         assert await page.get_by_role('radio', name='4 stars', exact=True).is_checked()
         assert not await region.get_by_role('checkbox').is_checked(), 'Editing does not preselect marketing'
         await select_rating(page, 5)
+        assert await page.get_by_role('radio', name='5 stars', exact=True).is_checked()
         await page.get_by_role('textbox', name='Your feedback (optional)').fill('Updated: pickup was easy.')
         await region.get_by_role('checkbox').check()
         await region.get_by_role('button', name='Save changes', exact=True).click()
-        await region.get_by_text('Updated: pickup was easy.', exact=True).wait_for()
+        await region.get_by_role('status').filter(has_text=re.compile(r'^Your review has been updated\.$')).wait_for()
+        await region.locator('article').get_by_text('Updated: pickup was easy.', exact=True).wait_for()
         assert len(state['reviews']) == 1, 'Editing preserves one review per phone'
         assert state['reviews'][0]['rating'] == 5
         assert len(state['marketing_subscriptions']) == 1, 'Only an explicit checked save grants marketing consent'
@@ -324,7 +326,8 @@ async def run():
         await region.get_by_role('alert').wait_for()
         assert await page.get_by_role('textbox', name='Your feedback (optional)').input_value() == feedback
         await region.get_by_role('button', name='Post review', exact=True).click()
-        await region.get_by_text(feedback, exact=True).wait_for()
+        await region.get_by_role('status').filter(has_text=re.compile(r'^Thanks for your review!$')).wait_for()
+        await region.locator('article').get_by_text(feedback, exact=True).wait_for()
         assert len(state['writes']) == 2
         assert state['writes'][0]['submissionId'] == state['writes'][1]['submissionId'], 'Ambiguous save retry keeps its idempotency key'
         assert await page.evaluate('window.badReview === undefined')
@@ -341,7 +344,8 @@ async def run():
         await verify_phone(page, state)
         assert await page.get_by_role('textbox', name='Your feedback (optional)').input_value() == 'Draft preserved after verification expires.'
         await region.get_by_role('button', name='Save changes', exact=True).click()
-        await region.get_by_text('Draft preserved after verification expires.', exact=True).wait_for()
+        await region.get_by_role('status').filter(has_text=re.compile(r'^Your review has been updated\.$')).wait_for()
+        await region.locator('article').get_by_text('Draft preserved after verification expires.', exact=True).wait_for()
         assert len(state['reviews']) == 6, 'Editing after expiration does not duplicate a review'
         await assert_private_phone(page, state)
         print('PASS low scores, honest verification badges, pagination, safe text, retry idempotency, expired-session draft preservation and 320px layout')
