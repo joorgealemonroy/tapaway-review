@@ -111,7 +111,7 @@ async def main():
             await file.get_by_role("button", name="View PDF", exact=True).wait_for()
             await missing.get_by_text("No print PDF attached to this hub.", exact=True).wait_for()
             assert await missing.get_by_role("button").count() == 0
-            assert await page.get_by_role("button", name="Approve demo", exact=True).first.is_disabled()
+            assert await page.get_by_role("button", name="Approve demo", exact=True).count() == 0, "Approval is available only inside the hub preview"
             assert not signs and not downloads, "Don't fetch all private PDFs when opening the queue"
 
             async def check_download(region, expected_name):
@@ -129,7 +129,7 @@ async def main():
             popup = await popup_event.value
             await popup.close()
             await check_download(file, "fixture-1-print.pdf")
-            assert await page.get_by_role("button", name="Approve demo", exact=True).first.is_disabled(), "PDF access must not approve or unlock the hub"
+            assert await page.get_by_role("button", name="Approve demo", exact=True).count() == 0, "PDF access must not open approval or unlock the hub"
             assert await page.evaluate("document.documentElement.scrollWidth <= innerWidth")
             await file.get_by_role("button", name="Hide PDF", exact=True).click()
 
@@ -152,8 +152,9 @@ async def main():
             await dialog_file.get_by_role("button", name="View PDF", exact=True).click()
             await dialog_file.get_by_role("link", name="Open PDF in new tab").wait_for()
             assert await page.evaluate("document.documentElement.scrollWidth <= innerWidth")
-            await dialog.get_by_role("button", name="I've reviewed this hub", exact=True).click()
-            assert await page.get_by_role("button", name="Approve demo", exact=True).first.is_enabled()
+            assert await dialog.get_by_role("button", name="Approve demo", exact=True).is_enabled(), "The loaded hub preview exposes the explicit approval action"
+            await page.keyboard.press("Escape")
+            assert await page.get_by_role("button", name="Approve demo", exact=True).count() == 0, "Closing the preview does not approve the hub"
             await page.get_by_role("button", name="Preview hub", exact=True).nth(1).click()
             await dialog.get_by_text("No print PDF attached to this hub.", exact=True).wait_for()
             await page.keyboard.press("Escape")

@@ -120,6 +120,15 @@ Deno.serve(async (req) => {
       if (managed === true && !alsoSharedSender) return twiml(200);
     }
 
+    // Verification texts use only the global TapAway sender. Preserve STOP even
+    // when this phone has never joined a marketing list; another merchant's
+    // dedicated sender cannot revoke this separate verification permission.
+    const otpSender = Deno.env.get("TWILIO_FROM_NUMBER") || "";
+    if (otpSender && to.replace(/\D/g, "") === otpSender.replace(/\D/g, "")) {
+      const { error: suppressionError } = await admin.rpc("suppress_profile_review_otp", { p_phone: from });
+      if (suppressionError) return twiml(503);
+    }
+
     // Atomically exclude every managed merchant from the old shared-number
     // opt-out. A reply to TapAway's number must not disable a different brand.
     const { error: legacyError } = await admin.rpc("revoke_legacy_shared_sms", { p_phone: from });

@@ -372,6 +372,13 @@
       "when": 1795410000000,
       "tag": "0052_profile_reviews",
       "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "7",
+      "when": 1795413600000,
+      "tag": "0053_verified_profile_reviews",
+      "breakpoints": true
     }
   ]
 }

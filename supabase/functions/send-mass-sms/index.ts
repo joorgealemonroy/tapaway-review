@@ -140,7 +140,7 @@ Deno.serve(async (req) => {
     let campaignTable = "";
     let campaignRow: Record<string, any> = {};
     let managedProgram = false;
-    let campaignType: "restock" | "ordering" | null = null;
+    let campaignType: "restock" | "ordering" | "offers" | null = null;
     let locationId: string | null = null;
     let sendFromNumber = TWILIO_FROM_NUMBER;
 
@@ -174,12 +174,12 @@ Deno.serve(async (req) => {
           || (TWILIO_FROM_NUMBER && normalizePhone(program.sender_number || "") === normalizePhone(TWILIO_FROM_NUMBER))) {
           return json(409, { code: "SMS_SENDER_NOT_READY", error: "Your text list is ready to grow. Sending will open after your business sender is verified." });
         }
-        if (isReviewRequest || !["restock", "ordering"].includes(body.campaign_type))
-          return json(400, { error: "Choose restock alerts or weekly ordering reminders for this audience." });
+        if (isReviewRequest || !["restock", "ordering", "offers"].includes(body.campaign_type))
+          return json(400, { error: "Choose restock alerts, ordering reminders, or offers for this audience." });
         campaignType = body.campaign_type;
         locationId = body.location_id == null || body.location_id === "" ? null : body.location_id;
         if ((locationId !== null && (typeof locationId !== "string" || !UUID_RE.test(locationId)))
-          || (campaignType === "ordering" && locationId !== null))
+          || (campaignType !== "restock" && locationId !== null))
           return json(400, { error: "Choose a valid location audience." });
         if (campaignType === "restock" && body.confirmed_restock !== true)
           return json(400, { error: "Confirm the selected locations have been restocked before sending." });
@@ -191,6 +191,8 @@ Deno.serve(async (req) => {
         sendFromNumber = program.sender_number;
         senderName = program.brand_name;
       } else {
+        if (body.campaign_type === "offers")
+          return json(400, { error: "The offers audience is not set up for this business." });
         const result = await admin.from("personal_email_captures").select("phone")
           .eq("profile_id", profileId).eq("sms_opt_in", true).eq(consentColumn, true).not("phone", "is", null);
         if (result.error) return json(500, { error: "Failed to load recipients" });

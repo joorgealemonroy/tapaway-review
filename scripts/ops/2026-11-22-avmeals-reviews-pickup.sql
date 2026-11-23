@@ -1,5 +1,7 @@
 -- AV Meals: one public hub, customer reviews first, two pickup locations last.
--- Run after the profile-review schema and the matching frontend are available.
+-- Run only after migration 0053, the profile-review and SMS edge handlers, and
+-- the matching frontend are deployed. Confirm review OTP sending is configured
+-- before enabling the public form; never enable the prior anonymous submit path.
 -- Existing profile, location IDs, menu, links, consent and billing stay attached.
 BEGIN;
 
@@ -9,6 +11,9 @@ DECLARE
   locations_block constant uuid := '94fa99cf-273f-4048-aa26-de8d4099aedc';
   third_location constant uuid := '5e44d809-037a-47c7-9f14-3f585dcbccec';
 BEGIN
+  IF to_regclass('public.profile_review_identities') IS NULL THEN
+    RAISE EXCEPTION 'Deploy verified profile reviews before enabling this hub.';
+  END IF;
   IF NOT EXISTS (SELECT 1 FROM public.personal_profiles WHERE id=av_profile AND username='avmeals' AND is_approved)
     OR NOT EXISTS (SELECT 1 FROM public.personal_blocks WHERE id=locations_block AND profile_id=av_profile AND block_type='locations' AND content->>'managed'='true') THEN
     RAISE EXCEPTION 'The AV Meals hub changed; inspect before configuring.';

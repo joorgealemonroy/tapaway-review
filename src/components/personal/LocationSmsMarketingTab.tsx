@@ -10,14 +10,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ProfileLocation, ProfileSmsDashboard, profileLocationUrl } from "@/lib/profileLocations";
 
-interface Props { profileId: string; username: string; businessName?: string; }
+interface Props { profileId: string; username: string; businessName?: string; pickupMode?: boolean; }
 const MAX_LEN = 160;
-type CampaignType = "restock" | "ordering";
+type CampaignType = "restock" | "ordering" | "offers";
 
-export default function LocationSmsMarketingTab({ profileId, username, businessName }: Props) {
+export default function LocationSmsMarketingTab({ profileId, username, businessName, pickupMode = false }: Props) {
   const [dashboard, setDashboard] = useState<ProfileSmsDashboard | null>(null);
   const [locations, setLocations] = useState<ProfileLocation[]>([]);
-  const [campaignType, setCampaignType] = useState<CampaignType>("restock");
+  const [campaignType, setCampaignType] = useState<CampaignType>(pickupMode ? "offers" : "restock");
   const [locationId, setLocationId] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
@@ -42,6 +42,7 @@ export default function LocationSmsMarketingTab({ profileId, username, businessN
       }
       if (request !== requestId.current) return;
       setDashboard(programResult.data);
+      setCampaignType(current => current === "offers" && typeof programResult.data.audience.offers !== "number" ? "ordering" : current);
       setLocations(locationsResult.data ?? []);
       setLocationId(current => locationsResult.data?.some((location: ProfileLocation) => location.id === current)
         ? current : locationsResult.data?.find((location: ProfileLocation) => !location.is_placeholder)?.id || locationsResult.data?.[0]?.id || "");
@@ -55,28 +56,31 @@ export default function LocationSmsMarketingTab({ profileId, username, businessN
       const saved = JSON.parse(localStorage.getItem(draftKey) || "null");
       if (saved && typeof saved.message === "string") {
         setMessage(saved.message.slice(0, MAX_LEN));
-        setCampaignType(saved.campaignType === "ordering" ? "ordering" : "restock");
+        setCampaignType(saved.campaignType === "offers" ? "offers" : saved.campaignType === "ordering" ? "ordering" : "restock");
         if (typeof saved.locationId === "string") setLocationId(saved.locationId);
       }
     } catch { /* A local draft is optional. */ }
   }, [draftKey]);
 
   const selected = locations.find(location => location.id === locationId);
-  const audienceCount = dashboard && !error ? (campaignType === "ordering" ? dashboard.audience.ordering
+  const audienceCount = dashboard && !error ? (campaignType === "offers" ? dashboard.audience.offers ?? 0 : campaignType === "ordering" ? dashboard.audience.ordering
     : dashboard.locations.find(location => location.id === locationId)?.subscriber_count ?? 0) : null;
   const brand = dashboard?.program.brand_name || businessName || "Your business";
   const senderReady = !error && dashboard?.program.sender_ready === true;
-  const targetReady = campaignType === "ordering" || !!selected && !selected.is_placeholder && selected.is_active;
+  const offersSupported = typeof dashboard?.audience.offers === "number";
+  const targetReady = campaignType === "offers" ? offersSupported : campaignType === "ordering" || !!selected && !selected.is_placeholder && selected.is_active;
   const canSend = senderReady && targetReady && audienceCount > 0 && message.trim().length > 0 && message.length <= MAX_LEN && !sending && !loading && !error;
   const previewText = `${brand}: ${message.trim()}\nReply STOP to opt out.`;
 
   const useTemplate = () => {
+    const restockUrl = profileLocationUrl(username, pickupMode ? undefined : selected?.id);
     const template = campaignType === "restock"
-      ? `Fresh meals just arrived at ${selected?.name || "[Store name]"}. Stop by while supplies last! ${profileLocationUrl(username, selected?.id)}`
+      ? `Fresh meals just arrived at ${selected?.name || "[Location name]"}. Stop by while supplies last! ${restockUrl}`
+      : campaignType === "offers" ? `See what's new and explore our latest meals and offers: ${profileLocationUrl(username)}`
       : `Get next week's meals handled. Browse the menu and order for pickup or delivery: ${profileLocationUrl(username)}`;
     if (template.length > MAX_LEN) {
       setMessage(campaignType === "restock"
-        ? `Fresh meals are here! Your fridge has been restocked. ${profileLocationUrl(username, selected?.id)}`.slice(0, MAX_LEN)
+        ? `Fresh meals are here! ${pickupMode ? "Pickup is ready" : "Your fridge has been restocked"}. ${restockUrl}`.slice(0, MAX_LEN)
         : template.slice(0, MAX_LEN));
     } else setMessage(template);
   };
@@ -122,17 +126,18 @@ export default function LocationSmsMarketingTab({ profileId, username, businessN
     </Card>
     <Card className="p-4 sm:p-5 space-y-4">
       <div><h2 className="font-semibold text-lg">Prepare a text</h2><p className="text-sm text-muted-foreground">Choose the audience, personalize the message, then preview it.</p></div>
-      <div className="space-y-2"><Label htmlFor="location-sms-type">Message purpose</Label><Select value={campaignType} onValueChange={value => { setCampaignType(value as CampaignType); setRestockConfirmed(false); }} disabled={sending}><SelectTrigger id="location-sms-type" className="h-11"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="restock">Fridge restock alert</SelectItem><SelectItem value="ordering">Weekly ordering reminder</SelectItem></SelectContent></Select></div>
-      {campaignType === "restock" && <div className="space-y-2"><Label htmlFor="location-sms-location">Fridge location</Label><Select value={locationId} onValueChange={value => { setLocationId(value); setRestockConfirmed(false); }} disabled={sending || locations.length === 0}><SelectTrigger id="location-sms-location" className="h-11"><SelectValue placeholder="Add a location first" /></SelectTrigger><SelectContent>{locations.map(location => <SelectItem key={location.id} value={location.id}>{location.name}{location.is_placeholder ? " (placeholder)" : ""}</SelectItem>)}</SelectContent></Select>{selected?.is_placeholder && <p className="text-xs text-muted-foreground">Set up the real store in Locations before collecting or sending restock alerts.</p>}</div>}
-      <div className="flex items-center gap-2 rounded-lg bg-muted p-3 text-sm">{campaignType === "restock" ? <Bell className="h-4 w-4 shrink-0" /> : <ShoppingBag className="h-4 w-4 shrink-0" />}<span>{loading ? "Loading audience…" : audienceCount === null ? "Audience count unavailable" : `${audienceCount} customer${audienceCount === 1 ? "" : "s"} subscribed to ${campaignType === "ordering" ? "ordering reminders" : "this location's restock alerts"}`}</span></div>
-      <Button type="button" variant="outline" onClick={useTemplate} disabled={sending}><FileText className="mr-2 h-4 w-4" />Use {campaignType === "restock" ? "restock" : "ordering"} draft</Button>
+      <div className="space-y-2"><Label htmlFor="location-sms-type">Message purpose</Label><Select value={campaignType} onValueChange={value => { setCampaignType(value as CampaignType); setRestockConfirmed(false); }} disabled={sending}><SelectTrigger id="location-sms-type" className="h-11"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="restock">{pickupMode ? "Pickup restock alert" : "Fridge restock alert"}</SelectItem><SelectItem value="ordering">Weekly ordering reminder</SelectItem><SelectItem value="offers" disabled={!offersSupported}>Offers & announcements</SelectItem></SelectContent></Select></div>
+      {campaignType === "restock" && <div className="space-y-2"><Label htmlFor="location-sms-location">{pickupMode ? "Pickup location" : "Fridge location"}</Label><Select value={locationId} onValueChange={value => { setLocationId(value); setRestockConfirmed(false); }} disabled={sending || locations.length === 0}><SelectTrigger id="location-sms-location" className="h-11"><SelectValue placeholder="Add a location first" /></SelectTrigger><SelectContent>{locations.map(location => <SelectItem key={location.id} value={location.id}>{location.name}{location.is_placeholder ? " (placeholder)" : ""}</SelectItem>)}</SelectContent></Select>{selected?.is_placeholder && <p className="text-xs text-muted-foreground">{pickupMode ? "Add pickup details in Pickup locations before collecting or sending restock alerts." : "Set up the real store in Locations before collecting or sending restock alerts."}</p>}</div>}
+      <div className="flex items-center gap-2 rounded-lg bg-muted p-3 text-sm">{campaignType === "restock" ? <Bell className="h-4 w-4 shrink-0" /> : <ShoppingBag className="h-4 w-4 shrink-0" />}<span>{loading ? "Loading audience…" : audienceCount === null ? "Audience count unavailable" : `${audienceCount} customer${audienceCount === 1 ? "" : "s"} subscribed to ${campaignType === "offers" ? "offers and announcements" : campaignType === "ordering" ? "ordering reminders" : "this location's restock alerts"}`}</span></div>
+      {campaignType === "offers" && <p className="text-xs text-muted-foreground">Only customers who selected the optional offers checkbox are included. A review or phone verification alone does not subscribe anyone.</p>}
+      <Button type="button" variant="outline" onClick={useTemplate} disabled={sending}><FileText className="mr-2 h-4 w-4" />Use {campaignType === "restock" ? "restock" : campaignType === "offers" ? "offers" : "ordering"} draft</Button>
       <div className="space-y-2"><Label htmlFor="location-sms-message">Your message</Label><Textarea id="location-sms-message" value={message} onChange={event => setMessage(event.target.value.slice(0, MAX_LEN))} maxLength={MAX_LEN} rows={4} placeholder="Start with a draft or write your own update…" disabled={sending} /><div className="flex justify-between gap-3 text-xs text-muted-foreground"><span>Your business name and STOP instructions are added automatically.</span><span className="shrink-0">{message.length}/{MAX_LEN}</span></div></div>
       <div className="flex flex-wrap gap-2"><Button onClick={() => { setRestockConfirmed(false); setPreviewOpen(true); }} disabled={!message.trim() || sending}><MessageSquare className="mr-2 h-4 w-4" />Preview text</Button><Button variant="outline" onClick={saveDraft} disabled={!message.trim() || sending}><Save className="mr-2 h-4 w-4" />Save draft</Button></div>
       <p className="text-xs text-muted-foreground">Messages are sent only after you review and confirm them. Drafts are saved on this device.</p>
     </Card>
-    <Card className="p-4 sm:p-5 space-y-4"><h2 className="font-semibold">Recent campaigns</h2>{loading ? <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /> : error || !dashboard ? <p className="text-sm text-muted-foreground">Campaign history is unavailable.</p> : dashboard.campaigns.length ? <div className="divide-y">{dashboard.campaigns.map(campaign => <div key={campaign.id} className="py-3 first:pt-0 space-y-2"><div className="flex flex-wrap justify-between gap-1 text-xs text-muted-foreground"><span>{campaign.campaign_type === "ordering" ? "Ordering reminder" : dashboard.locations.find(location => location.id === campaign.location_id)?.name || "Restock alert"}</span><span>{new Date(campaign.created_at).toLocaleString()}</span></div><p className="text-sm whitespace-pre-wrap break-words">{campaign.message}</p><p className="text-xs text-muted-foreground">{campaign.success_count} submitted · {campaign.failure_count} failed</p></div>)}</div> : <p className="text-sm text-muted-foreground">Your first campaign will appear here after you send it.</p>}<p className="text-xs text-muted-foreground">Submission counts do not confirm message delivery or meal purchases.</p></Card>
-    <Dialog open={previewOpen} onOpenChange={open => { if (!sending) setPreviewOpen(open); }}><DialogContent className="w-[calc(100%_-_2rem)] sm:max-w-md"><DialogHeader><DialogTitle>Review your text</DialogTitle><DialogDescription>{campaignType === "restock" ? selected?.name || "Choose a location" : "Customers who chose ordering reminders"} · {audienceCount === null ? "Audience unavailable" : `${audienceCount} subscribed`}</DialogDescription></DialogHeader><div className="rounded-2xl bg-muted p-4 text-sm whitespace-pre-wrap break-words">{previewText}</div>
-      {campaignType === "restock" && <label className="flex items-start gap-3 text-sm"><input type="checkbox" checked={restockConfirmed} onChange={event => setRestockConfirmed(event.target.checked)} disabled={sending} className="mt-1 h-4 w-4 shrink-0" /><span>I confirm this fridge has been restocked and the message is accurate.</span></label>}
+    <Card className="p-4 sm:p-5 space-y-4"><h2 className="font-semibold">Recent campaigns</h2>{loading ? <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /> : error || !dashboard ? <p className="text-sm text-muted-foreground">Campaign history is unavailable.</p> : dashboard.campaigns.length ? <div className="divide-y">{dashboard.campaigns.map(campaign => <div key={campaign.id} className="py-3 first:pt-0 space-y-2"><div className="flex flex-wrap justify-between gap-1 text-xs text-muted-foreground"><span>{campaign.campaign_type === "offers" ? "Offers & announcements" : campaign.campaign_type === "ordering" ? "Ordering reminder" : dashboard.locations.find(location => location.id === campaign.location_id)?.name || "Restock alert"}</span><span>{new Date(campaign.created_at).toLocaleString()}</span></div><p className="text-sm whitespace-pre-wrap break-words">{campaign.message}</p><p className="text-xs text-muted-foreground">{campaign.success_count} submitted · {campaign.failure_count} failed</p></div>)}</div> : <p className="text-sm text-muted-foreground">Your first campaign will appear here after you send it.</p>}<p className="text-xs text-muted-foreground">Submission counts do not confirm message delivery or meal purchases.</p></Card>
+    <Dialog open={previewOpen} onOpenChange={open => { if (!sending) setPreviewOpen(open); }}><DialogContent className="w-[calc(100%_-_2rem)] sm:max-w-md"><DialogHeader><DialogTitle>Review your text</DialogTitle><DialogDescription>{campaignType === "restock" ? selected?.name || "Choose a location" : campaignType === "offers" ? "Customers who chose offers and announcements" : "Customers who chose ordering reminders"} · {audienceCount === null ? "Audience unavailable" : `${audienceCount} subscribed`}</DialogDescription></DialogHeader><div className="rounded-2xl bg-muted p-4 text-sm whitespace-pre-wrap break-words">{previewText}</div>
+      {campaignType === "restock" && <label className="flex items-start gap-3 text-sm"><input type="checkbox" checked={restockConfirmed} onChange={event => setRestockConfirmed(event.target.checked)} disabled={sending} className="mt-1 h-4 w-4 shrink-0" /><span>{pickupMode ? "I confirm meals are available at this pickup location and the message is accurate." : "I confirm this fridge has been restocked and the message is accurate."}</span></label>}
       {!senderReady && <p className="text-sm text-muted-foreground">This is a preview. Sending is unavailable until your messaging setup is approved.</p>}
       {senderReady && audienceCount === 0 && <p className="text-sm text-muted-foreground">This audience has no subscribers yet.</p>}
       <DialogFooter><Button variant="outline" disabled={sending} onClick={() => setPreviewOpen(false)}>Keep editing</Button><Button disabled={!canSend || campaignType === "restock" && !restockConfirmed} onClick={() => void send()}>{sending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}Send text</Button></DialogFooter>

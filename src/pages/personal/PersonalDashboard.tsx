@@ -1488,7 +1488,7 @@ const PersonalDashboard = () => {
 
           {/* SMS Marketing Tab */}
           <TabsContent value="sms" className="space-y-4">
-            {hasManagedLocations ? <LocationSmsMarketingTab key={profile.id} profileId={profile.id} username={profile.username} businessName={profile.full_name} /> : <SmsMarketingTab profileId={profile.id} />}
+            {hasManagedLocations ? <LocationSmsMarketingTab key={profile.id} profileId={profile.id} username={profile.username} businessName={profile.full_name} pickupMode={hasPickupLocations} /> : <SmsMarketingTab profileId={profile.id} />}
           </TabsContent>
 
           {/* Analytics Tab */}

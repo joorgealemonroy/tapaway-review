@@ -64,6 +64,7 @@ export interface ProfileSmsProgram {
   consent_version: number;
   restock_consent_text: string;
   ordering_consent_text: string;
+  offers_consent_text?: string;
   frequency_text: string;
   terms_url: string | null;
   privacy_url: string | null;
@@ -78,13 +79,13 @@ export interface ProfileSmsCampaign {
   success_count: number;
   failure_count: number;
   created_at: string;
-  campaign_type: "restock" | "ordering";
+  campaign_type: "restock" | "ordering" | "offers";
   location_id: string | null;
 }
 
 export interface ProfileSmsDashboard {
   program: ProfileSmsProgram;
-  audience: { total: number; ordering: number; restock: number };
+  audience: { total: number; ordering: number; restock: number; offers?: number };
   locations: { id: string; name: string; subscriber_count: number }[];
   campaigns: ProfileSmsCampaign[];
 }
