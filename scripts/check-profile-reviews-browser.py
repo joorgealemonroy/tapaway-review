@@ -190,15 +190,49 @@ async def select_rating(page, score):
     await radio.locator('..').click()
 
 
-async def verify_phone(page, state, invalid_first=False):
+async def open_note(page):
+    note = reviews_region(page).get_by_role('textbox', name='Your feedback (optional)', exact=True)
+    if not await note.count():
+        await reviews_region(page).get_by_role('button', name=re.compile(r'^(Add a note|Edit note) \(optional\)$')).click()
+    await note.wait_for()
+    assert await note.get_attribute('rows') == '2', 'Optional feedback uses a compact input'
+    return note
+
+
+async def open_offers(page):
+    region = reviews_region(page)
+    checkbox = region.get_by_role('checkbox')
+    if not await checkbox.count():
+        await region.get_by_role('button', name=re.compile(r'^Messages & offers(?: \(optional\)| selected)$')).click()
+    await checkbox.wait_for()
+    return checkbox
+
+
+async def continue_review(page):
+    next_step = reviews_region(page).get_by_role('button', name='Continue', exact=True)
+    if await next_step.count():
+        await next_step.click()
+
+
+async def verify_phone(page, state, invalid_first=False, edit_during_code=None):
     subscription_count = len(state['marketing_subscriptions'])
     write_count = len(state['writes'])
+    await continue_review(page)
     await page.get_by_role('textbox', name='Mobile number', exact=True).fill('(661) 555-0123')
     await page.get_by_role('button', name='Send code', exact=True).click()
     code = page.get_by_role('textbox', name='Verification code', exact=True)
     await code.wait_for()
     assert len(state['marketing_subscriptions']) == subscription_count, 'OTP send does not create marketing consent'
     assert state['code_requests'][-1]['phone'] == '+16615550123', 'Phone input is normalized for verification'
+    if edit_during_code is not None:
+        request_count = len(state['code_requests'])
+        await code.fill('123')
+        await reviews_region(page).get_by_role('button', name='Edit rating or note', exact=True).click()
+        assert await (await open_note(page)).input_value() == edit_during_code
+        await continue_review(page)
+        await code.wait_for()
+        assert await code.input_value() == '123', 'Returning to the draft retains the in-progress code'
+        assert len(state['code_requests']) == request_count, 'Continue resumes an active challenge without another text'
     if invalid_first:
         await code.fill('000000')
         await page.get_by_role('button', name='Verify phone', exact=True).click()
@@ -243,17 +277,28 @@ async def run():
         assert await page.locator('a[href*="?location="]').count() == 0, 'One shared hub has no location sublinks'
         assert (await pickups.bounding_box())['y'] > (await page.get_by_text('Visit AV’s website', exact=True).first.bounding_box())['y']
         await select_rating(page, 4)
-        marketing = region.get_by_role('checkbox')
-        await marketing.wait_for()
+        assert await region.get_by_role('textbox').count() == 0, 'A star selection does not open the note or phone fields'
+        assert await region.get_by_role('checkbox').count() == 0, 'Offers are deferred from the initial rating step'
+        assert await region.get_by_role('link', name='Terms', exact=True).count() == 0
+        assert await region.get_by_role('button', name='Add a note (optional)', exact=True).is_visible()
+        assert await region.get_by_role('button', name='Continue', exact=True).is_enabled()
+        assert (await region.bounding_box())['height'] < 440, 'The first rating step stays compact on mobile'
+        await page.screenshot(path=str(OUTPUT / 'avmeals-mobile-compact-review.png'), full_page=True)
+        await continue_review(page)
+        assert await region.get_by_role('radiogroup').count() == 0, 'Verification shows a summary instead of repeating the full draft'
+        assert await region.get_by_role('textbox', name='Your feedback (optional)', exact=True).count() == 0
+        assert await region.get_by_role('checkbox').count() == 0, 'Offers start collapsed on the phone step'
+        await page.screenshot(path=str(OUTPUT / 'avmeals-mobile-phone.png'), full_page=True)
+        marketing = await open_offers(page)
         assert not await marketing.is_checked(), 'Marketing is unchecked by default'
+        assert not state['code_requests'] and not state['writes'] and not state['marketing_subscriptions'], 'Opening offers only reveals its disclosure'
         assert await region.get_by_role('link', name='Terms', exact=True).count() >= 1
         assert await region.get_by_role('link', name='Privacy', exact=True).count() >= 1
         assert await region.get_by_role('button', name='Post review', exact=True).count() == 0
-        await page.screenshot(path=str(OUTPUT / 'avmeals-mobile-phone.png'), full_page=True)
         await verify_phone(page, state, invalid_first=True)
         assert not state['writes'], 'Phone verification does not automatically post a rating'
         assert not state['marketing_subscriptions'], 'Phone verification does not enroll marketing'
-        assert not await marketing.is_checked()
+        assert not await (await open_offers(page)).is_checked()
         await region.get_by_role('button', name='Post review', exact=True).click()
         await region.get_by_text('4/5', exact=True).first.wait_for()
         assert len(state['writes']) == 1
@@ -261,7 +306,7 @@ async def run():
         assert state['writes'][0]['marketingConsent'] is False
         assert len(state['reviews']) == 1 and state['reviews'][0]['phone_verified'] is True
         await assert_private_phone(page, state)
-        print('PASS verified OTP with invalid-code retry, optional star-only review, default-unchecked marketing, top reviews and two pickup cards')
+        print('PASS compact rating step, deferred phone and offers, verified OTP with invalid-code retry, optional star-only review, default-unchecked marketing, top reviews and two pickup cards')
 
         # The saved session restores editing without creating a second public rating.
         await page.reload()
@@ -271,10 +316,10 @@ async def run():
         await edit_button.click()
         await region.get_by_role('button', name='Save changes', exact=True).wait_for()
         assert await page.get_by_role('radio', name='4 stars', exact=True).is_checked()
-        assert not await region.get_by_role('checkbox').is_checked(), 'Editing does not preselect marketing'
+        assert not await (await open_offers(page)).is_checked(), 'Editing does not preselect marketing'
         await select_rating(page, 5)
         assert await page.get_by_role('radio', name='5 stars', exact=True).is_checked()
-        await page.get_by_role('textbox', name='Your feedback (optional)').fill('Updated: pickup was easy.')
+        await (await open_note(page)).fill('Updated: pickup was easy.')
         await region.get_by_role('checkbox').check()
         await region.get_by_role('button', name='Save changes', exact=True).click()
         await region.get_by_role('status').filter(has_text=re.compile(r'^Your review has been updated\.$')).wait_for()
@@ -295,7 +340,7 @@ async def run():
         await verify_phone(page, state)
         assert await page.get_by_role('radio', name='5 stars', exact=True).is_checked()
         assert await page.get_by_role('textbox', name='Your feedback (optional)').input_value() == 'Updated: pickup was easy.'
-        assert not await region.get_by_role('checkbox').is_checked()
+        assert not await (await open_offers(page)).is_checked()
         assert len(state['writes']) == 2 and len(state['reviews']) == 1, 'Verifying to edit does not create or alter a review'
         await assert_private_phone(page, state)
         print('PASS same-number verification recovers an existing review without a device session')
@@ -319,9 +364,9 @@ async def run():
         assert await region.locator('article').count() == 5
         await select_rating(page, 2)
         feedback = '<script>window.badReview = true</script> Pickup was late.'
-        await page.get_by_role('textbox', name='Your feedback (optional)').fill(feedback)
+        await (await open_note(page)).fill(feedback)
         await page.screenshot(path=str(OUTPUT / 'avmeals-mobile-320-review-form.png'), full_page=True)
-        await verify_phone(page, state)
+        await verify_phone(page, state, edit_during_code=feedback)
         await region.get_by_role('button', name='Post review', exact=True).click()
         await region.get_by_role('alert').wait_for()
         assert await page.get_by_role('textbox', name='Your feedback (optional)').input_value() == feedback
@@ -341,6 +386,8 @@ async def run():
         await region.get_by_role('button', name='Save changes', exact=True).click()
         await region.get_by_role('button', name='Send code', exact=True).wait_for()
         await region.get_by_role('alert').filter(has_text='verify your phone again').wait_for()
+        await region.get_by_role('button', name='Edit rating or note', exact=True).click()
+        assert await (await open_note(page)).input_value() == 'Draft preserved after verification expires.'
         await verify_phone(page, state)
         assert await page.get_by_role('textbox', name='Your feedback (optional)').input_value() == 'Draft preserved after verification expires.'
         await region.get_by_role('button', name='Save changes', exact=True).click()
@@ -377,7 +424,10 @@ async def run():
         assert await page.locator('a[href*="?location="]').count() == 0
         # An unavailable OTP runtime must never expose a guest posting fallback.
         await select_rating(page, 5)
+        assert await page.get_by_text(re.compile('verification.*unavailable', re.IGNORECASE)).count() == 0, 'Sender setup does not crowd the initial rating step'
+        await continue_review(page)
         await page.get_by_text(re.compile('verification.*unavailable', re.IGNORECASE)).first.wait_for()
+        assert not await (await open_offers(page)).is_checked(), 'The optional offers design remains inspectable while verification is unavailable'
         send_code = reviews_region(page).get_by_role('button', name='Send code', exact=True)
         assert not await send_code.count() or await send_code.is_disabled()
         assert not state['code_requests'] and not state['writes']
