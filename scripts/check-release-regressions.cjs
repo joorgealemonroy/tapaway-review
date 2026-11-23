@@ -6,7 +6,7 @@ if (!process.env.QA_MODULES) throw new Error('Set QA_MODULES to the isolated tes
 const scripts = [
   'check-hub-editor.cjs', 'check-hub-link-buttons.cjs',
   'check-admin-hub-slugs.cjs',
-  'check-profile-locations-db.cjs', 'check-profile-location-handlers.cjs',
+  'check-profile-locations-db.cjs', 'check-profile-location-handlers.cjs', 'check-profile-reviews-db.cjs', 'check-profile-reviews-ui.cjs',
   'check-save-hub.cjs', 'check-hub-migration.cjs',
   'check-rep-hub-editor.cjs',
   'check-canonical-analytics.cjs',

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, ArrowUpRight, Bell, ChevronRight, Loader2, MapPin } from "lucide-react";
 import { useManagedHub } from "@/hooks/useManagedHub";
-import { profileLocationPath } from "@/lib/profileLocations";
+import { pickupLocationDirections, pickupLocationsLimit, profileLocationPath } from "@/lib/profileLocations";
 import { sanitizeUrl } from "@/lib/sanitizeUrl";
 import { track } from "@/lib/analytics";
 import { ManagedSmsOptInDrawer } from "./ManagedSmsOptInDrawer";
@@ -48,19 +48,37 @@ export function ManagedLocationBanner({ profileId, username }: { profileId: stri
 
 export function ManagedLocationsBlock({ profileId, username, content, textColor, isPreview = false }: BlockProps) {
   const hub = useManagedHub(profileId);
-  if (!isPreview && hub.requestedLocationId) return null;
-  const title = String(content.title || "Find meals near you");
-  const subtitle = String(content.subtitle || "Choose a location to explore.");
-  const ctaLabel = String(content.ctaLabel || "View location");
+  const pickupMode = content.mode === "pickup";
+  if (!pickupMode && !isPreview && hub.requestedLocationId) return null;
+  const title = String(content.title || (pickupMode ? "Pickup locations" : "Find meals near you"));
+  const subtitle = typeof content.subtitle === "string" ? content.subtitle : pickupMode ? "" : "Choose a location to explore.";
+  const ctaLabel = String(content.ctaLabel || (pickupMode ? "Get directions" : "View location"));
+  const locations = pickupMode ? hub.locations.slice(0, pickupLocationsLimit(content)) : hub.locations;
   const style = textColor ? { color: textColor } : undefined;
   return <section className="w-full space-y-3 py-2" aria-label={title}>
     <div className="text-center">
       <h2 className="text-lg font-bold text-foreground" style={style}>{title}</h2>
       {subtitle && <p className="mt-1 text-sm text-muted-foreground" style={textColor ? { color: textColor, opacity: .7 } : undefined}>{subtitle}</p>}
     </div>
-    {hub.loading ? <div className="flex justify-center py-4"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div> : hub.error ? <div className="rounded-xl border border-border p-4 text-center text-sm"><p>Locations couldn’t load.</p><button type="button" className="mt-1 min-h-11 font-semibold text-primary" onClick={() => { void hub.refetch(); }}>Try again</button></div> : hub.locations.length === 0 ? <p className="py-3 text-center text-sm text-muted-foreground">Locations are being added. You can still order online below.</p> : <div className="space-y-2.5">
-      {hub.locations.map(location => {
+    {hub.loading ? <div className="flex justify-center py-4"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div> : hub.error ? <div className="rounded-xl border border-slate-200 bg-white p-4 text-center text-sm text-slate-900"><p>Locations couldn’t load.</p><button type="button" className="mt-1 min-h-11 font-semibold text-[#005b32]" onClick={() => { void hub.refetch(); }}>Try again</button></div> : locations.length === 0 ? <p className="py-3 text-center text-sm text-muted-foreground" style={style}>{pickupMode ? "Pickup details are coming soon." : "Locations are being added. You can still order online below."}</p> : <div className="space-y-2.5">
+      {locations.map(location => {
         const imageUrl = locationImageUrl(location.image_url);
+        if (pickupMode) {
+          const directionsUrl = pickupLocationDirections(location);
+          return <article key={location.id} className="rounded-2xl border border-slate-200 bg-white p-4 text-left text-slate-900 shadow-sm">
+            <div className="flex items-start gap-3">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-100">
+                {imageUrl ? <img src={imageUrl} alt="" className="h-full w-full object-cover" loading="lazy" /> : <MapPin className="h-5 w-5 text-[#005b32]" />}
+              </span>
+              <div className="min-w-0 flex-1">
+                <h3 className="break-words text-sm font-semibold text-slate-900">{location.name}</h3>
+                <p className="mt-1 whitespace-pre-line break-words text-sm leading-relaxed text-slate-600">{location.is_placeholder || !location.address?.trim() ? "Address coming soon" : location.address}</p>
+                {!location.is_placeholder && location.subtitle && location.subtitle !== location.address && <p className="mt-1 break-words text-xs leading-relaxed text-slate-600">{location.subtitle}</p>}
+              </div>
+            </div>
+            {directionsUrl && (isPreview ? <span className="mt-3 flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-[#005b32]">{ctaLabel}<ArrowUpRight className="h-4 w-4" aria-hidden="true" /></span> : <a href={directionsUrl} target="_blank" rel="noopener noreferrer" className="mt-3 flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-[#005b32] transition-colors hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#005b32]" aria-label={`${ctaLabel} to ${location.name}`} onClick={() => track("directions_click", { hubId: profileId, hubKind: "solo", props: { location_id: location.id } })}>{ctaLabel}<ArrowUpRight className="h-4 w-4" aria-hidden="true" /></a>)}
+          </article>;
+        }
         const inner = <>
           <span className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-muted">
             {imageUrl ? <img src={imageUrl} alt="" className="h-full w-full object-cover" loading="lazy" /> : <MapPin className="h-5 w-5 text-muted-foreground" />}
@@ -79,7 +97,8 @@ export function ManagedSmsBlock({ profileId, username, content, accentColor, isP
   const [open, setOpen] = useState(false);
   const hub = useManagedHub(profileId);
   const color = accentColor && /^#[\da-f]{6}$/i.test(accentColor) ? accentColor : "#005b32";
-  const selected = isPreview ? null : hub.selectedLocation;
+  const pickupMode = content.mode === "pickup";
+  const selected = isPreview || pickupMode ? null : hub.selectedLocation;
   const headline = selected && !selected.is_placeholder ? `Fresh arrivals at ${selected.name}` : String(content.headline || "Fresh meals. Stay in the know.");
   const description = selected && !selected.is_placeholder ? "Choose a text alert when this fridge is restocked." : String(content.description || "Choose restock alerts and weekly ordering reminders.");
   const buttonOnly = content.style === "button";
@@ -90,6 +109,6 @@ export function ManagedSmsBlock({ profileId, username, content, accentColor, isP
       <p className="mx-auto max-w-[36ch] text-sm leading-relaxed text-muted-foreground">{description}</p>
       {button}
     </section>}
-    {!isPreview && <ManagedSmsOptInDrawer profileId={profileId} open={open} onOpenChange={setOpen} selectedLocationId={selected?.id} invalidLocation={hub.invalidLocation} accentColor={color} />}
+    {!isPreview && <ManagedSmsOptInDrawer profileId={profileId} open={open} onOpenChange={setOpen} selectedLocationId={selected?.id} invalidLocation={!pickupMode && hub.invalidLocation} accentColor={color} />}
   </>;
 }

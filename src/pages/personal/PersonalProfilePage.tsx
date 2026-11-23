@@ -34,6 +34,8 @@ import { SmsOptInDrawer } from "@/components/personal/SmsOptInDrawer";
 import { MenuButton, MenuDisplay } from "@/components/personal/MenuDisplay";
 import { MealCatalog } from "@/components/personal/MealCatalog";
 import { WeeklyCutoff } from "@/components/personal/WeeklyCutoff";
+import { CustomerReviews } from "@/components/personal/CustomerReviews";
+import { isCustomerReviewsBlock } from "@/lib/profileReviews";
 import { boundMealCatalog, menuUsesVisibleLink } from "@/lib/hubContentBindings";
 import { parseMenuContent } from "@/lib/menuBlock";
 import { hasLasIslasMenu } from "@/lib/lasIslasMenu";
@@ -44,7 +46,7 @@ import originalMenu from "@/assets/las-islas-menu-mar26.pdf.asset.json";
 import { LocationsBlock } from "@/components/personal/LocationsBlock";
 import { ManagedLocationBanner, ManagedLocationsBlock, ManagedSmsBlock } from "@/components/personal/ManagedHubBlocks";
 import { useManagedHub } from "@/hooks/useManagedHub";
-import { isManagedLocationsBlock, profileLocationUrl } from "@/lib/profileLocations";
+import { isManagedLocationsBlock, isPickupLocationsBlock, profileLocationUrl } from "@/lib/profileLocations";
 import { resolveHubContrast, type HubContrast } from "@/lib/hubContrast";
 import { logoImageStyle } from "@/lib/logoHeader";
 import { sampleBottomEdgeColor } from "@/lib/sampleBannerColor";
@@ -910,7 +912,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile, privatePreview 
   
   // Use optimized data fetching with caching. Pass initialProfile to skip redundant query
   const { data, loading, error, expiredPreview } = useProfileData(username, initialProfile, privatePreview);
-  const hasManagedLocations = !!data?.blocks.some(isManagedLocationsBlock);
+  const hasManagedLocations = !!data?.blocks.some(block => isManagedLocationsBlock(block) && !isPickupLocationsBlock(block));
   const managedHub = useManagedHub(data?.profile.id, hasManagedLocations);
   const activeLocationId = hasManagedLocations ? managedHub.selectedLocation?.id : undefined;
   const currentHubUrl = data?.profile ? profileLocationUrl(data.profile.username, activeLocationId) : "";
@@ -1156,10 +1158,11 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile, privatePreview 
 
   // All non-featured items go into unified list for proper sort order
   const nonFeaturedPillLinks = pillLinks.filter((l: any) => !l.is_featured);
+  const customerReviewsBlock = blocks.find(isCustomerReviewsBlock);
 
   const unifiedItems: UnifiedItem[] = [
     ...nonFeaturedPillLinks.map((link): UnifiedItem => ({ kind: "link", data: link })),
-    ...blocks.filter(block => !menuUsesVisibleLink(block, links)).map((block): UnifiedItem => ({ kind: "block", data: block })),
+    ...blocks.filter(block => !isCustomerReviewsBlock(block) && !menuUsesVisibleLink(block, links)).map((block): UnifiedItem => ({ kind: "block", data: block })),
   ].sort((a, b) => a.data.sort_order - b.data.sort_order);
 
   // Extract featured link (renders at top separately)
@@ -1509,6 +1512,12 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile, privatePreview 
               )}
           </div>
 
+          {customerReviewsBlock && <div className="mb-4">
+            <CustomerReviews key={`${profile.id}-${customerReviewsBlock.id}`} profileId={profile.id}
+              title={String((customerReviewsBlock.content as Record<string, unknown>).title || "Customer reviews")}
+              accentColor={profileAccentColor} isPreview={privatePreview} />
+          </div>}
+
           {hasManagedLocations && !privatePreview && <ManagedLocationBanner profileId={profile.id} username={profile.username} />}
 
           {/* Links section */}
@@ -1564,7 +1573,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile, privatePreview 
           {/* Footer */}
           <footer className="mt-6 pb-4 text-center space-y-3">
             <div className="hub-footer-actions">
-            {!privatePreview && <SaveHub key={`${profile.id}-${activeLocationId || "main"}`} slug={profile.username} name={`${profile.full_name || profile.contact_company || profile.contact_name || profile.username}${managedHub.selectedLocation ? ` · ${managedHub.selectedLocation.name}` : ""}`} logo={profile.profile_photo_url} locationId={activeLocationId} />}
+            {!privatePreview && <SaveHub key={`${profile.id}-${activeLocationId || "main"}`} slug={profile.username} name={`${profile.full_name || profile.contact_company || profile.contact_name || profile.username}${hasManagedLocations && managedHub.selectedLocation ? ` · ${managedHub.selectedLocation.name}` : ""}`} logo={profile.profile_photo_url} locationId={activeLocationId} />}
             {/* Glass Pill CTA. Hidden on client-branded master location hubs */}
             {!isMasterLocationsHub && (
             <motion.div 
