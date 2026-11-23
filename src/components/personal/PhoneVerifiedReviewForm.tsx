@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { CheckCircle2, Loader2, ShieldCheck, Star } from "lucide-react";
+import { CheckCircle2, ChevronDown, Loader2, ShieldCheck, Star } from "lucide-react";
 import { hubButtonColors } from "@/lib/hubLinkButtons";
 import { getSafeExternalUrl } from "@/lib/sanitizeUrl";
 import { PROFILE_REVIEW_COMMENT_MAX_LENGTH, type ReviewCodeResponse, type ReviewConfig, type ReviewSaveResponse, type ReviewSession, type ReviewSmsStatus } from "@/lib/profileReviews";
@@ -18,6 +18,8 @@ export function PhoneVerifiedReviewForm({ profileId, accentColor, isPreview = fa
   const id = useId();
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
+  const [noteExpanded, setNoteExpanded] = useState(false);
+  const [offersExpanded, setOffersExpanded] = useState(false);
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
   const [step, setStep] = useState<Step>("compose");
@@ -55,7 +57,7 @@ export function PhoneVerifiedReviewForm({ profileId, accentColor, isPreview = fa
   const canVerify = config?.enabled === true && config.phoneVerification === true && config.verificationAvailable === true
     && config.otpConsentVersion > 0 && typeof config.otpConsentText === "string" && config.otpConsentText.trim().length > 0;
   const resendWait = Math.max(0, Math.ceil((resendAt - clock) / 1000));
-  const showDraft = step !== "saved" && (!editIntent || !!session);
+  const showDraft = step === "compose" || step === "verified";
 
   useEffect(() => {
     if (!resendAt) return;
@@ -129,7 +131,10 @@ export function PhoneVerifiedReviewForm({ profileId, accentColor, isPreview = fa
       setCode(""); setChallenge(null); setStep("verified"); saveAttempt.current = null;
       if (value.review) {
         const keepComposeDraft = !editIntent && rating > 0;
-        if (!preserveDraftOnVerify.current && !keepComposeDraft) { setRating(value.review.rating); setComment(value.review.comment || ""); }
+        if (!preserveDraftOnVerify.current && !keepComposeDraft) {
+          setRating(value.review.rating); setComment(value.review.comment || "");
+          setNoteExpanded(!!value.review.comment);
+        }
         setEditIntent(true);
         setNotice(preserveDraftOnVerify.current ? "Phone verified again. Your unsaved changes are ready."
           : keepComposeDraft ? "You’ve reviewed with this number before. Saving will update your review." : "Your previous review is ready to edit.");
@@ -157,7 +162,7 @@ export function PhoneVerifiedReviewForm({ profileId, accentColor, isPreview = fa
       }
       setSavedMessage(session.review ? "Your review has been updated." : "Thanks for your review!");
       setSession({ ...session, review: value.review }); setRating(value.review.rating); setComment(value.review.comment || "");
-      setSmsStatus(value.smsStatus); setMarketingConsent(false); setStep("saved");
+      setSmsStatus(value.smsStatus); setMarketingConsent(false); setOffersExpanded(false); setStep("saved");
       setRefreshError(!(await onSaved()));
       if (value.smsStatus === "consent_changed") void configQuery.refetch();
     } catch (problem) { failed(problem); }
@@ -166,33 +171,51 @@ export function PhoneVerifiedReviewForm({ profileId, accentColor, isPreview = fa
 
   const editReview = () => {
     if (isPreview || lock.current) return;
-    setError(null); setNotice(null); setSavedMessage(null); setMarketingConsent(false); saveAttempt.current = null;
+    setError(null); setNotice(null); setSavedMessage(null); setMarketingConsent(false); setOffersExpanded(false); saveAttempt.current = null;
     preserveDraftOnVerify.current = false;
     setEditIntent(true);
     if (session && Date.parse(session.expiresAt) > Date.now()) {
-      if (session.review) { setRating(session.review.rating); setComment(session.review.comment || ""); }
+      if (session.review) { setRating(session.review.rating); setComment(session.review.comment || ""); setNoteExpanded(!!session.review.comment); }
       setStep("verified");
     } else { setSession(null); setChallenge(null); setCode(""); setStep("phone"); }
   };
   const changeNumber = () => {
     if (isPreview || lock.current) return;
     clearReviewSession(profileId); setSession(null); setChallenge(null); setCode(""); setPhone("");
-    setMarketingConsent(false); setStep("phone"); setResendAt(0); setError(null); setSavedMessage(null);
+    setMarketingConsent(false); setOffersExpanded(false); setStep("phone"); setResendAt(0); setError(null); setSavedMessage(null);
     verificationAttempt.current = null; saveAttempt.current = null;
     preserveDraftOnVerify.current = false;
   };
 
-  const offers = offersAvailable && <div className="rounded-xl bg-gray-50 px-3 py-2">
-    <label className="flex min-h-11 cursor-pointer items-start gap-2.5 py-1.5">
-      <input type="checkbox" checked={marketingConsent} onChange={event => setMarketingConsent(event.target.checked)} disabled={isPreview || busy}
-        className="mt-0.5 h-4 w-4 shrink-0 rounded border-gray-300" style={{ accentColor: buttonColors.background }}
-        aria-describedby={`${id}-offers-disclosure`} />
-      <span className="text-xs font-medium leading-5 text-gray-800">Send me {sms.brandName} messages & offers <span className="font-normal text-gray-500">(optional)</span></span>
-    </label>
-    <p id={`${id}-offers-disclosure`} className="text-xs leading-relaxed text-gray-600">{sms.consentText}{" "}
-      <a href={termsUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-8 items-center font-medium underline underline-offset-2">Terms</a>{" · "}
-      <a href={privacyUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-8 items-center font-medium underline underline-offset-2">Privacy</a>
-    </p>
+  const continueReview = () => {
+    if (isPreview || busy || restoring || rating < 1 || characterCount > COMMENT_LIMIT) return;
+    setError(null); setNotice(null);
+    setStep(session ? "verified" : challenge ? "code" : "phone");
+  };
+  const editDraft = () => {
+    if (isPreview || busy) return;
+    setEditIntent(false); setError(null); setNotice(null); setStep("compose");
+  };
+
+  const offers = offersAvailable && <div className="border-t border-gray-100">
+    <button type="button" onClick={() => setOffersExpanded(value => !value)} disabled={isPreview || busy}
+      aria-expanded={offersExpanded} aria-controls={`${id}-offers-panel`}
+      className="flex min-h-11 w-full items-center justify-between gap-3 text-left text-xs font-medium text-gray-600">
+      <span>{marketingConsent ? "Messages & offers selected" : "Messages & offers (optional)"}</span>
+      <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${offersExpanded ? "rotate-180" : ""}`} aria-hidden="true" />
+    </button>
+    {offersExpanded && <div id={`${id}-offers-panel`} className="rounded-xl bg-gray-50 px-3 pb-3">
+      <label className="flex min-h-11 cursor-pointer items-start gap-2.5 py-2">
+        <input type="checkbox" checked={marketingConsent} onChange={event => setMarketingConsent(event.target.checked)} disabled={isPreview || busy}
+          className="mt-0.5 h-4 w-4 shrink-0 rounded border-gray-300" style={{ accentColor: buttonColors.background }}
+          aria-describedby={`${id}-offers-disclosure`} />
+        <span className="text-xs font-medium leading-5 text-gray-800">Send me {sms.brandName} messages & offers <span className="font-normal text-gray-500">(optional)</span></span>
+      </label>
+      <p id={`${id}-offers-disclosure`} className="text-xs leading-relaxed text-gray-600">{sms.consentText}{" "}
+        <a href={termsUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-8 items-center font-medium underline underline-offset-2">Terms</a>{" · "}
+        <a href={privacyUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-8 items-center font-medium underline underline-offset-2">Privacy</a>
+      </p>
+    </div>}
   </div>;
   const verificationDisclosure = <div className="text-xs leading-relaxed text-gray-600">
     {config?.otpConsentText && <p>{config.otpConsentText}</p>}
@@ -228,41 +251,60 @@ export function PhoneVerifiedReviewForm({ profileId, accentColor, isPreview = fa
             </span>
           </label>)}
         </div>
-        {rating > 0 && <div className="mt-3 space-y-2">
-          <p className="text-xs font-medium text-gray-600" aria-live="polite">{rating} out of 5 stars selected</p>
-          <label htmlFor={`${id}-comment`} className="block text-sm font-semibold">Your feedback <span className="font-normal text-gray-500">(optional)</span></label>
-          <textarea id={`${id}-comment`} value={comment} onChange={event => setComment(event.target.value)} rows={3} placeholder="What did you enjoy? What could we improve?"
-            aria-describedby={`${id}-public-note ${id}-count`} aria-invalid={characterCount > COMMENT_LIMIT} className={inputClass + " resize-y"} />
-          <div className="flex items-start justify-between gap-3 text-xs"><p id={`${id}-public-note`} className="text-gray-500">Your rating and written feedback will be public.</p><span id={`${id}-count`} className={`shrink-0 tabular-nums ${characterCount > COMMENT_LIMIT ? "font-semibold text-red-700" : "text-gray-500"}`}>{characterCount}/{COMMENT_LIMIT}</span></div>
+        {rating > 0 && <div className="mt-1">
+          <p className="sr-only" aria-live="polite">{rating} out of 5 stars selected</p>
+          <button type="button" onClick={() => setNoteExpanded(value => !value)} aria-expanded={noteExpanded} aria-controls={`${id}-note-panel`}
+            className="flex min-h-11 w-full items-center justify-between gap-3 text-left text-xs font-medium text-gray-600">
+            <span>{comment.trim() ? "Edit note (optional)" : "Add a note (optional)"}</span>
+            <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${noteExpanded ? "rotate-180" : ""}`} aria-hidden="true" />
+          </button>
+          {noteExpanded ? <div id={`${id}-note-panel`} className="space-y-1.5">
+            <label htmlFor={`${id}-comment`} className="sr-only">Your feedback (optional)</label>
+            <textarea id={`${id}-comment`} value={comment} onChange={event => setComment(event.target.value)} rows={2} placeholder="Anything you’d like to add?"
+              aria-describedby={`${id}-public-note ${id}-count`} aria-invalid={characterCount > COMMENT_LIMIT} className={inputClass + " resize-y"} />
+            <div className="flex items-start justify-between gap-3 text-xs"><p id={`${id}-public-note`} className="text-gray-500">Your review will be public.</p><span id={`${id}-count`} className={`shrink-0 tabular-nums ${characterCount > COMMENT_LIMIT ? "font-semibold text-red-700" : "text-gray-500"}`}>{characterCount}/{COMMENT_LIMIT}</span></div>
+          </div> : comment.trim() && <p className="line-clamp-2 break-words text-sm text-gray-600">{comment}</p>}
+          {!noteExpanded && characterCount > COMMENT_LIMIT && <p className="text-xs text-red-700" role="alert">Keep your note to {COMMENT_LIMIT} characters or fewer.</p>}
         </div>}
       </fieldset>}
 
-      {(rating > 0 || editIntent) && <div className="mt-4 space-y-3">
-        {!config && <p className="text-xs text-gray-500" role="status">{configQuery.isPending ? "Preparing phone verification…" : "Phone verification couldn’t load."}{configQuery.isError && <button type="button" className="ml-1 min-h-9 font-semibold underline" onClick={() => void configQuery.refetch()}>Try again</button>}</p>}
-        {config && !canVerify && !session && <p className="text-sm text-gray-600" role="status">Phone verification is temporarily unavailable. You can still read customer reviews.</p>}
+      {step === "compose" && rating > 0 && <div className="mt-3">
+        <button type="button" onClick={continueReview} disabled={isPreview || busy || restoring || characterCount > COMMENT_LIMIT}
+          className="flex min-h-11 w-full items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60" style={buttonStyle}>Continue</button>
+        <p className="mt-1.5 text-center text-xs text-gray-500">{session ? "Review your details before posting." : "Verify your phone next. Your review will be public."}</p>
+      </div>}
 
-        {!session && step !== "code" && <form onSubmit={event => void sendCode(event)} className="space-y-3">
-          <div><label htmlFor={`${id}-phone`} className="mb-1.5 block text-sm font-semibold">Mobile number</label><input id={`${id}-phone`} type="tel" inputMode="tel" autoComplete="tel" maxLength={30} value={phone} onChange={event => setPhone(event.target.value)} placeholder="(555) 123-4567" disabled={isPreview || busy || restoring} className={inputClass} aria-describedby={`${id}-phone-note`} /><p id={`${id}-phone-note`} className="mt-1 text-xs text-gray-500">Verify once to post. Use the same number to edit your review later.</p></div>
+      {!showDraft && rating > 0 && <div className="flex items-start justify-between gap-3 rounded-xl bg-gray-50 px-3 py-2">
+        <div className="min-w-0 text-sm text-gray-700"><span className="font-semibold">{rating}/5</span><span className="text-xs text-gray-500"> · Your rating</span>{comment.trim() && <p className="mt-0.5 line-clamp-2 break-words text-xs text-gray-600">{comment}</p>}</div>
+        <button type="button" onClick={editDraft} disabled={isPreview || busy} aria-label="Edit rating or note" className="-my-1 flex min-h-9 shrink-0 items-center text-xs font-medium text-gray-600 underline underline-offset-2">Edit</button>
+      </div>}
+
+      {step !== "compose" && (rating > 0 || editIntent) && <div className="mt-3 space-y-3">
+        {!config && <p className="text-xs text-gray-500" role="status">{configQuery.isPending ? "Preparing phone verification…" : "Phone verification couldn’t load."}{configQuery.isError && <button type="button" className="ml-1 min-h-9 font-semibold underline" onClick={() => void configQuery.refetch()}>Try again</button>}</p>}
+
+        {!session && step === "phone" && <form onSubmit={event => void sendCode(event)} className="space-y-3">
+          <div><label htmlFor={`${id}-phone`} className="mb-1.5 block text-sm font-semibold">Mobile number</label><input id={`${id}-phone`} type="tel" inputMode="tel" autoComplete="tel" maxLength={30} value={phone} onChange={event => setPhone(event.target.value)} placeholder="(555) 123-4567" disabled={isPreview || busy || restoring} className={inputClass} aria-describedby={`${id}-phone-note`} /><p id={`${id}-phone-note`} className="mt-1 text-xs text-gray-500">Verify to post and edit later. Your number stays private.</p></div>
           {offers}
           {verificationDisclosure}
           <button type="submit" disabled={isPreview || busy || restoring || !canVerify || !normalizeReviewPhone(phone) || resendWait > 0} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60" style={buttonStyle}>{busy && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}{busy ? "Sending code…" : "Send code"}</button>
+          {config && !canVerify && <p className="text-xs text-gray-500" role="status">Text verification is currently unavailable.</p>}
         </form>}
 
         {!session && step === "code" && challenge && <form onSubmit={event => void verifyCode(event)} className="space-y-3">
           <div><label htmlFor={`${id}-code`} className="mb-1.5 block text-sm font-semibold">Verification code</label><p className="mb-2 text-xs text-gray-500">Enter the 6-digit code sent to {challenge.maskedPhone}.</p><input id={`${id}-code`} type="text" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} onChange={event => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="000000" disabled={isPreview || busy} className={inputClass + " tracking-[0.25em] tabular-nums"} /></div>
           <button type="submit" disabled={isPreview || busy || !/^\d{6}$/.test(code)} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold disabled:opacity-60" style={buttonStyle}>{busy && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}{busy ? "Verifying…" : "Verify phone"}</button>
           <div className="flex flex-wrap items-center justify-between gap-2"><button type="button" onClick={() => void sendCode()} disabled={isPreview || busy || resendWait > 0} className="min-h-11 text-xs font-medium text-gray-600 underline underline-offset-2 disabled:no-underline disabled:opacity-60">{resendWait > 0 ? `Resend code in ${resendWait}s` : "Resend code"}</button><button type="button" onClick={changeNumber} disabled={isPreview || busy} className="min-h-11 text-xs font-medium text-gray-600 underline underline-offset-2">Change number</button></div>
-          {verificationDisclosure}
         </form>}
 
         {session && <form onSubmit={event => void saveReview(event)} className="space-y-3">
           {offers}
           <button type="submit" disabled={isPreview || busy || rating < 1 || characterCount > COMMENT_LIMIT || config?.enabled !== true} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60" style={buttonStyle}>{busy && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}{busy ? "Saving review…" : session.review ? "Save changes" : "Post review"}</button>
+          <p className="text-center text-xs text-gray-500">Your review will be public.</p>
         </form>}
       </div>}
       {notice && <p className="mt-3 text-xs text-gray-600" role="status">{notice}</p>}
       {error && <p className="mt-3 text-sm text-red-700" role="alert">{error}</p>}
-      {!session && !editIntent && <button type="button" onClick={editReview} disabled={isPreview || busy || restoring} className="mt-2 min-h-11 text-xs font-medium text-gray-600 underline underline-offset-2">Edit my review</button>}
+      {!session && !editIntent && step === "compose" && rating === 0 && <button type="button" onClick={editReview} disabled={isPreview || busy || restoring} className="mt-2 min-h-11 text-xs font-medium text-gray-600 underline underline-offset-2">Edit my review</button>}
     </>}
   </div>;
 }

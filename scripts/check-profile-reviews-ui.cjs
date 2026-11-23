@@ -42,11 +42,29 @@ function walk(node) { if (Array.isArray(node)) return node.flatMap(walk); if (!n
 function text(node) { if (Array.isArray(node)) return node.map(text).join(''); if (node == null || typeof node === 'boolean') return ''; if (typeof node !== 'object') return String(node); if (typeof node.type === 'function') return text(node.type(node.props)); return text(node.props?.children || []); }
 function asReact(node) { if (Array.isArray(node)) return node.map(asReact); if (!node || typeof node !== 'object') return node; if (typeof node.type === 'function') return asReact(node.type(node.props)); const { children, ...props } = node.props; return React.createElement(node.type === 'fragment' ? React.Fragment : node.type, props, ...(children || []).flat(Infinity).map(asReact)); }
 const find = (tree, type, predicate = () => true) => walk(tree).find(node => node.type === type && predicate(node.props, node));
-const button = (f, label) => find(f.life.read(), 'button', (_props, node) => text(node) === label);
+const button = (f, label) => find(f.life.read(), 'button', (props, node) => (props['aria-label'] || text(node)).replace(/\s+/g, ' ').trim() === label);
 const input = (f, type) => find(f.life.read(), 'input', props => props.type === type);
 const select = (f, score) => find(f.life.read(), 'input', props => props.type === 'radio' && props.value === score).props.onChange();
 const submit = f => find(f.life.read(), 'form').props.onSubmit({ preventDefault() {} });
-const comment = (f, value) => find(f.life.read(), 'textarea').props.onChange({ target: { value } });
+const continueReview = f => button(f, 'Continue')?.props.onClick();
+const openNote = f => {
+  if (!find(f.life.read(), 'textarea')) {
+    const trigger = button(f, 'Add a note (optional)') || button(f, 'Edit note (optional)');
+    assert.ok(trigger, 'The note can be opened without leaving the review');
+    trigger.props.onClick();
+  }
+  return find(f.life.read(), 'textarea');
+};
+const comment = (f, value) => openNote(f).props.onChange({ target: { value } });
+const openOffers = f => {
+  if (!input(f, 'checkbox')) {
+    const trigger = button(f, 'Messages & offers (optional)') || button(f, 'Messages & offers selected');
+    assert.ok(trigger, 'Offers can be inspected separately');
+    assert.equal(trigger.props.type, 'button', 'Opening offers must not submit the phone or review form');
+    trigger.props.onClick();
+  }
+  return input(f, 'checkbox');
+};
 const answer = async (request, value, error = null) => { assert.ok(request, 'Expected a controlled request'); request.resolve({ data: value, error }); await flush(); };
 
 async function compile(file, feed = false) {
@@ -76,6 +94,7 @@ function fixture(source, options = {}) {
   return { life, requests, storage, configQuery, get saved() { return saved; } };
 }
 async function verify(f, own = null) {
+  continueReview(f);
   input(f, 'tel').props.onChange({ target: { value: '(661) 555-0123' } }); submit(f);
   const send = f.requests.at(-1); assert.equal(send.body.action, 'request_code'); assert.equal(send.body.otpConsent, true); assert.equal(send.body.otpConsentVersion, 1);
   await answer(send, { success: true, challengeId: '00000000-0000-4000-8000-000000000088', maskedPhone: '••• ••• 0123', expiresIn: 600, retryAfter: 60 });
@@ -89,13 +108,24 @@ async function verify(f, own = null) {
   const feedSource = await compile('src/components/personal/CustomerReviews.tsx', true);
   await pass('Preview cannot send codes, verify phones, save reviews, or restore a stored capability', async () => {
     const f = fixture(formSource, { isPreview: true, storage: [[`tapaway:review-session:${profileId}`, JSON.stringify({ token, expiresAt })]] });
-    f.life.effects(); select(f, 5); input(f, 'tel').props.onChange({ target: { value: '6615550123' } }); submit(f); await flush();
+    f.life.effects(); select(f, 5); continueReview(f); await flush();
     assert.equal(f.requests.length, 0); assert.equal(find(f.life.read(), 'fieldset').props.disabled, true);
+    assert.equal(input(f, 'tel'), undefined); assert.equal(button(f, 'Post review'), undefined);
   });
-  await pass('Phone verification is required; optional offers begin unchecked and rating-only save does not subscribe', async () => {
+  await pass('A star opens only a compact note option and Continue; rating-only verification does not subscribe', async () => {
     const f = fixture(formSource); select(f, 4);
-    assert.equal(input(f, 'checkbox').props.checked, false);
+    assert.ok(button(f, 'Add a note (optional)')); assert.ok(button(f, 'Continue'));
+    assert.equal(find(f.life.read(), 'textarea'), undefined);
+    assert.equal(input(f, 'tel'), undefined); assert.equal(input(f, 'checkbox'), undefined);
     assert.equal(button(f, 'Post review'), undefined);
+    assert.ok(!text(f.life.read()).includes(config.otpConsentText));
+    assert.ok(!text(f.life.read()).includes(config.sms.consentText));
+    assert.equal(walk(f.life.read()).filter(n => n.type === 'a').length, 0);
+    continueReview(f);
+    assert.equal(input(f, 'radio'), undefined); assert.equal(find(f.life.read(), 'textarea'), undefined);
+    assert.equal(input(f, 'checkbox'), undefined);
+    assert.equal(openOffers(f).props.checked, false);
+    assert.equal(f.requests.length, 0, 'Opening the phone and offers panels sends nothing');
     assert.ok(text(f.life.read()).includes('not required to review or buy'));
     assert.deepEqual(walk(f.life.read()).filter(n => n.type === 'a').map(n => n.props.href), ['https://example.invalid/terms', 'https://example.invalid/privacy', '/terms#review-verification', '/privacy#review-verification']);
     await verify(f);
@@ -109,12 +139,12 @@ async function verify(f, own = null) {
   await pass('Returning phone verification loads the existing review and edits it without creating a new identity', async () => {
     const f = fixture(formSource); button(f, 'Edit my review').props.onClick(); await verify(f, review(2, 'My previous review'));
     assert.equal(find(f.life.read(), 'textarea').props.value, 'My previous review');
-    assert.equal(input(f, 'checkbox').props.checked, false); assert.ok(button(f, 'Save changes'));
+    assert.equal(openOffers(f).props.checked, false); assert.ok(button(f, 'Save changes'));
     select(f, 5); comment(f, 'Pickup improved.'); submit(f);
     assert.equal(f.requests.at(-1).body.token, token);
     await answer(f.requests.at(-1), { success: true, review: review(5, 'Pickup improved.'), smsStatus: 'not_requested' });
     assert.ok(text(f.life.read()).includes('Your review has been updated.'));
-    button(f, 'Edit my review').props.onClick(); assert.equal(input(f, 'checkbox').props.checked, false);
+    button(f, 'Edit my review').props.onClick(); assert.equal(openOffers(f).props.checked, false);
     assert.equal(find(f.life.read(), 'textarea').props.value, 'Pickup improved.');
   });
   await pass('A fresh composed update survives verification that discovers an earlier review', async () => {
@@ -124,8 +154,44 @@ async function verify(f, own = null) {
     assert.ok(text(f.life.read()).includes('Saving will update your review.'));
     assert.ok(button(f, 'Save changes'));
   });
+  await pass('Editing a draft during verification resumes its existing code and cooldown without another text', async () => {
+    const f = fixture(formSource); select(f, 4); comment(f, 'A short note');
+    assert.equal(find(f.life.read(), 'textarea').props.rows, 2);
+    continueReview(f); input(f, 'tel').props.onChange({ target: { value: '6615550123' } }); submit(f);
+    const challengeId = '00000000-0000-4000-8000-000000000088';
+    await answer(f.requests[0], { success: true, challengeId, maskedPhone: '••• ••• 0123', expiresIn: 600, retryAfter: 60 });
+    assert.ok(!text(f.life.read()).includes(config.otpConsentText), 'The code screen does not repeat the full phone disclosure');
+    button(f, 'Edit rating or note').props.onClick();
+    assert.equal(openNote(f).props.value, 'A short note');
+    select(f, 5); comment(f, 'Updated while the code is active'); continueReview(f);
+    assert.equal(f.requests.length, 1); assert.ok(input(f, 'text')); assert.equal(input(f, 'tel'), undefined);
+    const resend = find(f.life.read(), 'button', (_props, node) => text(node).startsWith('Resend code'));
+    assert.equal(resend.props.disabled, true, 'Editing must not reset the resend cooldown');
+    input(f, 'text').props.onChange({ target: { value: '123456' } }); submit(f);
+    assert.equal(f.requests.length, 2); assert.equal(f.requests[1].body.challengeId, challengeId);
+    await answer(f.requests[1], { success: true, token, expiresAt, maskedPhone: '••• ••• 0123', review: null });
+    assert.equal(openNote(f).props.value, 'Updated while the code is active');
+    assert.equal(find(f.life.read(), 'input', p => p.type === 'radio' && p.value === 5).props.checked, true);
+  });
+  await pass('Unavailable verification keeps the compact form and offers inspectable without enabling a send', async () => {
+    const f = fixture(formSource, { config: { ...config, verificationAvailable: false } }); select(f, 5);
+    assert.ok(!text(f.life.read()).includes('Text verification is currently unavailable.'));
+    continueReview(f);
+    assert.ok(text(f.life.read()).includes('Text verification is currently unavailable.'));
+    input(f, 'tel').props.onChange({ target: { value: '6615550123' } });
+    assert.equal(button(f, 'Send code').props.disabled, true);
+    assert.equal(openOffers(f).props.checked, false);
+    assert.ok(text(f.life.read()).includes(config.sms.consentText));
+    submit(f); await flush(); assert.equal(f.requests.length, 0);
+  });
   await pass('Consent is explicit, separate from verification, and SMS failure does not turn a saved review into a failure', async () => {
-    const f = fixture(formSource); select(f, 3); input(f, 'checkbox').props.onChange({ target: { checked: true } });
+    const f = fixture(formSource); select(f, 3); continueReview(f);
+    assert.equal(openOffers(f).props.checked, false);
+    button(f, 'Messages & offers (optional)').props.onClick();
+    assert.equal(input(f, 'checkbox'), undefined, 'The optional panel can be collapsed');
+    assert.equal(openOffers(f).props.checked, false, 'Opening or closing details never opts in');
+    input(f, 'checkbox').props.onChange({ target: { checked: true } });
+    assert.ok(button(f, 'Messages & offers selected'));
     assert.equal(f.requests.length, 0); await verify(f);
     assert.ok(f.requests.every(r => r.body.action !== 'save'));
     submit(f); assert.equal(f.requests.at(-1).body.marketingConsent, true); assert.equal(f.requests.at(-1).body.consentVersion, 2);
@@ -140,8 +206,12 @@ async function verify(f, own = null) {
     const retry = f.requests.at(-1); assert.equal(retry.body.submissionId, first.body.submissionId);
     await answer(retry, { error: 'Session expired', code: 'SESSION_EXPIRED' });
     assert.ok(text(f.life.read()).includes('verify your phone again'));
+    assert.equal(find(f.life.read(), 'textarea'), undefined);
+    button(f, 'Edit rating or note').props.onClick();
+    assert.equal(openNote(f).props.value, 'Unsaved change');
+    comment(f, 'Unsaved change after expiry');
     await verify(f, review(4, 'Older saved version'));
-    assert.equal(find(f.life.read(), 'textarea').props.value, 'Unsaved change');
+    assert.equal(find(f.life.read(), 'textarea').props.value, 'Unsaved change after expiry');
   });
   await pass('Stored capability is checked server-side before reuse and never renders in public markup', async () => {
     const f = fixture(formSource, { storage: [[`tapaway:review-session:${profileId}`, JSON.stringify({ token, expiresAt })]] });
@@ -163,6 +233,7 @@ async function verify(f, own = null) {
   });
   await pass('Unavailable marketing never blocks a verified review, and comment limit counts Unicode characters', async () => {
     const f = fixture(formSource, { config: { ...config, sms: null } }); select(f, 5);
+    continueReview(f);
     assert.deepEqual(walk(f.life.read()).filter(n => n.type === 'a').map(n => n.props.href), ['/terms#review-verification', '/privacy#review-verification']);
     await verify(f);
     assert.equal(input(f, 'checkbox'), undefined); comment(f, '🥗'.repeat(601)); assert.equal(button(f, 'Post review').props.disabled, true);
