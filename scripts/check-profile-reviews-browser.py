@@ -318,6 +318,7 @@ async def run():
         await select_rating(page, 2)
         feedback = '<script>window.badReview = true</script> Pickup was late.'
         await page.get_by_role('textbox', name='Your feedback (optional)').fill(feedback)
+        await page.screenshot(path=str(OUTPUT / 'avmeals-mobile-320-review-form.png'), full_page=True)
         await verify_phone(page, state)
         await region.get_by_role('button', name='Post review', exact=True).click()
         await region.get_by_role('alert').wait_for()
